@@ -6,6 +6,13 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
 
+# Tous les deploys (test, dev, demo) ciblent le meme serveur Docker.
+# On serialise pour eviter les races sur le daemon Docker (ex: container
+# d'un autre env vu en "removal in progress" pendant un compose up).
+concurrency:
+  group: forges-server-deploy
+  cancel-in-progress: false
+
 env:
   IMAGE_NAME: ghcr.io/flinguee75/forges-backend
   NODE_VERSION: '20'
@@ -143,11 +150,11 @@ jobs:
               # Nettoyage robuste : supprime TOUT container matchant le pattern env
               # (incluant containers hash-prefixed et residus en etat Created/Exited).
               # Les donnees sont preservees via les volumes nommes (forges-postgres-demo, forges-redis-demo).
-              ZOMBIES=$(docker ps -aq --filter "name=forges-(backend|postgres|redis)-demo" 2>/dev/null || true)
+              # Pas de docker network prune ici : il casserait les deploys paralleles test/dev.
+              ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-demo$' || true)
               if [ -n "$ZOMBIES" ]; then
-                docker rm -f $ZOMBIES 2>/dev/null || true
+                echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
               fi
-              docker network prune -f >/dev/null 2>&1 || true
 
               docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env up -d
 
