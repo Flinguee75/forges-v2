@@ -25,28 +25,44 @@ name: Deploy → dev.forges-group.com
 on:
   push:
     branches: [develop]
-
   workflow_dispatch:
-    inputs:
-      seed:
-        description: 'Seed à exécuter (optionnel)'
-        required: false
-        default: 'none'
-        type: choice
-        options: ['none', 'seed-dev.js']
 
 env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/forges-backend
   NODE_VERSION: '20'
-  ENVIRONMENT: dev
-  BACKEND_PORT: 3001
 
 jobs:
-  deploy:
-    name: Déploiement sur dev
+  # ── Job 1 : Build & push image Docker backend ─────────────
+  build-push:
+    name: Build image backend → GHCR
     runs-on: ubuntu-22.04
-    environment:
-      name: dev
-      url: https://dev.forges-group.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/docker/Dockerfile.backend.prod
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:dev
+            ${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
+
+  # ── Job 2 : Build frontend ────────────────────────────────
+  build-frontend:
+    name: Build frontend Vite
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
@@ -57,35 +73,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: forges-monorepo/backend/package-lock.json
+          cache-dependency-path: forges-monorepo/frontend/package-lock.json
 
-      # ── Build backend ──────────────────────────────────────
-      - name: Installer dépendances backend
-        working-directory: forges-monorepo/backend
-        run: npm ci --no-audit --no-fund
-
-      - name: Générer client Prisma
-        working-directory: forges-monorepo/backend
-        run: npx prisma generate
-
-      - name: Tests unitaires (bloquants)
-        working-directory: forges-monorepo/backend
-        env:
-          NODE_ENV: test
-          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-          JWT_SECRET: ${{ secrets.DEV_JWT_SECRET }}
-          JWT_REFRESH_SECRET: ${{ secrets.DEV_JWT_REFRESH_SECRET }}
-          ENCRYPTION_KEY: ${{ secrets.DEV_ENCRYPTION_KEY }}
-          HMAC_KEY: ${{ secrets.DEV_HMAC_KEY }}
-          WEBHOOK_SECRET: ${{ secrets.DEV_WEBHOOK_SECRET }}
-          FRONTEND_URL: https://dev.forges-group.com
-        run: npm run test
-
-      - name: Compiler TypeScript
-        working-directory: forges-monorepo/backend
-        run: npm run build
-
-      # ── Build frontend ─────────────────────────────────────
       - name: Installer dépendances frontend
         working-directory: forges-monorepo/frontend
         run: npm ci --no-audit --no-fund
@@ -97,7 +86,29 @@ jobs:
           VITE_ENV: dev
         run: npm run build
 
-      # ── Déploiement SSH ────────────────────────────────────
+      - name: Upload dist frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-dev
+          path: forges-monorepo/frontend/dist/
+          retention-days: 1
+
+  # ── Job 3 : Déploiement VPS ───────────────────────────────
+  deploy:
+    name: Déploiement sur dev
+    runs-on: ubuntu-22.04
+    needs: [build-push, build-frontend]
+    environment:
+      name: dev
+      url: https://dev.forges-group.com
+
+    steps:
+      - name: Download dist frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-dev
+          path: frontend-dist/
+
       - name: Configurer SSH
         run: |
           mkdir -p ~/.ssh
@@ -106,110 +117,50 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Transférer backend (rsync)
-        run: |
-          rsync -avz --delete \
-            --exclude='.env*' \
-            --exclude='node_modules/.cache' \
-            --exclude='*.test.js' \
-            --exclude='*.spec.js' \
-            forges-monorepo/backend/dist/ \
-            forges-monorepo/backend/package.json \
-            forges-monorepo/backend/package-lock.json \
-            forges-monorepo/backend/prisma/ \
-            forges-monorepo/backend/node_modules/ \
-            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/
-
       - name: Transférer frontend (rsync)
         run: |
           rsync -avz --delete \
-            forges-monorepo/frontend/dist/ \
+            frontend-dist/ \
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/public/
 
-      # ── Migrations + Redémarrage ───────────────────────────
-      - name: Migrations Prisma + Redémarrage Passenger
+      - name: Docker pull + migrate + restart
         run: |
-          ssh ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} << 'ENDSSH'
+          ssh ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} bash << 'ENDSSH'
             set -euo pipefail
             cd "${{ secrets.DEV_DEPLOY_PATH }}"
 
-            cat > .env.dev << ENVEOF
-DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
-NODE_ENV=development
-JWT_SECRET=${{ secrets.DEV_JWT_SECRET }}
-JWT_REFRESH_SECRET=${{ secrets.DEV_JWT_REFRESH_SECRET }}
-ENCRYPTION_KEY=${{ secrets.DEV_ENCRYPTION_KEY }}
-HMAC_KEY=${{ secrets.DEV_HMAC_KEY }}
-WEBHOOK_SECRET=${{ secrets.DEV_WEBHOOK_SECRET }}
-SMTP_HOST=${{ secrets.DEV_SMTP_HOST }}
-SMTP_USER=${{ secrets.DEV_SMTP_USER }}
-SMTP_PASS=${{ secrets.DEV_SMTP_PASS }}
-PAYMENT_API_KEY=${{ secrets.DEV_PAYMENT_API_KEY }}
-FRONTEND_URL=https://dev.forges-group.com
-PORT=3001
-ENVEOF
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            FAILED=$(npx prisma migrate status 2>/dev/null | grep 'failed' | awk '{print $1}' | head -1)
-            [ -n "$FAILED" ] && npx prisma migrate resolve --rolled-back "$FAILED" 2>/dev/null || true
+            export IMAGE_TAG="${{ github.sha }}"
+            docker compose -f infra/docker/docker-compose.dev.deploy.yml pull backend
 
-            export DATABASE_URL="${{ secrets.DEV_DATABASE_URL }}"
-            npx prisma migrate deploy
+            docker compose -f infra/docker/docker-compose.dev.deploy.yml up -d --remove-orphans
+
+            echo "Attente démarrage backend..."
+            sleep 10
+
+            docker exec forges-backend-dev sh -c 'npx prisma migrate deploy'
             echo "Migrations OK"
-
-            mkdir -p tmp && touch tmp/restart.txt
-            echo "Passenger redémarré"
-
-            if [ -f infra/docker-compose.yml ]; then
-              RUNNING=$(docker compose -f infra/docker-compose.yml ps --status running --quiet 2>/dev/null | wc -l)
-              [ "$RUNNING" -lt 2 ] && docker compose -f infra/docker-compose.yml up -d || echo "Containers actifs"
-            fi
           ENDSSH
 
-      # ── Seed (optionnel) ───────────────────────────────────
-      - name: Seed (si demandé)
-        if: ${{ github.event.inputs.seed != 'none' && github.event.inputs.seed != '' }}
-        run: |
-          SEED_FILE="${{ github.event.inputs.seed }}"
-          ssh ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} << ENDSSH
-            set -euo pipefail
-            cd "${{ secrets.DEV_DEPLOY_PATH }}"
-            export DATABASE_URL="${{ secrets.DEV_DATABASE_URL }}"
-            [ ! -f "prisma/$SEED_FILE" ] && echo "prisma/$SEED_FILE introuvable" && exit 0
-            node "prisma/$SEED_FILE" --reset
-            echo "Seed $SEED_FILE exécuté"
-          ENDSSH
-
-      # ── Healthcheck ────────────────────────────────────────
-      - name: Healthcheck post-déploiement
+      - name: Healthcheck
         run: |
           sleep 5
-          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" \
-            https://${{ secrets.DEV_SERVER_HOST }}/api/health || echo "000")
-          echo "Healthcheck : $HTTP_CODE"
-          if [ "$HTTP_CODE" == "200" ]; then
-            echo "API opérationnelle"
-            echo "HEALTH=OK (HTTP 200)" >> $GITHUB_ENV
-          else
-            echo "Healthcheck retourné $HTTP_CODE"
-            echo "HEALTH=HTTP $HTTP_CODE" >> $GITHUB_ENV
-          fi
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://dev.forges-group.com/api/health || echo "000")
+          echo "HEALTH=HTTP $HTTP_CODE" >> $GITHUB_ENV
+          [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
-      # ── Résumé ────────────────────────────────────────────
-      - name: Résumé déploiement dev
+      - name: Résumé
         if: always()
         run: |
-          echo "## Déploiement DEV — ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Deploy DEV — ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Environnement | dev |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| URL | https://dev.forges-group.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Healthcheck | ${{ env.HEALTH || '—' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | ${{ env.IMAGE_NAME }}:dev-${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Healthcheck | ${{ env.HEALTH }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Déployé par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Date | $(date '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
 
-      # ── Nettoyage ─────────────────────────────────────────
       - name: Nettoyer clé SSH
         if: always()
         run: rm -f ~/.ssh/id_rsa
