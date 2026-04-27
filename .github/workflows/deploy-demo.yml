@@ -138,10 +138,10 @@ jobs:
               echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
               sed -i '/^IMAGE_TAG=/d' .env && echo "IMAGE_TAG=$IMAGE_TAG" >> .env
-              docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env pull backend
+              docker compose -p forges-demo -f infra/docker/docker-compose.demo.deploy.yml --env-file .env pull backend
               docker stop forges-backend-demo 2>/dev/null || true
               docker rm forges-backend-demo 2>/dev/null || true
-              docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env up -d --remove-orphans
+              docker compose -p forges-demo -f infra/docker/docker-compose.demo.deploy.yml --env-file .env up -d --remove-orphans
 
               echo "Attente healthcheck backend..."
               for i in $(seq 1 30); do
