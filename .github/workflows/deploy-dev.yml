@@ -100,13 +100,13 @@ jobs:
             --chmod=D755,F644 \
             --exclude='.env' --exclude='infra/' --exclude='uploads/' --exclude='prisma/' \
             frontend-dist/ \
-            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_FRONTEND_DEPLOY_PATH }}/
 
       - name: Corriger permissions frontend
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} \
-            "find ${{ secrets.DEV_DEPLOY_PATH }} -not -path '*/.env' -not -path '*/infra/*' -not -path '*/uploads/*' -type f -exec chmod 644 {} \; && find ${{ secrets.DEV_DEPLOY_PATH }} -type d -exec chmod 755 {} \;"
+            "find ${{ secrets.DEV_FRONTEND_DEPLOY_PATH }} -not -path '*/.env' -not -path '*/infra/*' -not -path '*/uploads/*' -type f -exec chmod 644 {} \; && find ${{ secrets.DEV_FRONTEND_DEPLOY_PATH }} -type d -exec chmod 755 {} \;"
 
       - name: Transférer docker-compose (rsync)
         run: |
