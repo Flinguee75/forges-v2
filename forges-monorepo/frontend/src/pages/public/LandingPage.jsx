@@ -30,8 +30,16 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
             {/* Logo */}
-            <div className="flex justify-center mb-8">
-              <img src={logoForges} alt="FORGES" className="h-20 w-auto" />
+            <div className="flex justify-center mb-12">
+              <div className="relative">
+                {/* Glow effect */}
+                <div className="absolute inset-0 bg-white/40 rounded-full blur-3xl scale-110" aria-hidden="true"></div>
+                <img
+                  src={logoForges}
+                  alt="FORGES"
+                  className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full object-cover shadow-2xl ring-8 ring-white/20"
+                />
+              </div>
             </div>
 
             {/* Badge Made in Africa */}

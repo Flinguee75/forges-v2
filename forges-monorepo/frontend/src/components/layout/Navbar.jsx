@@ -132,7 +132,7 @@ export default function Navbar({
           {isPublic ? (
             <>
               <Link to="/" className="flex items-center">
-                <img src={logoForges} alt="FORGES" className="h-9 w-auto" />
+                <img src={logoForges} alt="FORGES" className="h-14 w-14 rounded-full object-cover" />
               </Link>
               <nav className="hidden items-center gap-6 md:flex">
                 <Link to="/" className="font-medium text-text transition-colors hover:text-primary">
