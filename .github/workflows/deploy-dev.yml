@@ -138,9 +138,15 @@ jobs:
 
               sed -i '/^IMAGE_TAG=/d' .env && echo "IMAGE_TAG=$IMAGE_TAG" >> .env
               docker compose -f infra/docker/docker-compose.dev.deploy.yml --env-file .env pull backend
-              docker stop forges-backend-dev 2>/dev/null || true
-              docker rm forges-backend-dev 2>/dev/null || true
-              docker compose -f infra/docker/docker-compose.dev.deploy.yml --env-file .env up -d --no-recreate
+
+              # Nettoyage complet pour eviter les conflits de project name / config drift.
+              # Les donnees sont conservees (volumes nommes forges-postgres-dev, forges-redis-dev).
+              for c in forges-backend-dev forges-postgres-dev forges-redis-dev; do
+                docker stop "$c" 2>/dev/null || true
+                docker rm "$c" 2>/dev/null || true
+              done
+
+              docker compose -f infra/docker/docker-compose.dev.deploy.yml --env-file .env up -d
 
               echo "Attente healthcheck backend..."
               for i in $(seq 1 30); do
