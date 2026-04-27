@@ -98,6 +98,7 @@ jobs:
       - name: Transférer frontend (rsync)
         run: |
           rsync -rltz --delete --omit-dir-times --no-perms --no-group \
+            --chmod=D755,F644 \
             --exclude='.env' --exclude='infra/' --exclude='uploads/' --exclude='prisma/' \
             frontend-dist/ \
             ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/
