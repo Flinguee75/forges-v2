@@ -138,8 +138,8 @@ jobs:
 
               sed -i '/^IMAGE_TAG=/d' .env && echo "IMAGE_TAG=$IMAGE_TAG" >> .env
               docker compose -f infra/docker/docker-compose.dev.deploy.yml --env-file .env pull backend
-              docker stop forges-backend-dev forges-postgres-dev forges-redis-dev 2>/dev/null || true
-              docker rm forges-backend-dev forges-postgres-dev forges-redis-dev 2>/dev/null || true
+              docker stop forges-backend-dev 2>/dev/null || true
+              docker rm forges-backend-dev 2>/dev/null || true
               docker compose -f infra/docker/docker-compose.dev.deploy.yml --env-file .env up -d --remove-orphans
 
               echo "Attente healthcheck backend..."
