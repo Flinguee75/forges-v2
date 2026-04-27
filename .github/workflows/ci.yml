@@ -258,10 +258,35 @@ jobs:
           path: forges-monorepo/backend/dist/
           retention-days: 7
 
-  # ── Job 3 : Build frontend ────────────────────────────────────
+  # ── Job 4 : Tests unitaires frontend ─────────────────────────
+  test-frontend:
+    name: Tests unitaires frontend
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: forges-monorepo/frontend/package-lock.json
+
+      - name: Installer les dépendances
+        working-directory: forges-monorepo/frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Exécuter les tests Vitest
+        working-directory: forges-monorepo/frontend
+        run: npm run test -- --run --reporter=verbose
+
+  # ── Job 5 : Build frontend ────────────────────────────────────
   build-frontend:
     name: Build Frontend
     runs-on: ubuntu-22.04
+    needs: test-frontend
 
     steps:
       - name: Checkout
