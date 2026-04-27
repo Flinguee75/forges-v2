@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/forges-backend
   NODE_VERSION: '20'
 
@@ -79,6 +78,9 @@ jobs:
       url: https://demo.forges-group.com
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download dist frontend
         uses: actions/download-artifact@v4
         with:
@@ -99,28 +101,45 @@ jobs:
             frontend-dist/ \
             ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/public/
 
-      - name: Docker pull + migrate + restart
+      - name: Transférer docker-compose (rsync)
         run: |
-          ssh ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }} bash -s << 'ENDSSH'
-            set -euo pipefail
-            cd ${{ secrets.DEMO_DEPLOY_PATH }}
+          rsync -avz \
+            infra/docker/docker-compose.docker-compose.demo.deploy.yml \
+            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/docker/
 
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Docker pull + migrate + restart
+        env:
+          DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" \
+            GHCR_TOKEN="$GHCR_TOKEN" \
+            GHCR_USER="$GHCR_USER" \
+            IMAGE_TAG="$IMAGE_TAG" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              cd "$DEPLOY_PATH"
 
-            export IMAGE_TAG="${{ github.sha }}"
-            docker compose -f infra/docker/docker-compose.demo.deploy.yml pull backend
-            docker compose -f infra/docker/docker-compose.demo.deploy.yml up -d --remove-orphans
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-            sleep 10
-            docker exec forges-backend-demo sh -c 'npx prisma migrate deploy'
-            echo "Migrations OK"
+              export IMAGE_TAG="$IMAGE_TAG"
+              docker compose -f infra/docker/docker-compose.docker-compose.demo.deploy.yml --env-file .env pull backend
+              docker compose -f infra/docker/docker-compose.docker-compose.demo.deploy.yml --env-file .env up -d --remove-orphans
+
+              sleep 10
+              docker exec forges-backend-demo sh -c 'npx prisma migrate deploy'
+              echo "Migrations OK"
           ENDSSH
 
       - name: Healthcheck
         run: |
-          sleep 5
+          sleep 8
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://demo.forges-group.com/api/health || echo "000")
-          echo "HEALTH=HTTP $HTTP_CODE" >> $GITHUB_ENV
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
       - name: Résumé

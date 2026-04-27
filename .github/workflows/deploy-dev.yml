@@ -1,26 +1,4 @@
-# =============================================================
-# deploy-dev.yml — Déploiement automatique sur dev.forges-group.com
-# Déclencheur : push sur la branche develop
-#
-# Secrets GitHub requis (environnement "dev") :
-#   SSH_PRIVATE_KEY
-#   SSH_KNOWN_HOSTS
-#   DEV_SERVER_HOST        dev.forges-group.com
-#   DEV_SERVER_USER        plesk-ssh-user
-#   DEV_DEPLOY_PATH        /var/www/vhosts/.../httpdocs
-#   DEV_DATABASE_URL
-#   DEV_JWT_SECRET
-#   DEV_JWT_REFRESH_SECRET
-#   DEV_ENCRYPTION_KEY
-#   DEV_HMAC_KEY
-#   DEV_WEBHOOK_SECRET
-#   DEV_SMTP_HOST
-#   DEV_SMTP_USER
-#   DEV_SMTP_PASS
-#   DEV_PAYMENT_API_KEY
-# =============================================================
-
-name: Deploy → dev.forges-group.com
+name: Deploy → https://dev.forges-group.com
 
 on:
   push:
@@ -28,12 +6,10 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/forges-backend
   NODE_VERSION: '20'
 
 jobs:
-  # ── Job 1 : Build & push image Docker backend ─────────────
   build-push:
     name: Build image backend → GHCR
     runs-on: ubuntu-22.04
@@ -59,7 +35,6 @@ jobs:
             ${{ env.IMAGE_NAME }}:dev
             ${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
 
-  # ── Job 2 : Build frontend ────────────────────────────────
   build-frontend:
     name: Build frontend Vite
     runs-on: ubuntu-22.04
@@ -93,7 +68,6 @@ jobs:
           path: forges-monorepo/frontend/dist/
           retention-days: 1
 
-  # ── Job 3 : Déploiement VPS ───────────────────────────────
   deploy:
     name: Déploiement sur dev
     runs-on: ubuntu-22.04
@@ -103,6 +77,9 @@ jobs:
       url: https://dev.forges-group.com
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download dist frontend
         uses: actions/download-artifact@v4
         with:
@@ -123,31 +100,45 @@ jobs:
             frontend-dist/ \
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/public/
 
-      - name: Docker pull + migrate + restart
+      - name: Transférer docker-compose (rsync)
         run: |
-          ssh ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} bash << 'ENDSSH'
-            set -euo pipefail
-            cd "${{ secrets.DEV_DEPLOY_PATH }}"
+          rsync -avz \
+            infra/docker/docker-compose.docker-compose.dev.deploy.yml \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra/docker/
 
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Docker pull + migrate + restart
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" \
+            GHCR_TOKEN="$GHCR_TOKEN" \
+            GHCR_USER="$GHCR_USER" \
+            IMAGE_TAG="$IMAGE_TAG" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              cd "$DEPLOY_PATH"
 
-            export IMAGE_TAG="${{ github.sha }}"
-            docker compose -f infra/docker/docker-compose.dev.deploy.yml pull backend
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-            docker compose -f infra/docker/docker-compose.dev.deploy.yml up -d --remove-orphans
+              export IMAGE_TAG="$IMAGE_TAG"
+              docker compose -f infra/docker/docker-compose.docker-compose.dev.deploy.yml --env-file .env pull backend
+              docker compose -f infra/docker/docker-compose.docker-compose.dev.deploy.yml --env-file .env up -d --remove-orphans
 
-            echo "Attente démarrage backend..."
-            sleep 10
-
-            docker exec forges-backend-dev sh -c 'npx prisma migrate deploy'
-            echo "Migrations OK"
+              sleep 10
+              docker exec forges-backend-dev sh -c 'npx prisma migrate deploy'
+              echo "Migrations OK"
           ENDSSH
 
       - name: Healthcheck
         run: |
-          sleep 5
+          sleep 8
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://dev.forges-group.com/api/health || echo "000")
-          echo "HEALTH=HTTP $HTTP_CODE" >> $GITHUB_ENV
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
       - name: Résumé
@@ -158,7 +149,6 @@ jobs:
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| URL | https://dev.forges-group.com |" >> $GITHUB_STEP_SUMMARY
           echo "| Image | ${{ env.IMAGE_NAME }}:dev-${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Healthcheck | ${{ env.HEALTH }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Déployé par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Nettoyer clé SSH
