@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: forges-postgres-demo
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-demo-data:/var/lib/postgresql/data
+    networks:
+      - forges-demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: forges-redis-demo
+    restart: unless-stopped
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$REDIS_PASSWORD\""]
+    volumes:
+      - redis-demo-data:/data
+    networks:
+      - forges-demo
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    container_name: forges-backend-demo
+    restart: unless-stopped
+    env_file:
+      - ../env/.env.demo.deploy
+    environment:
+      NODE_ENV: production
+      PORT: ${BACKEND_INTERNAL_PORT}
+      BACKEND_PORT: ${BACKEND_INTERNAL_PORT}
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RUN_PRISMA_MIGRATE_DEPLOY: "true"
+      AUTO_SEED: "false"
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_INTERNAL_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - forges-demo
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:${BACKEND_INTERNAL_PORT}/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  forges-demo:
+    name: forges-demo
+    driver: bridge
+
+volumes:
+  postgres-demo-data:
+    name: forges-postgres-demo
+  redis-demo-data:
+    name: forges-redis-demo

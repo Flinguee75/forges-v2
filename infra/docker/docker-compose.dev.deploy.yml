@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: forges-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - forges-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: forges-redis-dev
+    restart: unless-stopped
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$REDIS_PASSWORD\""]
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - forges-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    container_name: forges-backend-dev
+    restart: unless-stopped
+    env_file:
+      - ../env/.env.dev.deploy
+    environment:
+      NODE_ENV: development
+      PORT: ${BACKEND_INTERNAL_PORT}
+      BACKEND_PORT: ${BACKEND_INTERNAL_PORT}
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RUN_PRISMA_MIGRATE_DEPLOY: "true"
+      AUTO_SEED: "false"
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_INTERNAL_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - forges-dev
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:${BACKEND_INTERNAL_PORT}/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  forges-dev:
+    name: forges-dev
+    driver: bridge
+
+volumes:
+  postgres-dev-data:
+    name: forges-postgres-dev
+  redis-dev-data:
+    name: forges-redis-dev

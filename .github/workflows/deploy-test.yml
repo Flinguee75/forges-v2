@@ -51,19 +51,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: forges-monorepo/backend/package-lock.json
 
       # ── Build backend ──────────────────────────────────────
       - name: Installer dépendances backend
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         run: npm ci --no-audit --no-fund
 
       - name: Générer client Prisma
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         run: npx prisma generate
 
       - name: Tests unitaires (bloquants)
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
           NODE_ENV: test
@@ -76,16 +76,16 @@ jobs:
         run: npm run test
 
       - name: Compiler TypeScript
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         run: npm run build
 
       # ── Build frontend ─────────────────────────────────────
       - name: Installer dépendances frontend
-        working-directory: frontend
+        working-directory: forges-monorepo/frontend
         run: npm ci --no-audit --no-fund
 
       - name: Build Vite (test)
-        working-directory: frontend
+        working-directory: forges-monorepo/frontend
         env:
           VITE_API_URL: https://test.forges-group.com/api
           VITE_ENV: test
@@ -107,17 +107,17 @@ jobs:
             --exclude='node_modules/.cache' \
             --exclude='*.test.js' \
             --exclude='*.spec.js' \
-            backend/dist/ \
-            backend/package.json \
-            backend/package-lock.json \
-            backend/prisma/ \
-            backend/node_modules/ \
+            forges-monorepo/backend/dist/ \
+            forges-monorepo/backend/package.json \
+            forges-monorepo/backend/package-lock.json \
+            forges-monorepo/backend/prisma/ \
+            forges-monorepo/backend/node_modules/ \
             ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/
 
       - name: Transférer frontend (rsync)
         run: |
           rsync -avz --delete \
-            frontend/dist/ \
+            forges-monorepo/frontend/dist/ \
             ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/public/
 
       # ── Migrations + Redémarrage ───────────────────────────

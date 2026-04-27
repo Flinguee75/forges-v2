@@ -65,3 +65,7 @@ docker-compose.override.yml
 .cache/
 .turbo/
 get-role-ids.js
+
+# ─── Référence locale uniquement ──────────────────────────────────────────────
+old_infra/
+infra/env/.env.*.deploy

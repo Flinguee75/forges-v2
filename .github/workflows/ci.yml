@@ -2,17 +2,17 @@
 # ci.yml — Intégration Continue FORGES
 # Déclencheur : push sur toute branche + pull requests
 # Actions :
-#   1. Lint TypeScript
-#   2. Tests unitaires (tous modules MOD-01→15)
-#   3. Rapport de couverture (artefact téléchargeable)
-#   4. Build TypeScript (vérification compilation)
+#   1. Lint backend (TypeScript) + frontend (ESLint)
+#   2. Tests unitaires backend (MOD-01→15) + couverture
+#   3. Tests d'intégration backend (routes HTTP)
+#   4. Build TypeScript + Build Vite
 # =============================================================
 
 name: CI — Tests & Build
 
 on:
   push:
-    branches: ['**']          # Toutes les branches
+    branches: ['**']
   pull_request:
     branches: [develop, test, main]
 
@@ -20,6 +20,40 @@ env:
   NODE_VERSION: '20'
 
 jobs:
+  # ── Job 0 : Lint ─────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            forges-monorepo/backend/package-lock.json
+            forges-monorepo/frontend/package-lock.json
+
+      - name: Installer dépendances backend
+        working-directory: forges-monorepo/backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint backend
+        working-directory: forges-monorepo/backend
+        run: npm run lint
+
+      - name: Installer dépendances frontend
+        working-directory: forges-monorepo/frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint frontend
+        working-directory: forges-monorepo/frontend
+        run: npm run lint
+
   # ── Job 1 : Tests unitaires backend ─────────────────────────
   test-backend:
     name: Tests unitaires backend
@@ -61,24 +95,24 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: forges-monorepo/backend/package-lock.json
 
       - name: Installer les dépendances backend
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         run: npm ci --no-audit --no-fund
 
       - name: Générer le client Prisma
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         run: npx prisma generate
 
       - name: Appliquer les migrations de test
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         env:
           DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
         run: npx prisma migrate deploy
 
       - name: Exécuter les tests unitaires
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         env:
           DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
           REDIS_URL: redis://localhost:6379
@@ -97,11 +131,11 @@ jobs:
         if: always()   # Même si les tests échouent
         with:
           name: coverage-report-${{ github.sha }}
-          path: backend/coverage/
+          path: forges-monorepo/backend/coverage/
           retention-days: 30
 
       - name: Afficher le résumé de couverture
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         run: |
           echo "## 📊 Couverture des tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -117,11 +151,36 @@ jobs:
             " >> $GITHUB_STEP_SUMMARY
           fi
 
-  # ── Job 2 : Build TypeScript ─────────────────────────────────
-  build-backend:
-    name: Build TypeScript
+  # ── Job 2 : Tests d'intégration backend ─────────────────────
+  test-integration:
+    name: Tests d'intégration backend
     runs-on: ubuntu-22.04
-    needs: test-backend    # Seulement si les tests passent
+    needs: test-backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: forges_test
+          POSTGRES_PASSWORD: forges_test_pass
+          POSTGRES_DB: forges_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout
@@ -132,25 +191,71 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: forges-monorepo/backend/package-lock.json
 
-      - name: Installer les dépendances
-        working-directory: backend
+      - name: Installer les dépendances backend
+        working-directory: forges-monorepo/backend
         run: npm ci --no-audit --no-fund
 
       - name: Générer le client Prisma
-        working-directory: backend
+        working-directory: forges-monorepo/backend
+        run: npx prisma generate
+
+      - name: Appliquer les migrations
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+        run: npx prisma migrate deploy
+
+      - name: Exécuter les tests d'intégration
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+          JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
+          JWT_REFRESH_SECRET: ci_refresh_secret_not_for_production_64chars_minimum
+          ENCRYPTION_KEY: ci_encryption_key_32bytes_hex_not_for_prod_change_me_now
+          HMAC_KEY: ci_hmac_key_32bytes_hex_not_for_production_change_me_now
+          WEBHOOK_SECRET: ci_webhook_secret_not_for_production
+          SMTP_HOST: localhost
+          FRONTEND_URL: http://localhost:5173
+        run: npm run test:integration
+
+  # ── Job 3 : Build TypeScript ─────────────────────────────────
+  build-backend:
+    name: Build TypeScript
+    runs-on: ubuntu-22.04
+    needs: [test-backend, test-integration]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: forges-monorepo/backend/package-lock.json
+
+      - name: Installer les dépendances
+        working-directory: forges-monorepo/backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Générer le client Prisma
+        working-directory: forges-monorepo/backend
         run: npx prisma generate
 
       - name: Compiler TypeScript
-        working-directory: backend
+        working-directory: forges-monorepo/backend
         run: npm run build
 
       - name: Uploader le build (artefact)
         uses: actions/upload-artifact@v4
         with:
           name: backend-build-${{ github.sha }}
-          path: backend/dist/
+          path: forges-monorepo/backend/dist/
           retention-days: 7
 
   # ── Job 3 : Build frontend ────────────────────────────────────
@@ -167,14 +272,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: forges-monorepo/frontend/package-lock.json
 
       - name: Installer les dépendances
-        working-directory: frontend
+        working-directory: forges-monorepo/frontend
         run: npm ci --no-audit --no-fund
 
       - name: Build Vite
-        working-directory: frontend
+        working-directory: forges-monorepo/frontend
         env:
           VITE_API_URL: https://test.forges-group.com/api
         run: npm run build
@@ -183,5 +288,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build-${{ github.sha }}
-          path: frontend/dist/
+          path: forges-monorepo/frontend/dist/
           retention-days: 7

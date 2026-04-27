@@ -1,0 +1,16 @@
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY forges-monorepo/frontend/package*.json ./
+RUN npm ci --legacy-peer-deps
+COPY forges-monorepo/frontend/ .
+ARG VITE_API_URL
+ARG VITE_APP_ENV
+RUN npm run build
+
+FROM nginx:alpine AS runner
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY infra/docker/nginx-docker.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -q -O- http://127.0.0.1/health || exit 1
+CMD ["nginx", "-g", "daemon off;"]
