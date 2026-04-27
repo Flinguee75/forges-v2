@@ -39,6 +39,7 @@ services:
     env_file:
       - /var/www/vhosts/test.forges-group.com/httpdocs/.env
     environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       NODE_ENV: test
       PORT: ${BACKEND_INTERNAL_PORT}
       BACKEND_PORT: ${BACKEND_INTERNAL_PORT}
