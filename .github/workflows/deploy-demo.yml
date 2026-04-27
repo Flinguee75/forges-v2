@@ -139,7 +139,8 @@ jobs:
 
               export IMAGE_TAG="$IMAGE_TAG"
               docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env pull backend
-              docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env down --remove-orphans 2>/dev/null || true
+              docker stop forges-backend-demo forges-postgres-demo forges-redis-demo 2>/dev/null || true
+              docker rm forges-backend-demo forges-postgres-demo forges-redis-demo 2>/dev/null || true
               docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env up -d --remove-orphans
 
               echo "Attente healthcheck backend..."
