@@ -33,11 +33,11 @@ services:
       retries: 5
 
   backend:
-    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}:dev-${IMAGE_TAG}
     container_name: forges-backend-dev
     restart: unless-stopped
     env_file:
-      - ../env/.env.dev.deploy
+      - /var/www/vhosts/dev.forges-group.com/httpdocs/.env
     environment:
       NODE_ENV: development
       PORT: ${BACKEND_INTERNAL_PORT}
