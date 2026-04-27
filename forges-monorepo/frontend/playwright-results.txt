@@ -1,0 +1,532 @@
+
+Running 40 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/auth-role-smoke.spec.js:3:1 › auth and role smoke flow (1.9s)
+  ✘   2 [chromium] › e2e/ucs00-01-auth.spec.js:5:1 › UCS00: confirmation email active un compte apprenant en attente (27ms)
+  ✓   3 [chromium] › e2e/ucs00-01-auth.spec.js:14:1 › UCS01: login retourne access token et refresh token utilisable (235ms)
+  ✘   4 [chromium] › e2e/ucs03-2-abonnement-b2b.spec.js:5:1 › UCS03.2: Organisation voit son palier B2B STARTER et sa limite de 5 apprenants (1.7s)
+  ✓   5 [chromium] › e2e/ucs03-2-abonnement-b2b.spec.js:18:1 › UCS03.2 RM-102: le catalogue expose les formations Standard incluses abonnement (47ms)
+  ✘   6 [chromium] › e2e/ucs03-2-abonnement-b2b.spec.js:28:1 › UCS03.2: montée BUSINESS recalcule la capacité B2B (215ms)
+  ✘   7 [chromium] › e2e/ucs05-sessions-transitions.spec.js:5:1 › UCS05 RM-20/RM-21: scheduler transitionne et archive les sessions de façon idempotente (243ms)
+  ✓   8 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:18:1 › UCS06 RM-39: Agent crée un voucher promotionnel en statut BROUILLON (242ms)
+  ✓   9 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:39:1 › UCS06 RM-39: Superviseur valide un voucher BROUILLON → ACTIF (419ms)
+  ✓  10 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:74:1 › UCS06 RM-39: Superviseur refuse un voucher BROUILLON → REFUSE avec motif (413ms)
+  ✓  11 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:109:1 › UCS06 RM-40: Création voucher promo sans quota_max → rejeté (207ms)
+  ✓  12 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:127:1 › UCS06 RM-40: Création voucher promo sans date expiration → rejeté (202ms)
+  ✓  13 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:145:1 › UCS06 RM-42: Voucher promotionnel applique réduction correcte (411ms)
+  ✓  14 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:178:1 › UCS06 RM-37/RM-38: Voucher promotionnel lié à formation spécifique (406ms)
+  ✓  15 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:204:1 › UCS06 Workflow complet: Agent crée → Superviseur consulte liste BROUILLON → Valide (435ms)
+  ✘  16 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:276:1 › UCS06 RM-40: Vérification quota épuisé → EPUISE (722ms)
+  ✓  17 [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:320:1 › UCS06 RM-40: Vérification expiration → EXPIRE (2.4s)
+  ✘  18 [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:5:1 › UCS07 RM-140: Standard Retail passe en paiement direct (16.8s)
+  ✘  19 [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:23:1 › UCS07 RM-140: Premium Retail attend la vérification Responsable (237ms)
+  ✘  20 [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:33:1 › UCS07 RM-140: Premium B2B ne passe pas par la vérification Responsable (232ms)
+  ✘  21 [chromium] › e2e/ucs08-traitement-dossier.spec.js:5:1 › UCS08 RM-05/RM-07: Responsable retient un dossier Premium Retail et active le délai 72h (233ms)
+  ✓  22 [chromium] › e2e/ucs08-traitement-dossier.spec.js:16:1 › UCS08 RM-05: un dossier RETENU ne peut pas être rejeté (219ms)
+  ✓  23 [chromium] › e2e/ucs08-traitement-dossier.spec.js:26:1 › UCS08 RM-07: le scheduler test-only annule les dossiers RETENU expirés (228ms)
+  ✘  24 [chromium] › e2e/ucs09-paiement-commissions.spec.js:12:1 › UCS09 RM-09: webhook SUCCESS confirme le paiement et passe le dossier en PAYE (214ms)
+  ✘  25 [chromium] › e2e/ucs09-paiement-commissions.spec.js:27:1 › UCS09 RM-129: paiement partenaire génère une commission nette partenaire (254ms)
+  ✘  26 [chromium] › e2e/ucs09-paiement-commissions.spec.js:37:1 › UCS09 RM-145: paiement avec code apporteur crée une commission visible côté apporteur (367ms)
+  ✓  27 [chromium] › e2e/ucs11-espace-apprenant.spec.js:5:1 › UCS11: l’espace apprenant affiche les dossiers avec leurs statuts (1.4s)
+  ✓  28 [chromium] › e2e/ucs11-espace-apprenant.spec.js:18:1 › UCS11 RM-26: l’attestation est disponible uniquement pour PAYE + session CLOTUREE (223ms)
+  ✘  29 [chromium] › e2e/ucs11-espace-apprenant.spec.js:30:1 › UCS11 RM-27: annulation autorisée en attente, refusée après RETENU (215ms)
+  ✓  30 [chromium] › e2e/ucs14-formation-demande.spec.js:5:1 › UCS14 RM-92/RM-94: un abonné accède à une formation Standard à la demande (1.7s)
+  ✓  31 [chromium] › e2e/ucs14-formation-demande.spec.js:21:1 › UCS14 RM-92: un accès expiré retourne EXPIRE/ACCES_EXPIRE (206ms)
+  ✘  32 [chromium] › e2e/ucs17-18-partenaire.spec.js:5:1 › UCS17 RM-126: Flux A active un partenaire invité avec token 48h (20ms)
+  ✓  33 [chromium] › e2e/ucs17-18-partenaire.spec.js:15:1 › UCS17 RM-126: Flux B crée une auto-inscription partenaire en attente (24ms)
+  ✓  34 [chromium] › e2e/ucs17-18-partenaire.spec.js:29:1 › UCS17 RM-127: le formulaire partenaire n’expose pas type_formation ni pilier_abonnement (1.5s)
+  ✘  35 [chromium] › e2e/ucs17-18-partenaire.spec.js:38:1 › UCS18 RM-127/RM-137: Responsable valide, assigne le type et calcule le prix catalogue (224ms)
+  ✓  36 [chromium] › e2e/ucs20-apporteur.spec.js:5:1 › UCS20 RM-142: le dashboard affiche le code apporteur permanent (1.4s)
+  ✘  37 [chromium] › e2e/ucs20-apporteur.spec.js:12:1 › UCS20 RM-146/RM-147: trois commissions du mois précédent sont validées puis reversables (218ms)
+  ✓  38 [chromium] › e2e/voucher-expiration.spec.js:4:1 › backoffice can see expired promotional vouchers in the listing (1.5s)
+  ✘  39 [chromium] › e2e/voucher-inscription.spec.js:5:1 › voucher inscription flow stays outside paiement endpoints (324ms)
+  ✓  40 [chromium] › e2e/voucher-refusal.spec.js:4:1 › backoffice can create and refuse a promotional voucher (1.8s)
+
+
+  1) [chromium] › e2e/ucs00-01-auth.spec.js:5:1 › UCS00: confirmation email active un compte apprenant en attente 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+       5 | test('UCS00: confirmation email active un compte apprenant en attente', async ({ request }) => {
+       6 |   const confirm = await request.get(`${API_BASE_URL}/apprenants/confirm/token-e2e-auth-01`);
+    >  7 |   expect(confirm.ok()).toBeTruthy();
+         |                        ^
+       8 |   expect((await confirm.json()).data.message).toContain('activé');
+       9 |
+      10 |   const login = await apiLogin(request, E2E_ACCOUNTS.apprenantAuth);
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs00-01-auth.spec.js:7:24
+
+    Error Context: test-results/ucs00-01-auth-UCS00-confir-3dbe4-compte-apprenant-en-attente-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs00-01-auth-UCS00-confir-3dbe4-compte-apprenant-en-attente-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs00-01-auth-UCS00-confir-3dbe4-compte-apprenant-en-attente-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/ucs03-2-abonnement-b2b.spec.js:5:1 › UCS03.2: Organisation voit son palier B2B STARTER et sa limite de 5 apprenants 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"STARTER"[39m
+    Received: [31m"BUSINESS"[39m
+
+      12 |   const headers = await authHeaders(request, E2E_ACCOUNTS.organisation);
+      13 |   const status = await getJson(request, '/abonnements/b2b/me', headers);
+    > 14 |   expect(status.data?.palier).toBe('STARTER');
+         |                               ^
+      15 |   expect(status.data?.nb_max).toBe(5);
+      16 | });
+      17 |
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs03-2-abonnement-b2b.spec.js:14:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ucs03-2-abonnement-b2b-UCS-26c24-t-sa-limite-de-5-apprenants-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ucs03-2-abonnement-b2b-UCS-26c24-t-sa-limite-de-5-apprenants-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ucs03-2-abonnement-b2b-UCS-26c24-t-sa-limite-de-5-apprenants-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs03-2-abonnement-b2b-UCS-26c24-t-sa-limite-de-5-apprenants-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs03-2-abonnement-b2b-UCS-26c24-t-sa-limite-de-5-apprenants-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/ucs03-2-abonnement-b2b.spec.js:28:1 › UCS03.2: montée BUSINESS recalcule la capacité B2B 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      32 |   }, headers);
+      33 |
+    > 34 |   expect(upgrade.ok).toBeTruthy();
+         |                      ^
+      35 |
+      36 |   const status = await getJson(request, '/abonnements/b2b/me', headers);
+      37 |   expect(status.data?.palier).toBe('BUSINESS');
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs03-2-abonnement-b2b.spec.js:34:22
+
+    Error Context: test-results/ucs03-2-abonnement-b2b-UCS-c0ea8-S-recalcule-la-capacité-B2B-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs03-2-abonnement-b2b-UCS-c0ea8-S-recalcule-la-capacité-B2B-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs03-2-abonnement-b2b-UCS-c0ea8-S-recalcule-la-capacité-B2B-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/ucs05-sessions-transitions.spec.js:5:1 › UCS05 RM-20/RM-21: scheduler transitionne et archive les sessions de façon idempotente 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"PLANIFIEE"[39m
+    Received: [31m"A_VENIR"[39m
+
+       7 |
+       8 |   const before = await getJson(request, `/backoffice/sessions/${E2E_SCENARIO.sessionPlanifieeId}`, headers);
+    >  9 |   expect(before.data?.statut || before.statut).toBe('PLANIFIEE');
+         |                                                ^
+      10 |
+      11 |   const run = await postJson(request, '/backoffice/sessions/scheduler/run', {}, headers);
+      12 |   expect(run.ok).toBeTruthy();
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs05-sessions-transitions.spec.js:9:48
+
+    Error Context: test-results/ucs05-sessions-transitions-14936-ssions-de-façon-idempotente-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs05-sessions-transitions-14936-ssions-de-façon-idempotente-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs05-sessions-transitions-14936-ssions-de-façon-idempotente-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:276:1 › UCS06 RM-40: Vérification quota épuisé → EPUISE 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"EPUISE"[39m
+    Received: [31m"ACTIF"[39m
+
+      314 |   // Étape 4 : Vérifier que le voucher passe à EPUISE
+      315 |   const voucherCheck = await getJson(request, `/vouchers/${voucherId}`, superviseurHeaders);
+    > 316 |   expect(voucherCheck.data.statut).toBe('EPUISE');
+          |                                    ^
+      317 |   expect(voucherCheck.data.quota_utilise).toBe(1);
+      318 | });
+      319 |
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs06-vouchers-backoffice.spec.js:316:36
+
+    Error Context: test-results/ucs06-vouchers-backoffice--fcf58-ation-quota-épuisé-→-EPUISE-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs06-vouchers-backoffice--fcf58-ation-quota-épuisé-→-EPUISE-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs06-vouchers-backoffice--fcf58-ation-quota-épuisé-→-EPUISE-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:5:1 › UCS07 RM-140: Standard Retail passe en paiement direct 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/apprenant\/mes-dossiers$/[39m
+    Received string:  [31m"http://127.0.0.1:5173/apprenant/inscrire/F-E2E-STD-01"[39m
+    Timeout: 15000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 15000ms[22m
+    [2m    19 × unexpected value "http://127.0.0.1:5173/apprenant/inscrire/F-E2E-STD-01"[22m
+
+
+      12 |   await page.getByTestId('submit-inscription').click();
+      13 |
+    > 14 |   await expect(page).toHaveURL(/\/apprenant\/mes-dossiers$/);
+         |                      ^
+      15 |   await expect(page.getByText('Payé directement')).toBeVisible();
+      16 |
+      17 |   const headers = { Authorization: `Bearer ${await page.evaluate(() => window.sessionStorage.getItem('access_token'))}` };
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs07-inscription-bifurcation.spec.js:14:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ucs07-inscription-bifurcat-42a18-il-passe-en-paiement-direct-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ucs07-inscription-bifurcat-42a18-il-passe-en-paiement-direct-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ucs07-inscription-bifurcat-42a18-il-passe-en-paiement-direct-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs07-inscription-bifurcat-42a18-il-passe-en-paiement-direct-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs07-inscription-bifurcat-42a18-il-passe-en-paiement-direct-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:23:1 › UCS07 RM-140: Premium Retail attend la vérification Responsable 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      27 |   }, headers);
+      28 |
+    > 29 |   expect(result.ok).toBeTruthy();
+         |                     ^
+      30 |   expect(result.payload?.dossier?.statut).toBe('EN_ATTENTE_VERIFICATION');
+      31 | });
+      32 |
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs07-inscription-bifurcation.spec.js:29:21
+
+    Error Context: test-results/ucs07-inscription-bifurcat-2cf91-la-vérification-Responsable-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs07-inscription-bifurcat-2cf91-la-vérification-Responsable-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs07-inscription-bifurcat-2cf91-la-vérification-Responsable-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:33:1 › UCS07 RM-140: Premium B2B ne passe pas par la vérification Responsable 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      37 |   }, headers);
+      38 |
+    > 39 |   expect(result.ok).toBeTruthy();
+         |                     ^
+      40 |   expect(result.payload?.dossier?.statut).toBe('PAYE_DIRECTEMENT');
+      41 | });
+      42 |
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs07-inscription-bifurcation.spec.js:39:21
+
+    Error Context: test-results/ucs07-inscription-bifurcat-cd1bd-la-vérification-Responsable-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs07-inscription-bifurcat-cd1bd-la-vérification-Responsable-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs07-inscription-bifurcat-cd1bd-la-vérification-Responsable-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [chromium] › e2e/ucs08-traitement-dossier.spec.js:5:1 › UCS08 RM-05/RM-07: Responsable retient un dossier Premium Retail et active le délai 72h 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+       7 |   const result = await postJson(request, `/dossiers/${E2E_SCENARIO.dossierEnAttenteId}/retenir`, {}, responsableHeaders);
+       8 |
+    >  9 |   expect(result.ok).toBeTruthy();
+         |                     ^
+      10 |
+      11 |   const detail = await getJson(request, `/dossiers/${E2E_SCENARIO.dossierEnAttenteId}`, responsableHeaders);
+      12 |   expect(detail.data.statut).toBe('RETENU');
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs08-traitement-dossier.spec.js:9:21
+
+    Error Context: test-results/ucs08-traitement-dossier-U-6061e-tail-et-active-le-délai-72h-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs08-traitement-dossier-U-6061e-tail-et-active-le-délai-72h-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs08-traitement-dossier-U-6061e-tail-et-active-le-délai-72h-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) [chromium] › e2e/ucs09-paiement-commissions.spec.js:12:1 › UCS09 RM-09: webhook SUCCESS confirme le paiement et passe le dossier en PAYE 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      15 |     source_financement: 'RETAIL',
+      16 |   }, headers);
+    > 17 |   expect(inscription.ok).toBeTruthy();
+         |                          ^
+      18 |
+      19 |   const dossier = inscription.payload.dossier;
+      20 |   await createPaiementAndConfirm(request, headers, dossier.id, 'tx-ucs09-partenaire', 250000);
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs09-paiement-commissions.spec.js:17:26
+
+    Error Context: test-results/ucs09-paiement-commissions-28bf7-et-passe-le-dossier-en-PAYE-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs09-paiement-commissions-28bf7-et-passe-le-dossier-en-PAYE-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs09-paiement-commissions-28bf7-et-passe-le-dossier-en-PAYE-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) [chromium] › e2e/ucs09-paiement-commissions.spec.js:27:1 › UCS09 RM-129: paiement partenaire génère une commission nette partenaire 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mundefined[39m
+
+      31 |   const partenaireReversement = rows.find((item) => item.partenaire_id === 'part-e2e-01');
+      32 |
+    > 33 |   expect(partenaireReversement).toBeTruthy();
+         |                                 ^
+      34 |   expect(JSON.stringify(partenaireReversement)).not.toContain('commission_forges_pct');
+      35 | });
+      36 |
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs09-paiement-commissions.spec.js:33:33
+
+    Error Context: test-results/ucs09-paiement-commissions-3d14d-commission-nette-partenaire-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs09-paiement-commissions-3d14d-commission-nette-partenaire-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs09-paiement-commissions-3d14d-commission-nette-partenaire-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) [chromium] › e2e/ucs09-paiement-commissions.spec.js:37:1 › UCS09 RM-145: paiement avec code apporteur crée une commission visible côté apporteur 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      41 |     code_apporteur: E2E_SCENARIO.apporteurCode,
+      42 |   }, headers);
+    > 43 |   expect(inscription.ok).toBeTruthy();
+         |                          ^
+      44 |
+      45 |   const { webhook } = await createPaiementAndConfirm(
+      46 |     request,
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs09-paiement-commissions.spec.js:43:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ucs09-paiement-commissions-bbea2-sion-visible-côté-apporteur-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ucs09-paiement-commissions-bbea2-sion-visible-côté-apporteur-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ucs09-paiement-commissions-bbea2-sion-visible-côté-apporteur-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs09-paiement-commissions-bbea2-sion-visible-côté-apporteur-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs09-paiement-commissions-bbea2-sion-visible-côté-apporteur-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  13) [chromium] › e2e/ucs11-espace-apprenant.spec.js:30:1 › UCS11 RM-27: annulation autorisée en attente, refusée après RETENU 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      32 |
+      33 |   const annulable = await request.delete(`${API_BASE_URL}/espace-apprenant/dossiers/${E2E_SCENARIO.dossierAnnulableId}`, { headers });
+    > 34 |   expect(annulable.ok()).toBeTruthy();
+         |                          ^
+      35 |
+      36 |   const retenu = await request.delete(`${API_BASE_URL}/espace-apprenant/dossiers/${E2E_SCENARIO.dossierRetenuId}`, { headers });
+      37 |   expect(retenu.status()).toBe(409);
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs11-espace-apprenant.spec.js:34:26
+
+    Error Context: test-results/ucs11-espace-apprenant-UCS-658db-ttente-refusée-après-RETENU-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs11-espace-apprenant-UCS-658db-ttente-refusée-après-RETENU-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs11-espace-apprenant-UCS-658db-ttente-refusée-après-RETENU-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  14) [chromium] › e2e/ucs17-18-partenaire.spec.js:5:1 › UCS17 RM-126: Flux A active un partenaire invité avec token 48h 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+       9 |   });
+      10 |
+    > 11 |   expect(response.ok).toBeTruthy();
+         |                       ^
+      12 |   expect(response.payload.data?.partenaire?.statut || response.payload.data?.statut).toBe('ACTIF');
+      13 | });
+      14 |
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs17-18-partenaire.spec.js:11:23
+
+    Error Context: test-results/ucs17-18-partenaire-UCS17--23ea0-naire-invité-avec-token-48h-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs17-18-partenaire-UCS17--23ea0-naire-invité-avec-token-48h-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs17-18-partenaire-UCS17--23ea0-naire-invité-avec-token-48h-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  15) [chromium] › e2e/ucs17-18-partenaire.spec.js:38:1 › UCS18 RM-127/RM-137: Responsable valide, assigne le type et calcule le prix catalogue 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      44 |   }, responsableHeaders);
+      45 |
+    > 46 |   expect(validation.ok).toBeTruthy();
+         |                         ^
+      47 |   expect(validation.payload.data.type_formation).toBe('STANDARD');
+      48 |   expect(validation.payload.data.prix_catalogue).toBe(250000);
+      49 |   expect(validation.payload.data.inclus_abonnement).toBe(true);
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs17-18-partenaire.spec.js:46:25
+
+    Error Context: test-results/ucs17-18-partenaire-UCS18--f1288-t-calcule-le-prix-catalogue-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs17-18-partenaire-UCS18--f1288-t-calcule-le-prix-catalogue-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs17-18-partenaire-UCS18--f1288-t-calcule-le-prix-catalogue-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  16) [chromium] › e2e/ucs20-apporteur.spec.js:12:1 › UCS20 RM-146/RM-147: trois commissions du mois précédent sont validées puis reversables 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32m1[39m
+    Received:    [31m0[39m
+
+      15 |
+      16 |   expect(scheduler.ok).toBeTruthy();
+    > 17 |   expect(scheduler.payload.data?.nb_eligibles_reversement ?? scheduler.payload.nb_eligibles_reversement).toBeGreaterThanOrEqual(1);
+         |                                                                                                          ^
+      18 |
+      19 |   const agentHeaders = await authHeaders(request, E2E_ACCOUNTS.agent);
+      20 |   const pending = await getJson(request, '/agent/reversements/apporteurs', agentHeaders);
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/ucs20-apporteur.spec.js:17:106
+
+    Error Context: test-results/ucs20-apporteur-UCS20-RM-1-2c6a1-t-validées-puis-reversables-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ucs20-apporteur-UCS20-RM-1-2c6a1-t-validées-puis-reversables-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ucs20-apporteur-UCS20-RM-1-2c6a1-t-validées-puis-reversables-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  17) [chromium] › e2e/voucher-inscription.spec.js:5:1 › voucher inscription flow stays outside paiement endpoints 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mfalse[39m
+
+      11 |   }, headers);
+      12 |
+    > 13 |   expect(result.ok).toBeTruthy();
+         |                     ^
+      14 |   expect(result.payload?.dossier).toBeTruthy();
+      15 |   expect(result.payload?.dossier?.statut).toBe('PAYE_DIRECTEMENT');
+      16 |   expect(result.payload?.dossier?.source_financement).toBe('VOUCHER');
+        at /Users/tidianecisse/PROJET_INFO/forges-kit 2/forges-monorepo/frontend/e2e/voucher-inscription.spec.js:13:21
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/voucher-inscription-vouche-94e48--outside-paiement-endpoints-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/voucher-inscription-vouche-94e48--outside-paiement-endpoints-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/voucher-inscription-vouche-94e48--outside-paiement-endpoints-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/voucher-inscription-vouche-94e48--outside-paiement-endpoints-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/voucher-inscription-vouche-94e48--outside-paiement-endpoints-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  17 failed
+    [chromium] › e2e/ucs00-01-auth.spec.js:5:1 › UCS00: confirmation email active un compte apprenant en attente 
+    [chromium] › e2e/ucs03-2-abonnement-b2b.spec.js:5:1 › UCS03.2: Organisation voit son palier B2B STARTER et sa limite de 5 apprenants 
+    [chromium] › e2e/ucs03-2-abonnement-b2b.spec.js:28:1 › UCS03.2: montée BUSINESS recalcule la capacité B2B 
+    [chromium] › e2e/ucs05-sessions-transitions.spec.js:5:1 › UCS05 RM-20/RM-21: scheduler transitionne et archive les sessions de façon idempotente 
+    [chromium] › e2e/ucs06-vouchers-backoffice.spec.js:276:1 › UCS06 RM-40: Vérification quota épuisé → EPUISE 
+    [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:5:1 › UCS07 RM-140: Standard Retail passe en paiement direct 
+    [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:23:1 › UCS07 RM-140: Premium Retail attend la vérification Responsable 
+    [chromium] › e2e/ucs07-inscription-bifurcation.spec.js:33:1 › UCS07 RM-140: Premium B2B ne passe pas par la vérification Responsable 
+    [chromium] › e2e/ucs08-traitement-dossier.spec.js:5:1 › UCS08 RM-05/RM-07: Responsable retient un dossier Premium Retail et active le délai 72h 
+    [chromium] › e2e/ucs09-paiement-commissions.spec.js:12:1 › UCS09 RM-09: webhook SUCCESS confirme le paiement et passe le dossier en PAYE 
+    [chromium] › e2e/ucs09-paiement-commissions.spec.js:27:1 › UCS09 RM-129: paiement partenaire génère une commission nette partenaire 
+    [chromium] › e2e/ucs09-paiement-commissions.spec.js:37:1 › UCS09 RM-145: paiement avec code apporteur crée une commission visible côté apporteur 
+    [chromium] › e2e/ucs11-espace-apprenant.spec.js:30:1 › UCS11 RM-27: annulation autorisée en attente, refusée après RETENU 
+    [chromium] › e2e/ucs17-18-partenaire.spec.js:5:1 › UCS17 RM-126: Flux A active un partenaire invité avec token 48h 
+    [chromium] › e2e/ucs17-18-partenaire.spec.js:38:1 › UCS18 RM-127/RM-137: Responsable valide, assigne le type et calcule le prix catalogue 
+    [chromium] › e2e/ucs20-apporteur.spec.js:12:1 › UCS20 RM-146/RM-147: trois commissions du mois précédent sont validées puis reversables 
+    [chromium] › e2e/voucher-inscription.spec.js:5:1 › voucher inscription flow stays outside paiement endpoints 
+  23 passed (47.1s)
