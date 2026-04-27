@@ -102,7 +102,7 @@ jobs:
 
       - name: Transférer docker-compose (rsync)
         run: |
-          rsync -avz \
+          rsync -avz --mkpath \
             infra/docker/docker-compose.test.deploy.yml \
             ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/infra/docker/
 
