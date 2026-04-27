@@ -99,7 +99,7 @@ jobs:
         run: |
           rsync -avz --delete \
             frontend-dist/ \
-            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/public/
+            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/
 
       - name: Transférer docker-compose (rsync)
         run: |
