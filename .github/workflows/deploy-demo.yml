@@ -165,9 +165,11 @@ jobs:
                 [ "$STATUS" = "healthy" ] && break
                 sleep 5
               done
-              echo "Lancement migrations (avec retry)..."
+              # Le projet n'utilise pas de migrations versionnees (pas de prisma/migrations/).
+              # On synchronise le schema avec `prisma db push` (idempotent).
+              echo "Synchronisation schema Prisma (db push)..."
               for attempt in 1 2 3; do
-                docker exec forges-backend-demo sh -c 'npx prisma migrate deploy' && break
+                docker exec forges-backend-demo sh -c 'cd /app && npx prisma db push --skip-generate --accept-data-loss' && break
                 echo "  Tentative $attempt echouee, retry dans 10s..."
                 sleep 10
               done
@@ -177,7 +179,7 @@ jobs:
       - name: Healthcheck
         run: |
           sleep 8
-          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://demo.forges-group.com/api/health || echo "000")
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://demo.forges-group.com/health || echo "000")
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
       - name: Résumé
