@@ -96,7 +96,7 @@ jobs:
 
       - name: Transférer frontend (rsync)
         run: |
-          rsync -avz --delete \
+          rsync -avz --delete --omit-dir-times \
             frontend-dist/ \
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/
 
