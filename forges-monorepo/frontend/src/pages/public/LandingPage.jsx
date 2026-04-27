@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FeatureIcon from '../../components/ui/FeatureIcon';
 import logoForges from '../../assets/logo_forges.png';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 /**
  * LandingPage - Page d'accueil publique haute conversion
@@ -18,6 +19,7 @@ export default function LandingPage() {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-bg">
       {/* Hero Section - High Converting */}
       <section className="bg-gradient-to-br from-primary via-secondary to-primary text-white py-24 md:py-32 relative overflow-hidden">
@@ -591,5 +593,11 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
+
+      {/* Status Bar */}
+      <div className="py-4 bg-bg border-t border-border flex justify-center">
+        <StatusBadge />
+      </div>
+    </>
   );
 }

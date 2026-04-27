@@ -59,6 +59,7 @@ jobs:
         env:
           VITE_API_URL: https://test.forges-group.com/api
           VITE_ENV: test
+          VITE_COMMIT_SHA: ${{ github.sha }}
         run: npm run build
 
       - name: Upload dist frontend
