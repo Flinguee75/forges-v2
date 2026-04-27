@@ -137,7 +137,12 @@ jobs:
                 [ "$STATUS" = "healthy" ] && break
                 sleep 5
               done
-              docker exec forges-backend-dev sh -c 'npx prisma migrate deploy'
+              echo "Lancement migrations (avec retry)..."
+              for attempt in 1 2 3; do
+                docker exec forges-backend-dev sh -c 'npx prisma migrate deploy' && break
+                echo "  Tentative $attempt echouee, retry dans 10s..."
+                sleep 10
+              done
               echo "Migrations OK"
           ENDSSH
 
