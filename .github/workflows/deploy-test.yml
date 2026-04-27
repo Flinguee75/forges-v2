@@ -130,7 +130,13 @@ jobs:
               docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env pull backend
               docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env up -d --remove-orphans
 
-              sleep 10
+              echo "Attente healthcheck backend..."
+              for i in $(seq 1 30); do
+                STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-test 2>/dev/null || echo "missing")
+                echo "  [$i/30] $STATUS"
+                [ "$STATUS" = "healthy" ] && break
+                sleep 5
+              done
               docker exec forges-backend-test sh -c 'npx prisma migrate deploy'
               echo "Migrations OK"
           ENDSSH
