@@ -138,7 +138,8 @@ jobs:
 
               export IMAGE_TAG="$IMAGE_TAG"
               docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env pull backend
-              docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env up -d --remove-orphans --force-recreate
+              docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env down --remove-orphans 2>/dev/null || true
+              docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env up -d --remove-orphans
 
               echo "Attente healthcheck backend..."
               for i in $(seq 1 30); do
