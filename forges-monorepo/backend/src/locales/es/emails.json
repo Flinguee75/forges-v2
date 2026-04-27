@@ -1,0 +1,98 @@
+{
+  "common": {
+    "platform_name": "FORGES",
+    "platform_tagline": "Plataforma de Formaciones Certificadas",
+    "greeting": "Hola",
+    "regards": "Saludos cordiales",
+    "team_signature": "El equipo FORGES",
+    "footer_copyright": "© 2026 FORGES - Plataforma de Formaciones Certificadas",
+    "footer_visit_site": "Visite nuestro sitio",
+    "footer_support": "Soporte",
+    "contact_us": "Si tiene alguna pregunta, no dude en contactarnos."
+  },
+  "dossier-retenu": {
+    "subject": "¡Felicitaciones! Su solicitud ha sido aceptada",
+    "title": "✅ ¡Felicitaciones! Su solicitud ha sido aceptada",
+    "intro": "Nos complace informarle que su solicitud para la formación <strong>{{formation_intitule}}</strong> ha sido aceptada por nuestro equipo educativo.",
+    "formation_label": "📋 Formación:",
+    "session_label": "📅 Sesión:",
+    "session_dates": "Del {{date_debut}} al {{date_fin}}",
+    "important_title": "⏰ IMPORTANTE: Plazo de pago",
+    "payment_deadline": "Tiene <strong>72 horas</strong> para completar el pago y confirmar su inscripción.",
+    "deadline_label": "Fecha límite:",
+    "deadline_warning": "Después de este plazo, su lugar se liberará automáticamente para otros candidatos.",
+    "cta_button": "Proceder al pago"
+  },
+  "dossier-rejete": {
+    "subject": "Decisión sobre su solicitud",
+    "title": "❌ Su solicitud no fue aceptada",
+    "intro": "Gracias por su interés en la formación <strong>{{formation_intitule}}</strong>.",
+    "message": "Después de revisar su solicitud, lamentamos informarle que no fue aceptada para esta sesión.",
+    "reason_label": "Motivo:",
+    "encouragement": "Le animamos a postularse nuevamente para una sesión futura o explorar otras formaciones que puedan corresponder a su perfil.",
+    "cta_button": "Ver catálogo"
+  },
+  "relance-paiement": {
+    "subject": "⏰ Recordatorio: Plazo de pago expirando pronto",
+    "title": "⏰ Recordatorio: Su plazo de pago expira en {{heures_restantes}}h",
+    "intro": "Su solicitud para la formación <strong>{{formation_intitule}}</strong> ha sido aceptada.",
+    "warning_title": "🚨 Acción requerida",
+    "warning_message": "Su plazo de pago de 72 horas expira el <strong>{{delai_expiration}}</strong>.",
+    "consequence": "Sin pago antes de esta fecha, su lugar se liberará automáticamente.",
+    "cta_button": "Pagar ahora"
+  },
+  "reversement-partenaire": {
+    "subject": "Pago de comisiones - {{montant}} FCFA",
+    "title": "💰 Pago de sus comisiones",
+    "intro": "Le informamos que se ha realizado un pago de comisiones a su cuenta.",
+    "amount_label": "💵 Monto pagado:",
+    "period_label": "📅 Período:",
+    "commissions_label": "📊 Número de comisiones:",
+    "info": "La transferencia se realizó según los términos acordados en su contrato de socio.",
+    "cta_button": "Ver detalles"
+  },
+  "reversement-apporteur": {
+    "subject": "Pago de comisiones - {{montant}} FCFA",
+    "title": "💰 Pago de sus comisiones",
+    "intro": "Le informamos que se ha realizado un pago de comisiones.",
+    "amount_label": "💵 Monto pagado:",
+    "period_label": "📅 Período:",
+    "commissions_label": "📊 Número de referencias:",
+    "info": "La transferencia se realizó según las condiciones de su acuerdo de socio referidor.",
+    "cta_button": "Ver mis comisiones"
+  },
+  "alerte-validation-j5": {
+    "subject": "⚠️ Validación de formación pendiente desde hace 5 días",
+    "title": "Alerta: Formación pendiente de validación",
+    "intro": "Una formación enviada por un socio lleva 5 días pendiente de validación. Por favor, proceda a su evaluación lo antes posible.",
+    "formation_label": "📋 Formación:",
+    "partenaire_label": "🏢 Socio:",
+    "submission_date_label": "📅 Fecha de envío:",
+    "action_required": "Por favor, acceda al backoffice para validar o rechazar esta formación.",
+    "cta_button": "Acceder a la validación"
+  },
+  "alerte-validation-j10": {
+    "subject": "🚨 ESCALADA: Formación pendiente desde hace 10 días",
+    "title": "Escalada: Plazo de validación superado",
+    "escalation_notice": "Acción administrativa requerida — Plazo de validación superado en 10 días.",
+    "intro": "Una formación de socio permanece pendiente de validación más allá del plazo aceptable. Se requiere intervención administrativa.",
+    "formation_label": "📋 Formación:",
+    "partenaire_label": "🏢 Socio:",
+    "submission_date_label": "📅 Fecha de envío:",
+    "days_elapsed_label": "⏱️ Días transcurridos:",
+    "action_required": "Por favor, asuma esta validación o haga seguimiento con el responsable designado.",
+    "cta_button": "Procesar ahora"
+  },
+  "dossier-annule": {
+    "subject": "Cancelación de su solicitud",
+    "title": "❌ Su solicitud ha sido cancelada",
+    "intro": "Le informamos que su solicitud para la formación <strong>{{formation_intitule}}</strong> ha sido cancelada.",
+    "formation_label": "📋 Formación:",
+    "session_label": "📅 Sesión:",
+    "session_dates": "Del {{date_debut}} al {{date_fin}}",
+    "reason_label": "Motivo:",
+    "message": "Esta cancelación se realizó por la siguiente razón:",
+    "encouragement": "Le animamos a consultar nuestro catálogo y postularse nuevamente para una sesión futura o explorar otras formaciones que puedan corresponder a su perfil.",
+    "cta_button": "Ver catálogo"
+  }
+}

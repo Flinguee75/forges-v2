@@ -1,0 +1,63 @@
+docs/
+│
+├── README.md                                   ← Point d'entrée principal 📚
+│
+├── 📁 analyse-rm/                              ← ANALYSE RÈGLES MÉTIER (NOUVEAU)
+│   ├── README_ANALYSE_RM.md                   ← Guide navigation ⭐
+│   ├── SYNTHESE_RM_AUTOMATISATION_v4.8.md    ← Synthèse 5 min (décideurs)
+│   ├── ANALYSE_RM_AUTOMATISATION_v4.8.md     ← Document complet (30 pages)
+│   ├── matrice-couverture-rm-v4.8.csv        ← Matrice Excel (148 RM)
+│   └── CHECKLIST_EXECUTION_v4.8.md           ← Plan jour par jour
+│
+├── 📁 specifications/                          ← SPÉCIFICATIONS MÉTIER
+│   ├── ForgesSpecsv4.8.md                    ← Specs fonctionnelles v4.8
+│   └── conception_forges_v1_3.md             ← Architecture & Use Cases
+│
+├── 📁 validation-tests/                        ← TESTS & VALIDATION
+│   ├── plan_validation_complet.md            ← Plan 72 tests
+│   ├── rapport_newman.md                     ← Tests API Postman
+│   ├── ucs_mapping_endpoit.md                ← Mapping UCS → Endpoints
+│   ├── audit_alignement_api_front_backend_v48.md  ← Audit cohérence
+│   ├── ecarts_apprenant_v48.md               ← Écarts espace apprenant
+│   └── ecarts_organisation_v48.md            ← Écarts espace organisation
+│
+└── 📁 archives/                                ← ARCHIVES
+    ├── FORGES - Conception & Développement Complet v1.pdf
+    └── ForgesTODO v2.md
+
+📊 STATISTIQUES :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total fichiers : 16
+  • Markdown  : 14
+  • CSV       : 1
+  • PDF       : 1
+
+Par dossier :
+  • analyse-rm/        : 5 fichiers ⭐ (NOUVEAU)
+  • specifications/    : 2 fichiers
+  • validation-tests/  : 6 fichiers
+  • archives/          : 2 fichiers
+  • racine/            : 1 fichier (README.md)
+
+📅 Dernière mise à jour : 2026-04-23
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 DÉMARRAGE RAPIDE :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Décideurs / Product Owners
+   → analyse-rm/SYNTHESE_RM_AUTOMATISATION_v4.8.md (5 min)
+
+2. Développeurs / Testeurs
+   → analyse-rm/README_ANALYSE_RM.md
+   → analyse-rm/CHECKLIST_EXECUTION_v4.8.md
+
+3. Architectes / Tech Leads
+   → specifications/ForgesSpecsv4.8.md
+   → analyse-rm/ANALYSE_RM_AUTOMATISATION_v4.8.md
+
+4. Nouveaux arrivants
+   → README.md (ce fichier)
+   → specifications/conception_forges_v1_3.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

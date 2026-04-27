@@ -1,0 +1,773 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Apprenant {
+  id                       String              @id @default(uuid())
+  email                    String              @unique
+  password_hash            String
+  nom                      String
+  prenoms                  String
+  type_apprenant           String
+  secteur_activite         String?
+  niveau_etude             String?
+  pays_residence           String
+  pays_nationalite         String
+  langue_preferee          String              @default("FR")
+  role                     RoleUtilisateur     @default(APPRENANT)
+  statut                   String              @default("INACTIF")
+  consentement_rgpd        Boolean             @default(false)
+  consentement_timestamp   DateTime?
+  consentement_version_cgu String?
+  token_confirmation       String?
+  token_expiration         DateTime?
+  suspension_count         Int                 @default(0)
+  last_suspension_at       DateTime?
+  upgrade_refus_count      Int                 @default(0)
+  last_upgrade_refus_at    DateTime?
+  organisation_id          String?
+  organisation             Organisation?       @relation(fields: [organisation_id], references: [id])
+  abonnement_retail        AbonnementRetail?
+  dossiers                 Dossier[]
+  conversations_bot        ConversationBot[]
+  feedbacks                FeedbackFormation[]
+  acces_formations         AccesFormationDemande[]
+  created_at               DateTime            @default(now())
+}
+
+model Organisation {
+  id                 String                   @id @default(uuid())
+  raison_sociale     String
+  type               String
+  sous_types         String[]
+  identifiant_legal  String?
+  contact_referent   String
+  pays               String
+  langue_preferee    String                   @default("FR")
+  email              String                   @unique
+  password_hash      String
+  token_confirmation String?
+  token_expiration   DateTime?
+  statut             String                   @default("EN_ATTENTE")
+  abonnements_org    AbonnementOrganisation[] @relation("OrganisationAbonnementsOrg")
+  abonnements_b2b    AbonnementB2B[]          @relation("OrganisationAbonnementsB2B")
+  abonnement_org_id  String?
+  abonnement_b2b_id  String?
+  abonnement_org     AbonnementOrganisation?  @relation("OrganisationAbonnementOrgCourant", fields: [abonnement_org_id], references: [id])
+  abonnement_b2b     AbonnementB2B?           @relation("OrganisationAbonnementB2BCourant", fields: [abonnement_b2b_id], references: [id])
+  apporteur_id       String?
+  apporteur          Apporteur?               @relation(fields: [apporteur_id], references: [id])
+  apprenants         Apprenant[]
+  feedbacks          FeedbackFormation[]
+  created_at         DateTime                 @default(now())
+  date_fin_essai     DateTime?
+
+  @@unique([identifiant_legal, type])
+}
+
+model Formation {
+  id                      String                 @id @default(uuid())
+  intitule                String
+  description_courte      String                 @db.VarChar(500)
+  description_longue      String?
+  duree_jours             Int
+  cout_catalogue          Int
+  responsable_id          String
+  type_formation          String
+  mode_formation          String
+  statut                  String                 @default("BROUILLON")
+  inclus_abonnement       Boolean                @default(false)
+  pilier_abonnement       String?
+  duree_acces_jours       Int                    @default(365)
+  prix_coutant            Int?
+  prerequis               String?
+  objectifs_pedagogiques  String[]
+  certification_delivree  Boolean                @default(false)
+  public_cible            String?
+  partenaire_id           String?
+  partenaire              Partenaire?            @relation(fields: [partenaire_id], references: [id])
+  formation_partenaire    FormationPartenaire?
+  sessions                Session[]
+  dossiers                Dossier[]
+  vouchers                VoucherApporteur[]
+  commissions_partenaires CommissionPartenaire[]
+  feedbacks               FeedbackFormation[]
+  langues_disponibles     String[]
+  acces_demande           AccesFormationDemande[]
+  created_at              DateTime               @default(now())
+}
+
+model AccesFormationDemande {
+  id                  String    @id @default(uuid())
+  apprenant_id        String
+  formation_id        String
+  source_financement  String    // ABONNEMENT, RETAIL, B2B, INSTITUTIONNEL
+  statut              String    @default("ACTIF") // ACTIF, SUSPENDU, EXPIRE
+  date_activation     DateTime  @default(now())
+  date_expiration     DateTime
+  progression         Int       @default(0) // 0-100
+  last_access_at      DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  apprenant           Apprenant @relation(fields: [apprenant_id], references: [id], onDelete: Cascade)
+  formation           Formation @relation(fields: [formation_id], references: [id], onDelete: Cascade)
+
+  @@index([apprenant_id, statut])
+  @@index([formation_id])
+  @@index([date_expiration])
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  formation_id     String
+  date_ouverture   DateTime
+  date_cloture     DateTime
+  date_debut       DateTime
+  date_fin         DateTime
+  capacite         Int
+  nb_inscrits      Int       @default(0)
+  places_restantes Int
+  statut           String    @default("PLANIFIEE")
+  created_at       DateTime  @default(now())
+  formation        Formation @relation(fields: [formation_id], references: [id])
+  dossiers         Dossier[]
+}
+
+model Dossier {
+  id                      String                 @id @default(uuid())
+  apprenant_id            String
+  formation_id            String
+  session_id              String?
+  statut                  String                 @default("EN_ATTENTE_VERIFICATION")
+  source_financement      String
+  type_fenetre            TypeFenetre            @default(NORMAL)
+  voucher_code            String?
+  code_apporteur          String?
+  montant_remise          Int                    @default(0)
+  motif_refus             String?
+  expires_at              DateTime?
+  created_at              DateTime               @default(now())
+  updated_at              DateTime?
+  voucher_organisation_id String?
+  apprenant               Apprenant              @relation(fields: [apprenant_id], references: [id])
+  formation               Formation              @relation(fields: [formation_id], references: [id])
+  session                 Session?               @relation(fields: [session_id], references: [id])
+  voucher_organisation    VoucherOrganisation?   @relation(fields: [voucher_organisation_id], references: [id])
+  paiement                Paiement?
+}
+
+model Paiement {
+  id                         String                @id @default(uuid())
+  dossier_id                 String                @unique
+  montant_catalogue          Int
+  montant_final              Int?
+  methode                    String
+  statut                     String                @default("EN_ATTENTE")
+  transaction_id             String?
+  tentatives                 Int                   @default(0)
+  reduction_appliquee        Int                   @default(0)
+  commission_partenaire_pct  Float?
+  montant_reverse_partenaire Int?
+  code_apporteur_id          String?
+  confirmed_at               DateTime?
+  expires_at                 DateTime?
+  created_at                 DateTime              @default(now())
+  dossier                    Dossier               @relation(fields: [dossier_id], references: [id])
+  code_apporteur             VoucherApporteur?     @relation(fields: [code_apporteur_id], references: [id])
+  commission_apporteur       CommissionApporteur?
+  commission_partenaire      CommissionPartenaire?
+}
+
+model Partenaire {
+  id                                String                           @id @default(uuid())
+  raison_sociale                    String
+  type                              String
+  pays                              String
+  email_principal                   String                           @unique
+  password_hash                     String?
+  commission_forges_pct             Float                            @default(20)
+  statut                            String                           @default("EN_ATTENTE_VERIFICATION")
+  mode_inscription                  String
+  token_invitation                  String?
+  token_invitation_expiration       DateTime?
+  responsable_designe_id            String?
+  seuil_reversement_personnalise    Int?
+  formations                        Formation[]
+  formations_partenaires            FormationPartenaire[]
+  commissions_partenaires           CommissionPartenaire[]
+  commissions_partenaires_abonnement CommissionPartenaireAbonnement[]
+  created_at                        DateTime                         @default(now())
+}
+
+model FormationPartenaire {
+  id                                 String                           @id @default(uuid())
+  formation_id                       String                           @unique
+  partenaire_id                      String
+  responsable_validateur_id          String?
+  statut_validation                  String                           @default("EN_ATTENTE")
+  version                            Int                              @default(1)
+  prix_coutant_soumis                Int
+  prix_coutant_valide                Int?
+  commentaire_responsable            String?
+  corrections_suggeres               String?
+  date_soumission                    DateTime                         @default(now())
+  date_validation                    DateTime?
+  type_formation_assigne             String?
+  pilier_abonnement_assigne          String?
+  inclus_abonnement                  Boolean                          @default(false)
+  duree_mois                         Int?
+  formation                          Formation                        @relation(fields: [formation_id], references: [id])
+  partenaire                         Partenaire                       @relation(fields: [partenaire_id], references: [id])
+  commissions_partenaires_abonnement CommissionPartenaireAbonnement[]
+}
+
+/// CommissionPartenaireAbonnement (Gap 5 - RM-132)
+/// Reversement mensuel des formations partenaires incluses dans abonnements
+/// Formule : nb_apprenants_actifs * prix_coutant_valide / duree_mois
+model CommissionPartenaireAbonnement {
+  id                   String              @id @default(uuid())
+  partenaire_id        String
+  formation_id         String
+  nb_apprenants_actifs Int
+  montant_reverse      Int
+  mois_reference       String
+  statut               String              @default("EN_ATTENTE")
+  reverse_par          String?
+  reverse_le           DateTime?
+  created_at           DateTime            @default(now())
+  partenaire           Partenaire          @relation(fields: [partenaire_id], references: [id])
+  formation            FormationPartenaire @relation(fields: [formation_id], references: [id])
+
+  @@index([partenaire_id, statut])
+  @@index([mois_reference])
+}
+
+model Apporteur {
+  id                        String                @id @default(uuid())
+  nom                       String
+  type                      String
+  email                     String                @unique
+  password_hash             String
+  telephone                 String?
+  pays                      String?
+  code_apporteur            String                @unique @default(uuid())
+  taux_commission_pct       Float                 @default(5)
+  statut                    String                @default("ACTIF")
+  organisation_id           String?
+  organisations             Organisation[]
+  voucher                   VoucherApporteur?
+  commissions               CommissionApporteur[]
+  date_inscription          DateTime              @default(now())
+  cumul_commissions_dues    Int                   @default(0)
+  cumul_commissions_versees Int                   @default(0)
+}
+
+model VoucherApporteur {
+  id                        String                 @id @default(uuid())
+  apporteur_id              String?                @unique
+  code                      String                 @unique
+  formation_id              String?
+  organisation_id           String?
+  type                      TypeVoucherApporteur   @default(APPORT)
+  valeur                    Int?
+  type_valeur               TypeValeurVoucher?
+  quota_max                 Int                    @default(1)
+  quota_utilise             Int                    @default(0)
+  date_expiration           DateTime?
+  cree_par                  String?
+  valide_par                String?
+  valide_le                 DateTime?
+  motif_refus               String?
+  statut                    StatutVoucherApporteur @default(ACTIF)
+  created_at                DateTime               @default(now())
+  nb_utilisations           Int                    @default(0)
+  date_derniere_utilisation DateTime?
+  apporteur                 Apporteur?             @relation(fields: [apporteur_id], references: [id])
+  formation                 Formation?             @relation(fields: [formation_id], references: [id])
+  paiements                 Paiement[]
+}
+
+model VoucherOrganisation {
+  id                        String        @id @default(uuid())
+  code                      String        @unique
+  organisation_id           String
+  formation_id              String?
+  type                      String        @default("ORGANISATION")
+  valeur                    Int?
+  type_valeur               String?
+  quota_max                 Int           @default(1)
+  quota_utilise             Int           @default(0)
+  date_expiration           DateTime?
+  statut                    String        @default("ACTIF")
+  created_at                DateTime      @default(now())
+  nb_utilisations           Int           @default(0)
+  date_derniere_utilisation DateTime?
+  dossiers                  Dossier[]
+}
+
+model CommissionApporteur {
+  id                     String    @id @default(uuid())
+  apporteur_id           String
+  paiement_id            String    @unique
+  dossier_id             String?
+  montant_base           Int?
+  montant_base_xof       Int?
+  taux_commission_pct    Float
+  montant_commission     Int?
+  montant_commission_xof Int?
+  created_at             DateTime  @default(now())
+  date_generation        DateTime  @default(now())
+  mois_facturation       String?
+  statut                 String    @default("EN_ATTENTE")
+  reverse_par            String?
+  reverse_le             DateTime?
+  apporteur              Apporteur @relation(fields: [apporteur_id], references: [id])
+  paiement               Paiement  @relation(fields: [paiement_id], references: [id])
+}
+
+model AbonnementRetail {
+  id                     String    @id @default(uuid())
+  apprenant_id           String    @unique
+  offre                  String
+  statut                 String    @default("ACTIF")
+  montant_mensuel        Int
+  methode_paiement       String?
+  date_debut             DateTime
+  date_fin               DateTime
+  consentement_auto      Boolean   @default(true)
+  consentement_timestamp DateTime?
+  renouvellement_auto    Boolean   @default(true)
+  nb_formations_actives  Int       @default(0)
+  downgrade_planifie     String?
+  date_grace             DateTime?
+  date_suspension        DateTime?
+  montant_premier_mois   Int?
+  prorata_premier_mois   Int?
+  suspension_count       Int       @default(0)
+  last_suspension_at     DateTime?
+  apprenant              Apprenant @relation(fields: [apprenant_id], references: [id])
+}
+
+model AbonnementB2B {
+  id                        String         @id @default(uuid())
+  organisation_id           String
+  palier                    String
+  nb_max                    Int
+  nb_actifs                 Int            @default(0)
+  date_debut                DateTime
+  date_fin                  DateTime
+  prix_annuel               Int
+  premium_inclus_par_an     Int?
+  premium_consommes         Int            @default(0)
+  date_renouvellement       DateTime?
+  statut                    String         @default("ACTIF")
+  compteur_premium_used     Int            @default(0)
+  compteur_premium_reset_at DateTime?
+  descente_planifiee        Boolean        @default(false)
+  palier_descente_cible     String?
+  organisation              Organisation   @relation("OrganisationAbonnementsB2B", fields: [organisation_id], references: [id])
+  organisations_courantes   Organisation[] @relation("OrganisationAbonnementB2BCourant")
+}
+
+model AbonnementOrganisation {
+  id                      String         @id @default(uuid())
+  organisation_id         String         @unique
+  offre                   String
+  statut                  String         @default("ACTIF")
+  montant_annuel          Int
+  perimetre_fonctionnel   String[]
+  date_debut              DateTime
+  date_fin                DateTime
+  renouvellement_auto     Boolean        @default(true)
+  organisation            Organisation   @relation("OrganisationAbonnementsOrg", fields: [organisation_id], references: [id])
+  organisations_courantes Organisation[] @relation("OrganisationAbonnementOrgCourant")
+}
+
+model ContratInstitutionnel {
+  id                     String   @id @default(uuid())
+  numero_contrat         String   @unique
+  institution_nom        String
+  programme_id           String   @unique
+  bailleur               String?
+  date_debut             DateTime
+  date_fin               DateTime
+  montant_saas_annuel    Int
+  fee_par_certifie       Int
+  seuil_facturation_fees Int      @default(25000)
+  cumul_fees_reportes    Int      @default(0)
+  statut                 String   @default("ACTIF")
+  gestionnaires_ids      String[]
+  avenants               Json[]
+}
+
+model ConversationBot {
+  id                       String     @id @default(uuid())
+  utilisateur_id           String?
+  apprenant_id             String?
+  apprenant                Apprenant? @relation(fields: [apprenant_id], references: [id])
+  organisation_id          String?
+  type_utilisateur         String
+  date_debut               DateTime   @default(now())
+  date_fin                 DateTime?
+  flux_actif               String
+  statut                   String     @default("ACTIVE")
+  historique               Json?
+  historique_json          Json?
+  dernier_refus_upgrade_le DateTime?
+  nb_refus_upgrade         Int        @default(0)
+  actions_declenchees      String[]   @default([])
+  langue                   String     @default("FR")
+  refus_upgrade_dates      DateTime[] @default([])
+}
+
+model EnqueteCatalogue {
+  id                String   @id @default(uuid())
+  utilisateur_id    String?
+  type_utilisateur  String?
+  session_bot_id    String?
+  source_type       String?
+  source_id         String?
+  domaine           String
+  niveau            String?
+  niveau_cible      String?
+  volume            String?
+  volume_estime     String?
+  frequence         Int      @default(1)
+  frequence_demande Int      @default(1)
+  statut            String   @default("NOUVEAU")
+  commentaire_admin String?
+  date_saisie       DateTime @default(now())
+}
+
+model FeedbackFormation {
+  id                String        @id @default(uuid())
+  apprenant_id      String?
+  organisation_id   String?
+  formation_id      String
+  session_id        String?
+  date_saisie       DateTime      @default(now())
+  canal             String        @default("BOT")
+  note_globale      Int
+  note_contenu      Int?
+  note_formateur    Int?
+  commentaire       String?
+  commentaire_libre String?       @db.VarChar(500)
+  session_bot_id    String?
+  recommande        Boolean
+  apprenant         Apprenant?    @relation(fields: [apprenant_id], references: [id])
+  organisation      Organisation? @relation(fields: [organisation_id], references: [id])
+  formation         Formation     @relation(fields: [formation_id], references: [id])
+}
+
+model CommissionPartenaire {
+  id                    String     @id @default(uuid())
+  paiement_id           String     @unique
+  partenaire_id         String
+  formation_id          String
+  montant_catalogue     Int
+  commission_forges_pct Float
+  montant_reverse       Int
+  statut                String     @default("EN_ATTENTE")
+  reverse_le            DateTime?
+  reverse_par           String?
+  created_at            DateTime   @default(now())
+  paiement              Paiement   @relation(fields: [paiement_id], references: [id])
+  partenaire            Partenaire @relation(fields: [partenaire_id], references: [id])
+  formation             Formation  @relation(fields: [formation_id], references: [id])
+}
+
+// ENUMS
+enum TypeApprenant {
+  PROFESSIONNEL
+  APPRENANT
+}
+
+enum Langue {
+  FR
+  EN
+  ES
+  PT
+}
+
+enum StatutUtilisateur {
+  ACTIF
+  INACTIF
+  SUSPENDU
+}
+
+enum RoleUtilisateur {
+  ADMIN
+  SUPERVISEUR
+  RESPONSABLE
+  AGENT
+  APPRENANT
+  ORGANISATION
+  GESTIONNAIRE
+  PARTENAIRE
+  APPORTEUR
+}
+
+enum TypeOrganisation {
+  ENTREPRISE
+  ASSOCIATION
+  GOUVERNEMENT
+  UNIVERSITE
+  ONG
+  AUTRE
+}
+
+enum StatutOrganisation {
+  EN_ATTENTE
+  ACTIF
+  SUSPENDU
+  RESILIE
+}
+
+enum TypeFormation {
+  STANDARD
+  PREMIUM
+  SUR_DEVIS
+}
+
+enum ModeFormation {
+  AVEC_SESSION
+  A_LA_DEMANDE
+}
+
+enum PilierAbonnement {
+  RETAIL
+  B2B
+  INSTITUTIONNEL
+  TOUS
+}
+
+enum StatutFormation {
+  BROUILLON
+  EN_ATTENTE_PLANIFICATION
+  EN_ATTENTE_VALIDATION
+  ACTIVE
+  ARCHIVEE
+  REJETEE
+  SUSPENDUE
+}
+
+enum StatutSession {
+  PLANIFIEE
+  A_VENIR
+  INSCRIPTIONS_OUVERTES
+  EN_COURS
+  CLOTUREE
+  ARCHIVEE
+  ANNULEE
+}
+
+enum StatutDossier {
+  EN_ATTENTE_VERIFICATION
+  RETENU
+  PAYE_DIRECTEMENT
+  PAYE
+  REJETE
+  ANNULE
+}
+
+enum SourceFinancement {
+  RETAIL
+  B2B
+  INSTITUTIONNEL
+  ABONNEMENT
+  VOUCHER
+}
+
+enum TypeFenetre {
+  NORMAL
+  GRIS
+  EXCEPTION
+}
+
+enum MethodePaiement {
+  MOBILE_MONEY
+  CARTE
+  VIREMENT
+  VOUCHER_ORG
+}
+
+enum StatutPaiement {
+  EN_ATTENTE
+  CONFIRME
+  ECHEC
+  ECHOUE
+  ANNULE
+}
+
+enum TypePartenaire {
+  UNIVERSITE
+  ORGANISME
+  ENTREPRISE_CERTIFIANTE
+  ENTREPRISE_FORMATION
+  ONG
+  INSTITUTION
+  AUTRE
+}
+
+enum StatutPartenaire {
+  INVITE
+  EN_ATTENTE_VERIFICATION
+  ACTIF
+  SUSPENDU
+  RESILIE
+}
+
+enum ModeInscriptionPartenaire {
+  INVITATION
+  INVITATION_ADMIN
+  AUTO_INSCRIPTION
+}
+
+enum StatutValidationPartenaire {
+  EN_ATTENTE
+  VALIDEE
+  VALIDE
+  REJETEE
+  REJETE
+  SUSPENDUE
+}
+
+enum TypeApporteur {
+  INDIVIDU
+  ORGANISATION
+}
+
+enum StatutApporteur {
+  ACTIF
+  SUSPENDU
+  RESILIE
+}
+
+enum TypeVoucherApporteur {
+  APPORT
+  PROMOTIONNEL
+}
+
+enum TypeValeurVoucher {
+  MONTANT
+  POURCENTAGE
+}
+
+enum StatutVoucherApporteur {
+  BROUILLON
+  ACTIF
+  SUSPENDU
+  REFUSE
+  EXPIRE
+  EPUISE
+}
+
+enum StatutCommissionApporteur {
+  EN_ATTENTE
+  VALIDEE
+  REVERSEE
+  BLOQUEE
+}
+
+enum StatutCommissionPartenaire {
+  EN_ATTENTE
+  REVERSE
+  BLOQUEE
+}
+
+enum OffreRetail {
+  ESSENTIEL
+  PREMIUM
+}
+
+enum PalierB2B {
+  STARTER
+  BUSINESS
+  ENTERPRISE
+  SUR_DEVIS
+}
+
+enum OffreOrganisation {
+  BASIQUE
+  PRO
+  ENTERPRISE
+}
+
+enum StatutAbonnement {
+  ACTIF
+  GRACE
+  SUSPENDU
+  EN_RESILIATION
+  EXPIRE
+  RESILIE
+  ESSAI
+}
+
+enum StatutContrat {
+  ACTIF
+  EXPIRE
+  RESILIE
+}
+
+enum TypeUtilisateurBot {
+  APPRENANT
+  ORGANISATION
+}
+
+enum FluxBot {
+  ORIENTATION
+  UPGRADE
+  FEEDBACK
+  ENQUETE
+  IDLE
+  COMPLETION_PROFIL
+}
+
+enum StatutConversation {
+  ACTIVE
+  EN_COURS
+  TERMINEE
+  ABANDONNEE
+}
+
+enum DomaineEnquete {
+  IT
+  FINANCE
+  SANTE
+  DROIT
+  MANAGEMENT
+  IA
+  CYBERSECURITE
+  AUTRE
+}
+
+enum NiveauEnquete {
+  DEBUTANT
+  INTERMEDIAIRE
+  AVANCE
+  EXPERT
+}
+
+enum VolumeEnquete {
+  V1_5
+  V6_20
+  V21_50
+  V51_PLUS
+}
+
+enum StatutEnquete {
+  NOUVEAU
+  TRAITE
+  IGNORE
+}
+
+enum CanalFeedback {
+  BOT
+  MANUEL
+}

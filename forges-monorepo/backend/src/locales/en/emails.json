@@ -1,0 +1,98 @@
+{
+  "common": {
+    "platform_name": "FORGES",
+    "platform_tagline": "Certified Training Platform",
+    "greeting": "Hello",
+    "regards": "Best regards",
+    "team_signature": "The FORGES Team",
+    "footer_copyright": "© 2026 FORGES - Certified Training Platform",
+    "footer_visit_site": "Visit our website",
+    "footer_support": "Support",
+    "contact_us": "If you have any questions, please do not hesitate to contact us."
+  },
+  "dossier-retenu": {
+    "subject": "Congratulations! Your Application Has Been Accepted",
+    "title": "✅ Congratulations! Your Application Has Been Accepted",
+    "intro": "We are pleased to inform you that your application for the training <strong>{{formation_intitule}}</strong> has been accepted by our educational team.",
+    "formation_label": "📋 Training:",
+    "session_label": "📅 Session:",
+    "session_dates": "From {{date_debut}} to {{date_fin}}",
+    "important_title": "⏰ IMPORTANT: Payment Deadline",
+    "payment_deadline": "You have <strong>72 hours</strong> to complete the payment and confirm your registration.",
+    "deadline_label": "Deadline:",
+    "deadline_warning": "After this deadline, your spot will be automatically released for other candidates.",
+    "cta_button": "Proceed to Payment"
+  },
+  "dossier-rejete": {
+    "subject": "Decision Regarding Your Application",
+    "title": "❌ Your Application Was Not Accepted",
+    "intro": "Thank you for your interest in the training <strong>{{formation_intitule}}</strong>.",
+    "message": "After reviewing your application, we regret to inform you that it was not accepted for this session.",
+    "reason_label": "Reason:",
+    "encouragement": "We encourage you to apply again for a future session or explore other training programs that may match your profile.",
+    "cta_button": "View Catalog"
+  },
+  "relance-paiement": {
+    "subject": "⏰ Reminder: Payment Deadline Expiring Soon",
+    "title": "⏰ Reminder: Your Payment Deadline Expires in {{heures_restantes}}h",
+    "intro": "Your application for the training <strong>{{formation_intitule}}</strong> has been accepted.",
+    "warning_title": "🚨 Action Required",
+    "warning_message": "Your 72-hour payment deadline expires on <strong>{{delai_expiration}}</strong>.",
+    "consequence": "Without payment before this date, your spot will be automatically released.",
+    "cta_button": "Pay Now"
+  },
+  "reversement-partenaire": {
+    "subject": "Commission Payout - {{montant}} FCFA",
+    "title": "💰 Your Commission Payout",
+    "intro": "We inform you that a commission payout has been made to your account.",
+    "amount_label": "💵 Amount Paid:",
+    "period_label": "📅 Period:",
+    "commissions_label": "📊 Number of Commissions:",
+    "info": "The transfer was made according to the terms agreed in your partner contract.",
+    "cta_button": "View Details"
+  },
+  "reversement-apporteur": {
+    "subject": "Commission Payout - {{montant}} FCFA",
+    "title": "💰 Your Commission Payout",
+    "intro": "We inform you that a commission payout has been made.",
+    "amount_label": "💵 Amount Paid:",
+    "period_label": "📅 Period:",
+    "commissions_label": "📊 Number of Referrals:",
+    "info": "The transfer was made according to the terms of your referral partner agreement.",
+    "cta_button": "View My Commissions"
+  },
+  "alerte-validation-j5": {
+    "subject": "⚠️ Training validation pending for 5 days",
+    "title": "Alert: Training pending validation",
+    "intro": "A training submitted by a partner has been awaiting validation for 5 days. Please proceed with its evaluation as soon as possible.",
+    "formation_label": "📋 Training:",
+    "partenaire_label": "🏢 Partner:",
+    "submission_date_label": "📅 Submission date:",
+    "action_required": "Please access the backoffice to validate or reject this training.",
+    "cta_button": "Access validation"
+  },
+  "alerte-validation-j10": {
+    "subject": "🚨 ESCALATION: Training pending for 10 days",
+    "title": "Escalation: Validation deadline exceeded",
+    "escalation_notice": "Administrative action required — Validation deadline exceeded by 10 days.",
+    "intro": "A partner training remains pending validation beyond the acceptable deadline. Administrative intervention is required.",
+    "formation_label": "📋 Training:",
+    "partenaire_label": "🏢 Partner:",
+    "submission_date_label": "📅 Submission date:",
+    "days_elapsed_label": "⏱️ Days elapsed:",
+    "action_required": "Please take charge of this validation or follow up with the designated responsible.",
+    "cta_button": "Process now"
+  },
+  "dossier-annule": {
+    "subject": "Cancellation of Your Application",
+    "title": "❌ Your Application Has Been Cancelled",
+    "intro": "We inform you that your application for the training <strong>{{formation_intitule}}</strong> has been cancelled.",
+    "formation_label": "📋 Training:",
+    "session_label": "📅 Session:",
+    "session_dates": "From {{date_debut}} to {{date_fin}}",
+    "reason_label": "Reason:",
+    "message": "This cancellation was performed for the following reason:",
+    "encouragement": "We encourage you to browse our catalog and apply again for a future session or explore other training programs that may match your profile.",
+    "cta_button": "View Catalog"
+  }
+}

@@ -1,0 +1,40 @@
+name: FORGES CI/CD Pipeline
+on:
+  push:
+    branches: [ develop, test, main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environnement cible'
+        required: true
+        type: choice
+        options: [dev, test, demo]
+      seed_database:
+        description: 'Exécuter le seed ?'
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'npm' }
+      - run: npm ci
+      - run: npm run test:coverage
+      - run: npm run build
+      - name: Deploy
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          if [ -z "$ENV" ]; then
+            [[ "${{ github.ref_name }}" == "main" ]] && ENV="demo"
+            [[ "${{ github.ref_name }}" == "develop" ]] && ENV="dev"
+            [[ "${{ github.ref_name }}" == "test" ]] && ENV="test"
+          fi
+          TAG="${{ github.ref_name }}"
+          [[ "${{ github.ref_type }}" == "tag" ]] && TAG="${{ github.ref_name }}"
+          export FORCE_SEED="${{ github.event.inputs.seed_database }}"
+          chmod +x infra/scripts/deploy.sh
+          ./infra/scripts/deploy.sh "$ENV" "$TAG"

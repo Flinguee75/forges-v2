@@ -1,0 +1,98 @@
+{
+  "common": {
+    "platform_name": "FORGES",
+    "platform_tagline": "Plateforme de formations certifiantes",
+    "greeting": "Bonjour",
+    "regards": "Cordialement",
+    "team_signature": "L'équipe FORGES",
+    "footer_copyright": "© 2026 FORGES - Plateforme de formations certifiantes",
+    "footer_visit_site": "Visiter notre site",
+    "footer_support": "Support",
+    "contact_us": "Si vous avez des questions, n'hésitez pas à nous contacter."
+  },
+  "dossier-retenu": {
+    "subject": "Félicitations ! Votre dossier a été retenu",
+    "title": "✅ Félicitations ! Votre dossier a été retenu",
+    "intro": "Nous avons le plaisir de vous informer que votre candidature pour la formation <strong>{{formation_intitule}}</strong> a été retenue par notre équipe pédagogique.",
+    "formation_label": "📋 Formation :",
+    "session_label": "📅 Session :",
+    "session_dates": "Du {{date_debut}} au {{date_fin}}",
+    "important_title": "⏰ IMPORTANT : Délai de paiement",
+    "payment_deadline": "Vous disposez de <strong>72 heures</strong> pour effectuer le paiement et confirmer votre inscription.",
+    "deadline_label": "Date limite :",
+    "deadline_warning": "Passé ce délai, votre place sera automatiquement libérée pour d'autres candidats.",
+    "cta_button": "Procéder au paiement"
+  },
+  "dossier-rejete": {
+    "subject": "Décision concernant votre candidature",
+    "title": "❌ Votre candidature n'a pas été retenue",
+    "intro": "Nous vous remercions pour l'intérêt que vous portez à la formation <strong>{{formation_intitule}}</strong>.",
+    "message": "Après étude de votre dossier, nous sommes au regret de vous informer que votre candidature n'a pas été retenue pour cette session.",
+    "reason_label": "Motif :",
+    "encouragement": "Nous vous encourageons à postuler à nouveau pour une prochaine session ou à explorer d'autres formations qui pourraient correspondre à votre profil.",
+    "cta_button": "Voir le catalogue"
+  },
+  "relance-paiement": {
+    "subject": "⏰ Rappel : Délai de paiement expire bientôt",
+    "title": "⏰ Rappel : Votre délai de paiement expire dans {{heures_restantes}}h",
+    "intro": "Votre candidature pour la formation <strong>{{formation_intitule}}</strong> a été retenue.",
+    "warning_title": "🚨 Action requise",
+    "warning_message": "Votre délai de paiement de 72 heures expire le <strong>{{delai_expiration}}</strong>.",
+    "consequence": "Sans paiement avant cette date, votre place sera automatiquement libérée.",
+    "cta_button": "Payer maintenant"
+  },
+  "reversement-partenaire": {
+    "subject": "Reversement de commissions - {{montant}} FCFA",
+    "title": "💰 Reversement de vos commissions",
+    "intro": "Nous vous informons qu'un reversement de commissions a été effectué sur votre compte.",
+    "amount_label": "💵 Montant reversé :",
+    "period_label": "📅 Période :",
+    "commissions_label": "📊 Nombre de commissions :",
+    "info": "Le virement a été effectué selon les modalités convenues dans votre contrat partenaire.",
+    "cta_button": "Voir le détail"
+  },
+  "reversement-apporteur": {
+    "subject": "Reversement de commissions - {{montant}} FCFA",
+    "title": "💰 Reversement de vos commissions",
+    "intro": "Nous vous informons qu'un reversement de commissions a été effectué.",
+    "amount_label": "💵 Montant reversé :",
+    "period_label": "📅 Période :",
+    "commissions_label": "📊 Nombre de parrainages :",
+    "info": "Le virement a été effectué selon les conditions de votre contrat d'apporteur d'affaires.",
+    "cta_button": "Voir mes commissions"
+  },
+  "alerte-validation-j5": {
+    "subject": "⚠️ Validation formation en attente depuis 5 jours",
+    "title": "Alerte : Formation en attente de validation",
+    "intro": "Une formation soumise par un partenaire est en attente de validation depuis 5 jours. Merci de procéder à son évaluation dans les meilleurs délais.",
+    "formation_label": "📋 Formation :",
+    "partenaire_label": "🏢 Partenaire :",
+    "submission_date_label": "📅 Date de soumission :",
+    "action_required": "Veuillez accéder au backoffice pour valider ou rejeter cette formation.",
+    "cta_button": "Accéder à la validation"
+  },
+  "alerte-validation-j10": {
+    "subject": "🚨 ESCALADE : Formation en attente depuis 10 jours",
+    "title": "Escalade : Délai de validation dépassé",
+    "escalation_notice": "Action administrative requise — Délai de validation dépassé de 10 jours.",
+    "intro": "Une formation partenaire reste en attente de validation au-delà du délai acceptable. Une intervention administrative est nécessaire.",
+    "formation_label": "📋 Formation :",
+    "partenaire_label": "🏢 Partenaire :",
+    "submission_date_label": "📅 Date de soumission :",
+    "days_elapsed_label": "⏱️ Jours écoulés :",
+    "action_required": "Merci de prendre en charge cette validation ou de relancer le responsable désigné.",
+    "cta_button": "Traiter maintenant"
+  },
+  "dossier-annule": {
+    "subject": "Annulation de votre candidature",
+    "title": "❌ Votre candidature a été annulée",
+    "intro": "Nous vous informons que votre candidature pour la formation <strong>{{formation_intitule}}</strong> a été annulée.",
+    "formation_label": "📋 Formation :",
+    "session_label": "📅 Session :",
+    "session_dates": "Du {{date_debut}} au {{date_fin}}",
+    "reason_label": "Motif :",
+    "message": "Cette annulation a été effectuée pour la raison suivante :",
+    "encouragement": "Nous vous encourageons à consulter notre catalogue et à postuler à nouveau pour une prochaine session ou à explorer d'autres formations qui pourraient correspondre à votre profil.",
+    "cta_button": "Voir le catalogue"
+  }
+}

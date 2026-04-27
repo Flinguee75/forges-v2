@@ -1,0 +1,149 @@
+import { PrismaClient } from '@prisma/client';
+
+export class BotRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  // Sessions ConversationBot
+  async creerSession(data: {
+    utilisateur_id: string;
+    type_utilisateur: 'APPRENANT' | 'ORGANISATION';
+    flux_actif: string;
+    langue: string;
+  }) {
+    return this.prisma.conversationBot.create({
+      data: { ...data, statut: 'EN_COURS', historique: [] }
+    });
+  }
+
+  async findSession(id: string) {
+    return this.prisma.conversationBot.findUnique({ where: { id } });
+  }
+
+  async findSessionActive(utilisateur_id: string) {
+    return this.prisma.conversationBot.findFirst({
+      where: {
+        utilisateur_id,
+        statut: 'EN_COURS'
+      },
+      orderBy: { date_debut: 'desc' }
+    });
+  }
+
+  async updateSession(id: string, data: {
+    flux_actif?: string;
+    historique?: any[];
+    statut?: string;
+    dernier_refus_upgrade_le?: Date;
+    nb_refus_upgrade?: number;
+  }) {
+    return this.prisma.conversationBot.update({ where: { id }, data });
+  }
+
+  async cloturerSession(id: string, statut: 'TERMINEE' | 'ABANDONNEE') {
+    return this.prisma.conversationBot.update({ where: { id }, data: { statut } });
+  }
+
+  // RM-120 : vérifier dernier refus upgrade
+  async findDernierRefusUpgrade(utilisateur_id: string) {
+    return this.prisma.conversationBot.findFirst({
+      where: { utilisateur_id, dernier_refus_upgrade_le: { not: null } },
+      orderBy: { dernier_refus_upgrade_le: 'desc' },
+      select: { dernier_refus_upgrade_le: true, nb_refus_upgrade: true }
+    });
+  }
+
+  // RM-121 : vérifier si feedback déjà collecté
+  async feedbackExiste(apprenant_id: string, formation_id: string): Promise<boolean> {
+    const count = await this.prisma.feedbackFormation.count({
+      where: { apprenant_id, formation_id }
+    });
+    return count > 0;
+  }
+
+  // RM-121 : sessions clôturées < 7j sans feedback
+  async findSessionsSansFeedback(apprenant_id: string) {
+    const limite7j = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    return this.prisma.dossier.findMany({
+      where: {
+        apprenant_id,
+        statut: 'PAYE',
+        session: { statut: 'CLOTUREE', date_fin: { gte: limite7j } },
+        formation_id: {
+          notIn: (await this.prisma.feedbackFormation.findMany({
+            where: { apprenant_id },
+            select: { formation_id: true }
+          })).map(f => f.formation_id)
+        }
+      },
+      include: { formation: { select: { id: true, intitule: true } } },
+      take: 1
+    });
+  }
+
+  // RM-122 : enregistrer feedback (5 questions)
+  async enregistrerFeedback(data: {
+    apprenant_id: string;
+    formation_id: string;
+    note_globale: number;
+    note_contenu?: number;
+    note_formateur?: number;
+    commentaire?: string;
+    recommande: boolean;
+    session_bot_id: string;
+  }) {
+    return this.prisma.feedbackFormation.create({ data });
+  }
+
+  // RM-123/124 : enregistrer enquête catalogue
+  async enregistrerEnquete(data: {
+    utilisateur_id: string;
+    type_utilisateur: string;
+    domaine: string;
+    niveau: string;
+    volume: string;
+    session_bot_id: string;
+  }) {
+    // RM-124 : incrémenter fréquence si enquête similaire existante
+    const existante = await this.prisma.enqueteCatalogue.findFirst({
+      where: { domaine: data.domaine, niveau: data.niveau }
+    });
+
+    if (existante) {
+      return this.prisma.enqueteCatalogue.update({
+        where: { id: existante.id },
+        data: { frequence_demande: { increment: 1 } }
+      });
+    }
+
+    return this.prisma.enqueteCatalogue.create({
+      data: { ...data, frequence_demande: 1 }
+    });
+  }
+
+  // RM-118 : filtrage catalogue par profil
+  async filtrerFormations(filtres: {
+    type_formation?: string[];
+    secteur?: string;
+    langue?: string;
+    inclus_abonnement?: boolean;
+    limit?: number;
+  }) {
+    // RM-125 : lecture seule, ZERO modification de données
+    return this.prisma.formation.findMany({
+      where: {
+        statut: 'ACTIVE',
+        ...(filtres.type_formation && { type_formation: { in: filtres.type_formation } }),
+        ...(filtres.langue && { langues_disponibles: { has: filtres.langue } }),
+        ...(filtres.inclus_abonnement !== undefined && { inclus_abonnement: filtres.inclus_abonnement }),
+      },
+      select: {
+        id: true, intitule: true, description_courte: true,
+        type_formation: true, cout_catalogue: true,
+        inclus_abonnement: true, mode_formation: true,
+        certification_delivree: true,
+      },
+      take: filtres.limit || 5, // RM-118 : max 5 formations
+      orderBy: [{ certification_delivree: 'desc' }, { created_at: 'desc' }]
+    });
+  }
+}

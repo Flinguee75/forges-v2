@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: forges
+      POSTGRES_USER: forges
+      POSTGRES_PASSWORD: forges123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - forges-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - forges-net
+
+  backend:
+    build: ../backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://forges:forges123@postgres:5432/forges
+      REDIS_URL: redis://redis:6379
+    networks:
+      - forges-net
+
+networks:
+  forges-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

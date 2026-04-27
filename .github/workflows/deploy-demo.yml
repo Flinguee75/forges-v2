@@ -1,0 +1,286 @@
+# =============================================================
+# deploy-demo.yml — Déploiement sur demo.forges-group.com
+# Déclencheur : création d'un tag Git vX.Y.Z sur main
+#   git tag v1.0.0 && git push origin v1.0.0
+#
+# Points spécifiques démo FORGES :
+#   - Port backend : 3002 (pas 3000)
+#   - Port frontend : 5176 (pas 5174 — fix connu)
+#   - Backend force HTTP→HTTPS 301 (healthcheck sur https://)
+#   - Option fix-nginx disponible via workflow_dispatch manuel
+#
+# Secrets GitHub requis (environnement "demo") :
+#   SSH_PRIVATE_KEY
+#   SSH_KNOWN_HOSTS
+#   DEMO_SERVER_HOST       demo.forges-group.com
+#   DEMO_SERVER_USER       plesk-ssh-user
+#   DEMO_DEPLOY_PATH       /var/www/vhosts/.../httpdocs
+#   DEMO_DATABASE_URL
+#   DEMO_JWT_SECRET
+#   DEMO_JWT_REFRESH_SECRET
+#   DEMO_ENCRYPTION_KEY
+#   DEMO_HMAC_KEY
+#   DEMO_WEBHOOK_SECRET
+#   DEMO_SMTP_HOST
+#   DEMO_SMTP_USER
+#   DEMO_SMTP_PASS
+#   DEMO_PAYMENT_API_KEY
+# =============================================================
+
+name: Deploy → demo.forges-group.com
+
+on:
+  # Déploiement automatique sur tag vX.Y.Z
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+  # Déploiement manuel avec options (fix-nginx, seed)
+  workflow_dispatch:
+    inputs:
+      fix_nginx:
+        description: 'Appliquer le fix Plesk/Nginx ?'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+      seed:
+        description: 'Seed à exécuter (optionnel)'
+        required: false
+        default: 'none'
+        type: choice
+        options: ['none', 'seed-demo-pejedec.js', 'seed-validation.js']
+
+env:
+  NODE_VERSION: '20'
+  ENVIRONMENT: demo
+  BACKEND_PORT: 3002
+  FRONTEND_PORT: 5176      # ⚠️ 5176 sur démo — pas 5174
+
+jobs:
+  deploy:
+    name: Déploiement sur démo
+    runs-on: ubuntu-22.04
+    environment:
+      name: demo
+      url: https://demo.forges-group.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Sur tag : checkout du tag; sur dispatch : checkout de main
+          ref: ${{ github.ref }}
+
+      - name: Afficher la version déployée
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "🏷️  Déploiement version : ${TAG:-manuel}"
+          echo "VERSION=${TAG:-manuel}" >> $GITHUB_ENV
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      # ── Build backend ──────────────────────────────────────
+      - name: Installer dépendances backend
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Générer client Prisma
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Tests unitaires (bloquants)
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.DEMO_JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.DEMO_JWT_REFRESH_SECRET }}
+          ENCRYPTION_KEY: ${{ secrets.DEMO_ENCRYPTION_KEY }}
+          HMAC_KEY: ${{ secrets.DEMO_HMAC_KEY }}
+          WEBHOOK_SECRET: ${{ secrets.DEMO_WEBHOOK_SECRET }}
+          FRONTEND_URL: https://demo.forges-group.com
+        run: npm run test
+
+      - name: Compiler TypeScript
+        working-directory: backend
+        run: npm run build
+
+      # ── Build frontend ─────────────────────────────────────
+      - name: Installer dépendances frontend
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Vite (demo)
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://demo.forges-group.com/api
+          VITE_ENV: demo
+        run: npm run build
+
+      # ── Déploiement SSH ────────────────────────────────────
+      - name: Configurer SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Transférer backend (rsync)
+        run: |
+          rsync -avz --delete \
+            --exclude='.env*' \
+            --exclude='node_modules/.cache' \
+            --exclude='*.test.js' \
+            --exclude='*.spec.js' \
+            backend/dist/ \
+            backend/package.json \
+            backend/package-lock.json \
+            backend/prisma/ \
+            backend/node_modules/ \
+            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/
+
+      - name: Transférer frontend (rsync)
+        run: |
+          rsync -avz --delete \
+            frontend/dist/ \
+            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/public/
+
+      # ── Migrations + Services ──────────────────────────────
+      - name: Migrations Prisma + Redémarrage Passenger
+        run: |
+          ssh ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }} << 'ENDSSH'
+            set -euo pipefail
+            cd "${{ secrets.DEMO_DEPLOY_PATH }}"
+
+            # Écrire .env.demo depuis les secrets
+            cat > .env.demo << ENVEOF
+DATABASE_URL=${{ secrets.DEMO_DATABASE_URL }}
+NODE_ENV=production
+JWT_SECRET=${{ secrets.DEMO_JWT_SECRET }}
+JWT_REFRESH_SECRET=${{ secrets.DEMO_JWT_REFRESH_SECRET }}
+ENCRYPTION_KEY=${{ secrets.DEMO_ENCRYPTION_KEY }}
+HMAC_KEY=${{ secrets.DEMO_HMAC_KEY }}
+WEBHOOK_SECRET=${{ secrets.DEMO_WEBHOOK_SECRET }}
+SMTP_HOST=${{ secrets.DEMO_SMTP_HOST }}
+SMTP_USER=${{ secrets.DEMO_SMTP_USER }}
+SMTP_PASS=${{ secrets.DEMO_SMTP_PASS }}
+PAYMENT_API_KEY=${{ secrets.DEMO_PAYMENT_API_KEY }}
+FRONTEND_URL=https://demo.forges-group.com
+PORT=3002
+ENVEOF
+
+            # Fix 2 : résoudre migration en échec avant deploy
+            FAILED=$(npx prisma migrate status 2>/dev/null | grep 'failed' | awk '{print $1}' | head -1)
+            [ -n "$FAILED" ] && npx prisma migrate resolve --rolled-back "$FAILED" 2>/dev/null || true
+
+            export DATABASE_URL="${{ secrets.DEMO_DATABASE_URL }}"
+            npx prisma migrate deploy
+            echo "✅ Migrations OK"
+
+            # Redémarrage Passenger (Plesk) — pas de PM2 sur FORGES
+            mkdir -p tmp && touch tmp/restart.txt
+            echo "✅ Passenger redémarré"
+
+            # Services Docker Compose (PostgreSQL 16 + Redis 7)
+            if [ -f infra/docker-compose.yml ]; then
+              RUNNING=$(docker compose -f infra/docker-compose.yml ps --status running --quiet 2>/dev/null | wc -l)
+              [ "$RUNNING" -lt 2 ] && docker compose -f infra/docker-compose.yml up -d \
+                || echo "✅ $RUNNING containers Docker actifs"
+            fi
+          ENDSSH
+
+      # ── Fix Plesk/Nginx (optionnel) ────────────────────────
+      - name: Fix Plesk/Nginx (si demandé)
+        if: ${{ github.event.inputs.fix_nginx == 'true' }}
+        run: |
+          DOMAIN="${{ secrets.DEMO_SERVER_HOST }}"
+          BPORT="${{ env.BACKEND_PORT }}"
+          ssh ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }} << ENDSSH
+            set -euo pipefail
+            NGINX_CONF="/etc/nginx/plesk.conf.d/vhosts/${DOMAIN}.conf"
+            VHOST_NGINX="/var/www/vhosts/system/${DOMAIN}/conf/vhost_nginx.conf"
+
+            [ ! -f "\$NGINX_CONF" ] && echo "❌ Nginx conf introuvable" && exit 1
+
+            # Sauvegarde horodatée
+            cp "\$NGINX_CONF" "\${NGINX_CONF}.bak.$(date +%Y%m%d%H%M%S)"
+
+            # Remplacer proxy_pass Plesk (7081) → Node.js (3002)
+            sed -i "s|proxy_pass http://127.0.0.1:7081|proxy_pass http://127.0.0.1:${BPORT}|g" "\$NGINX_CONF"
+
+            # Vider vhost_nginx.conf (obligatoire après modif Plesk)
+            [ -f "\$VHOST_NGINX" ] && > "\$VHOST_NGINX"
+
+            # Recharger Nginx
+            nginx -t && nginx -s reload
+            echo "✅ Fix Nginx appliqué — backend port ${BPORT}"
+          ENDSSH
+
+      # ── Seed (optionnel — workflow_dispatch uniquement) ────
+      - name: Seed (si demandé)
+        if: ${{ github.event.inputs.seed != 'none' && github.event.inputs.seed != '' }}
+        run: |
+          SEED_FILE="${{ github.event.inputs.seed }}"
+          echo "🌱 Exécution du seed : $SEED_FILE"
+
+          # Avertissement spécifique PEJEDEC
+          if [[ "$SEED_FILE" == "seed-demo-pejedec.js" ]]; then
+            echo "⚠️  PEJEDEC : BEN-01 Jean KOUASSI créé SANS dossier — démo live !"
+          fi
+
+          ssh ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }} << ENDSSH
+            set -euo pipefail
+            cd "${{ secrets.DEMO_DEPLOY_PATH }}"
+            export DATABASE_URL="${{ secrets.DEMO_DATABASE_URL }}"
+
+            [ ! -f "prisma/$SEED_FILE" ] && echo "❌ prisma/$SEED_FILE introuvable" && exit 0
+            node "prisma/$SEED_FILE" --reset
+            echo "✅ Seed $SEED_FILE exécuté"
+          ENDSSH
+
+      # ── Healthcheck ────────────────────────────────────────
+      - name: Healthcheck post-déploiement
+        run: |
+          sleep 5
+          # Le backend FORGES force HTTP→HTTPS (301) — cibler https://
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" \
+            https://${{ secrets.DEMO_SERVER_HOST }}/api/health || echo "000")
+          echo "Healthcheck HTTPS : $HTTP_CODE"
+          if [ "$HTTP_CODE" == "200" ]; then
+            echo "✅ API opérationnelle"
+            echo "HEALTH=✅ OK (HTTP 200)" >> $GITHUB_ENV
+          else
+            echo "⚠️  Healthcheck retourné $HTTP_CODE"
+            echo "HEALTH=⚠️ HTTP $HTTP_CODE" >> $GITHUB_ENV
+          fi
+
+      # ── Résumé ────────────────────────────────────────────
+      - name: Résumé déploiement démo
+        if: always()
+        run: |
+          echo "## 🚀 Déploiement DEMO — ${{ env.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ env.VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | https://demo.forges-group.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| Swagger | https://demo.forges-group.com/api/docs |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend port | 3002 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend port | 5176 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fix Nginx | ${{ github.event.inputs.fix_nginx || 'non' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Seed | ${{ github.event.inputs.seed || 'aucun' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Healthcheck | ${{ env.HEALTH || '—' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Déployé par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Date | $(date '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Nettoyage ─────────────────────────────────────────
+      - name: Nettoyer clé SSH
+        if: always()
+        run: rm -f ~/.ssh/id_rsa

@@ -1,0 +1,277 @@
+{
+  "info": {
+    "name": "FORGES v4.8 - Session 4 Tests Authentifiés",
+    "description": "Collection de tests pour les 28 endpoints critiques avec JWT",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api"
+    }
+  ],
+  "item": [
+    {
+      "name": "AGENT - Reversements Partenaires (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_agent}}"
+          }
+        ],
+        "url": "{{base_url}}/agent/reversements/partenaires"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response has data field', () => {",
+              "    pm.expect(pm.response.json()).to.have.property('data');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AGENT - Reversements Apporteurs (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_agent}}"
+          }
+        ],
+        "url": "{{base_url}}/agent/reversements/apporteurs"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response has data field', () => {",
+              "    pm.expect(pm.response.json()).to.have.property('data');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "RESPONSABLE - Validations (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_responsable}}"
+          }
+        ],
+        "url": "{{base_url}}/responsable/validations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 or 401', () => {",
+              "    pm.expect([200, 401]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SUPERVISEUR - TDB Apporteurs (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_superviseur}}"
+          }
+        ],
+        "url": "{{base_url}}/superviseur/apporteurs/tdb"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 or 401', () => {",
+              "    pm.expect([200, 401]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PARTENAIRE - Dashboard (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_partenaire}}"
+          }
+        ],
+        "url": "{{base_url}}/partenaires/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response has formations field', () => {",
+              "    pm.expect(pm.response.json()).to.have.property('formations');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PARTENAIRE - Formations (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_partenaire}}"
+          }
+        ],
+        "url": "{{base_url}}/partenaires/formations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PARTENAIRE - Reversements (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_partenaire}}"
+          }
+        ],
+        "url": "{{base_url}}/partenaires/reversements"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "APPORTEUR - Dashboard (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_apporteur}}"
+          }
+        ],
+        "url": "{{base_url}}/apporteurs/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response has code_apporteur field', () => {",
+              "    pm.expect(pm.response.json()).to.have.property('code_apporteur');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "APPORTEUR - Commissions (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_apporteur}}"
+          }
+        ],
+        "url": "{{base_url}}/apporteurs/commissions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "APPRENANT - Dossiers (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_apprenant}}"
+          }
+        ],
+        "url": "{{base_url}}/espace-apprenant/dossiers"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

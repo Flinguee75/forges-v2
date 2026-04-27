@@ -1,0 +1,53 @@
+import { Router } from 'express';
+import { VoucherController } from './voucher.controller';
+import { VoucherService } from './voucher.service';
+import { VoucherRepository } from './voucher.repository';
+import { AuditLogger } from '../../shared/audit/audit.logger';
+import { PrismaClient } from '@prisma/client';
+import { authenticate, authorize } from '../../middlewares/auth.middleware';
+
+const router = Router();
+const prisma = new PrismaClient();
+const auditLogger = new AuditLogger();
+const voucherRepository = new VoucherRepository(prisma);
+const voucherService = new VoucherService(voucherRepository, auditLogger, prisma);
+const voucherController = new VoucherController(voucherService);
+
+router.post('/organisation', authenticate, authorize('ADMIN', 'AGENT', 'ORGANISATION'), (req, res, next) => {
+  voucherController.createVoucher(req, res, next);
+});
+
+// Correction PLAN_CORRECTION_WAVE4 #8 : Ajouter SUPERVISEUR
+router.post('/promotionnel', authenticate, authorize('ADMIN', 'SUPERVISEUR', 'AGENT'), (req, res, next) => {
+  voucherController.createPromotionnel(req, res, next);
+});
+
+router.get('/apporteur/:code/check', authenticate, authorize('APPRENANT', 'ADMIN', 'AGENT', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.checkApporteurCode(req, res, next);
+});
+
+router.post('/check', authenticate, authorize('APPRENANT', 'ORGANISATION', 'ADMIN', 'AGENT', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.validateVoucher(req, res, next);
+});
+
+router.get('/', authenticate, authorize('ADMIN', 'AGENT', 'SUPERVISEUR', 'ORGANISATION'), (req, res, next) => {
+  voucherController.list(req, res, next);
+});
+
+router.get('/code/:code', authenticate, authorize('APPRENANT', 'ORGANISATION', 'ADMIN', 'AGENT', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.getByCode(req, res, next);
+});
+
+router.get('/:id', authenticate, authorize('ADMIN', 'AGENT', 'SUPERVISEUR', 'ORGANISATION'), (req, res, next) => {
+  voucherController.getById(req, res, next);
+});
+
+router.patch('/:id/validate', authenticate, authorize('ADMIN', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.validatePromotionnel(req, res, next);
+});
+
+router.patch('/:id/reject', authenticate, authorize('ADMIN', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.rejectPromotionnel(req, res, next);
+});
+
+export default router;

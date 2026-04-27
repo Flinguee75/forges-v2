@@ -1,0 +1,201 @@
+# =============================================================
+# deploy-test.yml — Déploiement automatique sur test.forges-group.com
+# Déclencheur : push sur la branche test
+# Pré-requis : CI doit passer (tests + build)
+#
+# Secrets GitHub requis (Settings → Secrets → Actions) :
+#   SSH_PRIVATE_KEY        Clé SSH privée pour accès VPS
+#   SSH_KNOWN_HOSTS        Empreinte SSH du serveur test
+#   TEST_SERVER_HOST       test.forges-group.com
+#   TEST_SERVER_USER       plesk-ssh-user
+#   TEST_DEPLOY_PATH       /var/www/vhosts/.../httpdocs
+#   TEST_DATABASE_URL      postgresql://...forges_test
+#   TEST_JWT_SECRET        (64 chars min)
+#   TEST_JWT_REFRESH_SECRET
+#   TEST_ENCRYPTION_KEY    (32 bytes base64)
+#   TEST_HMAC_KEY
+#   TEST_WEBHOOK_SECRET
+#   TEST_SMTP_HOST
+#   TEST_SMTP_USER
+#   TEST_SMTP_PASS
+#   TEST_PAYMENT_API_KEY
+# =============================================================
+
+name: Deploy → test.forges-group.com
+
+on:
+  push:
+    branches: [test]
+
+env:
+  NODE_VERSION: '20'
+  ENVIRONMENT: test
+  BACKEND_PORT: 3001
+  FRONTEND_PORT: 5175
+
+jobs:
+  # ── Réutilise les artefacts du CI ────────────────────────────
+  deploy:
+    name: Déploiement sur test
+    runs-on: ubuntu-22.04
+    environment:
+      name: test
+      url: https://test.forges-group.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      # ── Build backend ──────────────────────────────────────
+      - name: Installer dépendances backend
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Générer client Prisma
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Tests unitaires (bloquants)
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          NODE_ENV: test
+          JWT_SECRET: ${{ secrets.TEST_JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.TEST_JWT_REFRESH_SECRET }}
+          ENCRYPTION_KEY: ${{ secrets.TEST_ENCRYPTION_KEY }}
+          HMAC_KEY: ${{ secrets.TEST_HMAC_KEY }}
+          WEBHOOK_SECRET: ${{ secrets.TEST_WEBHOOK_SECRET }}
+          FRONTEND_URL: https://test.forges-group.com
+        run: npm run test
+
+      - name: Compiler TypeScript
+        working-directory: backend
+        run: npm run build
+
+      # ── Build frontend ─────────────────────────────────────
+      - name: Installer dépendances frontend
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Vite (test)
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://test.forges-group.com/api
+          VITE_ENV: test
+        run: npm run build
+
+      # ── Déploiement SSH ────────────────────────────────────
+      - name: Configurer SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Transférer backend (rsync)
+        run: |
+          rsync -avz --delete \
+            --exclude='.env*' \
+            --exclude='node_modules/.cache' \
+            --exclude='*.test.js' \
+            --exclude='*.spec.js' \
+            backend/dist/ \
+            backend/package.json \
+            backend/package-lock.json \
+            backend/prisma/ \
+            backend/node_modules/ \
+            ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/
+
+      - name: Transférer frontend (rsync)
+        run: |
+          rsync -avz --delete \
+            frontend/dist/ \
+            ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/public/
+
+      # ── Migrations + Redémarrage ───────────────────────────
+      - name: Migrations Prisma + Redémarrage Passenger
+        env:
+          DEPLOY_PATH: ${{ secrets.TEST_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.TEST_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.TEST_SERVER_HOST }}
+          DB_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: |
+          ssh $SERVER_USER@$SERVER_HOST << ENDSSH
+            set -euo pipefail
+            cd "$DEPLOY_PATH"
+
+            # Écrire le .env.test à partir des secrets (ne jamais versionner)
+            cat > .env.test << ENVEOF
+            DATABASE_URL=${{ secrets.TEST_DATABASE_URL }}
+            NODE_ENV=test
+            JWT_SECRET=${{ secrets.TEST_JWT_SECRET }}
+            JWT_REFRESH_SECRET=${{ secrets.TEST_JWT_REFRESH_SECRET }}
+            ENCRYPTION_KEY=${{ secrets.TEST_ENCRYPTION_KEY }}
+            HMAC_KEY=${{ secrets.TEST_HMAC_KEY }}
+            WEBHOOK_SECRET=${{ secrets.TEST_WEBHOOK_SECRET }}
+            SMTP_HOST=${{ secrets.TEST_SMTP_HOST }}
+            SMTP_USER=${{ secrets.TEST_SMTP_USER }}
+            SMTP_PASS=${{ secrets.TEST_SMTP_PASS }}
+            PAYMENT_API_KEY=${{ secrets.TEST_PAYMENT_API_KEY }}
+            FRONTEND_URL=https://test.forges-group.com
+            PORT=3001
+            ENVEOF
+
+            # Résoudre migration en échec si nécessaire (Fix 2)
+            FAILED=\$(npx prisma migrate status 2>/dev/null | grep 'failed' | awk '{print \$1}' | head -1)
+            [ -n "\$FAILED" ] && npx prisma migrate resolve --rolled-back "\$FAILED" 2>/dev/null || true
+
+            # Appliquer les migrations
+            export DATABASE_URL="${{ secrets.TEST_DATABASE_URL }}"
+            npx prisma migrate deploy
+
+            # Redémarrage Passenger (Plesk) — sans PM2
+            mkdir -p tmp && touch tmp/restart.txt
+            echo "✅ Passenger redémarré"
+
+            # Vérifier Docker Compose (PostgreSQL + Redis)
+            if [ -f infra/docker-compose.yml ]; then
+              RUNNING=\$(docker compose -f infra/docker-compose.yml ps --status running --quiet 2>/dev/null | wc -l)
+              [ "\$RUNNING" -lt 2 ] && docker compose -f infra/docker-compose.yml up -d || echo "✅ Containers actifs"
+            fi
+          ENDSSH
+
+      # ── Healthcheck ────────────────────────────────────────
+      - name: Healthcheck post-déploiement
+        run: |
+          sleep 5
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" \
+            https://${{ secrets.TEST_SERVER_HOST }}/api/health || echo "000")
+          echo "Healthcheck HTTP : $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "⚠️  Healthcheck retourné $HTTP_CODE — vérifier manuellement"
+          else
+            echo "✅ API opérationnelle"
+          fi
+
+      # ── Résumé ────────────────────────────────────────────
+      - name: Résumé déploiement
+        if: always()
+        run: |
+          echo "## 🚀 Déploiement TEST" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environnement | test |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | https://test.forges-group.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Déployé par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Date | $(date '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Nettoyage clé SSH ──────────────────────────────────
+      - name: Nettoyer clé SSH
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
