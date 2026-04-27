@@ -100,6 +100,11 @@ jobs:
             frontend-dist/ \
             ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/
 
+      - name: Préparer dossiers VPS
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${ secrets.TEST_SERVER_USER }@${ secrets.TEST_SERVER_HOST } \
+            "mkdir -p ${ secrets.TEST_DEPLOY_PATH }/infra/docker"
+
       - name: Transférer docker-compose (rsync)
         run: |
           rsync -avz \
