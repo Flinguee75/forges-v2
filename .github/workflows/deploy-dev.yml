@@ -100,11 +100,6 @@ jobs:
             frontend-dist/ \
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/
 
-      - name: Préparer dossiers VPS
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${ secrets.DEV_SERVER_USER }@${ secrets.DEV_SERVER_HOST } \
-            "mkdir -p ${ secrets.DEV_DEPLOY_PATH }/infra/docker"
-
       - name: Transférer docker-compose (rsync)
         run: |
           rsync -avz \
@@ -127,6 +122,7 @@ jobs:
             IMAGE_TAG="$IMAGE_TAG" \
             bash -s << 'ENDSSH'
               set -euo pipefail
+              mkdir -p "$DEPLOY_PATH/infra/docker"
               cd "$DEPLOY_PATH"
 
               echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
