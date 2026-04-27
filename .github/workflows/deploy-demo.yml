@@ -104,7 +104,7 @@ jobs:
       - name: Transférer docker-compose (rsync)
         run: |
           rsync -avz \
-            infra/docker/docker-compose.docker-compose.demo.deploy.yml \
+            infra/docker/docker-compose.demo.deploy.yml \
             ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/docker/
 
       - name: Docker pull + migrate + restart
@@ -128,8 +128,8 @@ jobs:
               echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
               export IMAGE_TAG="$IMAGE_TAG"
-              docker compose -f infra/docker/docker-compose.docker-compose.demo.deploy.yml --env-file .env pull backend
-              docker compose -f infra/docker/docker-compose.docker-compose.demo.deploy.yml --env-file .env up -d --remove-orphans
+              docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env pull backend
+              docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env up -d --remove-orphans
 
               sleep 10
               docker exec forges-backend-demo sh -c 'npx prisma migrate deploy'
