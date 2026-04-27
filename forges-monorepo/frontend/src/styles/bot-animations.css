@@ -1,0 +1,87 @@
+/* Animations pour le bot conseiller */
+
+/* Animation d'ouverture du panel */
+@keyframes bot-panel-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animation de fermeture du panel */
+@keyframes bot-panel-slide-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+}
+
+/* Animation d'apparition des messages */
+@keyframes bot-message-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation de pulsation pour les nouvelles questions */
+@keyframes bot-question-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Classes utilitaires pour appliquer les animations */
+.bot-panel-enter {
+  animation: bot-panel-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.bot-panel-exit {
+  animation: bot-panel-slide-out 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.bot-message-appear {
+  animation: bot-message-fade-in 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.bot-question-appear {
+  animation: bot-question-pulse 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animation du bouton flottant */
+@keyframes bot-button-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.bot-button-hover {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bot-button-hover:hover {
+  transform: translateY(-2px);
+}

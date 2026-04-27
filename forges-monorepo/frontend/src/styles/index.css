@@ -1,0 +1,157 @@
+/* Import Google Fonts - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import './semantic-tokens.css';
+@import './bot-animations.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Variables CSS FORGES */
+:root {
+  --color-primary:    #1B4F72;
+  --color-secondary:  #2E86C1;
+  --color-success:    #148F77;
+  --color-warning:    #D35400;
+  --color-danger:     #C0392B;
+  --color-info:       #6C3483;
+  --color-partenaire: #E65100;
+  --color-apporteur:  #6C3483;
+  --color-primary-ink:   #12364D;
+  --color-secondary-ink: #1F5E88;
+  --color-success-ink:   #0F6E5B;
+  --color-warning-ink:   #9C3D00;
+  --color-danger-ink:    #8F2B20;
+  --color-bg:         #F4F6F7;
+  --color-card:       #FFFFFF;
+  --color-text:       #1C2833;
+  --color-subtext:    #566573;
+  --color-border:     #D5D8DC;
+}
+
+/* Base styles */
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply font-sans text-text bg-bg antialiased;
+    font-size: 14px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-text;
+  }
+
+  h1 {
+    @apply text-3xl;
+  }
+
+  h2 {
+    @apply text-2xl;
+  }
+
+  h3 {
+    @apply text-xl;
+  }
+
+  a {
+    @apply text-link transition-colors;
+  }
+}
+
+/* Utility classes custom */
+@layer utilities {
+  .text-primary {
+    color: var(--color-primary-ink);
+  }
+
+  .text-secondary {
+    color: var(--color-secondary-ink);
+  }
+
+  .text-success {
+    color: var(--color-success-ink);
+  }
+
+  .text-warning {
+    color: var(--color-warning-ink);
+  }
+
+  .text-danger {
+    color: var(--color-danger-ink);
+  }
+
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+
+  .bg-secondary {
+    background-color: var(--color-secondary);
+  }
+
+  .bg-success {
+    background-color: var(--color-success);
+  }
+
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
+
+  .bg-danger {
+    background-color: var(--color-danger);
+  }
+
+  .bg-secondary-soft {
+    background-color: rgba(46, 134, 193, 0.12);
+  }
+
+  .bg-success-soft {
+    background-color: rgba(20, 143, 119, 0.12);
+  }
+
+  .bg-warning-soft {
+    background-color: rgba(211, 84, 0, 0.12);
+  }
+
+  .bg-danger-soft {
+    background-color: rgba(192, 57, 43, 0.12);
+  }
+
+  .border-primary {
+    border-color: var(--color-primary);
+  }
+
+  .border-secondary-soft {
+    border-color: rgba(46, 134, 193, 0.28);
+  }
+
+  .border-success-soft {
+    border-color: rgba(20, 143, 119, 0.28);
+  }
+
+  .border-warning-soft {
+    border-color: rgba(211, 84, 0, 0.28);
+  }
+
+  .border-danger-soft {
+    border-color: rgba(192, 57, 43, 0.28);
+  }
+
+  /* Animation pour les toasts */
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+}

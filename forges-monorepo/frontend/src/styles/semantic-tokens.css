@@ -1,0 +1,121 @@
+/* Tokens semantiques:
+ * - Les couleurs de texte ne doivent pas reutiliser telles quelles les couleurs de fond d'action.
+ * - Utiliser les classes semantiques ci-dessous au lieu de melanger directement text-primary et bg-primary.
+ */
+
+@layer base {
+  :root {
+    --role-text-heading: var(--color-text);
+    --role-text-body: var(--color-text);
+    --role-text-muted: var(--color-subtext);
+    --role-text-link: var(--color-secondary-ink);
+    --role-text-link-hover: var(--color-primary-ink);
+    --role-text-brand: var(--color-primary-ink);
+
+    --role-action-primary-bg: var(--color-primary);
+    --role-action-primary-bg-hover: #16425f;
+    --role-action-primary-fg: #ffffff;
+
+    --role-action-secondary-bg: var(--color-secondary);
+    --role-action-secondary-bg-hover: #246b98;
+    --role-action-secondary-fg: #ffffff;
+
+    --role-action-success-bg: var(--color-success);
+    --role-action-success-bg-hover: #0f6d5b;
+    --role-action-success-fg: #ffffff;
+
+    --role-action-warning-bg: var(--color-warning);
+    --role-action-warning-bg-hover: #aa4400;
+    --role-action-warning-fg: #ffffff;
+
+    --role-action-danger-bg: var(--color-danger);
+    --role-action-danger-bg-hover: #9e3024;
+    --role-action-danger-fg: #ffffff;
+
+    --role-surface-card: var(--color-card);
+    --role-surface-action-ghost: rgba(27, 79, 114, 0.05);
+    --role-border-action: rgba(27, 79, 114, 0.28);
+  }
+}
+
+@layer utilities {
+  .text-heading {
+    color: var(--role-text-heading);
+  }
+
+  .text-body {
+    color: var(--role-text-body);
+  }
+
+  .text-muted {
+    color: var(--role-text-muted);
+  }
+
+  .text-link {
+    color: var(--role-text-link);
+  }
+
+  .text-link:hover {
+    color: var(--role-text-link-hover);
+  }
+
+  .text-brand {
+    color: var(--role-text-brand);
+  }
+
+  .text-on-action {
+    color: var(--role-action-primary-fg);
+  }
+
+  .bg-action-primary {
+    background-color: var(--role-action-primary-bg);
+  }
+
+  .bg-action-primary-hover:hover {
+    background-color: var(--role-action-primary-bg-hover);
+  }
+
+  .bg-action-secondary {
+    background-color: var(--role-action-secondary-bg);
+  }
+
+  .bg-action-secondary-hover:hover {
+    background-color: var(--role-action-secondary-bg-hover);
+  }
+
+  .bg-action-success {
+    background-color: var(--role-action-success-bg);
+  }
+
+  .bg-action-success-hover:hover {
+    background-color: var(--role-action-success-bg-hover);
+  }
+
+  .bg-action-warning {
+    background-color: var(--role-action-warning-bg);
+  }
+
+  .bg-action-warning-hover:hover {
+    background-color: var(--role-action-warning-bg-hover);
+  }
+
+  .bg-action-danger {
+    background-color: var(--role-action-danger-bg);
+  }
+
+  .bg-action-danger-hover:hover {
+    background-color: var(--role-action-danger-bg-hover);
+  }
+
+  .bg-surface-card {
+    background-color: var(--role-surface-card);
+  }
+
+  .bg-surface-action-ghost {
+    background-color: var(--role-surface-action-ghost);
+  }
+
+  .border-action {
+    border-color: var(--role-border-action);
+  }
+}
