@@ -75,6 +75,8 @@ jobs:
           name: frontend-dist-dev
           path: forges-monorepo/frontend/dist/
           retention-days: 1
+          # Inclure .htaccess et autres fichiers caches (sinon SPA fallback perdu)
+          include-hidden-files: true
 
   deploy:
     name: Déploiement sur dev
