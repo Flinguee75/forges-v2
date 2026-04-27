@@ -2,10 +2,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl postgresql-client
 COPY forges-monorepo/backend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci --no-audit --no-fund
 COPY forges-monorepo/backend/ .
 RUN npx prisma generate
 RUN npm run build
+RUN npm prune --production
 
 FROM node:20-alpine AS runner
 WORKDIR /app
