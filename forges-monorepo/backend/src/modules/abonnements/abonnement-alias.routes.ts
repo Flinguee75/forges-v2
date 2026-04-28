@@ -17,7 +17,7 @@ const retailRepository = new AbonnementRetailRepository(prisma);
 const retailService = new AbonnementRetailService(retailRepository, prisma, auditLogger, emailService);
 const organisationService = new AbonnementOrganisationService(prisma, auditLogger, emailService);
 const b2bService = new AbonnementB2BService(prisma, auditLogger, emailService);
-const controller = new AbonnementController(retailService, organisationService, b2bService);
+const controller = new AbonnementController(retailService, organisationService, b2bService, prisma);
 
 router.post('/abonnements-retail/subscribe', authenticate, authorize('APPRENANT'), (req, res, next) => {
   controller.souscrireRetail(req, res, next);
