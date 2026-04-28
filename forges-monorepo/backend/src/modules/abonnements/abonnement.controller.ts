@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { PrismaClient } from '@prisma/client';
 import { AbonnementRetailService } from './retail/abonnement-retail.service';
 import { AbonnementOrganisationService } from './organisation/abonnement-organisation.service';
 import { AbonnementB2BService } from './b2b/abonnement-b2b.service';
@@ -8,6 +9,7 @@ export class AbonnementController {
     private readonly retailService: AbonnementRetailService,
     private readonly orgService: AbonnementOrganisationService,
     private readonly b2bService: AbonnementB2BService,
+    private readonly prisma: PrismaClient,
   ) {}
 
   // ─── RETAIL ─────────────────────────────────────
@@ -190,5 +192,96 @@ export class AbonnementController {
         data: { renouvellements, graces, downgrades, b2b_expires: b2bExpires }
       });
     } catch (error) { next(error); }
+  }
+
+  // GET /api/backoffice/abonnements — ADMIN, AGENT
+  // Vue consolidée de tous les abonnements (retail + organisation + b2b)
+  async getAllAbonnementsBackoffice(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { statut, type, page = 1, limit = 20, date_debut, date_fin } = req.query;
+
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const skip = (pageNum - 1) * limitNum;
+
+      // Filtres communs
+      const where: any = {};
+      if (statut) {
+        where.statut = statut;
+      }
+      if (date_debut || date_fin) {
+        where.date_debut = {};
+        if (date_debut) where.date_debut.gte = new Date(date_debut as string);
+        if (date_fin) where.date_debut.lte = new Date(date_fin as string);
+      }
+
+      // Charger les 3 types d'abonnements en parallèle
+      const [retail, organisation, b2b, totalRetail, totalOrg, totalB2B] = await Promise.all([
+        (!type || type === 'retail') ? this.prisma.abonnementRetail.findMany({
+          where,
+          include: {
+            apprenant: {
+              select: {
+                nom: true,
+                prenoms: true,
+                email: true,
+              },
+            },
+          },
+          skip,
+          take: limitNum,
+          orderBy: { date_debut: 'desc' },
+        }) : [],
+        (!type || type === 'organisation') ? this.prisma.abonnementOrganisation.findMany({
+          where,
+          include: {
+            organisation: {
+              select: {
+                raison_sociale: true,
+                email: true,
+              },
+            },
+          },
+          skip,
+          take: limitNum,
+          orderBy: { date_debut: 'desc' },
+        }) : [],
+        (!type || type === 'b2b') ? this.prisma.abonnementB2B.findMany({
+          where,
+          include: {
+            organisation: {
+              select: {
+                raison_sociale: true,
+                email: true,
+              },
+            },
+          },
+          skip,
+          take: limitNum,
+          orderBy: { date_debut: 'desc' },
+        }) : [],
+        (!type || type === 'retail') ? this.prisma.abonnementRetail.count({ where }) : 0,
+        (!type || type === 'organisation') ? this.prisma.abonnementOrganisation.count({ where }) : 0,
+        (!type || type === 'b2b') ? this.prisma.abonnementB2B.count({ where }) : 0,
+      ]);
+
+      res.status(200).json({
+        statusCode: 200,
+        data: {
+          retail,
+          organisation,
+          b2b,
+          meta: {
+            total_retail: totalRetail,
+            total_organisation: totalOrg,
+            total_b2b: totalB2B,
+            page: pageNum,
+            limit: limitNum,
+          },
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 }

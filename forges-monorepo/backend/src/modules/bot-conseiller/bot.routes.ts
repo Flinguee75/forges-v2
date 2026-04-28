@@ -15,10 +15,22 @@ const botRepository = new BotRepository(prisma);
 const botEngine = new BotEngineService(botRepository, prisma);
 const auditLogger = new AuditLogger();
 const botService = new BotService(botRepository, botEngine, prisma, auditLogger);
-const botController = new BotController(botService);
+const botController = new BotController(botService, prisma);
 
-// Toutes les routes nécessitent authentication
-// Les rôles APPRENANT et ORGANISATION sont autorisés
+/**
+ * Routes backoffice (ADMIN, AGENT, RESPONSABLE) - sans le middleware APPRENANT/ORGANISATION
+ */
+router.get('/backoffice/enquetes', authenticate, authorize('ADMIN', 'AGENT', 'RESPONSABLE'), (req, res, next) => {
+  botController.getEnquetesCatalogue(req, res, next);
+});
+
+router.get('/backoffice/feedbacks', authenticate, authorize('ADMIN', 'AGENT', 'RESPONSABLE'), (req, res, next) => {
+  botController.getFeedbacksFormations(req, res, next);
+});
+
+/**
+ * Routes utilisateurs (APPRENANT, ORGANISATION)
+ */
 router.use(authenticate);
 router.use(authorize('APPRENANT', 'ORGANISATION'));
 
