@@ -23,18 +23,17 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
     if (search) {
       where.OR = [
         { nom: { contains: search as string, mode: 'insensitive' } },
-        { prenom: { contains: search as string, mode: 'insensitive' } },
+        { prenoms: { contains: search as string, mode: 'insensitive' } },
         { email: { contains: search as string, mode: 'insensitive' } },
       ];
     }
 
     if (statut === 'suspendu') {
-      where.suspended = true;
+      where.statut = 'SUSPENDU';
     } else if (statut === 'actif') {
-      where.suspended = false;
-      where.email_confirme = true;
+      where.statut = 'ACTIF';
     } else if (statut === 'non_confirme') {
-      where.email_confirme = false;
+      where.statut = 'INACTIF';
     }
 
     const [apprenants, total] = await Promise.all([
@@ -46,12 +45,10 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
           id: true,
           email: true,
           nom: true,
-          prenom: true,
-          telephone: true,
-          ville: true,
-          pays: true,
-          suspended: true,
-          email_confirme: true,
+          prenoms: true,
+          pays_residence: true,
+          pays_nationalite: true,
+          statut: true,
           created_at: true,
         },
         orderBy: { created_at: 'desc' },
@@ -59,9 +56,17 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
       prisma.apprenant.count({ where }),
     ]);
 
+    const data = apprenants.map((apprenant) => ({
+      ...apprenant,
+      prenom: apprenant.prenoms,
+      pays: apprenant.pays_residence,
+      suspended: apprenant.statut === 'SUSPENDU',
+      email_confirme: apprenant.statut !== 'INACTIF',
+    }));
+
     res.status(200).json({
       statusCode: 200,
-      data: apprenants,
+      data,
       meta: {
         page: pageNum,
         limit: limitNum,
@@ -83,16 +88,15 @@ router.get('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, 
         id: true,
         email: true,
         nom: true,
-        prenom: true,
-        telephone: true,
-        adresse: true,
-        ville: true,
-        pays: true,
-        langue: true,
-        suspended: true,
-        email_confirme: true,
+        prenoms: true,
+        type_apprenant: true,
+        secteur_activite: true,
+        niveau_etude: true,
+        pays_residence: true,
+        pays_nationalite: true,
+        langue_preferee: true,
+        statut: true,
         created_at: true,
-        updated_at: true,
       },
     });
 
@@ -106,7 +110,14 @@ router.get('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, 
 
     res.status(200).json({
       statusCode: 200,
-      data: apprenant,
+      data: {
+        ...apprenant,
+        prenom: apprenant.prenoms,
+        pays: apprenant.pays_residence,
+        langue: apprenant.langue_preferee,
+        suspended: apprenant.statut === 'SUSPENDU',
+        email_confirme: apprenant.statut !== 'INACTIF',
+      },
     });
   } catch (error) {
     next(error);
@@ -120,19 +131,23 @@ router.patch('/:id/suspension', authenticate, authorize('ADMIN', 'SUPERVISEUR'),
 
     const apprenant = await prisma.apprenant.update({
       where: { id: req.params.id },
-      data: { suspended },
+      data: { statut: suspended ? 'SUSPENDU' : 'ACTIF' },
       select: {
         id: true,
         email: true,
         nom: true,
-        prenom: true,
-        suspended: true,
+        prenoms: true,
+        statut: true,
       },
     });
 
     res.status(200).json({
       statusCode: 200,
-      data: apprenant,
+      data: {
+        ...apprenant,
+        prenom: apprenant.prenoms,
+        suspended: apprenant.statut === 'SUSPENDU',
+      },
     });
   } catch (error) {
     next(error);
@@ -176,7 +191,7 @@ router.get('/:id/abonnement', authenticate, authorize('ADMIN', 'SUPERVISEUR'), a
         apprenant_id: req.params.id,
         statut: 'ACTIF',
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { date_debut: 'desc' },
     });
 
     if (!abonnement) {

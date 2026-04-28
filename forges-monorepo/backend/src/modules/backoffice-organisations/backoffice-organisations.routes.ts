@@ -22,15 +22,14 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
 
     if (search) {
       where.OR = [
-        { nom_organisation: { contains: search as string, mode: 'insensitive' } },
+        { raison_sociale: { contains: search as string, mode: 'insensitive' } },
         { email: { contains: search as string, mode: 'insensitive' } },
-        { responsable_nom: { contains: search as string, mode: 'insensitive' } },
-        { responsable_prenom: { contains: search as string, mode: 'insensitive' } },
+        { contact_referent: { contains: search as string, mode: 'insensitive' } },
       ];
     }
 
     if (type) {
-      where.type_organisation = type;
+      where.type = type;
     }
 
     const [organisations, total] = await Promise.all([
@@ -41,16 +40,11 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
         select: {
           id: true,
           email: true,
-          nom_organisation: true,
-          type_organisation: true,
-          responsable_nom: true,
-          responsable_prenom: true,
-          responsable_fonction: true,
-          telephone: true,
-          ville: true,
+          raison_sociale: true,
+          type: true,
+          contact_referent: true,
           pays: true,
-          suspended: true,
-          email_confirme: true,
+          statut: true,
           created_at: true,
         },
         orderBy: { created_at: 'desc' },
@@ -58,9 +52,20 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
       prisma.organisation.count({ where }),
     ]);
 
+    const data = organisations.map((organisation) => ({
+      ...organisation,
+      nom_organisation: organisation.raison_sociale,
+      type_organisation: organisation.type,
+      responsable_nom: organisation.contact_referent,
+      responsable_prenom: '',
+      responsable_fonction: '',
+      suspended: organisation.statut === 'SUSPENDU',
+      email_confirme: organisation.statut !== 'EN_ATTENTE',
+    }));
+
     res.status(200).json({
       statusCode: 200,
-      data: organisations,
+      data,
       meta: {
         page: pageNum,
         limit: limitNum,
@@ -81,22 +86,15 @@ router.get('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, 
       select: {
         id: true,
         email: true,
-        nom_organisation: true,
-        type_organisation: true,
         raison_sociale: true,
-        numero_legal: true,
-        responsable_nom: true,
-        responsable_prenom: true,
-        responsable_fonction: true,
-        telephone: true,
-        adresse: true,
-        ville: true,
+        type: true,
+        sous_types: true,
+        identifiant_legal: true,
+        contact_referent: true,
         pays: true,
-        langue: true,
-        suspended: true,
-        email_confirme: true,
+        langue_preferee: true,
+        statut: true,
         created_at: true,
-        updated_at: true,
       },
     });
 
@@ -110,7 +108,18 @@ router.get('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, 
 
     res.status(200).json({
       statusCode: 200,
-      data: organisation,
+      data: {
+        ...organisation,
+        nom_organisation: organisation.raison_sociale,
+        type_organisation: organisation.type,
+        numero_legal: organisation.identifiant_legal,
+        responsable_nom: organisation.contact_referent,
+        responsable_prenom: '',
+        responsable_fonction: '',
+        langue: organisation.langue_preferee,
+        suspended: organisation.statut === 'SUSPENDU',
+        email_confirme: organisation.statut !== 'EN_ATTENTE',
+      },
     });
   } catch (error) {
     next(error);
@@ -124,18 +133,22 @@ router.patch('/:id/suspension', authenticate, authorize('ADMIN', 'SUPERVISEUR'),
 
     const organisation = await prisma.organisation.update({
       where: { id: req.params.id },
-      data: { suspended },
+      data: { statut: suspended ? 'SUSPENDU' : 'ACTIVE' },
       select: {
         id: true,
         email: true,
-        nom_organisation: true,
-        suspended: true,
+        raison_sociale: true,
+        statut: true,
       },
     });
 
     res.status(200).json({
       statusCode: 200,
-      data: organisation,
+      data: {
+        ...organisation,
+        nom_organisation: organisation.raison_sociale,
+        suspended: organisation.statut === 'SUSPENDU',
+      },
     });
   } catch (error) {
     next(error);
@@ -145,14 +158,29 @@ router.patch('/:id/suspension', authenticate, authorize('ADMIN', 'SUPERVISEUR'),
 // GET /api/backoffice/organisations/:id/membres - Membres de l'organisation
 router.get('/:id/membres', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res, next) => {
   try {
-    const membres = await prisma.beneficiaireOrganisation.findMany({
+    const membres = await prisma.apprenant.findMany({
       where: { organisation_id: req.params.id },
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        prenoms: true,
+        type_apprenant: true,
+        statut: true,
+        pays_residence: true,
+        created_at: true,
+      },
       orderBy: { created_at: 'desc' },
     });
 
     res.status(200).json({
       statusCode: 200,
-      data: membres,
+      data: membres.map((membre) => ({
+        ...membre,
+        prenom: membre.prenoms,
+        pays: membre.pays_residence,
+        suspended: membre.statut === 'SUSPENDU',
+      })),
     });
   } catch (error) {
     next(error);
@@ -167,7 +195,7 @@ router.get('/:id/abonnement', authenticate, authorize('ADMIN', 'SUPERVISEUR'), a
         organisation_id: req.params.id,
         statut: 'ACTIF',
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { date_debut: 'desc' },
     });
 
     if (!abonnement) {
@@ -192,20 +220,27 @@ router.get('/:id/vouchers', authenticate, authorize('ADMIN', 'SUPERVISEUR'), asy
   try {
     const vouchers = await prisma.voucherOrganisation.findMany({
       where: { organisation_id: req.params.id },
-      include: {
-        formation: {
-          select: {
-            id: true,
-            intitule: true,
-          },
-        },
-      },
       orderBy: { created_at: 'desc' },
     });
 
+    const formationIds = vouchers
+      .map((voucher) => voucher.formation_id)
+      .filter((formationId): formationId is string => Boolean(formationId));
+
+    const formations = formationIds.length
+      ? await prisma.formation.findMany({
+          where: { id: { in: formationIds } },
+          select: { id: true, intitule: true },
+        })
+      : [];
+    const formationsById = new Map(formations.map((formation) => [formation.id, formation]));
+
     res.status(200).json({
       statusCode: 200,
-      data: vouchers,
+      data: vouchers.map((voucher) => ({
+        ...voucher,
+        formation: voucher.formation_id ? formationsById.get(voucher.formation_id) ?? null : null,
+      })),
     });
   } catch (error) {
     next(error);
