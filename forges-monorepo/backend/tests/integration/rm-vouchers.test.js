@@ -24,6 +24,28 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
     return voucherCode;
   }
 
+  async function createOrganisationVoucher(testId, quotaMax = 10) {
+    const voucherCode = `ORG-VOUCHER-${testId}-${Date.now()}`;
+    const org = await prisma.organisation.findFirst({ where: { statut: 'ACTIF' } });
+    const orgId = org ? org.id : ids.organisation;
+
+    await prisma.voucherOrganisation.create({
+      data: {
+        code: voucherCode,
+        organisation_id: orgId,
+        formation_id: ids.standardFormation,
+        valeur: 150000,
+        type_valeur: 'MONTANT',
+        statut: 'ACTIF',
+        quota_max: quotaMax,
+        quota_utilise: 0,
+        date_expiration: new Date(Date.now() + 30 * 86400000),
+      },
+    });
+
+    return voucherCode;
+  }
+
   test('RM-37/RM-40 — voucher organisation lie a formation et non expire', async () => {
     const voucherCode = await createTestVoucher('RM37-40');
 
@@ -79,7 +101,7 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
     await prisma.voucherApporteur.delete({ where: { code: voucherCode } }).catch(() => {});
   });
 
-  test.skip('RM-39 — workflow promotionnel conserve BROUILLON avant validation', async () => {
+  test('RM-39 — workflow promotionnel conserve BROUILLON avant validation', async () => {
     const headers = await auth(accounts.admin);
     const res = await request(API_URL)
       .post('/api/vouchers/promotionnel')
@@ -95,10 +117,17 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
 
     expect(res.status).toBe(201);
     expect(res.body.data.statut).toBe('BROUILLON');
+
+    const voucher = await prisma.voucherApporteur.findUnique({
+      where: { id: res.body.data.id },
+    });
+
+    expect(voucher.statut).toBe('BROUILLON');
+    expect(voucher.type).toBe('PROMOTIONNEL');
   });
 
   test('RM-37.2 — Voucher lié à formation spécifique ne peut être utilisé pour autre formation', async () => {
-    const voucherCode = await createTestVoucher('RM37-2');
+    const voucherCode = await createOrganisationVoucher('RM37-2');
     const headers = await auth(await createApprenantAccount('rm37-2'));
 
     // Tenter d'utiliser voucher Standard sur formation Premium
@@ -119,25 +148,11 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
 
     // Cleanup
     await prisma.dossier.deleteMany({ where: { voucher_code: voucherCode } });
-    await prisma.voucherApporteur.delete({ where: { code: voucherCode } });
+    await prisma.voucherOrganisation.delete({ where: { code: voucherCode } });
   });
 
   test('RM-41.1 — Voucher Organisation déclenche paiement automatique', async () => {
-    const freshCode = `ORG-RM41-${Date.now()}`;
-    const orgActive = await prisma.organisation.findFirst({ where: { statut: 'ACTIF' } });
-    await prisma.voucherApporteur.create({
-      data: {
-        code: freshCode,
-        type: 'PROMOTIONNEL',
-        formation_id: ids.standardFormation,
-        statut: 'ACTIF',
-        quota_max: 5,
-        quota_utilise: 0,
-        date_expiration: new Date(Date.now() + 30 * 86400000),
-        organisation_id: orgActive.id,
-      },
-    });
-
+    const freshCode = await createOrganisationVoucher('RM41-1', 5);
     const headers = await auth(await createApprenantAccount('rm41-1'));
 
     const res = await request(API_URL)
@@ -154,22 +169,28 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
     expect(res.status).toBe(201);
 
     const dossier = res.body.dossier || res.body.data;
-    expect(['PAYE', 'PAYE_DIRECTEMENT']).toContain(dossier.statut);
+    expect(dossier.statut).toBe('PAYE');
+
+    const paiement = await prisma.paiement.findFirst({
+      where: { dossier_id: dossier.id },
+    });
+
+    expect(paiement).toBeDefined();
+    expect(paiement.statut).toBe('CONFIRME');
+    expect(paiement.methode).toBe('VOUCHER_ORG');
   });
 
-  // RM-41.2 : Paiement automatique voucher Org — SKIP (hors priorité Phase 1)
-  // Backend ne crée pas encore automatiquement le paiement pour vouchers Organisation
-  // TODO Phase 3 : Implémenter création automatique paiement VOUCHER_ORG dans InscriptionService
-  test.skip('RM-41.2 — Paiement Organisation créé automatiquement avec montant voucher', async () => {
+  test('RM-41.2 — Paiement Organisation créé automatiquement avec montant voucher', async () => {
     const { prisma } = require('./helpers');
     const headers = await auth(await createApprenantAccount('rm41-2'));
+    const voucherCode = await createOrganisationVoucher('RM41-2');
 
     const res = await request(API_URL)
       .post(`/api/sessions/${ids.standardSession}/inscrire`)
       .set(headers)
       .send({
         source_financement: 'VOUCHER',
-        voucher_code: ids.orgVoucherCode,
+        voucher_code: voucherCode,
       });
 
     expect(res.status).toBe(201);
@@ -183,5 +204,7 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
     expect(paiement).toBeDefined();
     expect(paiement.statut).toBe('CONFIRME');
     expect(paiement.methode).toBe('VOUCHER_ORG');
+    expect(paiement.montant_catalogue).toBe(150000);
+    expect(paiement.montant_final).toBe(150000);
   });
 });

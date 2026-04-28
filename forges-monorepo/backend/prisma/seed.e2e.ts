@@ -131,6 +131,8 @@ async function cleanupScenarioData() {
     IDS.sessionCloturee,
     IDS.sessionArchivable,
   ];
+  const commissionDossierIds = Array.from({ length: 3 }, (_, index) => `D-E2E-COMM-${index + 1}`);
+  const commissionPaiementIds = Array.from({ length: 3 }, (_, index) => `P-E2E-COMM-${index + 1}`);
   const transientDossierIds = (await prisma.dossier.findMany({
     where: {
       OR: [
@@ -146,6 +148,7 @@ async function cleanupScenarioData() {
       OR: [
         { apporteur_id: IDS.apporteur },
         { dossier_id: { in: Object.values(IDS).filter((id) => id.startsWith('D-E2E-')) } },
+        { dossier_id: { in: commissionDossierIds } },
         { dossier_id: { in: transientDossierIds } },
         { paiement: { dossier: { apprenant_id: { in: apprenantIds } } } },
         { paiement: { dossier: { apprenant_id: { startsWith: 'app-rm' } } } },
@@ -174,7 +177,9 @@ async function cleanupScenarioData() {
     where: {
       OR: [
         { id: { in: [IDS.paiementPaye, IDS.paiementExpire] } },
+        { id: { in: commissionPaiementIds } },
         { dossier_id: { in: Object.values(IDS).filter((id) => id.startsWith('D-E2E-')) } },
+        { dossier_id: { in: commissionDossierIds } },
         { dossier: { apprenant_id: { in: apprenantIds } } },
         { dossier: { apprenant_id: { startsWith: 'app-rm' } } },
       ],
@@ -184,6 +189,7 @@ async function cleanupScenarioData() {
     where: {
       OR: [
         { id: { in: Object.values(IDS).filter((id) => id.startsWith('D-E2E-')) } },
+        { id: { in: commissionDossierIds } },
         { apprenant_id: { in: apprenantIds } },
         { apprenant_id: { startsWith: 'app-rm' } },
         { session_id: { in: sessionIds } },
@@ -211,6 +217,13 @@ async function cleanupScenarioData() {
         { apporteur_id: IDS.apporteur },
         { formation_id: { in: formationIds } },
         { formation_id: { startsWith: 'F-RM' } },
+      ],
+    },
+  });
+  await prisma.voucherOrganisation.deleteMany({
+    where: {
+      OR: [
+        { code: { startsWith: 'ORG-VOUCHER-' } },
       ],
     },
   });
@@ -261,26 +274,29 @@ async function createApprenant(
   role = 'APPRENANT',
   extra: Record<string, unknown> = {},
 ) {
-  return prisma.apprenant.create({
-    data: {
-      id,
-      email,
-      password_hash: passwordHash,
-      nom: role === 'APPRENANT' ? 'E2E' : role,
-      prenoms: id,
-      role: role as any,
-      type_apprenant: role === 'APPRENANT' ? 'APPRENANT' : 'PROFESSIONNEL',
-      niveau_etude: role === 'APPRENANT' ? 'Licence / Bac+3' : null,
-      secteur_activite: role === 'APPRENANT' ? null : 'Administration',
-      pays_residence: 'CI',
-      pays_nationalite: 'CI',
-      langue_preferee: 'FR',
-      statut: 'ACTIF',
-      consentement_rgpd: true,
-      consentement_timestamp: new Date(),
-      consentement_version_cgu: '1.0',
-      ...extra,
-    },
+  const data = {
+    id,
+    email,
+    password_hash: passwordHash,
+    nom: role === 'APPRENANT' ? 'E2E' : role,
+    prenoms: id,
+    role: role as any,
+    type_apprenant: role === 'APPRENANT' ? 'APPRENANT' : 'PROFESSIONNEL',
+    niveau_etude: role === 'APPRENANT' ? 'Licence / Bac+3' : null,
+    secteur_activite: role === 'APPRENANT' ? null : 'Administration',
+    pays_residence: 'CI',
+    pays_nationalite: 'CI',
+    langue_preferee: 'FR',
+    statut: 'ACTIF',
+    consentement_rgpd: true,
+    consentement_timestamp: new Date(),
+    consentement_version_cgu: '1.0',
+    ...extra,
+  };
+  return prisma.apprenant.upsert({
+    where: { id },
+    update: data,
+    create: data,
   });
 }
 
@@ -295,46 +311,52 @@ async function createFormation(data: {
   partenaire_id?: string | null;
   prix_coutant?: number | null;
 }) {
-  return prisma.formation.create({
-    data: {
-      id: data.id,
-      intitule: data.intitule,
-      description_courte: `${data.intitule} - fixture E2E`,
-      description_longue: `${data.intitule} utilisée pour la vague 2 E2E.`,
-      duree_jours: 5,
-      cout_catalogue: data.cout_catalogue,
-      responsable_id: IDS.responsable,
-      type_formation: data.type_formation,
-      mode_formation: data.mode_formation,
-      statut: 'ACTIVE',
-      inclus_abonnement: data.inclus_abonnement ?? false,
-      pilier_abonnement: data.pilier_abonnement ?? null,
-      duree_acces_jours: 365,
-      prix_coutant: data.prix_coutant ?? null,
-      prerequis: 'Aucun prerequis',
-      objectifs_pedagogiques: ['Valider le parcours E2E'],
-      certification_delivree: true,
-      public_cible: 'Apprenants',
-      langues_disponibles: ['FR'],
-      partenaire_id: data.partenaire_id ?? null,
-    },
+  const payload = {
+    id: data.id,
+    intitule: data.intitule,
+    description_courte: `${data.intitule} - fixture E2E`,
+    description_longue: `${data.intitule} utilisée pour la vague 2 E2E.`,
+    duree_jours: 5,
+    cout_catalogue: data.cout_catalogue,
+    responsable_id: IDS.responsable,
+    type_formation: data.type_formation,
+    mode_formation: data.mode_formation,
+    statut: 'ACTIVE',
+    inclus_abonnement: data.inclus_abonnement ?? false,
+    pilier_abonnement: data.pilier_abonnement ?? null,
+    duree_acces_jours: 365,
+    prix_coutant: data.prix_coutant ?? null,
+    prerequis: 'Aucun prerequis',
+    objectifs_pedagogiques: ['Valider le parcours E2E'],
+    certification_delivree: true,
+    public_cible: 'Apprenants',
+    langues_disponibles: ['FR'],
+    partenaire_id: data.partenaire_id ?? null,
+  };
+  return prisma.formation.upsert({
+    where: { id: data.id },
+    update: payload,
+    create: payload,
   });
 }
 
 async function createSession(id: string, formation_id: string, statut: string, dates: Record<string, Date>) {
-  return prisma.session.create({
-    data: {
-      id,
-      formation_id,
-      date_ouverture: dates.date_ouverture,
-      date_cloture: dates.date_cloture,
-      date_debut: dates.date_debut,
-      date_fin: dates.date_fin,
-      capacite: 20,
-      nb_inscrits: 0,
-      places_restantes: 20,
-      statut,
-    },
+  const payload = {
+    id,
+    formation_id,
+    date_ouverture: dates.date_ouverture,
+    date_cloture: dates.date_cloture,
+    date_debut: dates.date_debut,
+    date_fin: dates.date_fin,
+    capacite: 20,
+    nb_inscrits: 0,
+    places_restantes: 20,
+    statut,
+  };
+  return prisma.session.upsert({
+    where: { id },
+    update: payload,
+    create: payload,
   });
 }
 
@@ -756,7 +778,7 @@ async function main() {
         id: dossierId,
         apprenant_id: IDS.apprenantDossier,
         formation_id: IDS.formationStandard,
-        session_id: IDS.sessionStandard,
+        session_id: null,
         statut: 'PAYE',
         source_financement: 'RETAIL',
         code_apporteur: CODES.apporteur,

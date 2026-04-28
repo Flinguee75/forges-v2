@@ -6,18 +6,18 @@ RM-145,Commission Apporteur calcul,Apporteurs,5,Conflit apporteur,API,rm-145-147
 RM-146,Agrégation commissions J+1,Apporteurs,5,Retard reversement,Scheduler,rm-145-147-commissions.test.js,ucs20-apporteur.spec.js,COUVERT,P0,UCS20
 RM-147,Reversement conditionnel seuil,Apporteurs,5,Conflit apporteur,Scheduler,rm-145-147-commissions.test.js,ucs20-apporteur.spec.js,COUVERT,P0,UCS20
 RM-102,Éligibilité abonnement auto,Abonnements,5,Faux accès Premium,API,rm-102-eligibilite.test.js,ucs03-2-abonnement-b2b.spec.js,COUVERT,P0,UCS03.2
-RM-01,Unicité apprenant/session,Inscriptions,5,Doublon surréservation,API,rm-01-15-unicite.test.js,-,NON COUVERT,P1,UCS07
+RM-01,Unicité apprenant/session,Inscriptions,5,Doublon surréservation,API,rm-01-15-unicite.test.js,-,COUVERT,P1,UCS07
 RM-07,Délai 72h Premium+Retail,Paiements,5,Places bloquées,Scheduler,rm-07-delai-72h.test.js,ucs08-traitement-dossier.spec.js,COUVERT,P1,UCS08
 RM-05,RETENU irréversible,Inscriptions,5,Conflit modification,MANUEL,-,ucs08-traitement-dossier.spec.js,COUVERT,P1,UCS08
-RM-37,Voucher lié formation,Vouchers,5,Fraude,API,rm-37-41-vouchers.test.js,-,PARTIEL,P1,UCS06
-RM-41,Voucher Org paiement auto,Vouchers,5,Perte tracking,API,rm-37-41-vouchers.test.js,-,PARTIEL,P1,UCS06
-RM-143,Code apporteur validation,Apporteurs,5,Double commission,API,rm-143-144-apporteur.test.js,-,NON COUVERT,P0,UCS07
-RM-144,Non-cumulabilité code apporteur,Apporteurs,5,Perte marge,API,rm-143-144-apporteur.test.js,-,NON COUVERT,P0,UCS07
+RM-37,Voucher lié formation,Vouchers,5,Fraude,API,rm-vouchers.test.js,-,COUVERT,P1,UCS06
+RM-41,Voucher Org paiement auto,Vouchers,5,Perte tracking,API,rm-vouchers.test.js,-,COUVERT,P1,UCS06
+RM-143,Code apporteur validation,Apporteurs,5,Double commission,API,rm-143-validation-code-apporteur.test.js,-,COUVERT,P0,UCS07
+RM-144,Non-cumulabilité code apporteur,Apporteurs,5,Perte marge,API,rm-vouchers.test.js,-,COUVERT,P0,UCS07
 RM-142,Code UUID permanent,Apporteurs,5,Tracking cassé,API,-,ucs20-apporteur.spec.js,COUVERT,P2,UCS20
 RM-141,Taux défaut 5%,Apporteurs,5,Config,CONFIG,-,-,COUVERT (env),P2,UCS20
-RM-28,Unicité email,Comptes,5,Doublon compte,API,-,ucs00-01-auth.spec.js,NON COUVERT,P1,UCS00
-RM-16,Cohérence 4 dates session,Sessions,5,Inscriptions impossibles,API,rm-16-17-sessions.test.js,-,NON COUVERT,P1,UCS05
-RM-17,Non-chevauchement sessions,Sessions,5,Confusion,API,rm-16-17-sessions.test.js,-,NON COUVERT,P1,UCS05
+RM-28,Unicité email,Comptes,5,Doublon compte,API,rm-28-unicite-email.test.js,ucs00-01-auth.spec.js,COUVERT,P1,UCS00
+RM-16,Cohérence 4 dates session,Sessions,5,Inscriptions impossibles,API,rm-16-17-sessions.test.js,-,COUVERT,P1,UCS05
+RM-17,Non-chevauchement sessions,Sessions,5,Confusion,API,rm-16-17-sessions.test.js,-,COUVERT,P1,UCS05
 RM-13,Archivage irréversible,Formations,5,Erreur UX,API,-,-,NON COUVERT,P2,UCS04
 RM-22,Visibilité formation,Formations,5,Perte CA,API,-,-,NON COUVERT,P1,UCS04
 RM-23,EN_ATTENTE_PLANIFICATION,Formations,5,Invisible,API,-,-,NON COUVERT,P2,UCS04
@@ -25,8 +25,8 @@ RM-26,Attestation conditions,Espace Apprenant,5,Attestation invalide,API,rm-26-2
 RM-27,Annulation uniquement EN_ATTENTE,Espace Apprenant,5,Conflit,API,rm-26-27-attestations.test.js,ucs11-espace-apprenant.spec.js,COUVERT,P1,UCS11
 RM-118,Bot questions fermées,Bot,5,Données sales,API,-,-,NON COUVERT,P2,UCS15
 RM-88,Réduction -15% abonné,Abonnements,5,Perte marge,API,-,-,NON COUVERT,P1,UCS11.1
-RM-38,Usage unique voucher,Vouchers,5,Fraude,API,-,-,PARTIEL,P1,UCS06
-RM-15,Unicité formation cross-sessions,Inscriptions,4,Doublon,API,rm-01-15-unicite.test.js,-,NON COUVERT,P1,UCS07
+RM-38,Usage unique voucher,Vouchers,5,Fraude,API,rm-38-usage-unique.test.js,-,COUVERT,P1,UCS06
+RM-15,Unicité formation cross-sessions,Inscriptions,4,Doublon,API,rm-01-15-unicite.test.js,-,COUVERT,P1,UCS07
 RM-18,Fenêtre exception +10%,Sessions,4,Dépassement capacité,API,rm-vague4-sessions-paiements.test.js (100% PASS),-,COUVERT,P2,UCS07
 RM-19,Priorité traitement GRIS/EXCEPTION,Inscriptions,4,Retard traitement,E2E,rm-vague4-sessions-paiements.test.js (PASS),ucs08-traitement-dossier.spec.js,COUVERT,P2,UCS08
 RM-20,Transitions auto sessions,Sessions,4,Blocage statut,Scheduler,-,ucs05-sessions-transitions.spec.js,COUVERT,P1,UCS05
@@ -38,8 +38,8 @@ RM-10,Remboursement manuel,Paiements,4,Procédure,MANUEL,-,-,NON COUVERT,P3,UCS0
 RM-11,Protection historique formation,Formations,4,Suppression bloquée,API,-,-,COUVERT,P2,UCS04
 RM-12,Cohérence tarif dossiers,Formations,4,Prix incohérent,API,-,-,COUVERT,P2,UCS04
 RM-14,Définition session,Sessions,4,Config,API,-,-,COUVERT (code),P3,UCS05
-RM-39,Workflow promo BROUILLON,Vouchers,4,Validation manquante,API,-,-,COUVERT (E2E),P2,UCS06
-RM-40,Quota/expiration obligatoires,Vouchers,4,Config invalide,API,-,-,COUVERT (E2E),P2,UCS06
+RM-39,Workflow promo BROUILLON,Vouchers,4,Validation manquante,API,rm-vouchers.test.js,-,COUVERT,P2,UCS06
+RM-40,Quota/expiration obligatoires,Vouchers,4,Config invalide,API,rm-vouchers.test.js,-,COUVERT,P2,UCS06
 RM-42,Voucher promo réduction,Vouchers,4,Calcul faux,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS06
 RM-43,Unicité identifiant légal,Comptes,4,Doublon org,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS03
 RM-45,Rejet libération voucher,Vouchers,4,Quota non restauré,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS06
@@ -51,7 +51,7 @@ RM-36,Niveau si Apprenant,Comptes,4,Validation conditionnelle,API,rm-vague4-vouc
 RM-29,Rôle fixe APPRENANT,Comptes,4,Sécurité,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P1,UCS00
 RM-30,Expiration lien 24h,Comptes,4,Token expiré,Scheduler,rm-vague4-vouchers-comptes.test.js,ucs00-01-auth.spec.js,COUVERT,P2,UCS00
 RM-31,Protection énumération email,Comptes,4,Sécurité,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P1,UCS00
-RM-32,Rate limiting 5/h,Comptes,4,Brute force,API + Scheduler,-,ucs00-01-auth.spec.js,NON COUVERT,P1,UCS01
+RM-32,Rate limiting 5/h,Comptes,4,Brute force,API,rm-32-rate-limit-auth.test.js,ucs00-01-auth.spec.js,COUVERT,P1,UCS01
 RM-33,Consentement RGPD,Comptes,4,Conformité,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS00
 RM-46,Multi-sous-types Gouvernement,Comptes,4,Config,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P3,UCS03
 RM-47,Libellé contact adaptatif,Comptes,4,UX,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P3,UCS03

@@ -60,8 +60,11 @@ describe('Vague 4 API — Bot Conseiller RM-115 à RM-125', () => {
     const account = await createApprenantAccount('rm116-incomplet');
 
     // Créer un apprenant sans secteur_activite (profil incomplet)
+    const apprenant116 = await prisma.apprenant.findFirst({
+      where: { email: account.email },
+    });
     await prisma.apprenant.update({
-      where: { id: account.id },
+      where: { id: apprenant116.id },
       data: { secteur_activite: null },
     });
 
@@ -88,8 +91,11 @@ describe('Vague 4 API — Bot Conseiller RM-115 à RM-125', () => {
       .send({ offre: 'ESSENTIEL' });
 
     // Enregistrer un refus récent (<7j)
+    const apprenant119 = await prisma.apprenant.findFirst({
+      where: { email: account.email },
+    });
     await prisma.apprenant.update({
-      where: { id: account.id },
+      where: { id: apprenant119.id },
       data: {
         last_upgrade_refus_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 jours
         upgrade_refus_count: 1,
@@ -117,8 +123,11 @@ describe('Vague 4 API — Bot Conseiller RM-115 à RM-125', () => {
       .send({ offre: 'ESSENTIEL' });
 
     // 3 refus enregistrés, dernier refus il y a 20 jours
+    const apprenant120 = await prisma.apprenant.findFirst({
+      where: { email: account.email },
+    });
     await prisma.apprenant.update({
-      where: { id: account.id },
+      where: { id: apprenant120.id },
       data: {
         last_upgrade_refus_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
         upgrade_refus_count: 3,

@@ -6,11 +6,10 @@ import { CommissionRepository } from './commission.repository';
 import { VoucherRepository } from '../vouchers/voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Services partagés
 const auditLogger = new AuditLogger();

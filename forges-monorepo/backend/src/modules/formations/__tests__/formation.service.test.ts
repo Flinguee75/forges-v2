@@ -80,12 +80,12 @@ describe('FormationService', () => {
       mockRepo.findById.mockResolvedValue(baseFormation as any);
       mockRepo.hasPaiementsValides.mockResolvedValue(false);
       mockRepo.annulerDossiersEnAttente.mockResolvedValue(2);
-      mockRepo.archiver.mockResolvedValue({} as any);
+      mockRepo.archiver.mockResolvedValue({ id: 'f-01', statut: 'ARCHIVEE' } as any);
       mockAudit.info.mockResolvedValue(undefined);
 
       const result = await service.archiver('f-01', 'user-01');
       expect(mockRepo.archiver).toHaveBeenCalledWith('f-01');
-      expect(result.message).toContain('archivée');
+      expect(result.statut).toBe('ARCHIVEE');
     });
   });
 

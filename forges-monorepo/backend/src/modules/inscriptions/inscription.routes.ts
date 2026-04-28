@@ -12,10 +12,9 @@ import { AbonnementRetailRepository } from '../abonnements/retail/abonnement-ret
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Services
 const audit = new AuditLogger();

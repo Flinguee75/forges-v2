@@ -7,6 +7,7 @@ const mockConfirmerPaiement = jest.fn();
 jest.mock('../../../middlewares/auth.middleware', () => ({
   authenticate: (_req: any, _res: any, next: any) => next(),
   authorize: () => (_req: any, _res: any, next: any) => next(),
+  authenticateOptional: (_req: any, _res: any, next: any) => next(),
 }));
 
 jest.mock('@prisma/client', () => ({
@@ -50,7 +51,7 @@ describe('paiement.routes', () => {
   const app = express();
 
   app.use(express.json());
-  app.use('/api/paiements', paiementRoutes);
+  app.use('/api', paiementRoutes);
 
   beforeEach(() => {
     mockConfirmerPaiement.mockReset();
