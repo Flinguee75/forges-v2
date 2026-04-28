@@ -7,7 +7,11 @@ import rateLimit from 'express-rate-limit';
  */
 export const registrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 heure
-  max: process.env.NODE_ENV === 'test' ? 1000 : (process.env.NODE_ENV === 'development' ? 100 : 5), // 1000 en test, 100 en dev, 5 en prod
+  max: parseInt(
+    process.env.REGISTRATION_RATE_LIMIT_MAX ||
+      (process.env.NODE_ENV === 'test' ? '1000' : process.env.NODE_ENV === 'development' ? '100' : '5'),
+    10
+  ),
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false, // Compter toutes les tentatives
@@ -16,7 +20,7 @@ export const registrationLimiter = rateLimit({
   handler: (req, res) => {
     res.status(429).json({
       statusCode: 429,
-      error: 'TOO_MANY_REQUESTS',
+      error: 'RATE_LIMIT',
       message: 'Trop de tentatives d\'inscription depuis cette adresse IP. Veuillez réessayer dans 30 minutes.',
     });
   },
@@ -28,14 +32,14 @@ export const registrationLimiter = rateLimit({
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '100', 10),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.ip || req.socket?.remoteAddress || 'unknown',
   handler: (req, res) => {
     res.status(429).json({
       statusCode: 429,
-      error: 'TOO_MANY_REQUESTS',
+      error: 'RATE_LIMIT',
       message: 'Trop de requêtes depuis cette adresse IP. Veuillez réessayer plus tard.',
     });
   },

@@ -3,11 +3,11 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserRepository } from './auth.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate } from '../../middlewares/auth.middleware';
+import { authLimiter } from '../../middlewares/rate-limit.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Instantier les dépendances
 const userRepository = new UserRepository(prisma);
@@ -16,7 +16,7 @@ const authService = new AuthService(userRepository, auditLogger);
 const authController = new AuthController(authService);
 
 // Routes d'authentification
-router.post('/login', (req, res, next) => {
+router.post('/login', authLimiter, (req, res, next) => {
   authController.login(req, res).catch(next);
 });
 
@@ -24,15 +24,15 @@ router.post('/logout', authenticate, (req, res, next) => {
   authController.logout(req, res).catch(next);
 });
 
-router.post('/refresh', (req, res, next) => {
+router.post('/refresh', authLimiter, (req, res, next) => {
   authController.refreshToken(req, res).catch(next);
 });
 
-router.post('/forgot-password', (req, res, next) => {
+router.post('/forgot-password', authLimiter, (req, res, next) => {
   authController.forgotPassword(req, res).catch(next);
 });
 
-router.post('/reset-password', (req, res, next) => {
+router.post('/reset-password', authLimiter, (req, res, next) => {
   authController.resetPassword(req, res).catch(next);
 });
 

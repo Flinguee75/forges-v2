@@ -7,10 +7,9 @@ import { AbonnementRetailRepository } from './retail/abonnement-retail.repositor
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Shared services
 const auditLogger = new AuditLogger();

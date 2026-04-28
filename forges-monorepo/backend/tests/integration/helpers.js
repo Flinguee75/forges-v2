@@ -4,9 +4,9 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const request = require('supertest');
 const { hash } = require('bcrypt');
-const { PrismaClient } = require('@prisma/client');
 
 require('ts-node/register/transpile-only');
+const { prisma } = require('../../src/shared/prisma/prisma.client');
 
 const backendRoot = path.resolve(__dirname, '..', '..');
 if (process.env.DATABASE_URL) {
@@ -17,7 +17,6 @@ if (process.env.DATABASE_URL) {
 const seedRunToken = process.env.FORGES_E2E_SEED_TOKEN || `${process.pid}-${Date.now()}`;
 process.env.FORGES_E2E_SEED_TOKEN = seedRunToken;
 const seedSentinel = path.join(backendRoot, `.jest-e2e-seeded-${seedRunToken}`);
-const prisma = new PrismaClient();
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
 const PASSWORD = 'Test@FORGES2026!';
 

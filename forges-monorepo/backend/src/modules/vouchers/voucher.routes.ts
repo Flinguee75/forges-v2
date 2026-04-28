@@ -3,11 +3,10 @@ import { VoucherController } from './voucher.controller';
 import { VoucherService } from './voucher.service';
 import { VoucherRepository } from './voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 const auditLogger = new AuditLogger();
 const voucherRepository = new VoucherRepository(prisma);
 const voucherService = new VoucherService(voucherRepository, auditLogger, prisma);

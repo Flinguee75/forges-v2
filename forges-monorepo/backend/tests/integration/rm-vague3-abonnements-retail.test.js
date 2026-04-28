@@ -14,16 +14,9 @@
  */
 
 const request = require('supertest');
-const { PrismaClient } = require('@prisma/client');
-const { createApprenantAccount, auth, accounts, ids, API_URL } = require('./helpers');
-
-const prisma = new PrismaClient();
+const { createApprenantAccount, auth, accounts, ids, API_URL, prisma } = require('./helpers');
 
 describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
-  afterAll(async () => {
-    await prisma.$disconnect();
-  });
-
   // ============================================
   // RM-70 : Unicité abonnement Retail
   // ============================================

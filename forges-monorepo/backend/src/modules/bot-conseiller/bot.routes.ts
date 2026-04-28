@@ -5,10 +5,9 @@ import { BotService } from './bot.service';
 import { BotRepository } from './bot.repository';
 import { BotEngineService } from './bot-engine.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Initialisation des dépendances
 const botRepository = new BotRepository(prisma);

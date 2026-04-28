@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
@@ -10,7 +10,6 @@ import { AbonnementOrganisationService } from './organisation/abonnement-organis
 import { AbonnementB2BService } from './b2b/abonnement-b2b.service';
 
 const router = Router();
-const prisma = new PrismaClient();
 const auditLogger = new AuditLogger();
 const emailService = new EmailService();
 const retailRepository = new AbonnementRetailRepository(prisma);
