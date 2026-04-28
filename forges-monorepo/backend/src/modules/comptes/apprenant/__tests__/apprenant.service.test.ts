@@ -31,7 +31,12 @@ describe('ApprenantService', () => {
       updateToken: jest.fn(),
       purgeInactifs: jest.fn(),
       updateProfil: jest.fn(),
-      prisma: { apprenant: { findFirst: jest.fn() } }
+      prisma: {
+        apprenant: { findFirst: jest.fn(), findUnique: jest.fn().mockResolvedValue(null) },
+        organisation: { findUnique: jest.fn().mockResolvedValue(null) },
+        partenaire: { findUnique: jest.fn().mockResolvedValue(null) },
+        apporteur: { findUnique: jest.fn().mockResolvedValue(null) },
+      }
     } as any;
 
     mockAudit = { info: jest.fn(), warning: jest.fn(), log: jest.fn() } as any;

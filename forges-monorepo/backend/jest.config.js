@@ -5,7 +5,8 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/tests/integration/**/*.test.js'],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '<rootDir>/src/modules/vouchers.disabled/'
+    '<rootDir>/src/modules/vouchers.disabled/',
+    '/src/modules/vouchers\\.disabled/'
   ],
   moduleNameMapper: {
     '^uuid$': '<rootDir>/src/__tests__/mocks/uuid.ts'

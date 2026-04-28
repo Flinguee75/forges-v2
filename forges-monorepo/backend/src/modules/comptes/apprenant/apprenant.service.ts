@@ -26,7 +26,12 @@ export class ApprenantService {
   async register(dto: RegisterApprenantDto, ip: string) {
     const emailNormalise = dto.email.trim().toLowerCase();
 
-    // RM-28 : unicité email tous rôles confondus
+    // RM-28 : unicité email sur le compte apprenant puis tous rôles confondus
+    const existing = await this.apprenantRepo.findByEmail(emailNormalise);
+    if (existing) {
+      throw new Error('EMAIL_ALREADY_EXISTS');
+    }
+
     const available = await isEmailAvailable(this.prisma, emailNormalise);
     if (!available) {
       // RM-31 : message générique, ne révèle pas l'état du compte

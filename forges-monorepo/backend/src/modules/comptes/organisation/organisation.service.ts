@@ -22,8 +22,13 @@ export class OrganisationService {
   }
 
   async register(dto: RegisterOrganisationDto, ip: string) {
-    // RM-28 : unicité email tous rôles confondus
-    const available = await isEmailAvailable(this.prisma, dto.email);
+    const emailNormalise = dto.email.trim().toLowerCase();
+
+    // RM-28 : unicité email sur l'organisation puis tous rôles confondus
+    const existing = await this.orgRepo.findByEmail(emailNormalise);
+    if (existing) throw new Error('EMAIL_ALREADY_EXISTS');
+
+    const available = await isEmailAvailable(this.prisma, emailNormalise);
     if (!available) throw new Error('EMAIL_ALREADY_EXISTS');
 
     // RM-43 : unicité identifiant légal par type
@@ -61,7 +66,7 @@ export class OrganisationService {
 
     await this.audit.info('ORGANISATION_CREEE', { organisation_id: organisation.id, ip });
     try {
-      await this.email.sendConfirmation(dto.email, token_confirmation, dto.langue_preferee);
+      await this.email.sendConfirmation(emailNormalise, token_confirmation, dto.langue_preferee);
     } catch (error: any) {
       await this.audit.warning('ORGANISATION_CREEE_EMAIL_FAILED', {
         organisation_id: organisation.id,

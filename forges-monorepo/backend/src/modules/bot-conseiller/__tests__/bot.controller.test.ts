@@ -12,7 +12,7 @@ describe('BotController', () => {
       repondre: jest.fn(),
       abandonnerSession: jest.fn(),
     } as any;
-    controller = new BotController(mockService);
+    controller = new BotController(mockService, {} as any);
   });
 
   it('démarre une session bot', async () => {

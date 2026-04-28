@@ -79,6 +79,16 @@ export function createPrismaMock(overrides: Record<string, unknown> = {}) {
       count: jest.fn(),
       groupBy: jest.fn(),
     },
+    voucherOrganisation: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      count: jest.fn(),
+      groupBy: jest.fn(),
+    },
     commissionApporteur: {
       create: jest.fn(),
       updateMany: jest.fn(),

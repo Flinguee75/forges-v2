@@ -22,6 +22,7 @@ export class InscriptionService {
   async inscrire(params: any) {
     const session = await this.sessionRepo.findById(params.session_id);
     if (!session) throw new Error('SESSION_NOT_FOUND');
+    if ((session.places_restantes ?? 0) <= 0) throw new Error('SESSION_COMPLETE');
 
     // RM-01 : Unicité apprenant/session
     const existant = await this.dossierRepo.findActiveByApprenantAndSession(params.apprenantId, params.session_id);
