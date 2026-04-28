@@ -173,11 +173,17 @@ export class AbonnementB2BService {
         data: { statut: 'EXPIRE' }
       });
 
-      // RM-111 : suspension accès formations B2B
-      // TODO: Implémenter la suspension des accès formations B2B
-      // Model AccesFormationDemande non défini dans le schéma
+      // RM-111 : suspension des accès à la demande financés par B2B.
+      await this.prisma.accesFormationDemande.updateMany({
+        where: {
+          statut: 'ACTIF',
+          source_financement: 'B2B',
+          apprenant: { organisation_id: abo.organisation_id },
+        },
+        data: { statut: 'SUSPENDU' },
+      });
 
-      // await this.audit.warning('ABONNEMENT_B2B_EXPIRE', { organisation_id: abo.organisation_id });
+      await this.audit.warning('ABONNEMENT_B2B_EXPIRE', { organisation_id: abo.organisation_id });
     }
 
     return abosExpires.length;

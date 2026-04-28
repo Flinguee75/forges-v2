@@ -181,15 +181,16 @@ export class AbonnementController {
   // POST /api/admin/scheduler/abonnements — ADMIN
   async runScheduler(req: Request, res: Response, next: NextFunction) {
     try {
-      const [renouvellements, graces, downgrades, b2bExpires] = await Promise.all([
+      const [renouvellements, graces, downgrades, b2bExpires, organisations] = await Promise.all([
         this.retailService.traiterRenouvellements(),
         this.retailService.traiterGracesExpires(),
         this.retailService.traiterDowngradesPlanifies(),
         this.b2bService.suspendreB2BExpires(),
+        this.orgService.traiterRenouvellements(),
       ]);
       res.status(200).json({
         statusCode: 200,
-        data: { renouvellements, graces, downgrades, b2b_expires: b2bExpires }
+        data: { renouvellements, graces, downgrades, b2b_expires: b2bExpires, organisations }
       });
     } catch (error) { next(error); }
   }
