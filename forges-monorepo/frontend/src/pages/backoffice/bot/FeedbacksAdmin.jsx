@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import botApi from '../../../api/bot.api';
 import Card from '../../../components/ui/Card';
@@ -10,11 +10,7 @@ export default function FeedbacksAdmin() {
   const [data, setData] = useState(null);
   const { execute, isLoading } = useApi();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     await execute(
       () => botApi.getFeedbacksFormations(),
       {
@@ -23,7 +19,11 @@ export default function FeedbacksAdmin() {
         },
       }
     );
-  };
+  }, [execute]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getCanalBadge = (canal) => {
     const mapping = {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import abonnementsApi from '../../../api/abonnements.api';
 import Card from '../../../components/ui/Card';
@@ -10,11 +10,7 @@ export default function AbonnementsAdmin() {
   const [data, setData] = useState(null);
   const { execute, isLoading } = useApi();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     await execute(
       () => abonnementsApi.getAllBackoffice(),
       {
@@ -23,7 +19,11 @@ export default function AbonnementsAdmin() {
         },
       }
     );
-  };
+  }, [execute]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getStatutBadge = (statut) => {
     const mapping = {

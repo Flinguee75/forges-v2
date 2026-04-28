@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'child_process'
+import process from 'node:process'
 
 const commitSha = process.env.VITE_COMMIT_SHA ||
   (() => { try { return execSync('git rev-parse --short HEAD').toString().trim() } catch { return 'local' } })()

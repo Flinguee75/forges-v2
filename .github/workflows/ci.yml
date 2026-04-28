@@ -5,7 +5,8 @@
 #   1. Lint backend (TypeScript) + frontend (ESLint)
 #   2. Tests unitaires backend (MOD-01→15) + couverture
 #   3. Tests d'intégration backend (routes HTTP)
-#   4. Build TypeScript + Build Vite
+#   4. Tests unitaires frontend (Vitest)
+#   5. Build TypeScript + Build Vite
 # =============================================================
 
 name: CI — Tests & Build
@@ -58,7 +59,6 @@ jobs:
   test-backend:
     name: Tests unitaires backend
     runs-on: ubuntu-22.04
-    continue-on-error: true
 
     services:
       # PostgreSQL de test (éphémère)
@@ -125,7 +125,23 @@ jobs:
           WEBHOOK_SECRET: ci_webhook_secret_not_for_production
           SMTP_HOST: localhost
           FRONTEND_URL: http://localhost:5173
-        run: npm run test:coverage
+        run: |
+          mkdir -p test-results
+          set +e
+          npm run test:coverage -- --json --outputFile=test-results/backend-unit.json
+          TEST_EXIT=$?
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "[threshold] jest exited with code $TEST_EXIT; evaluating pass-rate gate"
+          fi
+          node ../scripts/check-test-threshold.mjs \
+            --report test-results/backend-unit.json \
+            --min 0.95 \
+            --label "backend unitaires"
+          THRESHOLD_EXIT=$?
+          if [ "$THRESHOLD_EXIT" -ne 0 ]; then
+            exit "$THRESHOLD_EXIT"
+          fi
+          exit 0
 
       - name: Uploader le rapport de couverture
         uses: actions/upload-artifact@v4
@@ -157,7 +173,6 @@ jobs:
     name: Tests d'intégration backend
     runs-on: ubuntu-22.04
     needs: test-backend
-    continue-on-error: true
 
     services:
       postgres:
@@ -222,7 +237,23 @@ jobs:
           WEBHOOK_SECRET: ci_webhook_secret_not_for_production
           SMTP_HOST: localhost
           FRONTEND_URL: http://localhost:5173
-        run: npm run test:integration
+        run: |
+          mkdir -p test-results
+          set +e
+          npm run test:integration -- --json --outputFile=test-results/backend-integration.json
+          TEST_EXIT=$?
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "[threshold] jest exited with code $TEST_EXIT; evaluating pass-rate gate"
+          fi
+          node ../scripts/check-test-threshold.mjs \
+            --report test-results/backend-integration.json \
+            --min 0.95 \
+            --label "backend integration"
+          THRESHOLD_EXIT=$?
+          if [ "$THRESHOLD_EXIT" -ne 0 ]; then
+            exit "$THRESHOLD_EXIT"
+          fi
+          exit 0
 
   # ── Job 3 : Build TypeScript ─────────────────────────────────
   build-backend:
@@ -264,7 +295,6 @@ jobs:
   test-frontend:
     name: Tests unitaires frontend
     runs-on: ubuntu-22.04
-    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -283,7 +313,23 @@ jobs:
 
       - name: Exécuter les tests Vitest
         working-directory: forges-monorepo/frontend
-        run: npm run test -- --run --reporter=verbose
+        run: |
+          mkdir -p test-results
+          set +e
+          npm run test -- --run --reporter=json --outputFile=test-results/frontend-unit.json
+          TEST_EXIT=$?
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "[threshold] vitest exited with code $TEST_EXIT; evaluating pass-rate gate"
+          fi
+          node ../scripts/check-test-threshold.mjs \
+            --report test-results/frontend-unit.json \
+            --min 0.95 \
+            --label "frontend unitaires"
+          THRESHOLD_EXIT=$?
+          if [ "$THRESHOLD_EXIT" -ne 0 ]; then
+            exit "$THRESHOLD_EXIT"
+          fi
+          exit 0
 
   # ── Job 5 : Build frontend ────────────────────────────────────
   build-frontend:
