@@ -30,15 +30,23 @@ export class AbonnementB2BService {
       return null;
     }
 
+    // RM-61 : Calcul dynamique du nombre d'apprenants actifs B2B
+    const nb_actifs = await this.prisma.apprenant.count({
+      where: {
+        organisation_id,
+        statut: 'ACTIF'
+      }
+    });
+
     // RM-115 : calcul taux_utilisation (déclencheur bot si > 80%)
-    const taux_utilisation = abo.nb_max > 0 ? Math.round((abo.nb_actifs / abo.nb_max) * 100) : 0;
+    const taux_utilisation = abo.nb_max > 0 ? Math.round((nb_actifs / abo.nb_max) * 100) : 0;
 
     return {
       id: abo.id,
       palier: abo.palier,
       statut: abo.statut,
       nb_max: abo.nb_max,
-      nb_actifs: abo.nb_actifs,
+      nb_actifs,
       taux_utilisation,
       prix_annuel: abo.prix_annuel,
       premium_inclus_par_an: abo.premium_inclus_par_an,
