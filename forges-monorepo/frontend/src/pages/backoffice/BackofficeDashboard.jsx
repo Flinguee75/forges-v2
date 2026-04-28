@@ -4,6 +4,7 @@ import { dashboardApi } from '../../api/dashboard.api';
 import RuntimeUnavailable from '../../components/feedback/RuntimeUnavailable';
 import Spinner from '../../components/feedback/Spinner';
 import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -34,6 +35,8 @@ function getQuickLinks(role) {
 
   if (role === 'ADMIN' || role === 'SUPERVISEUR') {
     links.push(
+      { to: '/backoffice/apprenants', label: 'Apprenants', description: 'Gestion des comptes apprenants' },
+      { to: '/backoffice/organisations', label: 'Organisations', description: 'Gestion des comptes organisations' },
       { to: '/backoffice/formations', label: 'Formations', description: 'Catalogue et validation' },
       { to: '/backoffice/sessions', label: 'Sessions', description: 'Lecture des sessions' },
       { to: '/backoffice/rapports', label: 'Rapports', description: 'Vue disponible selon runtime' },
@@ -57,10 +60,23 @@ function getQuickLinks(role) {
   return links;
 }
 
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function BackofficeDashboard() {
   const { user } = useAuth();
   const { execute, isLoading } = useApi();
   const [snapshot, setSnapshot] = useState(null);
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -78,6 +94,25 @@ export default function BackofficeDashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
+
+  const handleExport = async (format) => {
+    try {
+      if (format === 'csv') {
+        setIsExportingCsv(true);
+        const blob = await dashboardApi.exportRapportCSV();
+        triggerDownload(blob, `rapport_forges_${new Date().toISOString().split('T')[0]}.csv`);
+      } else {
+        setIsExportingPdf(true);
+        const blob = await dashboardApi.exportRapportPDF();
+        triggerDownload(blob, `rapport_forges_${new Date().toISOString().split('T')[0]}.pdf`);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+    } finally {
+      setIsExportingCsv(false);
+      setIsExportingPdf(false);
+    }
+  };
 
   if (!['ADMIN', 'SUPERVISEUR'].includes(user?.role)) {
     return (
@@ -120,18 +155,40 @@ export default function BackofficeDashboard() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
-          Dashboard backoffice
-        </p>
-        <h1 className="mt-3 text-2xl font-semibold text-primary">
-          Vue {role === 'ADMIN' ? 'administrateur' : 'superviseur'}
-        </h1>
-        <p className="mt-2 text-sm text-subtext">
-          Cette vue est alignée sur les routes runtime exposées par le backend.
-        </p>
-        <p className="mt-1 text-xs text-subtext">
-          Dernière mise à jour : {snapshot?.timestamp ? new Date(snapshot.timestamp).toLocaleString('fr-FR') : 'N/A'}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
+              Dashboard backoffice
+            </p>
+            <h1 className="mt-3 text-2xl font-semibold text-primary">
+              Vue {role === 'ADMIN' ? 'administrateur' : 'superviseur'}
+            </h1>
+            <p className="mt-2 text-sm text-subtext">
+              Cette vue est alignée sur les routes runtime exposées par le backend.
+            </p>
+            <p className="mt-1 text-xs text-subtext">
+              Dernière mise à jour : {snapshot?.timestamp ? new Date(snapshot.timestamp).toLocaleString('fr-FR') : 'N/A'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="small"
+              loading={isExportingCsv}
+              onClick={() => handleExport('csv')}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="small"
+              loading={isExportingPdf}
+              onClick={() => handleExport('pdf')}
+            >
+              Export PDF
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

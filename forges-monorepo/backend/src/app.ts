@@ -137,6 +137,8 @@ import voucherRoutes from './modules/vouchers/voucher.routes'; // ✅ SPRINT 1 S
 import abonnementAliasRoutes from './modules/abonnements/abonnement-alias.routes';
 import backofficeRoutes from './modules/dashboard/backoffice.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import backofficeApprenantsRoutes from './modules/backoffice-apprenants/backoffice-apprenants.routes';
+import backofficeOrganisationsRoutes from './modules/backoffice-organisations/backoffice-organisations.routes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/comptes', comptesRoutes);
@@ -164,6 +166,8 @@ app.use('/api/backoffice', superviseurRoutes);
 app.use('/api/agent', agentRoutes); // ✅ NOUVEAU: endpoints reversements (RM-138, RM-147)
 app.use('/api/backoffice', agentRoutes);
 app.use('/api/backoffice/sessions', sessionBackofficeRoutes);
+app.use('/api/backoffice/apprenants', backofficeApprenantsRoutes);
+app.use('/api/backoffice/organisations', backofficeOrganisationsRoutes);
 app.use('/api/backoffice', backofficeRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
