@@ -136,6 +136,50 @@ export class AbonnementB2BService {
     return { montant_prorata: montantProrata, nouveau_palier: normalizedPalier };
   }
 
+  // RM-69 : alerte quand le plafond de palier est atteint
+  async trouverAlertesPlafond() {
+    const abos = await this.prisma.abonnementB2B.findMany({
+      where: { statut: 'ACTIF' },
+      include: { organisation: true },
+    });
+
+    return abos.filter((abo) => abo.nb_actifs >= abo.nb_max);
+  }
+
+  // RM-89 : palier Enterprise inclut 2 certifications Premium par an
+  async consommerPremiumEnterprise(organisation_id: string) {
+    const abo = await this.prisma.abonnementB2B.findFirst({
+      where: { organisation_id, statut: 'ACTIF', palier: 'ENTERPRISE' },
+    });
+    if (!abo) throw new Error('PREMIUM_ENTERPRISE_NON_DISPONIBLE');
+
+    const quota = abo.premium_inclus_par_an || 0;
+    if (abo.premium_consommes >= quota) {
+      throw new Error('QUOTA_PREMIUM_ENTERPRISE_EPUISE');
+    }
+
+    return this.prisma.abonnementB2B.update({
+      where: { id: abo.id },
+      data: { premium_consommes: { increment: 1 } },
+    });
+  }
+
+  async resetPremiumEnterpriseAnnuel(organisation_id: string) {
+    const abo = await this.prisma.abonnementB2B.findFirst({
+      where: { organisation_id, statut: 'ACTIF', palier: 'ENTERPRISE' },
+    });
+    if (!abo) throw new Error('PREMIUM_ENTERPRISE_NON_DISPONIBLE');
+
+    return this.prisma.abonnementB2B.update({
+      where: { id: abo.id },
+      data: {
+        premium_consommes: 0,
+        compteur_premium_used: 0,
+        compteur_premium_reset_at: new Date(),
+      },
+    });
+  }
+
   // Scheduler — alertes expiration J-45 et J-15 (RM-66)
   async envoyerAlertesExpiration() {
     const now = new Date();

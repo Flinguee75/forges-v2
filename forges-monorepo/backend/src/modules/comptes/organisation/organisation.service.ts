@@ -112,6 +112,44 @@ export class OrganisationService {
     return orgsExpirees.length;
   }
 
+  // RM-82 : alertes automatiques J-7 et J-2 avant fin d'essai
+  async envoyerAlertesFinEssai() {
+    const maintenant = new Date();
+    const jourMs = 24 * 3600 * 1000;
+    const j7 = new Date(maintenant.getTime() + 7 * jourMs);
+    const j2 = new Date(maintenant.getTime() + 2 * jourMs);
+    const debutJ7 = new Date(j7.getFullYear(), j7.getMonth(), j7.getDate());
+    const debutJ2 = new Date(j2.getFullYear(), j2.getMonth(), j2.getDate());
+
+    const [orgsJ7, orgsJ2] = await Promise.all([
+      this.orgRepo['prisma'].organisation.findMany({
+        where: {
+          statut: 'ACTIF',
+          abonnement_org_id: null,
+          date_fin_essai: { gte: debutJ7, lt: new Date(debutJ7.getTime() + jourMs) },
+        },
+      }),
+      this.orgRepo['prisma'].organisation.findMany({
+        where: {
+          statut: 'ACTIF',
+          abonnement_org_id: null,
+          date_fin_essai: { gte: debutJ2, lt: new Date(debutJ2.getTime() + jourMs) },
+        },
+      }),
+    ]);
+
+    for (const org of [...orgsJ7, ...orgsJ2]) {
+      await this.email.sendAlerteFinEssai(org.email, org.date_fin_essai!, org.langue_preferee);
+    }
+
+    await this.audit.info('ALERTES_FIN_ESSAI_ORGANISATION', {
+      alertes_j7: orgsJ7.length,
+      alertes_j2: orgsJ2.length,
+    });
+
+    return { alertes_j7: orgsJ7.length, alertes_j2: orgsJ2.length };
+  }
+
   // GET /api/organisations/profil — UCS03
   async getProfil(userId: string) {
     const organisation = await this.orgRepo.findById(userId);

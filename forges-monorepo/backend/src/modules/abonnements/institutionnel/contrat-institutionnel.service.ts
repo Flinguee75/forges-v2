@@ -244,6 +244,46 @@ export class ContratInstitutionnelService {
     return contrats.length;
   }
 
+  // RM-58 : renouvellement par nouveau contrat lie a l'historique precedent
+  async renouvelerContrat(contratId: string, dto: Partial<CreateContratInstitutionnelDto>, adminId: string) {
+    const precedent = await this.prisma.contratInstitutionnel.findUnique({ where: { id: contratId } });
+    if (!precedent) throw new Error('CONTRAT_NOT_FOUND');
+
+    const avenants: any[] = [];
+    const nouveau = await this.prisma.contratInstitutionnel.create({
+      data: {
+        numero_contrat: dto.numero_contrat || generateNumeroContrat(),
+        institution_nom: dto.institution_nom || precedent.institution_nom,
+        programme_id: dto.programme_id || `${precedent.programme_id}-REN-${Date.now()}`,
+        bailleur: dto.bailleur || precedent.bailleur,
+        date_debut: dto.date_debut || new Date(precedent.date_fin.getTime() + 24 * 3600 * 1000),
+        date_fin: dto.date_fin || new Date(precedent.date_fin.getTime() + 366 * 24 * 3600 * 1000),
+        montant_saas_annuel: dto.montant_saas_annuel || precedent.montant_saas_annuel,
+        fee_par_certifie: dto.fee_par_certifie || precedent.fee_par_certifie,
+        seuil_facturation_fees: dto.seuil_facturation_fees || precedent.seuil_facturation_fees,
+        statut: 'BROUILLON',
+        gestionnaires_ids: dto.gestionnaires_ids || precedent.gestionnaires_ids,
+        avenants: [
+          ...avenants,
+          {
+            type: 'RENOUVELLEMENT_DEPUIS',
+            contrat_precedent_id: precedent.id,
+            numero_precedent: precedent.numero_contrat,
+            date: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+
+    await this.audit.info('CONTRAT_INSTITUTIONNEL_RENOUVELE', {
+      contrat_precedent_id: precedent.id,
+      nouveau_contrat_id: nouveau.id,
+      admin_id: adminId,
+    });
+
+    return nouveau;
+  }
+
   async enrollerMasse(contratId: string, csvContent: string, gestionnaireId: string): Promise<EnrolementCsvResult> {
     const contrat = await this.prisma.contratInstitutionnel.findUnique({ where: { id: contratId } });
     if (!contrat || contrat.statut !== 'ACTIF') throw new Error('CONTRAT_INACTIF');
