@@ -14,37 +14,59 @@ Backend: /home/forgesadmin/forges-v2/forges-monorepo/backend
 Branche: test
 ```
 
-La connexion se fait par cle SSH. La personne qui execute la procedure doit avoir la cle privee autorisee pour ce VPS.
+La connexion se fait par cle SSH. Ne pas partager une cle privee existante : chaque personne doit utiliser sa propre cle SSH.
 
 ## Preparer la cle SSH
 
-Placer la cle privee sur la machine locale, par exemple :
+Sur sa machine locale, la personne qui doit se connecter genere une nouvelle cle SSH :
 
 ```bash
-~/.ssh/id_ed25519_forges_v2
+ssh-keygen -t ed25519 -C "forges-vps-test"
 ```
 
-Appliquer les permissions SSH correctes :
+Elle peut accepter le chemin propose par defaut, ou choisir un nom dedie, par exemple :
 
 ```bash
-chmod 600 ~/.ssh/id_ed25519_forges_v2
+~/.ssh/id_ed25519_forges_vps
 ```
 
-Verifier que la cle publique correspondante est autorisee sur le VPS dans :
+Elle doit ensuite envoyer uniquement la cle publique au responsable du VPS :
+
+```bash
+cat ~/.ssh/id_ed25519_forges_vps.pub
+```
+
+Ne jamais envoyer la cle privee, c'est-a-dire le fichier sans `.pub`.
+
+Le responsable du VPS ajoute le contenu de cette cle publique dans :
 
 ```bash
 /home/forgesadmin/.ssh/authorized_keys
 ```
 
+Puis la personne applique les permissions SSH correctes sur sa cle privee :
+
+```bash
+chmod 600 ~/.ssh/id_ed25519_forges_vps
+```
+
 ## Se connecter au VPS
 
-Depuis la machine locale :
+Depuis la machine locale, avec la cle personnelle autorisee :
+
+```bash
+ssh -i ~/.ssh/id_ed25519_forges_vps forgesadmin@test.forges-group.com
+```
+
+Si la personne a choisi un autre nom de fichier pour sa cle, remplacer `~/.ssh/id_ed25519_forges_vps` par le bon chemin.
+
+Si SSH demande de confirmer l'empreinte du serveur, repondre `yes` uniquement si le domaine est bien `test.forges-group.com`.
+
+Exemple avec la cle deja presente sur une machine autorisee :
 
 ```bash
 ssh -i ~/.ssh/id_ed25519_forges_v2 forgesadmin@test.forges-group.com
 ```
-
-Si SSH demande de confirmer l'empreinte du serveur, repondre `yes` uniquement si le domaine est bien `test.forges-group.com`.
 
 ## Aller dans le backend
 
