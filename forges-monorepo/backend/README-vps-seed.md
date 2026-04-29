@@ -1,8 +1,42 @@
 # Connexion VPS et seed de validation
 
-Ce document explique comment se connecter au VPS de test et relancer le seed de validation FORGES.
+Ce document explique comment une personne externe peut se connecter au VPS de test FORGES et relancer le seed de validation.
 
-## Connexion SSH
+## Informations de connexion
+
+VPS de test :
+
+```text
+Host: test.forges-group.com
+User: forgesadmin
+Repo: /home/forgesadmin/forges-v2
+Backend: /home/forgesadmin/forges-v2/forges-monorepo/backend
+Branche: test
+```
+
+La connexion se fait par cle SSH. La personne qui execute la procedure doit avoir la cle privee autorisee pour ce VPS.
+
+## Preparer la cle SSH
+
+Placer la cle privee sur la machine locale, par exemple :
+
+```bash
+~/.ssh/id_ed25519_forges_v2
+```
+
+Appliquer les permissions SSH correctes :
+
+```bash
+chmod 600 ~/.ssh/id_ed25519_forges_v2
+```
+
+Verifier que la cle publique correspondante est autorisee sur le VPS dans :
+
+```bash
+/home/forgesadmin/.ssh/authorized_keys
+```
+
+## Se connecter au VPS
 
 Depuis la machine locale :
 
@@ -10,36 +44,50 @@ Depuis la machine locale :
 ssh -i ~/.ssh/id_ed25519_forges_v2 forgesadmin@test.forges-group.com
 ```
 
-Une fois connecte, aller dans le backend du clone `test` :
+Si SSH demande de confirmer l'empreinte du serveur, repondre `yes` uniquement si le domaine est bien `test.forges-group.com`.
+
+## Aller dans le backend
+
+Une fois connecte au VPS :
 
 ```bash
 cd ~/forges-v2/forges-monorepo/backend
 ```
 
-## Verifier la branche et le seed
+Verifier que le dossier est correct :
 
 ```bash
+pwd
 git branch --show-current
 git rev-parse --short HEAD
 ls -la seed-validation.js run-seed-validation.sh
 ```
 
-La branche attendue est `test`.
+La branche attendue est :
 
-## Relancer le seed complet
-
-```bash
-./run-seed-validation.sh --reset --env-test
+```text
+test
 ```
 
-Cette commande :
-- copie `seed-validation.js` dans le conteneur `forges-backend-test`
-- execute le seed depuis le conteneur backend
-- vide les donnees de validation existantes
-- recree le jeu de donnees de reference
-- lance automatiquement une verification a la fin du seed
+## Verifier les conteneurs Docker
 
-## Verifier sans modifier la base
+Le seed s'execute dans le conteneur backend de test, car ce conteneur accede deja au reseau Docker PostgreSQL.
+
+Verifier que les conteneurs test tournent :
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+Les conteneurs attendus sont notamment :
+
+```text
+forges-backend-test
+forges-postgres-test
+forges-redis-test
+```
+
+## Verifier le seed sans modifier la base
 
 ```bash
 ./run-seed-validation.sh --check --env-test
@@ -51,7 +99,7 @@ Le resultat attendu est :
 Seed coherent
 ```
 
-Les compteurs attendus sont :
+Compteurs attendus :
 
 ```text
 Apprenants: 2/2
@@ -67,7 +115,22 @@ Apporteurs: 1/1
 ContratInstitutionnel: 1/1
 ```
 
-## Comptes de test
+## Relancer le seed complet
+
+Attention : cette commande remet la base de test dans l'etat du seed de validation.
+
+```bash
+./run-seed-validation.sh --reset --env-test
+```
+
+Cette commande :
+- copie `seed-validation.js` dans le conteneur `forges-backend-test`
+- execute le seed depuis le conteneur backend
+- vide les donnees de validation existantes
+- recree le jeu de donnees de reference
+- lance automatiquement une verification a la fin du seed
+
+## Comptes de test apres reset
 
 Mot de passe commun :
 
@@ -83,18 +146,38 @@ Comptes :
 - `partenaire@forges-test.ci`
 - `apporteur@forges-test.ci`
 
-## Pourquoi utiliser `run-seed-validation.sh`
+## Mettre a jour le repo sur le VPS
 
-Depuis le shell du VPS, le host PostgreSQL Docker `forges-postgres-test` n'est pas resolu directement. Le script execute donc le seed dans `forges-backend-test`, qui est deja sur le reseau Docker de la base.
-
-Le conteneur utilise par defaut est :
+Si la branche `test` a change, mettre le clone VPS a jour :
 
 ```bash
-forges-backend-test
+cd ~/forges-v2
+git pull --ff-only origin test
 ```
 
-Pour cibler un autre conteneur :
+Si le depot GitHub demande une authentification, utiliser un token GitHub avec acces au depot prive, ou demander a un mainteneur de faire le pull.
+
+## Depannage rapide
+
+Si `Permission denied (publickey)` apparait :
 
 ```bash
-SEED_CONTAINER=forges-backend-demo ./run-seed-validation.sh --check --env-demo
+chmod 600 ~/.ssh/id_ed25519_forges_v2
+ssh -i ~/.ssh/id_ed25519_forges_v2 forgesadmin@test.forges-group.com
 ```
+
+Si `Conteneur introuvable ou arrete: forges-backend-test` apparait :
+
+```bash
+docker ps
+```
+
+Puis redemarrer l'environnement test avec la procedure de deploiement habituelle.
+
+Si `Can't reach database server at forges-postgres-test:5432` apparait en lancant directement `node seed-validation.js`, utiliser le script :
+
+```bash
+./run-seed-validation.sh --check --env-test
+```
+
+Ne pas lancer directement `node seed-validation.js` depuis le shell du VPS : le host Docker `forges-postgres-test` n'est pas resolu hors du reseau Docker.
