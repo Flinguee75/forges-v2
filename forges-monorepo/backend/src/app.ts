@@ -120,6 +120,7 @@ import comptesRoutes from './modules/comptes/comptes.routes';
 import organisationsRoutes from './modules/comptes/organisations.routes';
 import formationsRoutes from './modules/formations/formation.routes';
 import abonnementsRoutes from './modules/abonnements/abonnement.routes';
+import abonnementBackofficeRoutes from './modules/abonnements/abonnement-backoffice.routes';
 import espaceApprenantRoutes from './modules/espace-apprenant/espace-apprenant.routes';
 import attestationRoutes from './modules/espace-apprenant/attestation.routes';
 import espaceOrganisationRoutes from './modules/espace-organisation/espace-organisation.routes';
@@ -166,6 +167,7 @@ app.use('/api/backoffice', superviseurRoutes);
 app.use('/api/agent', agentRoutes); // ✅ NOUVEAU: endpoints reversements (RM-138, RM-147)
 app.use('/api/backoffice', agentRoutes);
 app.use('/api/backoffice/sessions', sessionBackofficeRoutes);
+app.use('/api/backoffice/abonnements', abonnementBackofficeRoutes);
 app.use('/api/backoffice/apprenants', backofficeApprenantsRoutes);
 app.use('/api/backoffice/organisations', backofficeOrganisationsRoutes);
 app.use('/api/backoffice', backofficeRoutes);
