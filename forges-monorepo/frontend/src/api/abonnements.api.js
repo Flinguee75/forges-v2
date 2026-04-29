@@ -9,6 +9,11 @@ export const abonnementsApi = {
   getAllBackoffice: async (params = {}) => {
     return apiClient.get('/backoffice/abonnements', { params });
   },
+
+  // GET /api/backoffice/abonnements/contrat-institutionnel - Contrats institutionnels
+  getContratsInstitutionnels: async (params = {}) => {
+    return apiClient.get('/backoffice/abonnements/contrat-institutionnel', { params });
+  },
 };
 
 export default abonnementsApi;

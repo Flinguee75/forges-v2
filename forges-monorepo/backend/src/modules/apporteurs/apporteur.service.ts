@@ -3,6 +3,7 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
 import { RegisterApporteurDto, UpdateProfilApporteurDto } from './dto/profil.dto';
+import { isEmailAvailable } from '../../shared/helpers/email-uniqueness';
 
 export class ApporteurService {
   constructor(
@@ -173,8 +174,9 @@ export class ApporteurService {
   }
 
   async register(dto: RegisterApporteurDto, ip?: string) {
-    const existing = await this.apporteurRepo.findByEmail(dto.email);
-    if (existing) {
+    // RM-28 : Unicité email tous rôles confondus
+    const emailAvailable = await isEmailAvailable(this.prisma, dto.email);
+    if (!emailAvailable) {
       throw new Error('EMAIL_ALREADY_EXISTS');
     }
 

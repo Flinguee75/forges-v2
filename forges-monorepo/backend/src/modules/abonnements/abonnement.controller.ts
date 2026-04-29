@@ -181,20 +181,21 @@ export class AbonnementController {
   // POST /api/admin/scheduler/abonnements — ADMIN
   async runScheduler(req: Request, res: Response, next: NextFunction) {
     try {
-      const [renouvellements, graces, downgrades, b2bExpires] = await Promise.all([
+      const [renouvellements, graces, downgrades, b2bExpires, organisations] = await Promise.all([
         this.retailService.traiterRenouvellements(),
         this.retailService.traiterGracesExpires(),
         this.retailService.traiterDowngradesPlanifies(),
         this.b2bService.suspendreB2BExpires(),
+        this.orgService.traiterRenouvellements(),
       ]);
       res.status(200).json({
         statusCode: 200,
-        data: { renouvellements, graces, downgrades, b2b_expires: b2bExpires }
+        data: { renouvellements, graces, downgrades, b2b_expires: b2bExpires, organisations }
       });
     } catch (error) { next(error); }
   }
 
-  // GET /api/backoffice/abonnements — ADMIN, AGENT
+  // GET /api/backoffice/abonnements — ADMIN, SUPERVISEUR, AGENT
   // Vue consolidée de tous les abonnements (retail + organisation + b2b)
   async getAllAbonnementsBackoffice(req: Request, res: Response, next: NextFunction) {
     try {
@@ -277,6 +278,63 @@ export class AbonnementController {
             total_b2b: totalB2B,
             page: pageNum,
             limit: limitNum,
+          },
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // GET /api/backoffice/abonnements/contrat-institutionnel — ADMIN
+  async getContratsInstitutionnelsBackoffice(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { statut, search, page = 1, limit = 20 } = req.query;
+
+      const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 20));
+      const skip = (pageNum - 1) * limitNum;
+
+      const where: any = {};
+      if (statut) {
+        where.statut = statut;
+      }
+      if (search) {
+        const query = String(search);
+        where.OR = [
+          { numero_contrat: { contains: query, mode: 'insensitive' } },
+          { institution_nom: { contains: query, mode: 'insensitive' } },
+          { programme_id: { contains: query, mode: 'insensitive' } },
+          { bailleur: { contains: query, mode: 'insensitive' } },
+        ];
+      }
+
+      const [contrats, total, actifs, brouillons, expires] = await Promise.all([
+        this.prisma.contratInstitutionnel.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy: { date_fin: 'asc' },
+        }),
+        this.prisma.contratInstitutionnel.count({ where }),
+        this.prisma.contratInstitutionnel.count({ where: { statut: 'ACTIF' } }),
+        this.prisma.contratInstitutionnel.count({ where: { statut: 'BROUILLON' } }),
+        this.prisma.contratInstitutionnel.count({ where: { statut: 'EXPIRE' } }),
+      ]);
+
+      res.status(200).json({
+        statusCode: 200,
+        data: {
+          contrats,
+          meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+          },
+          stats: {
+            actifs,
+            brouillons,
+            expires,
           },
         },
       });

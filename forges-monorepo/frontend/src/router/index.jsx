@@ -94,7 +94,9 @@ const CreateApporteur = lazy(() => import('../pages/backoffice/apporteurs/Create
 const ApporteurDetail = lazy(() => import('../pages/backoffice/apporteurs/ApporteurDetail'));
 const ReversementsApporteurs = lazy(() => import('../pages/backoffice/apporteurs/ReversementsApporteurs'));
 const ApprenantsList = lazy(() => import('../pages/backoffice/apprenants/ApprenantsList'));
+const ApprenantDetail = lazy(() => import('../pages/backoffice/apprenants/ApprenantDetail'));
 const OrganisationsList = lazy(() => import('../pages/backoffice/organisations/OrganisationsList'));
+const OrganisationDetail = lazy(() => import('../pages/backoffice/organisations/OrganisationDetail'));
 
 const PlaceholderPage = lazy(() => import('../pages/PlaceholderPage'));
 const ComponentsDemo = lazy(() => import('../pages/ComponentsDemo'));
@@ -705,6 +707,14 @@ const router = createBrowserRouter([
           </RoleGuard>
         ),
       },
+      {
+        path: 'apprenants/:id',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<ApprenantDetail />)}
+          </RoleGuard>
+        ),
+      },
       // ============================================
       // ROUTES ORGANISATIONS
       // ============================================
@@ -713,6 +723,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
             {withSuspense(<OrganisationsList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'organisations/:id',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<OrganisationDetail />)}
           </RoleGuard>
         ),
       },

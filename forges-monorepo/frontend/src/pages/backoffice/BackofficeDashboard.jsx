@@ -35,7 +35,7 @@ function getQuickLinks(role) {
 
   if (role === 'ADMIN' || role === 'SUPERVISEUR') {
     links.push(
-      { to: '/backoffice/apprenants', label: 'Apprenants', description: 'Gestion des comptes apprenants' },
+      { to: '/backoffice/apprenants', label: 'Utilisateurs', description: 'Gestion des comptes utilisateurs' },
       { to: '/backoffice/organisations', label: 'Organisations', description: 'Gestion des comptes organisations' },
       { to: '/backoffice/formations', label: 'Formations', description: 'Catalogue et validation' },
       { to: '/backoffice/sessions', label: 'Sessions', description: 'Lecture des sessions' },

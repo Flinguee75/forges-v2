@@ -12,7 +12,7 @@ import Pagination from '../../../components/ui/Pagination';
 import EmptyState from '../../../components/feedback/EmptyState';
 
 /**
- * ApprenantsList - Liste backoffice des apprenants
+ * ApprenantsList - Liste backoffice des utilisateurs
  * Route: /backoffice/apprenants
  * Accessible à: ADMIN, SUPERVISEUR
  * Référence: CLAUDE.md - Backoffice
@@ -66,7 +66,7 @@ export default function ApprenantsList() {
         onSuccess: () => {
           loadApprenants(meta.page);
         },
-        successMessage: currentlySuspended ? 'Apprenant activé' : 'Apprenant suspendu',
+        successMessage: currentlySuspended ? 'Utilisateur activé' : 'Utilisateur suspendu',
       }
     );
   };
@@ -150,13 +150,13 @@ export default function ApprenantsList() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Apprenants</h1>
+          <h1 className="text-2xl font-semibold text-primary">Utilisateurs</h1>
           <p className="mt-1 text-sm text-subtext">
-            Gestion des comptes apprenants ({meta.total} au total)
+            Gestion des comptes utilisateurs ({meta.total} au total)
           </p>
         </div>
         <Button onClick={() => navigate('/backoffice/apprenants/new')}>
-          Créer un apprenant
+          Créer un utilisateur
         </Button>
       </div>
 
@@ -187,8 +187,8 @@ export default function ApprenantsList() {
           </div>
         ) : apprenants.length === 0 ? (
           <EmptyState
-            title="Aucun apprenant trouvé"
-            message="Aucun apprenant ne correspond aux critères de recherche."
+            title="Aucun utilisateur trouvé"
+            message="Aucun utilisateur ne correspond aux critères de recherche."
           />
         ) : (
           <>

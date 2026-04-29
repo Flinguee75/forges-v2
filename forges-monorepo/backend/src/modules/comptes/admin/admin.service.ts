@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { CreateUserDtoType, InvitePartenaireDtoType, CreateApporteurDtoType } from './dto/admin-user.dto';
+import { isEmailAvailable } from '../../../shared/helpers/email-uniqueness';
 
 const SALT_ROUNDS = 12;
 const INVITATION_EXPIRATION_HOURS = 48; // RM-126 : token invitation 48h
@@ -68,6 +69,12 @@ export class AdminService {
 
   // UCS02 — Invitation Partenaire Flux A (RM-126)
   async invitePartenaire(dto: InvitePartenaireDtoType, adminId: string) {
+    // RM-28 : Unicité email cross-tables
+    const emailAvailable = await isEmailAvailable(this.prisma, dto.email);
+    if (!emailAvailable) {
+      throw new Error('EMAIL_ALREADY_EXISTS');
+    }
+
     const token = uuidv4();
     const token_expiration = new Date(Date.now() + INVITATION_EXPIRATION_HOURS * 3600 * 1000);
 
@@ -93,6 +100,12 @@ export class AdminService {
 
   // UCS02 — Création Apporteur (RM-141, RM-142)
   async createApporteur(dto: CreateApporteurDtoType, adminId: string) {
+    // RM-28 : Unicité email cross-tables
+    const emailAvailable = await isEmailAvailable(this.prisma, dto.email);
+    if (!emailAvailable) {
+      throw new Error('EMAIL_ALREADY_EXISTS');
+    }
+
     // RM-142 : code UUID permanent généré à la création — JAMAIS modifiable
     const code_apporteur = uuidv4();
     const password_hash = 'PENDING_ACTIVATION'; // Password temporaire = email
