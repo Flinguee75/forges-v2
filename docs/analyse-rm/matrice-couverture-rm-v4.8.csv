@@ -60,16 +60,16 @@ RM-98,Langue préférée fallback FR,Multi-langue,4,i18n,API,-,-,NON COUVERT,P3,
 RM-99,Fallback traduction + bandeau,Multi-langue,4,UX,E2E,-,-,NON COUVERT,P3,Tous
 RM-100,Traduction emails auto,Multi-langue,4,i18n,API,-,-,NON COUVERT,P3,Tous
 RM-101,Traduction interface 4 langues,Multi-langue,4,i18n,E2E,rm-vague4-multilangue.test.js,-,COUVERT,P3,Tous
-RM-50,Unicité contrat institutionnel,Abonnements,4,Doublon,API,-,-,NON COUVERT,P2,UCS03.1
-RM-51,Facturation SaaS totalité,Abonnements,4,Paiement,API,-,-,NON COUVERT,P2,UCS03.1
-RM-52,Facturation fee mensuelle,Abonnements,4,Comptabilité,Scheduler,-,-,NON COUVERT,P2,UCS03.1
-RM-53,Indépendance Retail/Institutionnel,Abonnements,4,Compte séparé,API,-,-,NON COUVERT,P2,UCS03.1
-RM-54,Restrictions Gestionnaire,Abonnements,4,RBAC,API,-,-,NON COUVERT,P2,UCS03.1
-RM-55,Traçabilité certifications INST,Abonnements,4,Audit,API,-,-,NON COUVERT,P2,UCS03.1
-RM-56,Alertes expiration J-60/J-30,Abonnements,4,Notification,Scheduler,-,-,NON COUVERT,P2,UCS03.1
-RM-57,Suspension expiration contrat,Abonnements,4,Accès bloqué,Scheduler,-,-,NON COUVERT,P2,UCS03.1
-RM-58,Renouvellement contrat,Abonnements,4,Historique,API,-,-,NON COUVERT,P3,UCS03.1
-RM-59,Enrôlement masse CSV,Abonnements,4,Import,E2E,-,-,NON COUVERT,P2,UCS03.1
+RM-50,Unicité contrat institutionnel,Abonnements,4,Doublon,API,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-51,Facturation SaaS totalité,Abonnements,4,Paiement,API,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-52,Facturation fee mensuelle,Abonnements,4,Comptabilité,Scheduler,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-53,Indépendance Retail/Institutionnel,Abonnements,4,Compte séparé,API,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-54,Restrictions Gestionnaire,Abonnements,4,RBAC,API,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-55,Traçabilité certifications INST,Abonnements,4,Audit,API,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-56,Alertes expiration J-60/J-30,Abonnements,4,Notification,Scheduler,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-57,Suspension expiration contrat,Abonnements,4,Accès bloqué,Scheduler,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
+RM-58,Renouvellement contrat,Abonnements,4,Historique,API,rm-renouvellement-contrats.integration.test.js,-,COUVERT,P3,UCS03.1
+RM-59,Enrôlement masse CSV,Abonnements,4,Import,E2E,rm-enrolement-masse.integration.test.js,-,COUVERT,P2,UCS03.1
 RM-60,Lien abo B2B Organisation,Abonnements,4,Relation,API,-,-,NON COUVERT,P1,UCS03.2
 RM-61,Plafond apprenants B2B,Abonnements,4,Quota,API,-,ucs12-1-dashboard-b2b.spec.js,NON COUVERT,P1,UCS03.2
 RM-62,Conservation certifications B2B,Abonnements,4,Données,API,-,-,NON COUVERT,P2,UCS03.2
@@ -79,26 +79,26 @@ RM-65,Indépendance Retail/B2B,Abonnements,4,Compte séparé,API,-,-,NON COUVERT
 RM-66,Alertes expiration B2B J-45/J-15,Abonnements,4,Notification,Scheduler,-,-,NON COUVERT,P2,UCS03.2
 RM-67,Suspension expiration B2B,Abonnements,4,Accès bloqué,Scheduler,-,-,NON COUVERT,P2,UCS03.2
 RM-68,Montée palier prorata,Abonnements,4,Facturation,E2E,-,ucs03-2-abonnement-b2b.spec.js,NON COUVERT,P2,UCS03.2
-RM-69,Alerte plafond palier,Abonnements,4,Notification,Scheduler,-,-,NON COUVERT,P2,UCS03.2
+RM-69,Alerte plafond palier,Abonnements,4,Notification,Scheduler,rm-alertes-abonnement.integration.test.js,-,COUVERT,P2,UCS03.2
 RM-70,Unicité Retail,Abonnements,4,Doublon,API,-,-,NON COUVERT,P1,UCS11.1
-RM-71,Premium hors Retail,Abonnements,4,Achat séparé,API,-,-,NON COUVERT,P1,UCS11.1
+RM-71,Premium hors Retail,Abonnements,4,Achat séparé,API,rm-abonnements-retail-manquants.integration.test.js,-,COUVERT,P1,UCS11.1
 RM-72,Limit 3 formations Retail,Abonnements,4,Quota,API,-,-,NON COUVERT,P2,UCS11.1
 RM-73,Grâce 48h échec prélèvement,Abonnements,4,Suspension,Scheduler,-,-,NON COUVERT,P1,UCS09.1
-RM-74,Conservation données Retail,Abonnements,4,Données,API,-,-,NON COUVERT,P3,UCS11.1
+RM-74,Conservation données Retail,Abonnements,4,Données,API,rm-conservation-donnees.integration.test.js,-,COUVERT,P3,UCS11.1
 RM-75,Consentement renouvellement,Abonnements,4,RGPD,API,-,-,NON COUVERT,P2,UCS11.1
 RM-76,Limitation suspension 1/trimestre,Abonnements,4,Règle métier,Scheduler,-,-,NON COUVERT,P2,UCS11.1
 RM-77,Résiliation fin période,Abonnements,4,Facturation,API,-,-,NON COUVERT,P3,UCS11.1
 RM-78,Réactivation cycle,Abonnements,4,Facturation,API,-,-,NON COUVERT,P3,UCS11.1
 RM-79,Upgrade Retail prorata,Abonnements,4,Facturation,API,-,ucs11-1-abonnement-retail.spec.js,NON COUVERT,P2,UCS11.1
-RM-80,Abonnement obligatoire Org +30j,Abonnements,4,Règle métier,Scheduler,-,-,NON COUVERT,P1,UCS03
-RM-81,Essai 30j gratuit,Abonnements,4,Période gratuite,Scheduler,-,-,NON COUVERT,P1,UCS03
-RM-82,Alertes fin essai J-7/J-2,Abonnements,4,Notification,Scheduler,-,-,NON COUVERT,P2,UCS03
-RM-83,Suspension essai J+30,Abonnements,4,Accès bloqué,Scheduler,-,-,NON COUVERT,P1,UCS03
+RM-80,Abonnement obligatoire Org +30j,Abonnements,4,Règle métier,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
+RM-81,Essai 30j gratuit,Abonnements,4,Période gratuite,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
+RM-82,Alertes fin essai J-7/J-2,Abonnements,4,Notification,Scheduler,rm-alertes-abonnement.integration.test.js,-,COUVERT,P2,UCS03
+RM-83,Suspension essai J+30,Abonnements,4,Accès bloqué,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
 RM-84,Unicité abo Organisation,Abonnements,4,Doublon,API,-,-,NON COUVERT,P1,UCS03
 RM-85,Offre bienvenue -20% J+25,Abonnements,4,Promotion,Scheduler,-,-,NON COUVERT,P2,UCS03
 RM-86,type_formation FORGES uniquement,Formations,4,Validation,API,-,ucs17-18-partenaire.spec.js,NON COUVERT,P0,UCS18
 RM-87,Premium hors abonnement,Formations,4,Achat séparé,API,-,-,NON COUVERT,P1,UCS04
-RM-89,Premium Enterprise 2/an,Formations,4,Quota,Scheduler,-,-,NON COUVERT,P2,UCS03.2
+RM-89,Premium Enterprise 2/an,Formations,4,Quota,Scheduler,rm-renouvellement-contrats.integration.test.js,-,COUVERT,P2,UCS03.2
 RM-90,Affichage badge Premium,Formations,4,UX,E2E,-,-,NON COUVERT,P2,UCS04
 RM-91,Mode formation obligatoire,Formations,4,Config,API,-,-,NON COUVERT,P1,UCS04
 RM-92,Durée accès 365j,Formations,4,Config,API,-,ucs14-formation-demande.spec.js,COUVERT,P1,UCS14
@@ -112,12 +112,12 @@ RM-105,Suspension AccesFormation,Abonnements,4,Accès,Scheduler,-,-,NON COUVERT,
 RM-106,Premier mois prorata,Abonnements,4,Facturation,API,-,-,NON COUVERT,P2,UCS11.1
 RM-107,Grille tarifaire Org,Abonnements,4,Config,MANUEL,-,-,COUVERT (env),P3,UCS03
 RM-108,Contenu par offre Org,Abonnements,4,RBAC,E2E,-,-,NON COUVERT,P2,UCS03
-RM-109,Renouvellement Org auto,Abonnements,4,Facturation,Scheduler,-,-,NON COUVERT,P1,UCS03
+RM-109,Renouvellement Org auto,Abonnements,4,Facturation,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
 RM-110,Descente palier B2B,Abonnements,4,Règle métier,Scheduler,-,-,NON COUVERT,P2,UCS03.2
-RM-111,Extension RM-103 B2B,Abonnements,4,Règle métier,Scheduler,-,-,NON COUVERT,P1,UCS03.2
+RM-111,Extension RM-103 B2B,Abonnements,4,Règle métier,Scheduler,rm-abonnements-b2b-manquants.integration.test.js,-,COUVERT,P1,UCS03.2
 RM-112,Multi-gestionnaires contrat,Abonnements,4,RBAC,API,-,-,NON COUVERT,P2,UCS03.1
 RM-113,Avenant contrat,Abonnements,4,Historique,E2E,-,-,NON COUVERT,P3,UCS03.1
-RM-114,Seuil facturation fees,Abonnements,4,Comptabilité,Scheduler,-,-,NON COUVERT,P2,UCS03.1
+RM-114,Seuil facturation fees,Abonnements,4,Comptabilité,Scheduler,rm-renouvellement-contrats.integration.test.js,-,COUVERT,P2,UCS03.1
 RM-115,Déclenchement Bot,Bot,4,Règle métier,E2E + Scheduler,rm-vague4-bot.test.js (100% PASS),-,COUVERT,P2,UCS15
 RM-116,Règles auto Bot,Bot,4,Règle métier,E2E + Scheduler,rm-vague4-bot.test.js (100% PASS),-,COUVERT,P2,UCS15
 RM-117,LLM supprimé,Bot,4,Architecture,API,-,-,COUVERT (code),P3,UCS15
