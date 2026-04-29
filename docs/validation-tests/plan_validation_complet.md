@@ -1,6 +1,6 @@
 # Plan de Validation Complet FORGES v4.8 - 72 Tests
 
-Document canonique de validation. Le point d entree seed officiel est `prisma/seed-validation.js` via `package.json`.
+Document canonique de validation. Le point d'entree seed officiel est `forges-monorepo/backend/seed_for_test.js`.
 
 **Objectif**: Valider les 72 scénarios (UCS00→UCS20 + MT-01/MT-02) avec l'approche la plus complète (features + UI)
 **Contrainte**: < 1 semaine
@@ -15,21 +15,23 @@ Document canonique de validation. Le point d entree seed officiel est `prisma/se
 **Forces**:
 - ✅ Tests unitaires backend: 24 modules, 471 cas (Jest)
 - ✅ Tests unitaires frontend: 61 fichiers (Vitest)
-- ✅ Seed de validation prêt (`prisma/seed-validation.js`)
+- ✅ Seed de validation prêt (`forges-monorepo/backend/seed_for_test.js`)
 - ✅ Plan de validation détaillé (72 tests documentés)
 - ✅ Infrastructure de test mature (Jest + Vitest)
 
 ### Commandes seed canoniques
 
 ```bash
-npm run db:seed:validation:reset
-npm run db:seed:validation:check
+cd forges-monorepo/backend
+node seed_for_test.js --reset
+node seed_for_test.js --check
 ```
 
 Commande combinee:
 
 ```bash
-npm run db:seed:validation -- --reset --check
+cd forges-monorepo/backend
+node seed_for_test.js --reset && node seed_for_test.js --check
 ```
 
 **Lacunes critiques**:
@@ -110,7 +112,7 @@ SMTP_PORT=1025  # Mailhog ou Mailtrap
 ```bash
 # tests/scripts/reset-test-db.sh
 npx prisma migrate reset --force --skip-seed
-npm run db:seed:validation:reset
+node seed_for_test.js --reset
 ```
 
 ### 1.4 Configuration Playwright
