@@ -921,6 +921,27 @@ export class EmailService {
 
     await this.sendEmail({ to: admin_email, subject, html });
   }
+
+  async sendAlerteFinEssai(email: string, dateFinEssai: Date, langue: string): Promise<void> {
+    const title = "Votre periode d'essai FORGES arrive a echeance";
+    await this.sendEmail({
+      to: email,
+      subject: title,
+      text: this.buildTextEmail([
+        'Bonjour,',
+        '',
+        `Votre periode d'essai se termine le ${dateFinEssai.toLocaleDateString('fr-FR')}.`,
+        'Souscrivez un abonnement Organisation pour conserver votre acces.',
+        `Langue du message: ${langue}`,
+      ]),
+      html: this.buildHtmlEmail(title, [
+        'Bonjour,',
+        `Votre periode d'essai se termine le <strong>${dateFinEssai.toLocaleDateString('fr-FR')}</strong>.`,
+        'Souscrivez un abonnement Organisation pour conserver votre acces.',
+        `Langue du message : ${langue}`,
+      ]),
+    });
+  }
 }
 
 export const emailService = new EmailService();

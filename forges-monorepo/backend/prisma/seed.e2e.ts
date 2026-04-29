@@ -17,6 +17,7 @@ const IDS = {
   apprenantPremiumB2b: 'app-e2e-premium-b2b-01',
   apprenantDossier: 'app-e2e-dossier-01',
   apprenantAuth: 'app-e2e-auth-01',
+  apprenantRetail: 'app-e2e-retail-01',
   apprenantGris: 'app-e2e-gris-01',
   apprenantException: 'app-e2e-exception-01',
   organisation: 'org-e2e-01',
@@ -68,6 +69,7 @@ const EMAILS = {
   apprenantPremiumB2b: 'apprenant-premium-b2b-e2e@forges.ci',
   apprenantDossier: 'apprenant-dossier-e2e@forges.ci',
   apprenantAuth: 'apprenant-auth-e2e@forges.ci',
+  apprenantRetail: 'apprenant-retail-e2e@forges.ci',
   apprenantGris: 'apprenant-gris-e2e@forges.ci',
   apprenantException: 'apprenant-exception-e2e@forges.ci',
   organisation: 'org@forges.ci',
@@ -106,6 +108,7 @@ async function cleanupScenarioData() {
     IDS.apprenantPremiumB2b,
     IDS.apprenantDossier,
     IDS.apprenantAuth,
+    IDS.apprenantRetail,
     IDS.apprenantGris,
     IDS.apprenantException,
     IDS.apporteur,
@@ -255,15 +258,27 @@ async function cleanupScenarioData() {
     },
   });
   await prisma.abonnementRetail.deleteMany({
-    where: { OR: [{ apprenant_id: { in: apprenantIds } }, { apprenant_id: { startsWith: 'app-rm' } }] },
+    where: {
+      OR: [
+        { apprenant_id: { in: apprenantIds } },
+        { apprenant_id: { startsWith: 'app-rm' } },
+        { apprenant: { email: { contains: 'e2e-ucs' } } },
+      ],
+    },
   });
-  await prisma.abonnementB2B.deleteMany({ where: { organisation_id: IDS.organisation } });
-  await prisma.abonnementOrganisation.deleteMany({ where: { organisation_id: IDS.organisation } });
-  await prisma.apprenant.deleteMany({ where: { OR: [{ id: { in: apprenantIds } }, { id: { startsWith: 'app-rm' } }] } });
-  await prisma.organisation.deleteMany({ where: { id: IDS.organisation } });
-  await prisma.apporteur.deleteMany({ where: { id: IDS.apporteur } });
+  await prisma.abonnementB2B.deleteMany({
+    where: { OR: [{ organisation_id: IDS.organisation }, { organisation: { email: { contains: 'e2e-ucs' } } }] },
+  });
+  await prisma.abonnementOrganisation.deleteMany({
+    where: { OR: [{ organisation_id: IDS.organisation }, { organisation: { email: { contains: 'e2e-ucs' } } }] },
+  });
+  await prisma.apprenant.deleteMany({
+    where: { OR: [{ id: { in: apprenantIds } }, { id: { startsWith: 'app-rm' } }, { email: { contains: 'e2e-ucs' } }] },
+  });
+  await prisma.organisation.deleteMany({ where: { OR: [{ id: IDS.organisation }, { email: { contains: 'e2e-ucs' } }] } });
+  await prisma.apporteur.deleteMany({ where: { OR: [{ id: IDS.apporteur }, { email: { contains: 'e2e-ucs' } }] } });
   await prisma.partenaire.deleteMany({
-    where: { id: { in: partenaireIds } },
+    where: { OR: [{ id: { in: partenaireIds } }, { email_principal: { contains: 'e2e-ucs' } }] },
   });
 }
 
@@ -383,6 +398,7 @@ async function main() {
     token_expiration: daysFromNow(1),
     statut: 'INACTIF',
   });
+  await createApprenant(IDS.apprenantRetail, EMAILS.apprenantRetail, passwordHash);
 
   await prisma.organisation.create({
     data: {
