@@ -18,13 +18,13 @@ RM-141,Taux défaut 5%,Apporteurs,5,Config,CONFIG,-,-,COUVERT (env),P2,UCS20
 RM-28,Unicité email,Comptes,5,Doublon compte,API,rm-28-unicite-email.test.js,ucs00-01-auth.spec.js,COUVERT,P1,UCS00
 RM-16,Cohérence 4 dates session,Sessions,5,Inscriptions impossibles,API,rm-16-17-sessions.test.js,-,COUVERT,P1,UCS05
 RM-17,Non-chevauchement sessions,Sessions,5,Confusion,API,rm-16-17-sessions.test.js,-,COUVERT,P1,UCS05
-RM-13,Archivage irréversible,Formations,5,Erreur UX,API,-,-,NON COUVERT,P2,UCS04
-RM-22,Visibilité formation,Formations,5,Perte CA,API,-,-,NON COUVERT,P1,UCS04
-RM-23,EN_ATTENTE_PLANIFICATION,Formations,5,Invisible,API,-,-,NON COUVERT,P2,UCS04
+RM-13,Archivage irréversible,Formations,5,Erreur UX,API,rm-13-archivage-formation.test.js + rm-formations.test.js,-,COUVERT,P2,UCS04
+RM-22,Visibilité formation,Formations,5,Perte CA,API,rm-22-23-visibilite.test.js + rm-formations.test.js,-,COUVERT,P1,UCS04
+RM-23,EN_ATTENTE_PLANIFICATION,Formations,5,Invisible,API,rm-22-23-visibilite.test.js + rm-formations.test.js,-,COUVERT,P2,UCS04
 RM-26,Attestation conditions,Espace Apprenant,5,Attestation invalide,API,rm-26-27-attestations.test.js,ucs11-espace-apprenant.spec.js,COUVERT,P1,UCS11
 RM-27,Annulation uniquement EN_ATTENTE,Espace Apprenant,5,Conflit,API,rm-26-27-attestations.test.js,ucs11-espace-apprenant.spec.js,COUVERT,P1,UCS11
-RM-118,Bot questions fermées,Bot,5,Données sales,API,-,-,NON COUVERT,P2,UCS15
-RM-88,Réduction -15% abonné,Abonnements,5,Perte marge,API,-,-,NON COUVERT,P1,UCS11.1
+RM-118,Bot questions fermées,Bot,5,Données sales,API,rm-vague3-bot-organisation.test.js + rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
+RM-88,Réduction -15% abonné,Abonnements,5,Perte marge,API,rm-88-reduction-premium.test.js,-,COUVERT,P1,UCS11.1
 RM-38,Usage unique voucher,Vouchers,5,Fraude,API,rm-38-usage-unique.test.js,-,COUVERT,P1,UCS06
 RM-15,Unicité formation cross-sessions,Inscriptions,4,Doublon,API,rm-01-15-unicite.test.js,-,COUVERT,P1,UCS07
 RM-18,Fenêtre exception +10%,Sessions,4,Dépassement capacité,API,rm-vague4-sessions-paiements.test.js (100% PASS),-,COUVERT,P2,UCS07
@@ -32,9 +32,9 @@ RM-19,Priorité traitement GRIS/EXCEPTION,Inscriptions,4,Retard traitement,E2E,r
 RM-20,Transitions auto sessions,Sessions,4,Blocage statut,Scheduler,-,ucs05-sessions-transitions.spec.js,COUVERT,P1,UCS05
 RM-21,Archivage +90j,Sessions,4,Accumulation données,Scheduler,-,ucs05-sessions-transitions.spec.js,COUVERT,P2,UCS05
 RM-06,Paiement unique par dossier,Paiements,4,Double paiement,API,rm-vague4-sessions-paiements.test.js + rm-paiements.test.js,-,COUVERT,P1,UCS09
-RM-08,Max 3 tentatives paiement,Paiements,4,Fraude,API + Scheduler,rm-vague4-sessions-paiements.test.js,-,PARTIEL,P2,UCS09
+RM-08,Max 3 tentatives paiement,Paiements,4,Fraude,API + Scheduler,rm-vague3-paiements-reversements.test.js + rm-vague4-sessions-paiements.test.js,-,COUVERT,P2,UCS09
 RM-09,Webhook asynchrone 30s,Paiements,4,Timeout,API + Scheduler,-,ucs09-paiement-commissions.spec.js,COUVERT,P2,UCS09
-RM-10,Remboursement manuel,Paiements,4,Procédure,MANUEL,-,-,NON COUVERT,P3,UCS09
+RM-10,Remboursement manuel,Paiements,4,Procédure,MANUEL,rm-paiements.test.js + rm-vague3-paiements-reversements.test.js,-,COUVERT,P3,UCS09
 RM-11,Protection historique formation,Formations,4,Suppression bloquée,API,-,-,COUVERT,P2,UCS04
 RM-12,Cohérence tarif dossiers,Formations,4,Prix incohérent,API,-,-,COUVERT,P2,UCS04
 RM-14,Définition session,Sessions,4,Config,API,-,-,COUVERT (code),P3,UCS05
@@ -43,8 +43,8 @@ RM-40,Quota/expiration obligatoires,Vouchers,4,Config invalide,API,rm-vouchers.t
 RM-42,Voucher promo réduction,Vouchers,4,Calcul faux,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS06
 RM-43,Unicité identifiant légal,Comptes,4,Doublon org,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS03
 RM-45,Rejet libération voucher,Vouchers,4,Quota non restauré,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS06
-RM-48,Pays ISO obligatoire,Comptes,4,Validation données,API,-,-,NON COUVERT,P3,UCS00
-RM-49,Document 5 Mo max,Inscriptions,4,Upload,API,-,-,NON COUVERT,P3,UCS07
+RM-48,Pays ISO obligatoire,Comptes,4,Validation données,API,rm-vague3-securite.test.js + rm-vague4-vouchers-comptes.test.js,-,COUVERT,P3,UCS00
+RM-49,Document 5 Mo max,Inscriptions,4,Upload,API,rm-vague3-securite.test.js + rm-vague4-vouchers-comptes.test.js,-,COUVERT,P3,UCS07
 RM-34,type_apprenant obligatoire,Comptes,4,Profil incomplet,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS00
 RM-35,Secteur si Professionnel,Comptes,4,Validation conditionnelle,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS00
 RM-36,Niveau si Apprenant,Comptes,4,Validation conditionnelle,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS00
@@ -55,10 +55,10 @@ RM-32,Rate limiting 5/h,Comptes,4,Brute force,API,rm-32-rate-limit-auth.test.js,
 RM-33,Consentement RGPD,Comptes,4,Conformité,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P2,UCS00
 RM-46,Multi-sous-types Gouvernement,Comptes,4,Config,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P3,UCS03
 RM-47,Libellé contact adaptatif,Comptes,4,UX,API,rm-vague4-vouchers-comptes.test.js,-,COUVERT,P3,UCS03
-RM-97,Langues FR/EN/ES/PT,Multi-langue,4,i18n,API,-,-,NON COUVERT,P3,Tous
-RM-98,Langue préférée fallback FR,Multi-langue,4,i18n,API,-,-,NON COUVERT,P3,Tous
-RM-99,Fallback traduction + bandeau,Multi-langue,4,UX,E2E,-,-,NON COUVERT,P3,Tous
-RM-100,Traduction emails auto,Multi-langue,4,i18n,API,-,-,NON COUVERT,P3,Tous
+RM-97,Langues FR/EN/ES/PT,Multi-langue,4,i18n,API,rm-97-100-multilangue.test.js,-,COUVERT,P3,Tous
+RM-98,Langue préférée fallback FR,Multi-langue,4,i18n,API,rm-97-100-multilangue.test.js,-,COUVERT,P3,Tous
+RM-99,Fallback traduction + bandeau,Multi-langue,4,UX,E2E,rm-97-100-multilangue.test.js,-,COUVERT,P3,Tous
+RM-100,Traduction emails auto,Multi-langue,4,i18n,API,rm-97-100-multilangue.test.js,ucs06-vouchers-backoffice.spec.js,COUVERT,P3,Tous
 RM-101,Traduction interface 4 langues,Multi-langue,4,i18n,E2E,rm-vague4-multilangue.test.js,-,COUVERT,P3,Tous
 RM-50,Unicité contrat institutionnel,Abonnements,4,Doublon,API,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
 RM-51,Facturation SaaS totalité,Abonnements,4,Paiement,API,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
@@ -70,79 +70,79 @@ RM-56,Alertes expiration J-60/J-30,Abonnements,4,Notification,Scheduler,rm-contr
 RM-57,Suspension expiration contrat,Abonnements,4,Accès bloqué,Scheduler,rm-contrats-institutionnels.integration.test.js,-,COUVERT,P2,UCS03.1
 RM-58,Renouvellement contrat,Abonnements,4,Historique,API,rm-renouvellement-contrats.integration.test.js,-,COUVERT,P3,UCS03.1
 RM-59,Enrôlement masse CSV,Abonnements,4,Import,E2E,rm-enrolement-masse.integration.test.js,-,COUVERT,P2,UCS03.1
-RM-60,Lien abo B2B Organisation,Abonnements,4,Relation,API,-,-,NON COUVERT,P1,UCS03.2
-RM-61,Plafond apprenants B2B,Abonnements,4,Quota,API,-,ucs12-1-dashboard-b2b.spec.js,NON COUVERT,P1,UCS03.2
-RM-62,Conservation certifications B2B,Abonnements,4,Données,API,-,-,NON COUVERT,P2,UCS03.2
-RM-63,Facturation B2B non remboursable,Abonnements,4,Procédure,MANUEL,-,-,NON COUVERT,P3,UCS03.2
-RM-64,Premium et B2B séparé,Abonnements,4,Facturation,API,-,-,NON COUVERT,P2,UCS03.2
-RM-65,Indépendance Retail/B2B,Abonnements,4,Compte séparé,API,-,-,NON COUVERT,P2,UCS03.2
-RM-66,Alertes expiration B2B J-45/J-15,Abonnements,4,Notification,Scheduler,-,-,NON COUVERT,P2,UCS03.2
-RM-67,Suspension expiration B2B,Abonnements,4,Accès bloqué,Scheduler,-,-,NON COUVERT,P2,UCS03.2
-RM-68,Montée palier prorata,Abonnements,4,Facturation,E2E,-,ucs03-2-abonnement-b2b.spec.js,NON COUVERT,P2,UCS03.2
+RM-60,Lien abo B2B Organisation,Abonnements,4,Relation,API,rm-vague3-abonnements.test.js,-,COUVERT,P1,UCS03.2
+RM-61,Plafond apprenants B2B,Abonnements,4,Quota,API,rm-vague3-abonnements.test.js,ucs12-1-dashboard-b2b.spec.js,COUVERT,P1,UCS03.2
+RM-62,Conservation certifications B2B,Abonnements,4,Données,API,rm-vague2-suite.test.js,-,COUVERT,P2,UCS03.2
+RM-63,Facturation B2B non remboursable,Abonnements,4,Procédure,MANUEL,rm-vague2-suite.test.js,-,COUVERT,P3,UCS03.2
+RM-64,Premium et B2B séparé,Abonnements,4,Facturation,API,rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS03.2
+RM-65,Indépendance Retail/B2B,Abonnements,4,Compte séparé,API,rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS03.2
+RM-66,Alertes expiration B2B J-45/J-15,Abonnements,4,Notification,Scheduler,rm-vague2-suite.test.js,-,COUVERT,P2,UCS03.2
+RM-67,Suspension expiration B2B,Abonnements,4,Accès bloqué,Scheduler,rm-vague2-suite.test.js,-,COUVERT,P2,UCS03.2
+RM-68,Montée palier prorata,Abonnements,4,Facturation,E2E,rm-vague3-abonnements.test.js,ucs03-2-abonnement-b2b.spec.js,COUVERT,P2,UCS03.2
 RM-69,Alerte plafond palier,Abonnements,4,Notification,Scheduler,rm-alertes-abonnement.integration.test.js,-,COUVERT,P2,UCS03.2
-RM-70,Unicité Retail,Abonnements,4,Doublon,API,-,-,NON COUVERT,P1,UCS11.1
+RM-70,Unicité Retail,Abonnements,4,Doublon,API,rm-vague3-abonnements-retail.test.js + rm-vague3-abonnements.test.js,-,COUVERT,P1,UCS11.1
 RM-71,Premium hors Retail,Abonnements,4,Achat séparé,API,rm-abonnements-retail-manquants.integration.test.js,-,COUVERT,P1,UCS11.1
-RM-72,Limit 3 formations Retail,Abonnements,4,Quota,API,-,-,NON COUVERT,P2,UCS11.1
-RM-73,Grâce 48h échec prélèvement,Abonnements,4,Suspension,Scheduler,-,-,NON COUVERT,P1,UCS09.1
+RM-72,Limit 3 formations Retail,Abonnements,4,Quota,API,rm-vague3-abonnements-retail.test.js,-,COUVERT,P2,UCS11.1
+RM-73,Grâce 48h échec prélèvement,Abonnements,4,Suspension,Scheduler,rm-vague3-abonnements-retail.test.js,-,COUVERT,P1,UCS09.1
 RM-74,Conservation données Retail,Abonnements,4,Données,API,rm-conservation-donnees.integration.test.js,-,COUVERT,P3,UCS11.1
-RM-75,Consentement renouvellement,Abonnements,4,RGPD,API,-,-,NON COUVERT,P2,UCS11.1
-RM-76,Limitation suspension 1/trimestre,Abonnements,4,Règle métier,Scheduler,-,-,NON COUVERT,P2,UCS11.1
-RM-77,Résiliation fin période,Abonnements,4,Facturation,API,-,-,NON COUVERT,P3,UCS11.1
-RM-78,Réactivation cycle,Abonnements,4,Facturation,API,-,-,NON COUVERT,P3,UCS11.1
-RM-79,Upgrade Retail prorata,Abonnements,4,Facturation,API,-,ucs11-1-abonnement-retail.spec.js,NON COUVERT,P2,UCS11.1
+RM-75,Consentement renouvellement,Abonnements,4,RGPD,API,rm-vague3-abonnements-retail.test.js + rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS11.1
+RM-76,Limitation suspension 1/trimestre,Abonnements,4,Règle métier,Scheduler,rm-vague3-abonnements-retail.test.js + rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS11.1
+RM-77,Résiliation fin période,Abonnements,4,Facturation,API,rm-vague3-abonnements-retail.test.js + rm-vague3-abonnements.test.js,-,COUVERT,P3,UCS11.1
+RM-78,Réactivation cycle,Abonnements,4,Facturation,API,rm-vague2-suite.test.js,-,COUVERT,P3,UCS11.1
+RM-79,Upgrade Retail prorata,Abonnements,4,Facturation,API,rm-vague3-abonnements-retail.test.js + rm-vague3-abonnements.test.js,ucs11-1-abonnement-retail.spec.js,COUVERT,P2,UCS11.1
 RM-80,Abonnement obligatoire Org +30j,Abonnements,4,Règle métier,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
 RM-81,Essai 30j gratuit,Abonnements,4,Période gratuite,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
 RM-82,Alertes fin essai J-7/J-2,Abonnements,4,Notification,Scheduler,rm-alertes-abonnement.integration.test.js,-,COUVERT,P2,UCS03
 RM-83,Suspension essai J+30,Abonnements,4,Accès bloqué,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
-RM-84,Unicité abo Organisation,Abonnements,4,Doublon,API,-,-,NON COUVERT,P1,UCS03
-RM-85,Offre bienvenue -20% J+25,Abonnements,4,Promotion,Scheduler,-,-,NON COUVERT,P2,UCS03
-RM-86,type_formation FORGES uniquement,Formations,4,Validation,API,-,ucs17-18-partenaire.spec.js,NON COUVERT,P0,UCS18
-RM-87,Premium hors abonnement,Formations,4,Achat séparé,API,-,-,NON COUVERT,P1,UCS04
+RM-84,Unicité abo Organisation,Abonnements,4,Doublon,API,rm-vague3-abonnements.test.js,-,COUVERT,P1,UCS03
+RM-85,Offre bienvenue -20% J+25,Abonnements,4,Promotion,Scheduler,rm-vague2-suite.test.js,-,COUVERT,P2,UCS03
+RM-86,type_formation FORGES uniquement,Formations,4,Validation,API,rm-vague2-suite.test.js,ucs17-18-partenaire.spec.js,COUVERT,P0,UCS18
+RM-87,Premium hors abonnement,Formations,4,Achat séparé,API,rm-102-eligibilite-abonnement.test.js + rm-vague3-formations-avancees.test.js + rm-vague4-formations.test.js,-,COUVERT,P1,UCS04
 RM-89,Premium Enterprise 2/an,Formations,4,Quota,Scheduler,rm-renouvellement-contrats.integration.test.js,-,COUVERT,P2,UCS03.2
-RM-90,Affichage badge Premium,Formations,4,UX,E2E,-,-,NON COUVERT,P2,UCS04
-RM-91,Mode formation obligatoire,Formations,4,Config,API,-,-,NON COUVERT,P1,UCS04
+RM-90,Affichage badge Premium,Formations,4,UX,E2E,rm-formations.test.js + rm-vague3-formations-avancees.test.js,-,COUVERT,P2,UCS04
+RM-91,Mode formation obligatoire,Formations,4,Config,API,rm-vague3-formations-avancees.test.js + rm-vague4-formations.test.js,-,COUVERT,P1,UCS04
 RM-92,Durée accès 365j,Formations,4,Config,API,-,ucs14-formation-demande.spec.js,COUVERT,P1,UCS14
-RM-93,Disponibilité immédiate,Formations,4,Accès,API,-,-,NON COUVERT,P1,UCS14
+RM-93,Disponibilité immédiate,Formations,4,Accès,API,rm-vague4-formations.test.js,-,COUVERT,P1,UCS14
 RM-94,Standard inclus abo,Formations,4,Règle métier,API,rm-vague4-formations.test.js,ucs14-formation-demande.spec.js,COUVERT,P1,UCS14
-RM-95,Premium payant,Formations,4,Facturation,API,-,-,NON COUVERT,P1,UCS14
+RM-95,Premium payant,Formations,4,Facturation,API,rm-vague4-formations.test.js,-,COUVERT,P1,UCS14
 RM-96,Pas session À la demande,Formations,4,Validation,API,-,-,COUVERT,P1,UCS04
 RM-103,Expiration accès À la demande,Formations,4,Règle métier,Scheduler,-,ucs14-formation-demande.spec.js,COUVERT,P1,UCS14
-RM-104,Downgrade Retail,Abonnements,4,Facturation,API,-,ucs11-1-abonnement-retail.spec.js,NON COUVERT,P2,UCS11.1
-RM-105,Suspension AccesFormation,Abonnements,4,Accès,Scheduler,-,-,NON COUVERT,P2,UCS11.1
-RM-106,Premier mois prorata,Abonnements,4,Facturation,API,-,-,NON COUVERT,P2,UCS11.1
+RM-104,Downgrade Retail,Abonnements,4,Facturation,API,rm-vague3-abonnements-retail.test.js + rm-vague3-abonnements.test.js,ucs11-1-abonnement-retail.spec.js,COUVERT,P2,UCS11.1
+RM-105,Suspension AccesFormation,Abonnements,4,Accès,Scheduler,rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS11.1
+RM-106,Premier mois prorata,Abonnements,4,Facturation,API,rm-vague3-abonnements-retail.test.js + rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS11.1
 RM-107,Grille tarifaire Org,Abonnements,4,Config,MANUEL,-,-,COUVERT (env),P3,UCS03
-RM-108,Contenu par offre Org,Abonnements,4,RBAC,E2E,-,-,NON COUVERT,P2,UCS03
+RM-108,Contenu par offre Org,Abonnements,4,RBAC,E2E,rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS03
 RM-109,Renouvellement Org auto,Abonnements,4,Facturation,Scheduler,rm-abonnements-organisation-manquants.integration.test.js,-,COUVERT,P1,UCS03
-RM-110,Descente palier B2B,Abonnements,4,Règle métier,Scheduler,-,-,NON COUVERT,P2,UCS03.2
+RM-110,Descente palier B2B,Abonnements,4,Règle métier,Scheduler,rm-vague2-suite.test.js,-,COUVERT,P2,UCS03.2
 RM-111,Extension RM-103 B2B,Abonnements,4,Règle métier,Scheduler,rm-abonnements-b2b-manquants.integration.test.js,-,COUVERT,P1,UCS03.2
-RM-112,Multi-gestionnaires contrat,Abonnements,4,RBAC,API,-,-,NON COUVERT,P2,UCS03.1
-RM-113,Avenant contrat,Abonnements,4,Historique,E2E,-,-,NON COUVERT,P3,UCS03.1
+RM-112,Multi-gestionnaires contrat,Abonnements,4,RBAC,API,rm-vague3-abonnements.test.js,-,COUVERT,P2,UCS03.1
+RM-113,Avenant contrat,Abonnements,4,Historique,E2E,rm-vague2-suite.test.js,-,COUVERT,P3,UCS03.1
 RM-114,Seuil facturation fees,Abonnements,4,Comptabilité,Scheduler,rm-renouvellement-contrats.integration.test.js,-,COUVERT,P2,UCS03.1
 RM-115,Déclenchement Bot,Bot,4,Règle métier,E2E + Scheduler,rm-vague4-bot.test.js (100% PASS),-,COUVERT,P2,UCS15
 RM-116,Règles auto Bot,Bot,4,Règle métier,E2E + Scheduler,rm-vague4-bot.test.js (100% PASS),-,COUVERT,P2,UCS15
 RM-117,LLM supprimé,Bot,4,Architecture,API,-,-,COUVERT (code),P3,UCS15
-RM-119,Suggestion upgrade Bot,Bot,4,Règle métier,E2E,rm-vague4-bot.test.js,-,PARTIEL,P2,UCS15
-RM-120,Gestion refus upgrade,Bot,4,Règle métier,Scheduler,rm-vague4-bot.test.js,-,PARTIEL,P2,UCS15
-RM-121,Déclenchement Feedback,Bot,4,Règle métier,E2E + Scheduler,-,-,NON COUVERT,P2,UCS15
-RM-122,Questionnaire satisfaction,Bot,4,UX,E2E,-,-,NON COUVERT,P2,UCS15
-RM-123,Enquête catalogue,Bot,4,UX,E2E,-,-,NON COUVERT,P2,UCS15
-RM-124,Exploitation EnqueteCatalogue,Bot,4,TDB,E2E,-,-,NON COUVERT,P2,UCS15
-RM-125,Confidentialité Bot,Bot,4,Sécurité,API,-,-,NON COUVERT,P2,UCS15
+RM-119,Suggestion upgrade Bot,Bot,4,Règle métier,E2E,rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
+RM-120,Gestion refus upgrade,Bot,4,Règle métier,Scheduler,rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
+RM-121,Déclenchement Feedback,Bot,4,Règle métier,E2E + Scheduler,rm-vague3-bot-organisation.test.js + rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
+RM-122,Questionnaire satisfaction,Bot,4,UX,E2E,rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
+RM-123,Enquête catalogue,Bot,4,UX,E2E,rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
+RM-124,Exploitation EnqueteCatalogue,Bot,4,TDB,E2E,rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
+RM-125,Confidentialité Bot,Bot,4,Sécurité,API,rm-vague4-bot.test.js,-,COUVERT,P2,UCS15
 RM-126,Modes inscription Partenaire,Partenaires,4,Workflow,API,-,ucs17-18-partenaire.spec.js,COUVERT,P1,UCS17
 RM-128,Validation Responsable,Partenaires,4,Workflow,E2E,-,ucs17-18-partenaire.spec.js,COUVERT,P1,UCS18
-RM-130,TDB Partenaire limité,Partenaires,3,Visibilité,E2E,-,-,NON COUVERT,P3,UCS17
-RM-131,Suspension formation,Partenaires,3,Workflow,E2E,-,-,NON COUVERT,P2,UCS18
-RM-132,Commission formations incluses,Partenaires,4,Facturation,Scheduler,-,-,NON COUVERT,P2,UCS09
-RM-133,Désactivation Partenaire,Partenaires,4,Workflow,API,-,-,NON COUVERT,P2,UCS17
-RM-134,Délai validation J+5/J+10,Partenaires,4,Alertes,Scheduler,-,ucs17-18-partenaire.spec.js,NON COUVERT,P1,UCS18
-RM-135,Bot formations Partenaires,Partenaires,4,Règle métier,E2E,-,-,NON COUVERT,P3,UCS15
-RM-136,Formulaire soumission 21 champs,Partenaires,4,Validation,E2E,-,ucs17-18-partenaire.spec.js,NON COUVERT,P1,UCS17
+RM-130,TDB Partenaire limité,Partenaires,3,Visibilité,E2E,rm-partenaires.test.js + rm-vague3-paiements-reversements.test.js + rm-vague3-partenaires.test.js,-,COUVERT,P3,UCS17
+RM-131,Suspension formation,Partenaires,3,Workflow,E2E,rm-vague3-partenaires.test.js,-,COUVERT,P2,UCS18
+RM-132,Commission formations incluses,Partenaires,4,Facturation,Scheduler,rm-vague3-partenaires.test.js,-,COUVERT,P2,UCS09
+RM-133,Désactivation Partenaire,Partenaires,4,Workflow,API,rm-vague3-paiements-reversements.test.js + rm-vague3-partenaires.test.js,-,COUVERT,P2,UCS17
+RM-134,Délai validation J+5/J+10,Partenaires,4,Alertes,Scheduler,rm-vague3-paiements-reversements.test.js + rm-vague3-partenaires.test.js,ucs17-18-partenaire.spec.js,COUVERT,P1,UCS18
+RM-135,Bot formations Partenaires,Partenaires,4,Règle métier,E2E,rm-vague2-suite.test.js,-,COUVERT,P3,UCS15
+RM-136,Formulaire soumission 21 champs,Partenaires,4,Validation,E2E,rm-vague3-partenaires.test.js,ucs17-18-partenaire.spec.js,COUVERT,P1,UCS17
 RM-137,Prix catalogue auto,Partenaires,4,Calcul,API,-,ucs17-18-partenaire.spec.js,COUVERT,P0,UCS18
-RM-138,Reversement mensuel seuil,Partenaires,4,Facturation,Scheduler,-,-,NON COUVERT,P1,UCS09
-RM-139,TDB Agent reversements,Partenaires,3,UX,E2E,-,-,NON COUVERT,P3,UCS09
-RM-02,Clôture auto inscriptions,Sessions,4,Capacité,Scheduler,-,-,NON COUVERT,P2,UCS07
+RM-138,Reversement mensuel seuil,Partenaires,4,Facturation,Scheduler,rm-vague3-paiements-reversements.test.js + rm-vague3-partenaires.test.js,-,COUVERT,P1,UCS09
+RM-139,TDB Agent reversements,Partenaires,3,UX,E2E,rm-vague3-paiements-reversements.test.js + rm-vague3-partenaires.test.js,-,COUVERT,P3,UCS09
+RM-02,Clôture auto inscriptions,Sessions,4,Capacité,Scheduler,rm-02-fermeture-session.test.js + rm-02-minimal.test.js + rm-inscriptions.test.js,-,COUVERT,P2,UCS07
 RM-03,Archivage auto dossiers,Sessions,4,Cleanup,Scheduler,rm-vague4-formations.test.js,-,COUVERT,P2,UCS04
 RM-24,Notification modification,Sessions,4,Communication,E2E,-,-,COUVERT,P3,UCS05
 RM-25,Planification annuelle,Sessions,4,UX,E2E,rm-vague4-sessions-paiements.test.js,-,COUVERT,P3,UCS05
-RM-44,TDB RH visibilité,Vouchers,3,Visibilité,E2E,-,-,NON COUVERT,P3,UCS12
-RM-04,Délai traitement obligatoire,Formations,4,Config,API,rm-vague4-formations.test.js (TODO implémentation backend),-,PARTIEL,P2,UCS04
+RM-44,TDB RH visibilité,Vouchers,3,Visibilité,E2E,-,ucs06-vouchers-backoffice.spec.js,COUVERT,P3,UCS12
+RM-04,Délai traitement obligatoire,Formations,4,Config,API,rm-16-17-sessions.test.js + rm-vague4-formations.test.js,-,COUVERT,P2,UCS04

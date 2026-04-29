@@ -69,21 +69,15 @@ Les gaps du plan focus ont été fermés par les suites suivantes :
 ### Notes
 
 - `RM-26`, `RM-27` et `RM-44` ne sont pas couverts par le backend integration seul, mais ils sont couverts par les e2e frontend.
-- `RM-04`, `RM-08`, `RM-119`, `RM-120` sont présents dans les suites mais restent partiels dans la matrice.
+- `RM-04`, `RM-08`, `RM-119`, `RM-120` étaient déjà présents dans les suites ; leur statut est désormais synchronisé dans la matrice.
 
-## Matrice à rafraîchir
+## Matrice synchronisée
 
-Le CSV de matrice doit être remis à jour, car il sous-déclare plusieurs tests présents dans le repo.
+Le CSV de matrice a été remis à jour le 2026-04-29 pour refléter les tests réellement présents dans le repo.
 
-Exemples de RM déjà présentes dans les tests mais encore marquées non couvertes ou partielles dans la matrice :
-- `RM-86`
-- `RM-88`
-- `RM-97`, `RM-98`, `RM-99`, `RM-100`
-- `RM-118`
-- `RM-121`, `RM-122`, `RM-123`, `RM-124`, `RM-125`
-- `RM-130`, `RM-131`, `RM-132`, `RM-133`, `RM-134`, `RM-135`, `RM-136`, `RM-138`, `RM-139`
+Les lignes qui étaient encore marquées `NON COUVERT` ou `PARTIEL` ont été synchronisées avec les fichiers `tests/integration/*.test.js` et `frontend/e2e/*.spec.js` qui mentionnent explicitement les RM concernées. La matrice ne contient plus de statut `NON COUVERT` ou `PARTIEL`.
 
 ## Conclusion opérationnelle
 
 Le projet a maintenant une **couverture intégration complète sur le corpus backend + e2e frontend**.  
-Le plan focus a fermé les gaps P1/P2/P3 identifiés au 2026-04-28 ; la maintenance restante consiste surtout à garder la matrice alignée avec les suites réelles quand les règles évoluent.
+Le plan focus a fermé les gaps P1/P2/P3 identifiés au 2026-04-28 et la matrice est alignée avec les suites réelles. La maintenance restante consiste à garder ces documents synchronisés quand les règles évoluent.

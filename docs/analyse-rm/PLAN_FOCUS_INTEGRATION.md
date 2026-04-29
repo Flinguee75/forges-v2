@@ -1,13 +1,15 @@
 # Plan Focus Integration - RM v4.8
 
 **Date** : 2026-04-28  
-**But** : couvrir les RM encore absentes du corpus actuel `tests/integration/*.test.js` + `frontend/e2e/*.spec.js`, avec un objectif d'au moins 70 % sur le sous-ensemble prioritaire restant.
+**Statut** : clôturé le 2026-04-29 — suites livrées et matrice synchronisée
+
+**But initial** : couvrir les RM encore absentes du corpus `tests/integration/*.test.js` + `frontend/e2e/*.spec.js`, avec un objectif d'au moins 70 % sur le sous-ensemble prioritaire restant.
 
 ## 1. Cible du plan
 
-Le corpus actuel couvre déjà les P0 et la majorité des flux critiques. Le plan actif ne doit donc plus re-traiter les RM déjà présentes dans les suites.
+Au lancement du plan, le corpus couvrait déjà les P0 et la majorité des flux critiques. Le plan ne devait donc pas re-traiter les RM déjà présentes dans les suites.
 
-Il se concentre uniquement sur les gaps encore ouverts dans l'etat de couverture à jour, en priorité :
+Il se concentrait uniquement sur les gaps alors ouverts dans l'etat de couverture, en priorité :
 - les abonnements institutionnels et les trous du cycle Retail / B2B
 - les contrats et alertes institutionnels
 - les scénarios de renouvellement et de rétention de données
@@ -15,7 +17,7 @@ Il se concentre uniquement sur les gaps encore ouverts dans l'etat de couverture
 
 ### RM à traiter en priorité absolue
 
-P1 encore absentes du corpus :
+P1 alors absentes du corpus :
 - `RM-71` Premium hors Retail
 - `RM-80` abonnement Organisation obligatoire +30j
 - `RM-81` essai 30j gratuit
@@ -23,7 +25,7 @@ P1 encore absentes du corpus :
 - `RM-109` renouvellement Organisation auto
 - `RM-111` extension RM-103 B2B
 
-P2 et P3 encore à couvrir par flux :
+P2 et P3 alors à couvrir par flux :
 - `RM-50`, `RM-51`, `RM-52`, `RM-53`, `RM-54`, `RM-55`, `RM-56`, `RM-57`
 - `RM-59`
 - `RM-69`
@@ -49,7 +51,7 @@ Chaque suite d'integration doit :
 
 ## 3. Ce qui est hors plan
 
-Le plan actif ne doit plus reprendre les RM déjà couvertes dans le corpus actuel, même si la matrice CSV les marque encore de travers.
+Le plan ne devait pas reprendre les RM déjà couvertes dans le corpus, même si la matrice CSV les marquait encore de travers.
 
 Ne pas replanifier :
 - les blocs inscription / paiement / vouchers déjà présents
@@ -60,6 +62,8 @@ Ne pas replanifier :
 La matrice CSV reste utile comme inventaire, mais l'etat réel de couverture est dans [ETAT_COUVERTURE_BACKEND_INTEGRATION_v4.8.md](./ETAT_COUVERTURE_BACKEND_INTEGRATION_v4.8.md).
 
 ## 4. Waves d'execution
+
+Statut d'exécution au 2026-04-29 : les trois waves ci-dessous sont terminées dans le corpus courant. Les livrables attendus sont présents dans `forges-monorepo/backend/tests/integration/` et la matrice `matrice-couverture-rm-v4.8.csv` a été mise à jour pour refléter cette couverture.
 
 ### Wave 1 - Abonnements manquants
 

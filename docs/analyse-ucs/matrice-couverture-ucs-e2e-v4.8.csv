@@ -1,0 +1,27 @@
+UCS,Titre,Statut,Fichier Playwright,Scenarios principaux,RM principales
+UCS00,Inscription Apprenant,COUVERT,ucs00-01-auth.spec.js,Confirmation email compte apprenant,RM-28 RM-29 RM-30 RM-31 RM-33 RM-48 RM-98 RM-100
+UCS01,Authentification,COUVERT,ucs00-01-auth.spec.js + auth-role-smoke.spec.js,Login tokens refresh et routes par rôle,RM-98 MT-01 MT-02
+UCS02,Gérer comptes utilisateurs,COUVERT,ucs02-comptes-admin.spec.js,Création compte status invitation partenaire création apporteur,RM-126 RM-141 RM-142 MT-01
+UCS03,Compte Organisation,COUVERT,ucs03-organisation-abonnement.spec.js,Inscription essai 30j abonnement Organisation,RM-30 RM-43 RM-47 RM-48 RM-80 RM-81 RM-82 RM-83 RM-100
+UCS03.1,Abonnement Institutionnel,COUVERT,ucs03-1-institutionnel.spec.js,Ecran contrat institutionnel et état figé documenté,RM-50 RM-51 RM-52 RM-56 RM-57 RM-59 RM-112 RM-114
+UCS03.2,Abonnement B2B,COUVERT,ucs03-2-abonnement-b2b.spec.js + ucs12-1-dashboard-b2b.spec.js,Palier B2B montée quota plafond rapport,RM-60 RM-61 RM-68 RM-69 RM-88 RM-89 RM-100 RM-110 RM-111
+UCS04,Gérer formations,COUVERT,ucs04-formations-backoffice.spec.js,Création formation interne publication catalogue blocage session à la demande,RM-11 RM-12 RM-22 RM-86 RM-91 RM-93 RM-96 RM-102 RM-127
+UCS05,Gérer sessions,COUVERT,ucs05-sessions-transitions.spec.js,Transitions et archivage scheduler,RM-16 RM-17 RM-20 RM-21 RM-22 RM-91 RM-96
+UCS06,Gérer vouchers,COUVERT,ucs06-vouchers-backoffice.spec.js + voucher-expiration.spec.js + voucher-refusal.spec.js,Promo brouillon validation refus quota expiration,RM-37 RM-38 RM-39 RM-40 RM-41 RM-42 RM-44 RM-45 RM-100
+UCS07,Inscription session,COUVERT,ucs07-inscription-bifurcation.spec.js + voucher-inscription.spec.js,Bifurcation Standard Premium Retail Premium B2B voucher,RM-01 RM-15 RM-18 RM-19 RM-37 RM-140
+UCS08,Traitement dossier,COUVERT,ucs08-traitement-dossier.spec.js,Retenir irréversible annulation 72h,RM-05 RM-07 RM-19 RM-140
+UCS09,Paiements,COUVERT,ucs09-paiement-commissions.spec.js,Webhook succès commissions partenaire et apporteur,RM-06 RM-08 RM-09 RM-88 RM-129 RM-145
+UCS09.1,Renouvellement automatique,COUVERT,ucs09-1-renouvellements.spec.js,Scheduler abonnements Retail B2B Organisation,RM-73 RM-75 RM-78 RM-109 RM-111
+UCS10,Tableaux de bord et rapports,COUVERT,ucs10-rapports-dashboard.spec.js,Stats globales rapports exports CSV/PDF,MT-01
+UCS11,Espace Apprenant,COUVERT,ucs11-espace-apprenant.spec.js,Dossiers attestations annulation,RM-26 RM-27
+UCS11.1,Abonnement Retail,COUVERT,ucs11-1-abonnement-retail.spec.js,Souscription upgrade downgrade résiliation formations incluses,RM-70 RM-71 RM-72 RM-73 RM-75 RM-76 RM-77 RM-79 RM-104 RM-106
+UCS12,Espace Organisation,COUVERT,ucs12-espace-organisation.spec.js,Dashboard profil membres vouchers inscriptions paiements rapport,RM-44 RM-45 RM-80 RM-83 RM-84 RM-107 RM-108
+UCS12.1,Dashboard B2B Organisation,COUVERT,ucs12-1-dashboard-b2b.spec.js,Membres B2B quota désactivation conservation rapport,RM-60 RM-61 RM-62 RM-68 RM-69 RM-110 RM-111
+UCS13,Configuration abonnements Admin,COUVERT,ucs13-config-admin.spec.js,Config globale seuils bot backoffice,RM-86 RM-89 RM-102 RM-107 RM-108 RM-116 RM-120 RM-124 RM-129 RM-138 RM-141 RM-147
+UCS14,Formation à la demande,COUVERT,ucs14-formation-demande.spec.js,Accès standard inclus expiration accès,RM-87 RM-88 RM-90 RM-92 RM-93 RM-94 RM-95 RM-99 RM-100 RM-102 RM-103
+UCS15,Bot conseiller Apprenant,COUVERT,ucs15-bot-apprenant.spec.js,Session bot questions fermées rejet hors liste backoffice feedback/enquête,RM-115 RM-116 RM-118 RM-119 RM-120 RM-121 RM-122 RM-123 RM-124 RM-125
+UCS16,Bot conseiller Organisation,COUVERT,ucs16-bot-organisation.spec.js,Session bot organisation questions fermées upgrade/idle backoffice,RM-115 RM-116 RM-118 RM-119 RM-120 RM-121 RM-122 RM-123 RM-124 RM-125
+UCS17,Espace Partenaire,COUVERT,ucs17-18-partenaire.spec.js,Invitation auto-inscription soumission sans type formation,RM-126 RM-127 RM-128 RM-129 RM-130 RM-136 RM-138
+UCS18,Validation formation partenaire,COUVERT,ucs17-18-partenaire.spec.js,Responsable assigne type et prix catalogue,RM-127 RM-128 RM-129 RM-131 RM-134 RM-136 RM-137 RM-100
+UCS19,Voucher apporteur affaires,COUVERT,ucs19-apporteur-backoffice.spec.js,Création apporteur code transaction scheduler reversement,RM-141 RM-142 RM-143 RM-144 RM-145 RM-146 RM-147 RM-148 RM-88 RM-100
+UCS20,Espace apporteur affaires,COUVERT,ucs20-apporteur.spec.js,Dashboard code commissions reversements,RM-142 RM-145 RM-146 RM-147 RM-148
