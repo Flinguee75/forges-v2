@@ -3,9 +3,13 @@ import request from 'supertest';
 import { createHmac } from 'crypto';
 
 const mockConfirmerPaiement = jest.fn();
+const mockInitierPaiementNgser = jest.fn();
 
 jest.mock('../../../middlewares/auth.middleware', () => ({
-  authenticate: (_req: any, _res: any, next: any) => next(),
+  authenticate: (req: any, _res: any, next: any) => {
+    req.user = { userId: 'app-01', role: 'APPRENANT' };
+    next();
+  },
   authorize: () => (_req: any, _res: any, next: any) => next(),
   authenticateOptional: (_req: any, _res: any, next: any) => next(),
 }));
@@ -38,6 +42,7 @@ jest.mock('../paiement.service', () => ({
   PaiementService: jest.fn().mockImplementation(() => ({
     confirmerPaiement: mockConfirmerPaiement,
     initierPaiement: jest.fn(),
+    initierPaiementNgser: mockInitierPaiementNgser,
     getPaiementsByApprenant: jest.fn(),
     getPaiements: jest.fn(),
     effectuerReversementsPartenaires: jest.fn(),
@@ -55,7 +60,33 @@ describe('paiement.routes', () => {
 
   beforeEach(() => {
     mockConfirmerPaiement.mockReset();
+    mockInitierPaiementNgser.mockReset();
     process.env.WEBHOOK_SECRET = 'webhook-secret';
+  });
+
+  it('branche POST /api/paiements/initier sur le service NGSER', async () => {
+    mockInitierPaiementNgser.mockResolvedValueOnce({
+      paiement_id: 'paiement-01',
+      order_ngser: 'FRG-2026-042-A3F7B2',
+      payment_url: 'https://mock-ngser.forges.ci/pay?order=FRG-2026-042-A3F7B2',
+      montant_initie: 100000,
+    });
+
+    await request(app)
+      .post('/api/paiements/initier')
+      .send({ dossier_id: 'd-01', montant: 1 })
+      .expect(201)
+      .expect({
+        statusCode: 201,
+        data: {
+          paiement_id: 'paiement-01',
+          order_ngser: 'FRG-2026-042-A3F7B2',
+          payment_url: 'https://mock-ngser.forges.ci/pay?order=FRG-2026-042-A3F7B2',
+          montant_initie: 100000,
+        },
+      });
+
+    expect(mockInitierPaiementNgser).toHaveBeenCalledWith({ dossier_id: 'd-01' }, 'app-01');
   });
 
   it('valide la signature HMAC et déclenche le webhook de confirmation', async () => {

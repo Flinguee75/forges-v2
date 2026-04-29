@@ -4,7 +4,8 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { VoucherRepository } from '../vouchers/voucher.repository';
 import { PrismaClient } from '@prisma/client';
-import { InitierPaiementDto } from './dto/paiement.dto';
+import { InitierPaiementDto, InitierPaiementNgserDto } from './dto/paiement.dto';
+import { PaiementNgserService } from './paiement-ngser.service';
 
 const MAX_TENTATIVES = 3;      // RM-08
 const DELAI_PAIEMENT_H = 72;  // RM-07
@@ -17,8 +18,13 @@ export class PaiementService {
     private readonly voucherRepo: VoucherRepository,
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
-    private readonly email: EmailService
+    private readonly email: EmailService,
+    private readonly paiementNgserService = new PaiementNgserService(prisma, voucherRepo, audit)
   ) {}
+
+  async initierPaiementNgser(dto: InitierPaiementNgserDto, apprenantId: string) {
+    return this.paiementNgserService.initierPaiement(dto, apprenantId);
+  }
 
   async initierPaiement(dto: InitierPaiementDto, apprenantId: string) {
     const dossier = await this.prisma.dossier.findUnique({

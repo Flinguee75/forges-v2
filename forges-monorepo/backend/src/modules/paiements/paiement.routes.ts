@@ -37,6 +37,11 @@ const paiementController = new PaiementController(paiementService);
 // ROUTES PAIEMENTS - Sprint 1 Semaine 2
 // ========================================
 
+// POST /api/paiements/initier — Initier un paiement NGSER mock (APPRENANT|ORGANISATION)
+router.post('/paiements/initier', authenticate, authorize('APPRENANT', 'ORGANISATION'), (req, res, next) => {
+  paiementController.initierPaiementNgser(req, res, next);
+});
+
 // POST /api/paiements — Initier un paiement (APPRENANT|ORGANISATION)
 router.post('/paiements', authenticate, authorize('APPRENANT', 'ORGANISATION'), (req, res, next) => {
   paiementController.createPaiement(req, res, next);

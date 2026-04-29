@@ -1,10 +1,36 @@
 import { Request, Response, NextFunction } from 'express';
 import { PaiementService } from './paiement.service';
-import { InitierPaiementSchema, WebhookPaiementSchema } from './dto/paiement.dto';
+import { InitierPaiementNgserSchema, InitierPaiementSchema, WebhookPaiementSchema } from './dto/paiement.dto';
 import { createHmac } from 'crypto';
 
 export class PaiementController {
   constructor(private readonly paiementService: PaiementService) {}
+
+  // POST /api/paiements/initier — initiation backend-only NGSER mock (RM-157)
+  async initierPaiementNgser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const dto = InitierPaiementNgserSchema.parse(req.body);
+      const result = await this.paiementService.initierPaiementNgser(dto, req.user!.userId);
+      res.status(201).json({ statusCode: 201, data: result });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ statusCode: 400, error: 'VALIDATION_ERROR', details: error.errors });
+      }
+      if (error.message === 'DOSSIER_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DOSSIER_NOT_FOUND', message: 'Dossier non trouvé' });
+      }
+      if (error.message === 'FORBIDDEN') {
+        return res.status(403).json({ statusCode: 403, error: 'FORBIDDEN', message: 'Accès refusé' });
+      }
+      if (error.message === 'PAIEMENT_DEJA_VALIDE') {
+        return res.status(409).json({ statusCode: 409, error: 'PAIEMENT_DEJA_VALIDE', message: 'Un paiement validé existe déjà pour ce dossier (RM-06).' });
+      }
+      if (error.message === 'DOSSIER_STATUT_INVALIDE') {
+        return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE', message: 'Le dossier doit être RETENU ou PAYE_DIRECTEMENT' });
+      }
+      next(error);
+    }
+  }
 
   // POST /api/paiements — APPRENANT|ORGANISATION (Sprint 1 Semaine 2)
   async createPaiement(req: Request, res: Response, next: NextFunction) {

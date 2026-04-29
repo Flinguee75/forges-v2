@@ -10,6 +10,7 @@ describe('PaiementController', () => {
   beforeEach(() => {
     mockService = {
       initierPaiement: jest.fn(),
+      initierPaiementNgser: jest.fn(),
       confirmerPaiement: jest.fn(),
       getPaiements: jest.fn(),
       effectuerReversementsPartenaires: jest.fn(),
@@ -37,6 +38,39 @@ describe('PaiementController', () => {
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ statusCode: 201, data: { paiement_id: 'paiement-01' } });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('initie un paiement NGSER via /initier sans transmettre de montant fiable', async () => {
+    const req = createMockReq({
+      body: {
+        dossier_id: '550e8400-e29b-41d4-a716-446655440000',
+        montant: 1,
+      },
+      user: { userId: 'app-01' },
+    });
+    const res = createMockRes();
+    const next = createNext();
+    mockService.initierPaiementNgser.mockResolvedValue({
+      paiement_id: 'paiement-01',
+      order_ngser: 'FRG-2026-042-A3F7B2',
+      payment_url: 'https://mock-ngser.forges.ci/pay?order=FRG-2026-042-A3F7B2',
+      montant_initie: 100000,
+    } as any);
+
+    await controller.initierPaiementNgser(req, res, next);
+
+    expect(mockService.initierPaiementNgser).toHaveBeenCalledWith(
+      { dossier_id: '550e8400-e29b-41d4-a716-446655440000' },
+      'app-01'
+    );
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 201,
+      data: expect.objectContaining({
+        order_ngser: 'FRG-2026-042-A3F7B2',
+        montant_initie: 100000,
+      }),
+    });
   });
 
   it('mappe les erreurs métier ou validation sur initierPaiement', async () => {
