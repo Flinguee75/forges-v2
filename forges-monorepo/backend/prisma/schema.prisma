@@ -169,7 +169,7 @@ model Paiement {
   montant_final              Int?
   methode                    String
   statut                     String                @default("EN_ATTENTE")
-  transaction_id             String?
+  transaction_id             String?               @unique
   tentatives                 Int                   @default(0)
   reduction_appliquee        Int                   @default(0)
   commission_partenaire_pct  Float?
@@ -178,10 +178,41 @@ model Paiement {
   confirmed_at               DateTime?
   expires_at                 DateTime?
   created_at                 DateTime              @default(now())
+  provider                   String?
+  payment_token_ngser        String?
+  order_ngser                String?               @unique
+  montant_initie             Int?
+  wallet_ngser               String?
+  code_ngser                 String?
+  status_ngser               String?
+  ngser_payload_last         Json?
+  reconciled_at              DateTime?
   dossier                    Dossier               @relation(fields: [dossier_id], references: [id])
   code_apporteur             VoucherApporteur?     @relation(fields: [code_apporteur_id], references: [id])
   commission_apporteur       CommissionApporteur?
   commission_partenaire      CommissionPartenaire?
+}
+
+model Devis {
+  id                 String      @id @default(uuid())
+  numero_devis       String      @unique
+  organisation_id    String
+  formation_id       String
+  session_id         String?
+  nb_places          Int
+  tarif_unitaire_xof Int
+  montant_total_xof  Int
+  statut             StatutDevis @default(CREE)
+  notes_admin        String?
+  paid_at            DateTime?
+  cancelled_at       DateTime?
+  created_by         String
+  created_at         DateTime    @default(now())
+
+  @@index([organisation_id])
+  @@index([formation_id])
+  @@index([session_id])
+  @@map("devis")
 }
 
 model Partenaire {
@@ -191,7 +222,7 @@ model Partenaire {
   pays                              String
   email_principal                   String                           @unique
   password_hash                     String?
-  commission_forges_pct             Float                            @default(20)
+  commission_forges_pct             Float                            @default(30)
   statut                            String                           @default("EN_ATTENTE_VERIFICATION")
   mode_inscription                  String
   token_invitation                  String?
@@ -486,6 +517,12 @@ model CommissionPartenaire {
 enum TypeApprenant {
   PROFESSIONNEL
   APPRENANT
+}
+
+enum StatutDevis {
+  CREE
+  PAYE
+  ANNULE
 }
 
 enum Langue {
