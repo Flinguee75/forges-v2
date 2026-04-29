@@ -7,10 +7,9 @@ import { AbonnementRetailRepository } from './retail/abonnement-retail.repositor
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Shared services
 const auditLogger = new AuditLogger();
@@ -27,7 +26,7 @@ const orgService = new AbonnementOrganisationService(prisma, auditLogger, emailS
 const b2bService = new AbonnementB2BService(prisma, auditLogger, emailService);
 
 // Controller
-const abonnementController = new AbonnementController(retailService, orgService, b2bService);
+const abonnementController = new AbonnementController(retailService, orgService, b2bService, prisma);
 
 // ============================================
 // ROUTES RETAIL (Apprenant individuel)
@@ -99,6 +98,15 @@ router.post('/b2b', authenticate, authorize('ORGANISATION'), (req, res, next) =>
 // PUT /api/abonnements/b2b/monter-palier - Changer palier B2B
 router.put('/b2b/monter-palier', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   abonnementController.monterPalierB2B(req, res, next);
+});
+
+// ============================================
+// ROUTES BACKOFFICE
+// ============================================
+
+// GET /api/abonnements/backoffice - Vue consolidée tous les abonnements (ADMIN, AGENT)
+router.get('/backoffice', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  abonnementController.getAllAbonnementsBackoffice(req, res, next);
 });
 
 // ============================================

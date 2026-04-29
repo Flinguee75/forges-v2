@@ -4,6 +4,7 @@ import request from 'supertest';
 jest.mock('../../../middlewares/auth.middleware', () => ({
   authenticate: (_req: any, _res: any, next: any) => next(),
   authorize: () => (_req: any, _res: any, next: any) => next(),
+  authenticateOptional: (_req: any, _res: any, next: any) => next(),
 }));
 
 jest.mock('@prisma/client', () => ({

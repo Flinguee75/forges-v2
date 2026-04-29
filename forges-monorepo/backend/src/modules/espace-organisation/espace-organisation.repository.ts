@@ -13,45 +13,80 @@ export class EspaceOrganisationRepository {
     });
   }
 
-  // RM-44 : visibilité RH limitée — uniquement bénéficiaires ayant utilisé un voucher ORG
+  // RM-44 : Liste des apprenants B2B de l'organisation
   async findBeneficiaires(organisation_id: string, filters?: {
     statut?: string;
     formation_id?: string;
     page?: number;
     limit?: number;
   }) {
-    const { page = 1, limit = 20, ...where } = filters || {};
+    const { page = 1, limit = 20, statut, formation_id } = filters || {};
     const parsedPage = parseInt(String(page), 10) || 1;
     const parsedLimit = parseInt(String(limit), 10) || 20;
     const skip = (parsedPage - 1) * parsedLimit;
 
-    const [dossiers, total] = await Promise.all([
-      this.prisma.dossier.findMany({
-        where: {
-          source_financement: 'B2B',
-          apprenant: { organisation_id },
-          ...(where.statut && { statut: where.statut }),
-          ...(where.formation_id && { formation_id: where.formation_id }),
-        },
-        include: {
-          apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
-          formation: { select: { id: true, intitule: true, type_formation: true } },
-          session: { select: { date_debut: true, date_fin: true, statut: true } },
-          paiement: { select: { statut: true, confirmed_at: true } }
+    // Récupérer tous les apprenants B2B de l'organisation
+    const whereApprenant: any = {
+      organisation_id,
+      ...(statut && { statut }),
+    };
+
+    const [apprenants, total] = await Promise.all([
+      this.prisma.apprenant.findMany({
+        where: whereApprenant,
+        select: {
+          id: true,
+          email: true,
+          nom: true,
+          prenoms: true,
+          statut: true,
+          created_at: true,
+          dossiers: {
+            where: formation_id ? { formation_id } : {},
+            select: {
+              id: true,
+              statut: true,
+              formation: {
+                select: { id: true, intitule: true, type_formation: true }
+              },
+              session: {
+                select: { date_debut: true, date_fin: true, statut: true }
+              },
+              paiement: {
+                select: { statut: true, confirmed_at: true }
+              }
+            },
+            orderBy: { created_at: 'desc' },
+            take: 1, // Prendre seulement le dossier le plus récent pour affichage
+          }
         },
         skip,
         take: parsedLimit,
         orderBy: { created_at: 'desc' }
       }),
-      this.prisma.dossier.count({
-        where: {
-          source_financement: 'B2B',
-          apprenant: { organisation_id },
-        }
+      this.prisma.apprenant.count({
+        where: whereApprenant
       })
     ]);
 
-    return { dossiers, total, page: parsedPage, limit: parsedLimit };
+    // Transformer les données pour correspondre au format attendu par le frontend
+    const membres = apprenants.map(app => ({
+      id: app.id,
+      email: app.email,
+      nom: app.nom,
+      prenom: app.prenoms,
+      statut: app.statut,
+      created_at: app.created_at,
+      derniere_inscription: app.dossiers[0] || null,
+    }));
+
+    return {
+      membres,
+      total,
+      page: parsedPage,
+      limit: parsedLimit,
+      totalPages: Math.ceil(total / parsedLimit)
+    };
   }
 
   async findVouchers(organisation_id: string) {

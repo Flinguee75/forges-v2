@@ -12,6 +12,7 @@ describe('InscriptionService', () => {
   let mockSessionRepo: jest.Mocked<SessionRepository>;
   let mockFormationRepo: jest.Mocked<FormationRepository>;
   let mockVoucherValidation: jest.Mocked<VoucherValidationService>;
+  let mockRetailRepo: any;
   let mockAudit: jest.Mocked<AuditLogger>;
   let mockEmail: jest.Mocked<EmailService>;
   let mockPrisma: any;
@@ -43,6 +44,10 @@ describe('InscriptionService', () => {
       validateApporteur: jest.fn(),
     } as any;
 
+    mockRetailRepo = {
+      countFormationsActives: jest.fn(),
+    };
+
     mockAudit = {
       info: jest.fn(),
       warning: jest.fn(),
@@ -54,17 +59,23 @@ describe('InscriptionService', () => {
     } as any;
 
     mockPrisma = {
-      dossier: { count: jest.fn() },
+      dossier: { count: jest.fn(), findFirst: jest.fn() },
       apprenant: { findUnique: jest.fn() },
+      abonnementRetail: { findFirst: jest.fn() },
       voucherApporteur: { findFirst: jest.fn(), update: jest.fn() },
+      voucherOrganisation: { update: jest.fn() },
       session: { update: jest.fn() },
     };
+    mockPrisma.dossier.findFirst.mockResolvedValue(null);
+    mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
+    mockPrisma.voucherApporteur.findFirst.mockResolvedValue(null);
 
     service = new InscriptionService(
       mockDossierRepo,
       mockSessionRepo,
       mockFormationRepo,
       mockVoucherValidation,
+      mockRetailRepo,
       mockAudit,
       mockEmail,
       mockPrisma

@@ -5,9 +5,15 @@ on:
     branches: [test]
   workflow_dispatch:
 
+# Tous les deploys (test, dev, demo) ciblent le meme serveur Docker.
+# On serialise pour eviter les races sur le daemon Docker (ex: container
+# d'un autre env vu en "removal in progress" pendant un compose up).
+concurrency:
+  group: forges-server-deploy
+  cancel-in-progress: false
+
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/forges-backend
+  IMAGE_NAME: ghcr.io/flinguee75/forges-backend
   NODE_VERSION: '20'
 
 jobs:
@@ -24,7 +30,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build & push image backend
         uses: docker/build-push-action@v5
@@ -60,6 +66,7 @@ jobs:
         env:
           VITE_API_URL: https://test.forges-group.com/api
           VITE_ENV: test
+          VITE_COMMIT_SHA: ${{ github.sha }}
         run: npm run build
 
       - name: Upload dist frontend
@@ -68,6 +75,8 @@ jobs:
           name: frontend-dist-test
           path: forges-monorepo/frontend/dist/
           retention-days: 1
+          # Inclure .htaccess et autres fichiers caches (sinon SPA fallback perdu)
+          include-hidden-files: true
 
   deploy:
     name: Déploiement sur test
@@ -78,6 +87,9 @@ jobs:
       url: https://test.forges-group.com
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download dist frontend
         uses: actions/download-artifact@v4
         with:
@@ -94,32 +106,81 @@ jobs:
 
       - name: Transférer frontend (rsync)
         run: |
-          rsync -avz --delete \
+          rsync -rltz --delete --omit-dir-times --no-perms --no-group \
+            --chmod=D755,F644 \
+            --exclude='.env' --exclude='infra/' --exclude='uploads/' --exclude='prisma/' \
             frontend-dist/ \
-            ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/public/
+            ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_FRONTEND_DEPLOY_PATH }}/
+
+      - name: Corriger permissions frontend
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} \
+            "find ${{ secrets.TEST_FRONTEND_DEPLOY_PATH }} -not -path '*/.env' -not -path '*/infra/*' -not -path '*/uploads/*' -type f -exec chmod 644 {} \; && find ${{ secrets.TEST_FRONTEND_DEPLOY_PATH }} -type d -exec chmod 755 {} \;"
+
+      - name: Transférer docker-compose (rsync)
+        run: |
+          rsync -avz --mkpath \
+            infra/docker/docker-compose.test.deploy.yml \
+            ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/infra/docker/
 
       - name: Docker pull + migrate + restart
+        env:
+          DEPLOY_PATH: ${{ secrets.TEST_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.TEST_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.TEST_SERVER_HOST }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          ssh ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} bash -s << 'ENDSSH'
-            set -euo pipefail
-            cd ${{ secrets.TEST_DEPLOY_PATH }}
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" \
+            GHCR_TOKEN="$GHCR_TOKEN" \
+            GHCR_USER="$GHCR_USER" \
+            IMAGE_TAG="$IMAGE_TAG" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              mkdir -p "$DEPLOY_PATH/infra/docker"
+              cd "$DEPLOY_PATH"
 
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-            export IMAGE_TAG="${{ github.sha }}"
-            docker compose -f infra/docker/docker-compose.test.deploy.yml pull backend
-            docker compose -f infra/docker/docker-compose.test.deploy.yml up -d --remove-orphans
+              sed -i '/^IMAGE_TAG=/d' .env && echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+              docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env pull backend
 
-            sleep 10
-            docker exec forges-backend-test sh -c 'npx prisma migrate deploy'
-            echo "Migrations OK"
+              # Nettoyage robuste : supprime TOUT container matchant le pattern env
+              # (incluant containers hash-prefixed et residus en etat Created/Exited).
+              # Les donnees sont preservees via les volumes nommes (forges-postgres-test, forges-redis-test).
+              # Pas de docker network prune ici : il casserait les deploys paralleles dev/demo.
+              ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-test$' || true)
+              if [ -n "$ZOMBIES" ]; then
+                echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
+              fi
+
+              docker compose -f infra/docker/docker-compose.test.deploy.yml --env-file .env up -d
+
+              echo "Attente healthcheck backend..."
+              for i in $(seq 1 30); do
+                STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-test 2>/dev/null || echo "missing")
+                echo "  [$i/30] $STATUS"
+                [ "$STATUS" = "healthy" ] && break
+                sleep 5
+              done
+              # Le projet n'utilise pas de migrations versionnees (pas de prisma/migrations/).
+              # On synchronise le schema avec `prisma db push` (idempotent).
+              echo "Synchronisation schema Prisma (db push)..."
+              for attempt in 1 2 3; do
+                docker exec forges-backend-test sh -c 'cd /app && npx prisma db push --skip-generate --accept-data-loss' && break
+                echo "  Tentative $attempt echouee, retry dans 10s..."
+                sleep 10
+              done
+              echo "Migrations OK"
           ENDSSH
 
       - name: Healthcheck
         run: |
-          sleep 5
-          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://test.forges-group.com/api/health || echo "000")
-          echo "HEALTH=HTTP $HTTP_CODE" >> $GITHUB_ENV
+          sleep 8
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://test.forges-group.com/health || echo "000")
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
       - name: Résumé

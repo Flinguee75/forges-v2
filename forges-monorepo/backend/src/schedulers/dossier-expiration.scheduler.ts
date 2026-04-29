@@ -1,5 +1,6 @@
 import * as cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import { prisma } from '../shared/prisma/prisma.client';
 import { EmailService } from '../shared/email/email.service';
 import { AuditLogger } from '../shared/audit/audit.logger';
 
@@ -22,7 +23,7 @@ export class DossierExpirationScheduler {
   private task: cron.ScheduledTask | null = null;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
     this.email = new EmailService();
     this.audit = new AuditLogger();
   }

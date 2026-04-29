@@ -25,7 +25,7 @@ describe('SessionService', () => {
 
   const validDto = {
     formation_id: 'f-01',
-    date_ouverture: new Date(Date.now() + 1 * 24 * 3600 * 1000).toISOString(),
+    date_ouverture: new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString(),
     date_cloture: new Date(Date.now() + 15 * 24 * 3600 * 1000).toISOString(),
     date_debut: new Date(Date.now() + 20 * 24 * 3600 * 1000).toISOString(),
     date_fin: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),

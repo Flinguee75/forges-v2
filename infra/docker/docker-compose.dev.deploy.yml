@@ -1,3 +1,5 @@
+name: forges-dev
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -33,12 +35,13 @@ services:
       retries: 5
 
   backend:
-    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}:dev-${IMAGE_TAG}
     container_name: forges-backend-dev
     restart: unless-stopped
     env_file:
-      - ../env/.env.dev.deploy
+      - /var/www/vhosts/dev.forges-group.com/httpdocs/.env
     environment:
+      DATABASE_URL: "postgresql://forges_dev:YL%2Fmri813RrUs1NS%2BbhhBgkgEd2PeYZ5gEKJApnkWNc%3D@postgres:5432/forges_dev"
       NODE_ENV: development
       PORT: ${BACKEND_INTERNAL_PORT}
       BACKEND_PORT: ${BACKEND_INTERNAL_PORT}

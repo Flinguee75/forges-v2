@@ -162,7 +162,8 @@ describe('EmailService', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       sendMail.mockRejectedValue(error);
 
-      await expect(service.sendEmail({ to: 'user@test.ci', subject: 'Sujet' })).rejects.toThrow('SMTP_DOWN');
+      await expect(service.sendEmail({ to: 'user@test.ci', subject: 'Sujet' })).resolves.toBeUndefined();
+      expect(consoleSpy).toHaveBeenCalledWith('Email send error (non-bloquant):', 'SMTP_DOWN');
 
       consoleSpy.mockRestore();
     });

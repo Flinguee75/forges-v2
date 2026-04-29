@@ -102,6 +102,25 @@ function normalizeB2BSubscription(response) {
 
 function normalizeMembres(response) {
   const data = unwrapData(response);
+
+  // Support both old format (dossiers) and new format (membres)
+  if (Array.isArray(data?.membres)) {
+    // New format: direct list of membres
+    return {
+      data: data.membres.map(membre => ({
+        id: membre.id,
+        email: membre.email || '',
+        nom: membre.nom || '',
+        prenom: membre.prenom || membre.prenoms || '',
+        statut: membre.statut || 'ACTIF',
+        created_at: membre.created_at,
+        derniere_inscription: membre.derniere_inscription,
+      })),
+      meta: buildMeta(data?.total, data?.page, data?.limit, data?.totalPages),
+    };
+  }
+
+  // Old format: dossiers grouped by apprenant
   const dossiers = Array.isArray(data?.dossiers) ? data.dossiers : Array.isArray(data) ? data : [];
   const membres = new Map();
 

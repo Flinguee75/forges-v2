@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { DashboardRepository } from './dashboard.repository';
@@ -7,7 +7,6 @@ import { DashboardService } from './dashboard.service';
 import { DashboardController } from './dashboard.controller';
 
 const router = Router();
-const prisma = new PrismaClient();
 const audit = new AuditLogger();
 const repository = new DashboardRepository(prisma);
 const service = new DashboardService(repository, audit);

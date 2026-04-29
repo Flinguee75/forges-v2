@@ -22,8 +22,13 @@ export class OrganisationService {
   }
 
   async register(dto: RegisterOrganisationDto, ip: string) {
-    // RM-28 : unicité email tous rôles confondus
-    const available = await isEmailAvailable(this.prisma, dto.email);
+    const emailNormalise = dto.email.trim().toLowerCase();
+
+    // RM-28 : unicité email sur l'organisation puis tous rôles confondus
+    const existing = await this.orgRepo.findByEmail(emailNormalise);
+    if (existing) throw new Error('EMAIL_ALREADY_EXISTS');
+
+    const available = await isEmailAvailable(this.prisma, emailNormalise);
     if (!available) throw new Error('EMAIL_ALREADY_EXISTS');
 
     // RM-43 : unicité identifiant légal par type
@@ -61,7 +66,7 @@ export class OrganisationService {
 
     await this.audit.info('ORGANISATION_CREEE', { organisation_id: organisation.id, ip });
     try {
-      await this.email.sendConfirmation(dto.email, token_confirmation, dto.langue_preferee);
+      await this.email.sendConfirmation(emailNormalise, token_confirmation, dto.langue_preferee);
     } catch (error: any) {
       await this.audit.warning('ORGANISATION_CREEE_EMAIL_FAILED', {
         organisation_id: organisation.id,
@@ -105,6 +110,44 @@ export class OrganisationService {
     }
 
     return orgsExpirees.length;
+  }
+
+  // RM-82 : alertes automatiques J-7 et J-2 avant fin d'essai
+  async envoyerAlertesFinEssai() {
+    const maintenant = new Date();
+    const jourMs = 24 * 3600 * 1000;
+    const j7 = new Date(maintenant.getTime() + 7 * jourMs);
+    const j2 = new Date(maintenant.getTime() + 2 * jourMs);
+    const debutJ7 = new Date(j7.getFullYear(), j7.getMonth(), j7.getDate());
+    const debutJ2 = new Date(j2.getFullYear(), j2.getMonth(), j2.getDate());
+
+    const [orgsJ7, orgsJ2] = await Promise.all([
+      this.orgRepo['prisma'].organisation.findMany({
+        where: {
+          statut: 'ACTIF',
+          abonnement_org_id: null,
+          date_fin_essai: { gte: debutJ7, lt: new Date(debutJ7.getTime() + jourMs) },
+        },
+      }),
+      this.orgRepo['prisma'].organisation.findMany({
+        where: {
+          statut: 'ACTIF',
+          abonnement_org_id: null,
+          date_fin_essai: { gte: debutJ2, lt: new Date(debutJ2.getTime() + jourMs) },
+        },
+      }),
+    ]);
+
+    for (const org of [...orgsJ7, ...orgsJ2]) {
+      await this.email.sendAlerteFinEssai(org.email, org.date_fin_essai!, org.langue_preferee);
+    }
+
+    await this.audit.info('ALERTES_FIN_ESSAI_ORGANISATION', {
+      alertes_j7: orgsJ7.length,
+      alertes_j2: orgsJ2.length,
+    });
+
+    return { alertes_j7: orgsJ7.length, alertes_j2: orgsJ2.length };
   }
 
   // GET /api/organisations/profil — UCS03

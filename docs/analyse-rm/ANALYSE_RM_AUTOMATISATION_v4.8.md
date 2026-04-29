@@ -3,7 +3,7 @@
 
 **Date** : 2026-04-25
 **Version** : 4.8
-**Statut** : Tests d'intégration backend exécutés — 89/90 (98.9%) PASS
+**Statut** : document historique. Le plan actif est [PLAN_FOCUS_INTEGRATION.md](./PLAN_FOCUS_INTEGRATION.md).
 
 ---
 

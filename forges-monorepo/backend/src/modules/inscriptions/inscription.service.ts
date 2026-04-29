@@ -22,6 +22,7 @@ export class InscriptionService {
   async inscrire(params: any) {
     const session = await this.sessionRepo.findById(params.session_id);
     if (!session) throw new Error('SESSION_NOT_FOUND');
+    if ((session.places_restantes ?? 0) <= 0) throw new Error('SESSION_COMPLETE');
 
     // RM-01 : Unicité apprenant/session
     const existant = await this.dossierRepo.findActiveByApprenantAndSession(params.apprenantId, params.session_id);
@@ -148,7 +149,7 @@ export class InscriptionService {
       formation_id: session.formation_id,
       session_id: params.session_id,
       source_financement: params.source_financement,
-      statut: estPremiumEtRetail ? 'EN_ATTENTE_VERIFICATION' : 'PAYE_DIRECTEMENT',
+      statut: voucher?.type === 'ORGANISATION' ? 'PAYE' : estPremiumEtRetail ? 'EN_ATTENTE_VERIFICATION' : 'PAYE_DIRECTEMENT',
       type_fenetre: typeFenetre,
       voucher_code: params.voucher_code,
       code_apporteur: params.code_apporteur,
@@ -178,6 +179,8 @@ export class InscriptionService {
             data: { statut: 'EPUISE' },
           });
         }
+
+        await this.creerPaiementVoucherOrganisation(dossier.id, formation.cout_catalogue);
       } else {
         const updatedVoucher = await this.prisma.voucherApporteur.update({
           where: { id: voucher.id },
@@ -214,6 +217,35 @@ export class InscriptionService {
       montant_total,
       montant_apres_reduction
     };
+  }
+
+  private async creerPaiementVoucherOrganisation(dossierId: string, montantCatalogue: number) {
+    const paiementExistant = await this.prisma.paiement.findUnique({
+      where: { dossier_id: dossierId },
+    });
+
+    if (paiementExistant) return paiementExistant;
+
+    const paiement = await this.prisma.paiement.create({
+      data: {
+        dossier_id: dossierId,
+        montant_catalogue: montantCatalogue,
+        montant_final: montantCatalogue,
+        reduction_appliquee: 0,
+        methode: 'VOUCHER_ORG',
+        statut: 'CONFIRME',
+        transaction_id: `VOUCHER_ORG-${dossierId}`,
+        confirmed_at: new Date(),
+      },
+    });
+
+    await this.audit.info('PAIEMENT_VOUCHER_ORG_CONFIRME', {
+      paiement_id: paiement.id,
+      dossier_id: dossierId,
+      montant: montantCatalogue,
+    });
+
+    return paiement;
   }
 
   // UCS08 — Rétention dossier Premium (RM-05 : irréversible, RM-140)
