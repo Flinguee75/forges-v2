@@ -68,7 +68,7 @@ export default function ApprenantDetail() {
         setAbonnement(abonnementResponse?.data || null);
       } catch (err) {
         if (!ignore) {
-          setError(err?.message || 'Impossible de charger le détail apprenant.');
+          setError(err?.message || 'Impossible de charger le détail utilisateur.');
         }
       } finally {
         if (!ignore) setIsLoading(false);
@@ -93,7 +93,7 @@ export default function ApprenantDetail() {
   if (error || !apprenant) {
     return (
       <div className="mx-auto max-w-4xl py-12 text-center">
-        <p className="text-subtext">{error || 'Apprenant introuvable.'}</p>
+        <p className="text-subtext">{error || 'Utilisateur introuvable.'}</p>
         <Button className="mt-4" onClick={() => navigate('/backoffice/apprenants')}>
           Retour à la liste
         </Button>
@@ -112,7 +112,7 @@ export default function ApprenantDetail() {
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
-              Détail apprenant
+              Détail utilisateur
             </p>
             <h1 className="mt-3 text-2xl font-semibold text-primary">{fullName}</h1>
             <p className="mt-2 text-sm text-subtext">{apprenant.email}</p>
@@ -170,13 +170,13 @@ export default function ApprenantDetail() {
             <InfoItem label="Fin" value={formatDate(abonnement.date_fin)} />
           </div>
         ) : (
-          <p className="text-sm text-subtext">Aucun abonnement actif pour cet apprenant.</p>
+          <p className="text-sm text-subtext">Aucun abonnement actif pour cet utilisateur.</p>
         )}
       </Card>
 
       <Card title="Dossiers récents">
         {dossiers.length === 0 ? (
-          <p className="text-sm text-subtext">Aucun dossier associé à cet apprenant.</p>
+          <p className="text-sm text-subtext">Aucun dossier associé à cet utilisateur.</p>
         ) : (
           <div className="space-y-3">
             {dossiers.slice(0, 8).map((dossier) => {
