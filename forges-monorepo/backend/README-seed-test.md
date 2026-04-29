@@ -4,7 +4,7 @@ Ce document explique comment peupler la base de donnees de test avec le seed de 
 
 ## Fichier de seed
 
-- `forges-monorepo/backend/seed_for_test.js`
+- `forges-monorepo/backend/seed-validation.js`
 
 Ce fichier est le seed officiel pour peupler la base de test FORGES.
 
@@ -15,7 +15,7 @@ Ce fichier est le seed officiel pour peupler la base de test FORGES.
 Depuis `forges-monorepo/backend` :
 
 ```bash
-node seed_for_test.js --reset
+node seed-validation.js --reset
 ```
 
 Comportement :
@@ -50,7 +50,7 @@ Ordre de suppression `--reset` :
 Depuis `forges-monorepo/backend` :
 
 ```bash
-node seed_for_test.js --check
+node seed-validation.js --check
 ```
 
 Comportement :
@@ -67,9 +67,9 @@ Quand l'utiliser :
 Depuis `forges-monorepo/backend` :
 
 ```bash
-node seed_for_test.js --env-demo
-node seed_for_test.js --env-dev
-node seed_for_test.js --env-test
+node seed-validation.js --env-demo
+node seed-validation.js --env-dev
+node seed-validation.js --env-test
 ```
 
 Comportement :
@@ -82,9 +82,9 @@ Comportement :
 Depuis `forges-monorepo/backend` :
 
 ```bash
-node seed_for_test.js --reset --env-test
-node seed_for_test.js --check
-node seed_for_test.js --reset && node seed_for_test.js --check
+node seed-validation.js --reset --env-test
+node seed-validation.js --check
+node seed-validation.js --reset && node seed-validation.js --check
 ```
 
 ## Comptes de connexion crees par le seed
