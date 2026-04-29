@@ -55,6 +55,10 @@ export const E2E_ACCOUNTS = {
     email: 'apporteur-e2e@forges.ci',
     password: 'Test@FORGES2026!',
   },
+  apprenantRetail: {
+    email: 'apprenant-retail-e2e@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
 };
 
 export const E2E_SCENARIO = {
@@ -84,4 +88,6 @@ export const E2E_SCENARIO = {
   accesExpiredId: 'A-E2E-EXPIRED-01',
   voucherCode: 'ORG-E2E-VOUCHER-01',
   apporteurCode: 'APT-E2E-RM145-001',
+  organisationId: 'org-e2e-01',
+  apporteurId: 'apt-e2e-rm145-01',
 };

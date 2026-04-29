@@ -102,4 +102,49 @@ export class AbonnementOrganisationService {
 
     return { alertes_j30: abosJ30.length, alertes_j7: abosJ7.length };
   }
+
+  // UCS09.1 — Renouvellement automatique Organisation (RM-109)
+  async traiterRenouvellements() {
+    const demain = new Date(Date.now() + 24 * 3600 * 1000);
+    const abos = await this.prisma.abonnementOrganisation.findMany({
+      where: {
+        statut: 'ACTIF',
+        renouvellement_auto: true,
+        date_fin: { lte: demain },
+      },
+      include: { organisation: true },
+    });
+
+    let renouveles = 0;
+    let echecs = 0;
+
+    for (const abo of abos) {
+      try {
+        const nouvelleDateFin = new Date(abo.date_fin.getTime() + 365 * 24 * 3600 * 1000);
+        await this.prisma.abonnementOrganisation.update({
+          where: { id: abo.id },
+          data: { date_fin: nouvelleDateFin, statut: 'ACTIF' },
+        });
+
+        await this.audit.info('ABONNEMENT_ORG_RENOUVELE', {
+          organisation_id: abo.organisation_id,
+          abonnement_id: abo.id,
+          date_fin: nouvelleDateFin,
+        });
+        try {
+          await this.email.sendAbonnementConfirmation(abo.organisation.email, abo.offre);
+        } catch (error: any) {
+          await this.audit.warning('ABONNEMENT_ORG_RENOUVELLEMENT_EMAIL_FAILED', {
+            organisation_id: abo.organisation_id,
+            error: error?.message || 'UNKNOWN_ERROR',
+          });
+        }
+        renouveles++;
+      } catch (error) {
+        echecs++;
+      }
+    }
+
+    return { renouveles, echecs };
+  }
 }
