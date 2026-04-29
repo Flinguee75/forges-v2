@@ -104,9 +104,14 @@ router.put('/b2b/monter-palier', authenticate, authorize('ORGANISATION'), (req, 
 // ROUTES BACKOFFICE
 // ============================================
 
-// GET /api/abonnements/backoffice - Vue consolidée tous les abonnements (ADMIN, AGENT)
-router.get('/backoffice', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+// GET /api/abonnements/backoffice - Vue consolidée tous les abonnements (ADMIN, SUPERVISEUR, AGENT)
+router.get('/backoffice', authenticate, authorize('ADMIN', 'SUPERVISEUR', 'AGENT'), (req, res, next) => {
   abonnementController.getAllAbonnementsBackoffice(req, res, next);
+});
+
+// GET /api/abonnements/backoffice/contrat-institutionnel - Contrats institutionnels (ADMIN)
+router.get('/backoffice/contrat-institutionnel', authenticate, authorize('ADMIN'), (req, res, next) => {
+  abonnementController.getContratsInstitutionnelsBackoffice(req, res, next);
 });
 
 // ============================================
