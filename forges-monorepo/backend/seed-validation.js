@@ -1,12 +1,12 @@
 /**
- * FORGES — seed_for_test.js
+ * FORGES — seed-validation.js
  * Données de test pour le Plan de Validation v1.1 (Specs v4.8)
  * Schéma de référence : CONCEPTION v1.3 section 15 (Prisma v2)
  *
  * Usage :
- *   node seed_for_test.js           → seed normal
- *   node seed_for_test.js --reset   → supprime tout puis seed
- *   node seed_for_test.js --check   → vérifie sans modifier
+ *   node seed-validation.js           → seed normal
+ *   node seed-validation.js --reset   → supprime tout puis seed
+ *   node seed-validation.js --check   → vérifie sans modifier
  */
 
 const { PrismaClient } = require('@prisma/client');

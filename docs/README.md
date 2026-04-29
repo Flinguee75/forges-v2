@@ -223,7 +223,7 @@ npm run test:e2e
 
 # Reset DB validation
 cd backend
-node seed_for_test.js --reset
+node seed-validation.js --reset
 ```
 
 ### Documentation

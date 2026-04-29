@@ -1,6 +1,6 @@
 # Plan de Validation Complet FORGES v4.8 - 72 Tests
 
-Document canonique de validation. Le point d'entree seed officiel est `forges-monorepo/backend/seed_for_test.js`.
+Document canonique de validation. Le point d'entree seed officiel est `forges-monorepo/backend/seed-validation.js`.
 
 **Objectif**: Valider les 72 scénarios (UCS00→UCS20 + MT-01/MT-02) avec l'approche la plus complète (features + UI)
 **Contrainte**: < 1 semaine
@@ -15,7 +15,7 @@ Document canonique de validation. Le point d'entree seed officiel est `forges-mo
 **Forces**:
 - ✅ Tests unitaires backend: 24 modules, 471 cas (Jest)
 - ✅ Tests unitaires frontend: 61 fichiers (Vitest)
-- ✅ Seed de validation prêt (`forges-monorepo/backend/seed_for_test.js`)
+- ✅ Seed de validation prêt (`forges-monorepo/backend/seed-validation.js`)
 - ✅ Plan de validation détaillé (72 tests documentés)
 - ✅ Infrastructure de test mature (Jest + Vitest)
 
@@ -23,15 +23,15 @@ Document canonique de validation. Le point d'entree seed officiel est `forges-mo
 
 ```bash
 cd forges-monorepo/backend
-node seed_for_test.js --reset
-node seed_for_test.js --check
+node seed-validation.js --reset
+node seed-validation.js --check
 ```
 
 Commande combinee:
 
 ```bash
 cd forges-monorepo/backend
-node seed_for_test.js --reset && node seed_for_test.js --check
+node seed-validation.js --reset && node seed-validation.js --check
 ```
 
 **Lacunes critiques**:
@@ -112,7 +112,7 @@ SMTP_PORT=1025  # Mailhog ou Mailtrap
 ```bash
 # tests/scripts/reset-test-db.sh
 npx prisma migrate reset --force --skip-seed
-node seed_for_test.js --reset
+node seed-validation.js --reset
 ```
 
 ### 1.4 Configuration Playwright

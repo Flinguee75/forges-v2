@@ -751,7 +751,7 @@ npx playwright test ucs07-inscription             # Test spécifique
 
 # Reset base de test
 cd backend
-node seed_for_test.js --reset
+node seed-validation.js --reset
 ```
 
 ### Génération Rapports

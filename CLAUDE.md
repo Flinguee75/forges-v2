@@ -72,15 +72,15 @@ Emails : Nodemailer avec file/queue Redis ou SMTP de test.
 
 ```bash
 cd forges-monorepo/backend
-node seed_for_test.js --reset
-node seed_for_test.js --check
+node seed-validation.js --reset
+node seed-validation.js --check
 ```
 
 Commande combinée :
 
 ```bash
 cd forges-monorepo/backend
-node seed_for_test.js --reset && node seed_for_test.js --check
+node seed-validation.js --reset && node seed-validation.js --check
 ```
 
 Règle : tout test de validation doit partir d'un état seedé, stable et documenté.
@@ -402,7 +402,7 @@ Tests obligatoires :
 
 ## 11. Discipline des seeds et fixtures
 
-Seed officiel : `forges-monorepo/backend/seed_for_test.js`.
+Seed officiel : `forges-monorepo/backend/seed-validation.js`.
 
 Règles :
 
