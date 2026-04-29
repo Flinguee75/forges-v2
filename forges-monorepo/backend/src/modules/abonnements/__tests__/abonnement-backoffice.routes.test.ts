@@ -70,6 +70,27 @@ jest.mock('@prisma/client', () => {
       ]),
       count: jest.fn().mockResolvedValue(1),
     },
+    contratInstitutionnel: {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'contrat-01',
+          numero_contrat: 'INST-2026-001',
+          institution_nom: 'Ministere Formation',
+          programme_id: 'PROG-001',
+          bailleur: 'Banque Africaine',
+          date_debut: new Date('2026-01-01'),
+          date_fin: new Date('2026-12-31'),
+          montant_saas_annuel: 100000000,
+          fee_par_certifie: 25000,
+          seuil_facturation_fees: 25000,
+          cumul_fees_reportes: 0,
+          statut: 'ACTIF',
+          gestionnaires_ids: ['gestionnaire-01'],
+          avenants: [],
+        },
+      ]),
+      count: jest.fn().mockResolvedValue(1),
+    },
   };
 
   return {
@@ -86,11 +107,13 @@ jest.mock('../../../shared/email/email.service', () => ({
 }));
 
 import abonnementRoutes from '../abonnement.routes';
+import abonnementBackofficeRoutes from '../abonnement-backoffice.routes';
 
 describe('GET /api/backoffice/abonnements - Route backoffice abonnements', () => {
   const app = express();
   app.use(express.json());
   app.use('/api/abonnements', abonnementRoutes);
+  app.use('/api/backoffice/abonnements', abonnementBackofficeRoutes);
 
   describe('Authentification et autorisation', () => {
     it('autorise ADMIN (mockImpl global)', async () => {
@@ -108,6 +131,15 @@ describe('GET /api/backoffice/abonnements - Route backoffice abonnements', () =>
       await request(app)
         .get('/api/abonnements/backoffice')
         .expect(200);
+    });
+
+    it('expose aussi l alias backoffice attendu par le frontend', async () => {
+      const response = await request(app)
+        .get('/api/backoffice/abonnements')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('statusCode', 200);
+      expect(response.body.data).toHaveProperty('retail');
     });
   });
 
@@ -204,6 +236,20 @@ describe('GET /api/backoffice/abonnements - Route backoffice abonnements', () =>
       await request(app)
         .get('/api/abonnements/backoffice?date_debut=2026-01-01&date_fin=2026-12-31')
         .expect(200);
+    });
+  });
+
+  describe('Contrats institutionnels', () => {
+    it('retourne les contrats institutionnels sur la route backoffice frontend', async () => {
+      const response = await request(app)
+        .get('/api/backoffice/abonnements/contrat-institutionnel')
+        .expect(200);
+
+      expect(response.body.statusCode).toBe(200);
+      expect(response.body.data).toHaveProperty('contrats');
+      expect(response.body.data).toHaveProperty('meta');
+      expect(response.body.data).toHaveProperty('stats');
+      expect(response.body.data.contrats[0]).toHaveProperty('numero_contrat', 'INST-2026-001');
     });
   });
 });
