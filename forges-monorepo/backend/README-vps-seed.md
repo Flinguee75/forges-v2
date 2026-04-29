@@ -1,121 +1,87 @@
-# Connexion VPS et seed de validation
+# Acces restreint VPS pour seed de validation
 
-Ce document explique comment une personne externe peut se connecter au VPS de test FORGES et relancer le seed de validation.
+Ce document explique comment donner a une personne un acces limite au VPS de test FORGES pour verifier ou relancer le seed, sans lui donner acces au repo complet.
 
-## Informations de connexion
+## Principe
 
-VPS de test :
+L'acces recommande utilise l'utilisateur dedie :
 
 ```text
 Host: test.forges-group.com
-User: forgesadmin
-Repo: /home/forgesadmin/forges-v2
-Backend: /home/forgesadmin/forges-v2/forges-monorepo/backend
-Branche: test
+User: seedrunner
+Script: /opt/forges-seed/run-seed-validation.sh
+Commande forcee SSH: /opt/forges-seed/ssh-command.sh
 ```
 
-La connexion se fait par cle SSH. Ne pas partager une cle privee existante : chaque personne doit utiliser sa propre cle SSH.
+La personne ne doit pas recevoir la cle privee existante. Elle genere sa propre cle SSH et transmet uniquement sa cle publique.
 
-## Preparer la cle SSH
+## Cote personne externe
 
-Sur sa machine locale, la personne qui doit se connecter genere une nouvelle cle SSH :
+Generer une cle SSH personnelle :
 
 ```bash
-ssh-keygen -t ed25519 -C "forges-vps-test"
+ssh-keygen -t ed25519 -C "forges-vps-seed"
 ```
 
-Elle peut accepter le chemin propose par defaut, ou choisir un nom dedie, par exemple :
+Choisir un nom explicite si demande, par exemple :
 
 ```bash
-~/.ssh/id_ed25519_forges_vps
+~/.ssh/id_ed25519_forges_seed
 ```
 
-Elle doit ensuite envoyer uniquement la cle publique au responsable du VPS :
+Envoyer uniquement la cle publique au responsable VPS :
 
 ```bash
-cat ~/.ssh/id_ed25519_forges_vps.pub
+cat ~/.ssh/id_ed25519_forges_seed.pub
 ```
 
 Ne jamais envoyer la cle privee, c'est-a-dire le fichier sans `.pub`.
 
-Le responsable du VPS ajoute le contenu de cette cle publique dans :
+Appliquer les permissions correctes sur la cle privee :
 
 ```bash
-/home/forgesadmin/.ssh/authorized_keys
+chmod 600 ~/.ssh/id_ed25519_forges_seed
 ```
 
-Puis la personne applique les permissions SSH correctes sur sa cle privee :
+## Cote responsable VPS
 
-```bash
-chmod 600 ~/.ssh/id_ed25519_forges_vps
-```
+Se connecter avec un compte administrateur du VPS, puis ajouter la cle publique recue dans `/home/seedrunner/.ssh/authorized_keys`.
 
-## Se connecter au VPS
-
-Depuis la machine locale, avec la cle personnelle autorisee :
-
-```bash
-ssh -i ~/.ssh/id_ed25519_forges_vps forgesadmin@test.forges-group.com
-```
-
-Si la personne a choisi un autre nom de fichier pour sa cle, remplacer `~/.ssh/id_ed25519_forges_vps` par le bon chemin.
-
-Si SSH demande de confirmer l'empreinte du serveur, repondre `yes` uniquement si le domaine est bien `test.forges-group.com`.
-
-Exemple avec la cle deja presente sur une machine autorisee :
-
-```bash
-ssh -i ~/.ssh/id_ed25519_forges_v2 forgesadmin@test.forges-group.com
-```
-
-## Aller dans le backend
-
-Une fois connecte au VPS :
-
-```bash
-cd ~/forges-v2/forges-monorepo/backend
-```
-
-Verifier que le dossier est correct :
-
-```bash
-pwd
-git branch --show-current
-git rev-parse --short HEAD
-ls -la seed-validation.js run-seed-validation.sh
-```
-
-La branche attendue est :
+Format recommande :
 
 ```text
-test
+command="/opt/forges-seed/ssh-command.sh",no-agent-forwarding,no-X11-forwarding,no-port-forwarding,no-pty ssh-ed25519 AAAA... forges-vps-seed
 ```
 
-## Verifier les conteneurs Docker
-
-Le seed s'execute dans le conteneur backend de test, car ce conteneur accede deja au reseau Docker PostgreSQL.
-
-Verifier que les conteneurs test tournent :
+Verifier les permissions :
 
 ```bash
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+sudo chown -R seedrunner:seedrunner /home/seedrunner/.ssh
+sudo chmod 700 /home/seedrunner/.ssh
+sudo chmod 600 /home/seedrunner/.ssh/authorized_keys
 ```
 
-Les conteneurs attendus sont notamment :
+Avec cette configuration, la personne n'a pas de shell complet. SSH execute uniquement la commande forcee.
 
-```text
-forges-backend-test
-forges-postgres-test
-forges-redis-test
-```
+## Commandes pour la personne externe
 
-## Verifier le seed sans modifier la base
+Verifier le seed sans modifier la base :
 
 ```bash
-./run-seed-validation.sh --check --env-test
+ssh -i ~/.ssh/id_ed25519_forges_seed seedrunner@test.forges-group.com check
 ```
 
-Le resultat attendu est :
+Relancer le seed complet :
+
+```bash
+ssh -i ~/.ssh/id_ed25519_forges_seed seedrunner@test.forges-group.com reset
+```
+
+Si la cle a un autre nom, remplacer `~/.ssh/id_ed25519_forges_seed` par le chemin choisi.
+
+## Resultat attendu du check
+
+La commande `check` doit terminer par :
 
 ```text
 Seed coherent
@@ -137,21 +103,6 @@ Apporteurs: 1/1
 ContratInstitutionnel: 1/1
 ```
 
-## Relancer le seed complet
-
-Attention : cette commande remet la base de test dans l'etat du seed de validation.
-
-```bash
-./run-seed-validation.sh --reset --env-test
-```
-
-Cette commande :
-- copie `seed-validation.js` dans le conteneur `forges-backend-test`
-- execute le seed depuis le conteneur backend
-- vide les donnees de validation existantes
-- recree le jeu de donnees de reference
-- lance automatiquement une verification a la fin du seed
-
 ## Comptes de test apres reset
 
 Mot de passe commun :
@@ -168,38 +119,55 @@ Comptes :
 - `partenaire@forges-test.ci`
 - `apporteur@forges-test.ci`
 
-## Mettre a jour le repo sur le VPS
+## Details techniques
 
-Si la branche `test` a change, mettre le clone VPS a jour :
+Le script restreint est stocke ici sur le VPS :
 
 ```bash
-cd ~/forges-v2
-git pull --ff-only origin test
+/opt/forges-seed/run-seed-validation.sh
 ```
 
-Si le depot GitHub demande une authentification, utiliser un token GitHub avec acces au depot prive, ou demander a un mainteneur de faire le pull.
+Il copie le seed officiel dans le conteneur backend test, puis l'execute dans ce conteneur :
+
+```text
+Seed: /opt/forges-seed/seed-validation.js
+Conteneur: forges-backend-test
+Cible conteneur: /app/seed-validation.js
+```
+
+Cette approche est necessaire car le host PostgreSQL Docker `forges-postgres-test` est resolu depuis le reseau Docker, pas depuis le shell standard du VPS.
 
 ## Depannage rapide
 
-Si `Permission denied (publickey)` apparait :
+Si `Permission denied (publickey)` apparait, verifier que :
+
+- la cle publique a bien ete ajoutee dans `/home/seedrunner/.ssh/authorized_keys`
+- la ligne contient bien `command="/opt/forges-seed/ssh-command.sh"`
+- la cle privee locale a les bonnes permissions
+
+Commande locale :
 
 ```bash
-chmod 600 ~/.ssh/id_ed25519_forges_v2
-ssh -i ~/.ssh/id_ed25519_forges_v2 forgesadmin@test.forges-group.com
+chmod 600 ~/.ssh/id_ed25519_forges_seed
 ```
 
-Si `Conteneur introuvable ou arrete: forges-backend-test` apparait :
+Si `Conteneur introuvable ou arrete: forges-backend-test` apparait, un administrateur doit verifier les conteneurs :
 
 ```bash
-docker ps
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
-Puis redemarrer l'environnement test avec la procedure de deploiement habituelle.
+Conteneurs attendus :
 
-Si `Can't reach database server at forges-postgres-test:5432` apparait en lancant directement `node seed-validation.js`, utiliser le script :
+```text
+forges-backend-test
+forges-postgres-test
+forges-redis-test
+```
+
+Si `Commande autorisee: check ou reset` apparait, utiliser uniquement :
 
 ```bash
-./run-seed-validation.sh --check --env-test
+ssh -i ~/.ssh/id_ed25519_forges_seed seedrunner@test.forges-group.com check
+ssh -i ~/.ssh/id_ed25519_forges_seed seedrunner@test.forges-group.com reset
 ```
-
-Ne pas lancer directement `node seed-validation.js` depuis le shell du VPS : le host Docker `forges-postgres-test` n'est pas resolu hors du reseau Docker.
