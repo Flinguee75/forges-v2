@@ -14,17 +14,9 @@
  */
 
 const request = require('supertest');
-const { PrismaClient } = require('@prisma/client');
-const { createApprenantAccount, auth, accounts, ids } = require('./helpers');
-
-const prisma = new PrismaClient();
-const API_URL = process.env.API_URL || 'http://127.0.0.1:3000';
+const { createApprenantAccount, auth, accounts, ids, API_URL, prisma } = require('./helpers');
 
 describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
-  afterAll(async () => {
-    await prisma.$disconnect();
-  });
-
   // ============================================
   // RM-70 : Unicité abonnement Retail
   // ============================================
@@ -74,7 +66,6 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
   describe('[RM-72] Limite 3 formations simultanées', () => {
     let apprenant72;
     let token72;
-    let formationIds = [];
     let abonnementId72;
 
     beforeAll(async () => {
@@ -92,36 +83,13 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
 
       abonnementId72 = aboRes.body.data?.abonnement?.id;
 
-      // Créer 4 formations Standard incluses dans l'abonnement avec IDs uniques
-      const timestamp = Date.now();
-      for (let i = 1; i <= 4; i++) {
-        const formation = await prisma.formation.create({
-          data: {
-            id: `F-RM72-${timestamp}-${i}`,
-            intitule: `Formation RM-72 Test ${i}`,
-            description_courte: `Test limite 3 formations ${i}`,
-            description_longue: 'Test',
-            duree_jours: 7,
-            type_formation: 'STANDARD',
-            pilier_abonnement: 'RETAIL',
-            mode_formation: 'A_LA_DEMANDE',
-            inclus_abonnement: true,
-            cout_catalogue: 50000,
-            statut: 'ACTIVE',
-            partenaire_id: ids.partenaire,
-            responsable_id: ids.responsable,
-          },
-        });
-        formationIds.push(formation.id);
-      }
-
       // Créer 3 accès formation actifs avec IDs uniques
       for (let i = 0; i < 3; i++) {
         await prisma.accesFormationDemande.create({
           data: {
-            id: `A-RM72-${timestamp}-${i}`,
+            id: `A-RM72-${Date.now()}-${i}`,
             apprenant_id: apprenant72.id,
-            formation_id: formationIds[i],
+            formation_id: ids.demandeFormation,
             source_financement: 'ABONNEMENT',
             statut: 'ACTIF',
             date_expiration: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
@@ -151,9 +119,6 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
           where: { id: abonnementId72 },
         }).catch(() => {});
       }
-      await prisma.formation.deleteMany({
-        where: { id: { in: formationIds } },
-      });
     });
   });
 
@@ -414,6 +379,7 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
       const abo = await prisma.abonnementRetail.findUnique({
         where: { apprenant_id: apprenant106.id },
       });
+      expect(abo).toBeTruthy();
       expect(abo.montant_premier_mois).toBeLessThanOrEqual(abo.montant_mensuel);
     });
   });

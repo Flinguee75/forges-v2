@@ -47,6 +47,13 @@ export default function BackofficeLayout() {
       ],
     },
     {
+      title: 'Utilisateurs',
+      items: [
+        { name: 'Apprenants', href: '/backoffice/apprenants', icon: 'user', roles: ['ADMIN', 'SUPERVISEUR'] },
+        { name: 'Organisations', href: '/backoffice/organisations', icon: 'building', roles: ['ADMIN', 'SUPERVISEUR'] },
+      ],
+    },
+    {
       title: 'Abonnements',
       items: [
         { name: 'Tous les abonnements', href: '/backoffice/abonnements', icon: 'folder', roles: ['ADMIN', 'SUPERVISEUR', 'AGENT'] },

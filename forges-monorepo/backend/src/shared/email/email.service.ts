@@ -369,6 +369,53 @@ export class EmailService {
     });
   }
 
+  async sendVouchersOrganisation(
+    email: string,
+    codes: string[],
+    formationId: string,
+    langue: string
+  ): Promise<void> {
+    const title = 'Vos vouchers organisation FORGES';
+    await this.sendEmail({
+      to: email,
+      subject: title,
+      text: this.buildTextEmail([
+        'Bonjour,',
+        '',
+        `Les vouchers liés à la formation ${formationId} sont prêts.`,
+        `Codes: ${codes.join(', ')}`,
+        `Langue du message: ${langue}`,
+      ]),
+      html: this.buildHtmlEmail(title, [
+        'Bonjour,',
+        `Les vouchers liés à la formation <strong>${formationId}</strong> sont prêts.`,
+        `<strong>Codes :</strong> ${codes.join(', ')}`,
+        `Langue du message : ${langue}`,
+      ]),
+    });
+  }
+
+  async sendVoucherRefuse(email: string, motif: string, langue: string): Promise<void> {
+    const title = 'Voucher promotionnel refusé';
+    await this.sendEmail({
+      to: email,
+      subject: title,
+      text: this.buildTextEmail([
+        'Bonjour,',
+        '',
+        'Votre voucher promotionnel a été refusé.',
+        `Motif: ${motif}`,
+        `Langue du message: ${langue}`,
+      ]),
+      html: this.buildHtmlEmail(title, [
+        'Bonjour,',
+        'Votre voucher promotionnel a été refusé.',
+        `<strong>Motif :</strong> ${motif}`,
+        `Langue du message : ${langue}`,
+      ]),
+    });
+  }
+
   async sendAlerteExpirationB2B(email: string, dateFin: Date, langue: string): Promise<void> {
     const title = 'Votre abonnement B2B arrive à expiration';
     await this.sendEmail({
@@ -873,6 +920,27 @@ export class EmailService {
     });
 
     await this.sendEmail({ to: admin_email, subject, html });
+  }
+
+  async sendAlerteFinEssai(email: string, dateFinEssai: Date, langue: string): Promise<void> {
+    const title = "Votre periode d'essai FORGES arrive a echeance";
+    await this.sendEmail({
+      to: email,
+      subject: title,
+      text: this.buildTextEmail([
+        'Bonjour,',
+        '',
+        `Votre periode d'essai se termine le ${dateFinEssai.toLocaleDateString('fr-FR')}.`,
+        'Souscrivez un abonnement Organisation pour conserver votre acces.',
+        `Langue du message: ${langue}`,
+      ]),
+      html: this.buildHtmlEmail(title, [
+        'Bonjour,',
+        `Votre periode d'essai se termine le <strong>${dateFinEssai.toLocaleDateString('fr-FR')}</strong>.`,
+        'Souscrivez un abonnement Organisation pour conserver votre acces.',
+        `Langue du message : ${langue}`,
+      ]),
+    });
   }
 }
 

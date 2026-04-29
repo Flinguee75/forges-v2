@@ -1,7 +1,8 @@
 import { FormationRepository } from './formation.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CreateFormationDto, AssignerTypeFormationDto, UpdateFormationDto } from './dto/formation.dto';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 export class FormationService {
   private prisma: PrismaClient;
@@ -10,7 +11,7 @@ export class FormationService {
     private readonly formationRepo: FormationRepository,
     private readonly audit: AuditLogger
   ) {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   // UCS04 — Création formation interne (Admin/Responsable)

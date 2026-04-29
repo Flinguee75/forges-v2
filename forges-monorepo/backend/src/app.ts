@@ -137,6 +137,8 @@ import voucherRoutes from './modules/vouchers/voucher.routes'; // ✅ SPRINT 1 S
 import abonnementAliasRoutes from './modules/abonnements/abonnement-alias.routes';
 import backofficeRoutes from './modules/dashboard/backoffice.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import backofficeApprenantsRoutes from './modules/backoffice-apprenants/backoffice-apprenants.routes';
+import backofficeOrganisationsRoutes from './modules/backoffice-organisations/backoffice-organisations.routes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/comptes', comptesRoutes);
@@ -155,7 +157,7 @@ app.use('/api/partenaires', partenaireRoutes);
 app.use('/api/apporteurs', apporteurRoutes); // ✅ CORRIGÉ: singular → plural
 app.use('/api/admin', adminRoutes); // ✅ NOUVEAU: création admin utilisateurs / partenaires / apporteurs
 app.use('/api', inscriptionRoutes); // ✅ NOUVEAU: endpoints inscriptions/dossiers/sessions
-app.use('/api/paiements', paiementRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET paiements, webhook
+app.use('/api', paiementRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET paiements, webhook, backoffice paiements
 app.use('/api/vouchers', voucherRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET vouchers, validate
 app.use('/api/responsable', responsableRoutes); // ✅ NOUVEAU: endpoints validation formations (UCS18)
 app.use('/api/backoffice', responsableRoutes);
@@ -164,6 +166,8 @@ app.use('/api/backoffice', superviseurRoutes);
 app.use('/api/agent', agentRoutes); // ✅ NOUVEAU: endpoints reversements (RM-138, RM-147)
 app.use('/api/backoffice', agentRoutes);
 app.use('/api/backoffice/sessions', sessionBackofficeRoutes);
+app.use('/api/backoffice/apprenants', backofficeApprenantsRoutes);
+app.use('/api/backoffice/organisations', backofficeOrganisationsRoutes);
 app.use('/api/backoffice', backofficeRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 

@@ -105,6 +105,36 @@ export async function patchJson(request, url, data, headers = {}) {
   };
 }
 
+export async function deleteJson(request, url, headers = {}) {
+  const response = await request.delete(`${API_BASE_URL}${url}`, { headers });
+  return {
+    ok: response.ok(),
+    status: response.status(),
+    payload: await response.json().catch(() => ({})),
+  };
+}
+
+export function dataOf(payload) {
+  return payload?.data ?? payload;
+}
+
+export function listOf(payload, key) {
+  const data = dataOf(payload);
+  if (Array.isArray(data)) return data;
+  if (key && Array.isArray(data?.[key])) return data[key];
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
+
+export function uniqueEmail(prefix) {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}@forges.ci`;
+}
+
+export async function runAbonnementScheduler(request, headers) {
+  return postJson(request, '/abonnements/admin/scheduler', {}, headers);
+}
+
 export async function createPaiementAndConfirm(request, headers, dossierId, transactionPrefix, montant = 150000) {
   const paiement = await postJson(request, '/paiements', {
     dossier_id: dossierId,

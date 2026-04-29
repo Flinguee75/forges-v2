@@ -30,15 +30,23 @@ export class AbonnementB2BService {
       return null;
     }
 
+    // RM-61 : Calcul dynamique du nombre d'apprenants actifs B2B
+    const nb_actifs = await this.prisma.apprenant.count({
+      where: {
+        organisation_id,
+        statut: 'ACTIF'
+      }
+    });
+
     // RM-115 : calcul taux_utilisation (déclencheur bot si > 80%)
-    const taux_utilisation = abo.nb_max > 0 ? Math.round((abo.nb_actifs / abo.nb_max) * 100) : 0;
+    const taux_utilisation = abo.nb_max > 0 ? Math.round((nb_actifs / abo.nb_max) * 100) : 0;
 
     return {
       id: abo.id,
       palier: abo.palier,
       statut: abo.statut,
       nb_max: abo.nb_max,
-      nb_actifs: abo.nb_actifs,
+      nb_actifs,
       taux_utilisation,
       prix_annuel: abo.prix_annuel,
       premium_inclus_par_an: abo.premium_inclus_par_an,
@@ -128,6 +136,50 @@ export class AbonnementB2BService {
     return { montant_prorata: montantProrata, nouveau_palier: normalizedPalier };
   }
 
+  // RM-69 : alerte quand le plafond de palier est atteint
+  async trouverAlertesPlafond() {
+    const abos = await this.prisma.abonnementB2B.findMany({
+      where: { statut: 'ACTIF' },
+      include: { organisation: true },
+    });
+
+    return abos.filter((abo) => abo.nb_actifs >= abo.nb_max);
+  }
+
+  // RM-89 : palier Enterprise inclut 2 certifications Premium par an
+  async consommerPremiumEnterprise(organisation_id: string) {
+    const abo = await this.prisma.abonnementB2B.findFirst({
+      where: { organisation_id, statut: 'ACTIF', palier: 'ENTERPRISE' },
+    });
+    if (!abo) throw new Error('PREMIUM_ENTERPRISE_NON_DISPONIBLE');
+
+    const quota = abo.premium_inclus_par_an || 0;
+    if (abo.premium_consommes >= quota) {
+      throw new Error('QUOTA_PREMIUM_ENTERPRISE_EPUISE');
+    }
+
+    return this.prisma.abonnementB2B.update({
+      where: { id: abo.id },
+      data: { premium_consommes: { increment: 1 } },
+    });
+  }
+
+  async resetPremiumEnterpriseAnnuel(organisation_id: string) {
+    const abo = await this.prisma.abonnementB2B.findFirst({
+      where: { organisation_id, statut: 'ACTIF', palier: 'ENTERPRISE' },
+    });
+    if (!abo) throw new Error('PREMIUM_ENTERPRISE_NON_DISPONIBLE');
+
+    return this.prisma.abonnementB2B.update({
+      where: { id: abo.id },
+      data: {
+        premium_consommes: 0,
+        compteur_premium_used: 0,
+        compteur_premium_reset_at: new Date(),
+      },
+    });
+  }
+
   // Scheduler — alertes expiration J-45 et J-15 (RM-66)
   async envoyerAlertesExpiration() {
     const now = new Date();
@@ -165,11 +217,17 @@ export class AbonnementB2BService {
         data: { statut: 'EXPIRE' }
       });
 
-      // RM-111 : suspension accès formations B2B
-      // TODO: Implémenter la suspension des accès formations B2B
-      // Model AccesFormationDemande non défini dans le schéma
+      // RM-111 : suspension des accès à la demande financés par B2B.
+      await this.prisma.accesFormationDemande.updateMany({
+        where: {
+          statut: 'ACTIF',
+          source_financement: 'B2B',
+          apprenant: { organisation_id: abo.organisation_id },
+        },
+        data: { statut: 'SUSPENDU' },
+      });
 
-      // await this.audit.warning('ABONNEMENT_B2B_EXPIRE', { organisation_id: abo.organisation_id });
+      await this.audit.warning('ABONNEMENT_B2B_EXPIRE', { organisation_id: abo.organisation_id });
     }
 
     return abosExpires.length;

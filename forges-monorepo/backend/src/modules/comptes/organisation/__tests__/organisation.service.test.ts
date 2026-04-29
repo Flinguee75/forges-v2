@@ -30,11 +30,15 @@ describe('OrganisationService', () => {
       activate: jest.fn(),
       suspendre: jest.fn(),
       prisma: {
+        apprenant: { findUnique: jest.fn().mockResolvedValue(null) },
         organisation: {
           findFirst: jest.fn(),
           findMany: jest.fn(),
           update: jest.fn(),
-        }
+          findUnique: jest.fn(),
+        },
+        partenaire: { findUnique: jest.fn().mockResolvedValue(null) },
+        apporteur: { findUnique: jest.fn().mockResolvedValue(null) },
       }
     } as any;
 

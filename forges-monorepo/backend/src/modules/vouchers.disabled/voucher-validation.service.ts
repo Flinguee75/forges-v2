@@ -26,7 +26,9 @@ export class VoucherValidationService {
     if (voucher.quota_utilise >= voucher.quota_max) throw new Error('VOUCHER_QUOTA_EPUISE');
 
     // RM-38 : usage unique par bénéficiaire pour voucher Organisation
-    if (voucher.type === 'ORGANISATION') {
+    // Le schéma courant distingue les vouchers d'organisation via organisation_id,
+    // pas via une valeur dédiée de type.
+    if (voucher.organisation_id) {
       // Vérification déjà utilisé par cet apprenant (via dossiers)
       // Cette vérification est faite dans le service d'inscription
     }

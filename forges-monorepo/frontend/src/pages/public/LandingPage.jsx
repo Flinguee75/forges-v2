@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FeatureIcon from '../../components/ui/FeatureIcon';
+import logoForges from '../../assets/logo_forges.png';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 /**
  * LandingPage - Page d'accueil publique haute conversion
@@ -17,6 +19,7 @@ export default function LandingPage() {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-bg">
       {/* Hero Section - High Converting */}
       <section className="bg-gradient-to-br from-primary via-secondary to-primary text-white py-24 md:py-32 relative overflow-hidden">
@@ -28,6 +31,19 @@ export default function LandingPage() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
+            {/* Logo */}
+            <div className="flex justify-center mb-12">
+              <div className="relative">
+                {/* Glow effect */}
+                <div className="absolute inset-0 bg-white/40 rounded-full blur-3xl scale-110" aria-hidden="true"></div>
+                <img
+                  src={logoForges}
+                  alt="FORGES"
+                  className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full object-cover shadow-2xl ring-8 ring-white/20"
+                />
+              </div>
+            </div>
+
             {/* Badge Made in Africa */}
             <div className="inline-flex items-center gap-2 bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-full mb-8">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -577,5 +593,11 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
+
+      {/* Status Bar */}
+      <div className="py-4 bg-bg border-t border-border flex justify-center">
+        <StatusBadge />
+      </div>
+    </>
   );
 }

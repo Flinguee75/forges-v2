@@ -242,10 +242,15 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
       .send({ offre: 'ESSENTIEL', consentement_auto: true });
     expect(sub.status).toBe(201);
 
+    const abonnement = await prisma.abonnementRetail.findFirst({
+      where: { apprenant_id: account.id },
+    });
+    expect(abonnement).not.toBeNull();
+
     // Forcer la date de fin à demain pour passer dans le scheduler
     const demain = new Date(Date.now() + 12 * 3600 * 1000);
     await prisma.abonnementRetail.update({
-      where: { apprenant_id: account.id },
+      where: { id: abonnement.id },
       data: { date_fin: demain },
     });
 
@@ -323,14 +328,32 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
   test('RM-03 — Dossiers EN_ATTENTE_VERIFICATION peuvent être identifiés pour archivage', async () => {
     const apprenant = await createApprenantAccount('rm03');
     const dossierId = `D-RM03-${Date.now()}`;
+    const formationId = `F-RM03-${Date.now()}`;
     const dateAncienne = new Date(Date.now() - 91 * 24 * 3600 * 1000); // > 90 jours
+
+    await prisma.formation.create({
+      data: {
+        id: formationId,
+        intitule: 'Formation RM-03',
+        description_courte: 'Fixture archivage dossier',
+        responsable_id: ids.responsable,
+        type_formation: 'STANDARD',
+        mode_formation: 'AVEC_SESSION',
+        pilier_abonnement: 'RETAIL',
+        inclus_abonnement: true,
+        cout_catalogue: 500000,
+        duree_jours: 5,
+        statut: 'ACTIVE',
+        objectifs_pedagogiques: ['Archivage'],
+        langues_disponibles: ['FR'],
+      },
+    });
 
     await prisma.dossier.create({
       data: {
         id: dossierId,
         apprenant_id: apprenant.id,
-        formation_id: ids.premiumRetailFormation,
-        session_id: ids.premiumRetailSession,
+        formation_id: formationId,
         statut: 'EN_ATTENTE_VERIFICATION',
         source_financement: 'RETAIL',
         created_at: dateAncienne,
@@ -354,5 +377,8 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
 
     const dossierArchive = await prisma.dossier.findUnique({ where: { id: dossierId } });
     expect(dossierArchive.statut).toBe('ARCHIVE');
+
+    await prisma.dossier.delete({ where: { id: dossierId } });
+    await prisma.formation.delete({ where: { id: formationId } });
   });
 });

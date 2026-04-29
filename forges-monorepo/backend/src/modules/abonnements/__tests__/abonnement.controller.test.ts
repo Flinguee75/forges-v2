@@ -9,6 +9,7 @@ describe('AbonnementController', () => {
   let retailService: jest.Mocked<AbonnementRetailService>;
   let orgService: jest.Mocked<AbonnementOrganisationService>;
   let b2bService: jest.Mocked<AbonnementB2BService>;
+  let mockPrisma: any;
 
   beforeEach(() => {
     retailService = {
@@ -33,7 +34,13 @@ describe('AbonnementController', () => {
       suspendreB2BExpires: jest.fn(),
     } as any;
 
-    controller = new AbonnementController(retailService, orgService, b2bService);
+    mockPrisma = {
+      abonnementRetail: { findMany: jest.fn(), count: jest.fn() },
+      abonnementOrganisation: { findMany: jest.fn(), count: jest.fn() },
+      abonnementB2B: { findMany: jest.fn(), count: jest.fn() },
+    } as any;
+
+    controller = new AbonnementController(retailService, orgService, b2bService, mockPrisma);
   });
 
   it('gère la souscription retail avec validation et conflit métier', async () => {

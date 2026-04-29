@@ -25,8 +25,16 @@ describe('EspaceOrganisationRepository', () => {
   });
 
   it('retourne les bénéficiaires filtrés avec pagination', async () => {
-    prisma.dossier.findMany.mockResolvedValue([{ id: 'dossier-01' }]);
-    prisma.dossier.count.mockResolvedValue(7);
+    prisma.apprenant.findMany.mockResolvedValue([{
+      id: 'app-01',
+      email: 'app-01@forges.ci',
+      nom: 'Doe',
+      prenoms: 'John',
+      statut: 'ACTIF',
+      created_at: new Date('2026-01-01T00:00:00.000Z'),
+      dossiers: [{ id: 'dossier-01' }],
+    }]);
+    prisma.apprenant.count.mockResolvedValue(7);
 
     await expect(repository.findBeneficiaires('org-01', {
       statut: 'PAYE',
@@ -34,33 +42,54 @@ describe('EspaceOrganisationRepository', () => {
       page: 2,
       limit: 5,
     })).resolves.toEqual({
-      dossiers: [{ id: 'dossier-01' }],
+      membres: [{
+        id: 'app-01',
+        email: 'app-01@forges.ci',
+        nom: 'Doe',
+        prenom: 'John',
+        statut: 'ACTIF',
+        created_at: new Date('2026-01-01T00:00:00.000Z'),
+        derniere_inscription: { id: 'dossier-01' },
+      }],
       total: 7,
       page: 2,
       limit: 5,
+      totalPages: 2,
     });
 
-    expect(prisma.dossier.findMany).toHaveBeenCalledWith({
+    expect(prisma.apprenant.findMany).toHaveBeenCalledWith({
       where: {
-        source_financement: 'B2B',
-        apprenant: { organisation_id: 'org-01' },
+        organisation_id: 'org-01',
         statut: 'PAYE',
-        formation_id: 'formation-01',
       },
-      include: {
-        apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
-        formation: { select: { id: true, intitule: true, type_formation: true } },
-        session: { select: { date_debut: true, date_fin: true, statut: true } },
-        paiement: { select: { statut: true, confirmed_at: true } },
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        prenoms: true,
+        statut: true,
+        created_at: true,
+        dossiers: {
+          where: { formation_id: 'formation-01' },
+          select: {
+            id: true,
+            statut: true,
+            formation: { select: { id: true, intitule: true, type_formation: true } },
+            session: { select: { date_debut: true, date_fin: true, statut: true } },
+            paiement: { select: { statut: true, confirmed_at: true } },
+          },
+          orderBy: { created_at: 'desc' },
+          take: 1,
+        },
       },
       skip: 5,
       take: 5,
       orderBy: { created_at: 'desc' },
     });
-    expect(prisma.dossier.count).toHaveBeenCalledWith({
+    expect(prisma.apprenant.count).toHaveBeenCalledWith({
       where: {
-        source_financement: 'B2B',
-        apprenant: { organisation_id: 'org-01' },
+        organisation_id: 'org-01',
+        statut: 'PAYE',
       },
     });
   });

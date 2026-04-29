@@ -6,11 +6,10 @@ import { CommissionRepository } from './commission.repository';
 import { VoucherRepository } from '../vouchers/voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Services partagés
 const auditLogger = new AuditLogger();
@@ -39,17 +38,22 @@ const paiementController = new PaiementController(paiementService);
 // ========================================
 
 // POST /api/paiements — Initier un paiement (APPRENANT|ORGANISATION)
-router.post('/', authenticate, authorize('APPRENANT', 'ORGANISATION'), (req, res, next) => {
+router.post('/paiements', authenticate, authorize('APPRENANT', 'ORGANISATION'), (req, res, next) => {
   paiementController.createPaiement(req, res, next);
 });
 
 // GET /api/paiements — Liste paiements apprenant (APPRENANT)
-router.get('/', authenticate, authorize('APPRENANT'), (req, res, next) => {
+router.get('/paiements', authenticate, authorize('APPRENANT'), (req, res, next) => {
   paiementController.getPaiementsByApprenant(req, res, next);
 });
 
+// GET /api/backoffice/paiements — Liste tous les paiements (ADMIN, AGENT) - UCS09, RM-88
+router.get('/backoffice/paiements', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  paiementController.getPaiements(req, res, next);
+});
+
 // POST /api/paiements/webhook — Webhook confirmation paiement (PUBLIC avec signature)
-router.post('/webhook', (req, res, next) => {
+router.post('/paiements/webhook', (req, res, next) => {
   paiementController.handleWebhook(req, res, next);
 });
 

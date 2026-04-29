@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Button from '../ui/Button';
+import logoForges from '../../assets/logo_forges.png';
 
 const PRIVATE_COPY = {
   FR: {
@@ -130,8 +131,8 @@ export default function Navbar({
         <div className="flex min-w-0 items-center gap-4">
           {isPublic ? (
             <>
-              <Link to="/" className="text-xl font-bold text-primary">
-                FORGES
+              <Link to="/" className="flex items-center">
+                <img src={logoForges} alt="FORGES" className="h-14 w-14 rounded-full object-cover" />
               </Link>
               <nav className="hidden items-center gap-6 md:flex">
                 <Link to="/" className="font-medium text-text transition-colors hover:text-primary">
@@ -143,13 +144,16 @@ export default function Navbar({
               </nav>
             </>
           ) : (
-            <div className="min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <img src={logoForges} alt="FORGES" className="h-8 w-auto shrink-0" />
+              <div className="min-w-0">
               <p className="truncate text-xs font-semibold uppercase tracking-[0.24em] text-primary/55">
                 {roleLabel}
               </p>
               <h1 className="truncate text-lg font-semibold text-text sm:text-xl">
                 {title}
               </h1>
+              </div>
             </div>
           )}
         </div>

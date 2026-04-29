@@ -3,12 +3,11 @@ import { ApporteurController } from './apporteur.controller';
 import { ApporteurService } from './apporteur.service';
 import { ApporteurRepository } from './apporteur.repository';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 
 const router = Router();
-const prisma = new PrismaClient();
 const audit = new AuditLogger();
 const emailService = new EmailService();
 

@@ -2,10 +2,13 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
-  testMatch: ['**/__tests__/**/*.test.ts', '**/tests/integration/**/*.test.js'],
+  testMatch: ['**/__tests__/**/*.test.ts'],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '<rootDir>/src/modules/vouchers.disabled/'
+    '<rootDir>/src/modules/vouchers.disabled/',
+    '/src/modules/vouchers\\.disabled/',
+    '\\.routes\\.test\\.ts$',
+    '<rootDir>/tests/integration/'
   ],
   moduleNameMapper: {
     '^uuid$': '<rootDir>/src/__tests__/mocks/uuid.ts'

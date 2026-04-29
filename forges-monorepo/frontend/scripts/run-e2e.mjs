@@ -211,6 +211,11 @@ async function main() {
       JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'supersecret_refresh_change_me',
       ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '32_bytes_base64_key',
       WEBHOOK_SECRET: process.env.WEBHOOK_SECRET || 'dev-secret',
+      DEFAULT_COMMISSION_FORGES_PCT: process.env.DEFAULT_COMMISSION_FORGES_PCT || '20',
+      DEFAULT_COMMISSION_APPORTEUR_PCT: process.env.DEFAULT_COMMISSION_APPORTEUR_PCT || '5',
+      SEUIL_REVERSEMENT_PARTENAIRE_XOF: process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || '50000',
+      SEUIL_REVERSEMENT_APPORTEUR_XOF: process.env.SEUIL_REVERSEMENT_APPORTEUR_XOF || '5000',
+      VALIDATION_PARTENAIRE_DELAI_JOURS: process.env.VALIDATION_PARTENAIRE_DELAI_JOURS || '5',
     },
   });
   await waitForHttp(backendHealthUrl, 30_000, `backend did not become healthy on ${backendHealthUrl}`);

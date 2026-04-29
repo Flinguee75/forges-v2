@@ -1,3 +1,5 @@
+name: forges-test
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -33,12 +35,13 @@ services:
       retries: 5
 
   backend:
-    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}:test-${IMAGE_TAG}
     container_name: forges-backend-test
     restart: unless-stopped
     env_file:
-      - ../env/.env.test.deploy
+      - /var/www/vhosts/test.forges-group.com/httpdocs/.env
     environment:
+      DATABASE_URL: "postgresql://forges_test:obkBH2%2FUnzOe9o2jdiy9xgU2LaT4ltQobJGUsr2XoNo%3D@postgres:5432/forges_test"
       NODE_ENV: test
       PORT: ${BACKEND_INTERNAL_PORT}
       BACKEND_PORT: ${BACKEND_INTERNAL_PORT}
