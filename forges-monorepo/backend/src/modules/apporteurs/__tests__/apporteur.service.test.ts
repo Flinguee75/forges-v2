@@ -37,7 +37,10 @@ describe('ApporteurService (MOD-13)', () => {
     } as any;
 
     mockPrisma = {
-      apporteur: { findMany: jest.fn(), count: jest.fn(), create: jest.fn() },
+      apprenant: { findUnique: jest.fn().mockResolvedValue(null) },
+      organisation: { findUnique: jest.fn().mockResolvedValue(null) },
+      partenaire: { findUnique: jest.fn().mockResolvedValue(null) },
+      apporteur: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn(), count: jest.fn(), create: jest.fn() },
       commissionApporteur: { aggregate: jest.fn(), count: jest.fn().mockResolvedValue(0) },
     };
 

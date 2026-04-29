@@ -26,6 +26,7 @@ describe('AbonnementController', () => {
 
     orgService = {
       souscrire: jest.fn(),
+      traiterRenouvellements: jest.fn(),
     } as any;
 
     b2bService = {
@@ -148,16 +149,18 @@ describe('AbonnementController', () => {
     retailService.traiterGracesExpires.mockResolvedValueOnce(2 as never);
     retailService.traiterDowngradesPlanifies.mockResolvedValueOnce(1 as never);
     b2bService.suspendreB2BExpires.mockResolvedValueOnce(3 as never);
+    orgService.traiterRenouvellements.mockResolvedValueOnce(4 as never);
 
     await controller.runScheduler(createMockReq({ user: { userId: 'admin-01' } }), res, next);
 
-    expect(res.json).toHaveBeenCalledWith({
+    expect(res.json).toHaveBeenLastCalledWith({
       statusCode: 200,
       data: {
         renouvellements: { renouveles: 1, echecs: 0 },
         graces: 2,
         downgrades: 1,
         b2b_expires: 3,
+        organisations: 4,
       },
     });
   });

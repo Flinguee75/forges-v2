@@ -9,8 +9,9 @@ describe('AdminService', () => {
   beforeEach(() => {
     mockPrisma = {
       apprenant: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), findMany: jest.fn(), count: jest.fn() },
-      partenaire: { create: jest.fn() },
-      apporteur: { create: jest.fn() },
+      organisation: { findUnique: jest.fn().mockResolvedValue(null) },
+      partenaire: { findUnique: jest.fn().mockResolvedValue(null), create: jest.fn() },
+      apporteur: { findUnique: jest.fn().mockResolvedValue(null), create: jest.fn() },
       dossier: { count: jest.fn() },
     };
     mockAudit = { info: jest.fn(), warning: jest.fn() };
