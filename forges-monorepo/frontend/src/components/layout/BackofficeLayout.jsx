@@ -49,7 +49,7 @@ export default function BackofficeLayout() {
     {
       title: 'Utilisateurs',
       items: [
-        { name: 'Apprenants', href: '/backoffice/apprenants', icon: 'user', roles: ['ADMIN', 'SUPERVISEUR'] },
+        { name: 'Utilisateurs', href: '/backoffice/apprenants', icon: 'user', roles: ['ADMIN', 'SUPERVISEUR'] },
         { name: 'Organisations', href: '/backoffice/organisations', icon: 'building', roles: ['ADMIN', 'SUPERVISEUR'] },
       ],
     },
