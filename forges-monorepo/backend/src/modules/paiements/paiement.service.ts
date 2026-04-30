@@ -6,12 +6,17 @@ import { VoucherRepository } from '../vouchers/voucher.repository';
 import { PrismaClient } from '@prisma/client';
 import { InitierPaiementDto, InitierPaiementNgserDto } from './dto/paiement.dto';
 import { PaiementNgserService } from './paiement-ngser.service';
+import { IpnNgserService } from './ipn-ngser.service';
+import { CommissionService } from './commission.service';
 
 const MAX_TENTATIVES = 3;      // RM-08
 const DELAI_PAIEMENT_H = 72;  // RM-07
 const TIMEOUT_API_S = 30;      // RM-09
 
 export class PaiementService {
+  private ipnNgserService: IpnNgserService;
+  private commissionService: CommissionService;
+
   constructor(
     private readonly paiementRepo: PaiementRepository,
     private readonly commissionRepo: CommissionRepository,
@@ -20,7 +25,10 @@ export class PaiementService {
     private readonly audit: AuditLogger,
     private readonly email: EmailService,
     private readonly paiementNgserService = new PaiementNgserService(prisma, voucherRepo, audit)
-  ) {}
+  ) {
+    this.commissionService = new CommissionService(prisma, audit);
+    this.ipnNgserService = new IpnNgserService(prisma, audit, this.commissionService);
+  }
 
   async initierPaiementNgser(dto: InitierPaiementNgserDto, apprenantId: string) {
     return this.paiementNgserService.initierPaiement(dto, apprenantId);
@@ -332,5 +340,10 @@ export class PaiementService {
   // GET /api/paiements — Liste paiements apprenant (Sprint 1 Semaine 2)
   async getPaiementsByApprenant(apprenantId: string) {
     return this.paiementRepo.findByApprenant(apprenantId);
+  }
+
+  // Traiter IPN NGSER (RM-158/160)
+  async traiterIpnNgser(payload: any) {
+    return this.ipnNgserService.traiterIpn(payload);
   }
 }

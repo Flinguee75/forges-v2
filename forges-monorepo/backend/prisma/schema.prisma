@@ -513,6 +513,20 @@ model CommissionPartenaire {
   formation             Formation  @relation(fields: [formation_id], references: [id])
 }
 
+model AuditLog {
+  id          String   @id @default(uuid())
+  level       String   // INFO, WARNING, ERROR
+  action      String   // Action name (e.g. IPN_SUCCESS_TRAITE, COMMISSION_PARTENAIRE_CREEE)
+  metadata    Json?    // Additional data
+  hmac        String?  // HMAC signature for integrity
+  user_id     String?  // Optional user who triggered the action
+  timestamp   DateTime @default(now())
+
+  @@index([action])
+  @@index([timestamp])
+  @@index([level])
+}
+
 // ENUMS
 enum TypeApprenant {
   PROFESSIONNEL

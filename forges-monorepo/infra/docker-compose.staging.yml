@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-forges_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-forges}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forges_staging_change_me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forges-staging-net
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_staging_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forges-staging-net
+
+  backend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npx prisma migrate deploy && npm run build && npm start"
+    volumes:
+      - ../backend:/app
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: staging
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4173}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-forges}:${POSTGRES_PASSWORD:-forges_staging_change_me}@postgres:5432/${POSTGRES_DB:-forges_staging}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
+      NGSER_MOCK_MODE: "false"
+      NGSER_BASE_URL: ${NGSER_BASE_URL:-https://securetest.crossroad-africa.net/}
+      NGSER_NAME: ${NGSER_NAME:-FORGES}
+      NGSER_AUTHENTICATION_TOKEN: ${NGSER_AUTHENTICATION_TOKEN:-${NGSER_AUTH_TOKEN}}
+      NGSER_AUTH_TOKEN: ${NGSER_AUTH_TOKEN}
+      NGSER_OPERATION_TOKEN_PAIEMENT: ${NGSER_OPERATION_TOKEN_PAIEMENT}
+      NGSER_NOTIFICATION_URL: ${NGSER_NOTIFICATION_URL}
+      NGSER_REQUEST_TIMEOUT_MS: ${NGSER_REQUEST_TIMEOUT_MS:-30000}
+      NGSER_MAX_RETRIES: ${NGSER_MAX_RETRIES:-2}
+      NGSER_RECONCILIATION_PENDING_MINUTES: ${NGSER_RECONCILIATION_PENDING_MINUTES:-30}
+      COMMISSION_FORGES_DEFAULT_PCT: ${COMMISSION_FORGES_DEFAULT_PCT:-30}
+      HMAC_ANONYMISATION_SEL: ${HMAC_ANONYMISATION_SEL}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - forges-staging-net
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run build && npm run preview -- --host 0.0.0.0 --port 4173"
+    volumes:
+      - ../frontend:/app
+    ports:
+      - "${FRONTEND_PORT:-4173}:4173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4173/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - forges-staging-net
+
+networks:
+  forges-staging-net:
+    driver: bridge
+
+volumes:
+  postgres_staging_data:
+  redis_staging_data:

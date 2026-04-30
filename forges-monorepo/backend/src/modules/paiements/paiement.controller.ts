@@ -2,9 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { PaiementService } from './paiement.service';
 import { InitierPaiementNgserSchema, InitierPaiementSchema, WebhookPaiementSchema } from './dto/paiement.dto';
 import { createHmac } from 'crypto';
+import { IpnQueueService } from '../../shared/queue/ipn-queue.service';
+import { masquerSecrets } from '../../shared/utils/masque-secrets.util';
 
 export class PaiementController {
-  constructor(private readonly paiementService: PaiementService) {}
+  constructor(
+    private readonly paiementService: PaiementService,
+    private readonly ipnQueue?: IpnQueueService
+  ) {}
 
   // POST /api/paiements/initier — initiation backend-only NGSER mock (RM-157)
   async initierPaiementNgser(req: Request, res: Response, next: NextFunction) {
@@ -132,5 +137,54 @@ export class PaiementController {
       const count = await this.paiementService.annulerPaiementsExpires();
       res.json({ annules: count });
     } catch (error) { next(error); }
+  }
+
+  // POST /webhooks/paiement — IPN NGSER (RM-158/160)
+  async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Vérification signature HMAC
+      const signature = req.headers['x-webhook-signature'];
+      const payload = JSON.stringify(req.body);
+      const expectedSig = createHmac('sha256', process.env.WEBHOOK_SECRET || 'dev-secret')
+        .update(payload)
+        .digest('hex');
+
+      if (!signature || signature !== expectedSig) {
+        return res.status(401).json({
+          statusCode: 401,
+          error: 'INVALID_SIGNATURE',
+          message: 'Signature webhook invalide',
+        });
+      }
+
+      // Masquer les secrets avant d'enqueuer
+      const payloadMasque = masquerSecrets(req.body);
+      const headersMasques = masquerSecrets(req.headers);
+
+      // Enqueuer pour traitement asynchrone
+      if (this.ipnQueue) {
+        await this.ipnQueue.enqueue({
+          provider: 'NGSER',
+          payload: req.body, // payload original non masqué pour traitement
+          received_at: new Date(),
+          headers: headersMasques,
+        });
+      } else {
+        // Fallback synchrone si pas de queue (ne devrait pas arriver)
+        await this.paiementService.traiterIpnNgser(req.body);
+      }
+
+      // Réponse HTTP 200 immédiate (RM-158)
+      return res.status(200).json({
+        statusCode: 200,
+        data: { accepted: true },
+      });
+    } catch (error: any) {
+      // Toujours répondre 200 pour éviter les retry NGSER
+      return res.status(200).json({
+        statusCode: 200,
+        data: { accepted: false, error: error.message },
+      });
+    }
   }
 }

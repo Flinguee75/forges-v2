@@ -159,6 +159,7 @@ app.use('/api/apporteurs', apporteurRoutes); // ✅ CORRIGÉ: singular → plura
 app.use('/api/admin', adminRoutes); // ✅ NOUVEAU: création admin utilisateurs / partenaires / apporteurs
 app.use('/api', inscriptionRoutes); // ✅ NOUVEAU: endpoints inscriptions/dossiers/sessions
 app.use('/api', paiementRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET paiements, webhook, backoffice paiements
+app.use('/', paiementRoutes); // ✅ v4.9: IPN NGSER canonical /webhooks/paiement
 app.use('/api/vouchers', voucherRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET vouchers, validate
 app.use('/api/responsable', responsableRoutes); // ✅ NOUVEAU: endpoints validation formations (UCS18)
 app.use('/api/backoffice', responsableRoutes);

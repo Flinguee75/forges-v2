@@ -61,6 +61,7 @@ export default function PaiementsList() {
   const getStatutBadge = (statut) => {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
+      PENDING: { variant: 'warning', label: 'En attente' },
       INITIE: { variant: 'gray', label: 'Initié' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       ECHOUE: { variant: 'danger', label: 'Échoué' },
@@ -101,24 +102,24 @@ export default function PaiementsList() {
       key: 'dossier',
       label: 'Apprenant',
       render: (_, paiement) => {
-        const etudiant = paiement.dossier?.etudiant;
-        if (!etudiant) return 'N/A';
-        return `${etudiant.nom} ${etudiant.prenom}`;
+        const apprenant = paiement.dossier?.apprenant || paiement.dossier?.etudiant;
+        if (!apprenant) return 'N/A';
+        return `${apprenant.nom || ''} ${apprenant.prenom || apprenant.prenoms || ''}`.trim();
       },
     },
     {
-      key: 'montant',
+      key: 'montant_final',
       label: 'Montant',
-      render: (value) => {
-        // Le montant est stocké en centimes dans la DB
-        const montantFCFA = value / 100;
+      render: (value, paiement) => {
+        const montant = value ?? paiement.montant_initie ?? paiement.montant ?? paiement.montant_catalogue ?? 0;
+        const montantFCFA = montant / 100;
         return `${montantFCFA.toLocaleString('fr-FR')} FCFA`;
       },
     },
     {
-      key: 'methode_paiement',
+      key: 'methode',
       label: 'Méthode',
-      render: (value) => getMethodeBadge(value),
+      render: (value, paiement) => getMethodeBadge(value || paiement.methode_paiement || paiement.provider || 'NGSER'),
     },
     {
       key: 'statut',
@@ -190,6 +191,7 @@ export default function PaiementsList() {
             >
               <option value="">Tous les statuts</option>
               <option value="EN_ATTENTE">En attente</option>
+              <option value="PENDING">En attente NGSER</option>
               <option value="INITIE">Initié</option>
               <option value="CONFIRME">Confirmé</option>
               <option value="ECHOUE">Échoué</option>

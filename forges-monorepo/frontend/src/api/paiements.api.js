@@ -20,6 +20,10 @@ function createUnavailableError(message, code = 'ENDPOINT_ABSENT') {
   return error;
 }
 
+function normalizeList(response) {
+  return Array.isArray(response) ? response : response?.data || [];
+}
+
 export const paiementsApi = {
   /**
    * Initie un paiement manuel
@@ -31,17 +35,40 @@ export const paiementsApi = {
   },
 
   /**
+   * Initie une session NGSER backend-only.
+   * Le montant est toujours recalculé côté backend (RM-157).
+   */
+  initierNgser: (data) => {
+    return apiClient.post('/paiements/initier', data);
+  },
+
+  /**
    * Récupère le détail d'un paiement
    * GET /api/paiements (filtré côté client car le backend runtime n'expose pas de détail dédié)
    * @param {string} id - ID du paiement
    */
   getById: async (id) => {
     const paiements = await apiClient.get('/paiements');
-    const list = Array.isArray(paiements) ? paiements : paiements?.data || [];
+    const list = normalizeList(paiements);
     const paiement = list.find((item) => item.id === id);
 
     if (!paiement) {
       throw createUnavailableError('Paiement introuvable dans la liste des paiements runtime.', 'NOT_FOUND');
+    }
+
+    return paiement;
+  },
+
+  /**
+   * Récupère le détail d'un paiement depuis la liste backoffice.
+   */
+  getBackofficeById: async (id) => {
+    const paiements = await apiClient.get('/backoffice/paiements');
+    const list = normalizeList(paiements);
+    const paiement = list.find((item) => item.id === id);
+
+    if (!paiement) {
+      throw createUnavailableError('Paiement introuvable dans la liste backoffice.', 'NOT_FOUND');
     }
 
     return paiement;
@@ -55,6 +82,19 @@ export const paiementsApi = {
   getAll: (params = {}) => {
     return apiClient.get('/backoffice/paiements', {
       params: cleanQueryParams(params)
+    }).then((response) => {
+      if (Array.isArray(response)) {
+        return {
+          data: response,
+          meta: {
+            page: Number(params.page || 1),
+            totalPages: 1,
+            total: response.length,
+          },
+        };
+      }
+
+      return response;
     });
   },
 };

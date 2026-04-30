@@ -3,6 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import { prisma } from '../shared/prisma/prisma.client';
 import { AuditLogger } from '../shared/audit/audit.logger';
 import { IpnNgserService } from '../modules/paiements/ipn-ngser.service';
+import { NgserClient } from '../modules/paiements/ngser.client';
 
 export interface ReconciliationResult {
   statut_final?: string;
@@ -177,38 +178,25 @@ export class ReconciliationNgserScheduler {
   private async reconcilierReel(order_ngser: string): Promise<ReconciliationResult> {
     console.log(`[ReconciliationNgserScheduler] Mode RÉEL - Réconciliation ${order_ngser}`);
 
-    // J6+: Implémentation appel API NGSER
-    // Incohérence doc NGSER à arbitrer avant production:
-    // - specs: POST /service/auth puis POST /check_payment_status/{order}
-    // - addendum: GET /v3/sessions/status?order_id=...
-    // Pour J5, cette méthode lève une erreur car l'API réelle n'est pas encore configurée
-    throw new Error('NGSER_REAL_API_NOT_IMPLEMENTED_YET');
-
-    // Exemple implémentation future (J6) :
-    /*
-    const axios = require('axios');
-    const response = await axios.get(
-      `${process.env.NGSER_BASE_URL}/v3/sessions/status`,
-      {
-        params: { order_id: order_ngser },
-        headers: {
-          Authorization: `Bearer ${process.env.NGSER_AUTH_TOKEN}`,
-        },
-        timeout: Number(process.env.NGSER_REQUEST_TIMEOUT_MS) || 30000,
-      }
-    );
-
-    const ngserStatus = {
-      transaction_id: response.data.transaction_id,
-      status: response.data.status,
-      amount: response.data.amount,
-      code_ngser: response.data.code,
-      wallet_ngser: response.data.wallet,
-    };
+    const ngserClient = new NgserClient(this.audit);
+    const ngserStatus = await ngserClient.getStatus({ order: order_ngser });
+    const paiement = await this.prisma.paiement.findUnique({
+      where: { order_ngser },
+      select: { montant_initie: true },
+    });
 
     const result = await this.ipnService.traiterIpn({
       order_ngser: order_ngser,
-      ...ngserStatus,
+      transaction_id: ngserStatus.transaction_id || `RECON-${order_ngser}`,
+      status: ngserStatus.status,
+      amount: ngserStatus.amount ?? paiement?.montant_initie ?? 0,
+      code_ngser: ngserStatus.code,
+      wallet_ngser: ngserStatus.wallet,
+    });
+
+    await this.prisma.paiement.updateMany({
+      where: { order_ngser },
+      data: { reconciled_at: new Date() },
     });
 
     return {
@@ -216,7 +204,6 @@ export class ReconciliationNgserScheduler {
       dossier_statut: result.dossier_statut,
       order_ngser: order_ngser,
     };
-    */
   }
 
   /**

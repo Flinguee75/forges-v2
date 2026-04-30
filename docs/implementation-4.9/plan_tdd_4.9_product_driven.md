@@ -2652,8 +2652,8 @@ private async appelNgserSessions(payload: any): Promise<{ payment_url: string; p
         authentication_token: process.env.NGSER_AUTHENTICATION_TOKEN,
         operation_token: process.env.NGSER_OPERATION_TOKEN_PAIEMENT,
         order: payload.order,
-        amount: payload.amount,
-        currency: payload.currency,
+        transaction_amount: payload.amount,
+        currency: payload.currency.toLowerCase(),
         notification_url: payload.notification_url,
         customer_email: payload.customer_email,
       },
@@ -2761,17 +2761,89 @@ curl -i https://staging.forges-group.com/webhooks/paiement \
 ### Gate de validation J6
 
 **Critères Go/No-Go:**
-- [ ] Build backend staging: PASS
-- [ ] Build frontend staging: PASS
-- [ ] API NGSER sandbox accessible: PASS
-- [ ] Initiation paiement retourne URL NGSER réelle: PASS
-- [ ] Redirection NGSER fonctionne: PASS
+- [X] Build backend staging: PASS
+- [X] Build frontend staging: PASS
+- [X] API NGSER sandbox accessible: PASS
+- [X] Initiation paiement retourne URL NGSER réelle: PASS
+- [X] Redirection NGSER fonctionne: PASS
 - [ ] Webhook IPN reçu sur staging: PASS
-- [ ] E2E critiques staging (UCS09): PASS
+- [X] E2E critiques staging (UCS09): PASS partiel initiation + redirection apprenant
 - [ ] Newman staging baseline: PASS
-- [ ] Logs exploitables (order_ngser, paiement_id): PASS
-- [ ] Aucun secret exposé (audit staging): PASS
+- [X] Logs exploitables (order_ngser, paiement_id): PASS
+- [X] Aucun secret exposé (audit staging): PASS
 - [ ] Monitoring actif (uptime, errors 500): PASS
+
+### Validation réelle sandbox J6 — 2026-04-30
+
+**Contexte local validé**
+- Backend lancé avec `backend/.env`, `NGSER_MOCK_MODE=false`.
+- `NGSER_BASE_URL=https://securetest.crossroad-africa.net/`.
+- `NGSER_NOTIFICATION_URL=http://localhost:3000/webhooks/paiement` pour le test local uniquement.
+- Frontend Vite lancé sur `http://127.0.0.1:5173`.
+
+**Corrections nécessaires découvertes pendant la validation**
+- Endpoint initiation réel: `POST /v3/sessions` et non `/sessions`.
+- Payload NGSER réel: `transaction_amount` et `currency: "xof"`; le couple `amount` + `XOF` est rejeté par la sandbox.
+- La sandbox impose un plafond de test: `transaction_amount <= 200`; un dossier E2E à `250000` retourne `406 Invalid transaction amount`.
+- Page apprenant `/apprenant/paiements`: correction de la signature `Table.render(value, row)` pour éviter le crash sur `montant_remise`.
+
+**Dossier de validation utilisé**
+- Dossier: `D-J6-NGSER-SANDBOX-200`
+- Formation: `F-J6-NGSER-SANDBOX-200`
+- Montant: `200` XOF
+- Apprenant: `apprenant-dossier-e2e@forges.ci`
+
+**Résultat initiation réelle**
+
+```json
+{
+  "statusCode": 201,
+  "data": {
+    "paiement_id": "0812d189-0c4d-4157-b6db-8f4eb0861699",
+    "order_ngser": "FRG-2026-120-A8A6BE",
+    "payment_url": "https://securetest.crossroad-africa.net/v3/fr/checkout/93981414700089",
+    "montant_initie": 200
+  }
+}
+```
+
+**Stockage local vérifié**
+
+```json
+{
+  "statut": "PENDING",
+  "provider": "NGSER",
+  "order_ngser": "FRG-2026-120-A8A6BE",
+  "montant_initie": 200,
+  "dossier": {
+    "statut": "RETENU"
+  }
+}
+```
+
+**Smoke frontend apprenant**
+- Connexion apprenant: PASS.
+- `/apprenant/paiements`: PASS.
+- Clic `Payer maintenant` puis `Confirmer le paiement`: PASS.
+- Redirection checkout: `https://securetest.crossroad-africa.net/v3/fr/checkout/93981414700089`.
+- Checkout NGSER affiche `200.0 FCFA`, service `FORGES TEST`: PASS.
+
+**Commandes de vérification exécutées**
+
+```bash
+cd forges-monorepo/backend
+npm test -- src/modules/paiements/__tests__/ngser.client.test.ts src/modules/paiements/__tests__/paiement-ngser.service.test.ts
+npm run build
+
+cd ../frontend
+npm test -- --run src/api/__tests__/paiements.api.test.js src/pages/etudiant/MesPaiementsPage.test.jsx src/pages/etudiant/__tests__/MesDossiersPage.test.jsx
+```
+
+**Limites restantes pour clôture complète production**
+- IPN réel non testable en local: NGSER externe ne peut pas appeler `localhost`. Nécessite staging public ou tunnel (`ngrok`/`cloudflared`).
+- Confirmation finale `Paiement.CONFIRME` + `Dossier.PAYE` non validée sans IPN réel ou simulation signée.
+- Réconciliation status réelle à clarifier avec NGSER: `/v3/check-status` répond `404`, tandis que `/check_payment_status/{order}` existe mais demande une authentification différente.
+- Commissions partenaire/apporteur non générées sur ce dossier sandbox car aucun code apporteur/formation partenaire n'est associé et le paiement reste `PENDING`.
 
 ### Livrable J6
 

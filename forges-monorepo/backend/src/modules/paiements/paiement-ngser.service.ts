@@ -34,10 +34,12 @@ export class PaiementNgserService {
     }
 
     if (paiementExistant?.provider === NGSER_PROVIDER && paiementExistant.order_ngser) {
+      const payload = paiementExistant.ngser_payload_last as { payment_url?: string } | null;
+
       return {
         paiement_id: paiementExistant.id,
         order_ngser: paiementExistant.order_ngser,
-        payment_url: this.buildMockPaymentUrl(paiementExistant.order_ngser),
+        payment_url: payload?.payment_url || this.buildMockPaymentUrl(paiementExistant.order_ngser),
         montant_initie: paiementExistant.montant_initie,
       };
     }
@@ -151,12 +153,32 @@ export class PaiementNgserService {
     return this.createRealNgserSession(order, montant);
   }
 
-  private async createRealNgserSession(_order: string, _montant: number): Promise<{
+  private async createRealNgserSession(order: string, montant: number): Promise<{
     payment_token: string;
     payment_url: string;
     expired_url?: string;
   }> {
-    throw new Error('NGSER_REAL_INTEGRATION_NOT_IMPLEMENTED_J3');
+    const ngserClient = await this.getNgserClient();
+
+    const notificationUrl = process.env.NGSER_NOTIFICATION_URL || 'http://localhost:3000/webhooks/paiement';
+
+    const response = await ngserClient.createSession({
+      order,
+      amount: montant,
+      currency: 'XOF',
+      notification_url: notificationUrl,
+    });
+
+    return {
+      payment_token: response.payment_token,
+      payment_url: response.payment_url,
+      expired_url: response.expired_url,
+    };
+  }
+
+  private async getNgserClient() {
+    const { NgserClient } = await import('./ngser.client');
+    return new NgserClient(this.audit);
   }
 
   private isMockMode(): boolean {
