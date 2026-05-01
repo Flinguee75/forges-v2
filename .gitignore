@@ -17,6 +17,7 @@ tsconfig.tsbuildinfo
 # ─── Environment & secrets ────────────────────────────────────────────────────
 .env
 .env.local
+.env.staging
 .env.*.local
 .env.encrypted
 # Keep examples

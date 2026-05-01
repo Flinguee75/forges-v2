@@ -8,7 +8,127 @@ const audit = new AuditLogger(prisma);
 const commissionService = new CommissionService(prisma, audit);
 const service = new IpnNgserService(prisma, audit, commissionService);
 
+const TEST_IDS = {
+  apprenant: 'test-apprenant',
+  formation: 'test-formation',
+  formationPartenaire: 'test-formation-partenaire',
+  session: 'test-session',
+  partenaire: 'test-partenaire',
+};
+
+function daysFromNow(days: number) {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+}
+
 describe('IpnNgserService — RM-158/160', () => {
+  beforeAll(async () => {
+    await prisma.commissionPartenaire.deleteMany({
+      where: { paiement: { dossier_id: { startsWith: 'D-TEST-' } } },
+    });
+    await prisma.commissionApporteur.deleteMany({
+      where: { paiement: { dossier_id: { startsWith: 'D-TEST-' } } },
+    });
+    await prisma.paiement.deleteMany({
+      where: { dossier_id: { startsWith: 'D-TEST-' } },
+    });
+    await prisma.dossier.deleteMany({
+      where: { id: { startsWith: 'D-TEST-' } },
+    });
+
+    await prisma.apprenant.upsert({
+      where: { id: TEST_IDS.apprenant },
+      update: {},
+      create: {
+        id: TEST_IDS.apprenant,
+        email: 'test-apprenant-ipn@forges.ci',
+        password_hash: 'test-password-hash',
+        nom: 'Test',
+        prenoms: 'Apprenant',
+        type_apprenant: 'APPRENANT',
+        niveau_etude: 'LICENCE',
+        pays_residence: 'CI',
+        pays_nationalite: 'CI',
+        statut: 'ACTIF',
+        consentement_rgpd: true,
+        consentement_timestamp: new Date(),
+      },
+    });
+
+    await prisma.partenaire.upsert({
+      where: { id: TEST_IDS.partenaire },
+      update: {},
+      create: {
+        id: TEST_IDS.partenaire,
+        raison_sociale: 'Partenaire IPN Test',
+        type: 'ORGANISME',
+        pays: 'CI',
+        email_principal: 'partenaire-ipn-test@forges.ci',
+        commission_forges_pct: 30,
+        statut: 'ACTIF',
+        mode_inscription: 'AUTO_INSCRIPTION',
+      },
+    });
+
+    await prisma.formation.upsert({
+      where: { id: TEST_IDS.formation },
+      update: {
+        cout_catalogue: 150000,
+        statut: 'ACTIVE',
+        partenaire_id: TEST_IDS.partenaire,
+      },
+      create: {
+        id: TEST_IDS.formation,
+        intitule: 'Formation IPN Test',
+        description_courte: 'Fixture IPN NGSER',
+        duree_jours: 1,
+        cout_catalogue: 150000,
+        responsable_id: 'test-responsable',
+        type_formation: 'PREMIUM',
+        mode_formation: 'AVEC_SESSION',
+        statut: 'ACTIVE',
+        objectifs_pedagogiques: [],
+        langues_disponibles: ['FR'],
+        partenaire_id: TEST_IDS.partenaire,
+      },
+    });
+
+    await prisma.session.upsert({
+      where: { id: TEST_IDS.session },
+      update: {},
+      create: {
+        id: TEST_IDS.session,
+        formation_id: TEST_IDS.formation,
+        date_ouverture: daysFromNow(-10),
+        date_cloture: daysFromNow(10),
+        date_debut: daysFromNow(20),
+        date_fin: daysFromNow(25),
+        capacite: 20,
+        places_restantes: 20,
+        statut: 'OUVERTE',
+      },
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.commissionPartenaire.deleteMany({
+      where: { paiement: { dossier_id: { startsWith: 'D-TEST-' } } },
+    });
+    await prisma.commissionApporteur.deleteMany({
+      where: { paiement: { dossier_id: { startsWith: 'D-TEST-' } } },
+    });
+    await prisma.paiement.deleteMany({
+      where: { dossier_id: { startsWith: 'D-TEST-' } },
+    });
+    await prisma.dossier.deleteMany({
+      where: { id: { startsWith: 'D-TEST-' } },
+    });
+    await prisma.session.deleteMany({ where: { id: TEST_IDS.session } });
+    await prisma.formation.deleteMany({ where: { id: TEST_IDS.formation } });
+    await prisma.partenaire.deleteMany({ where: { id: TEST_IDS.partenaire } });
+    await prisma.apprenant.deleteMany({ where: { id: TEST_IDS.apprenant } });
+    await prisma.$disconnect();
+  });
+
   describe('RM-158.1: Idempotence stricte', () => {
     it('IPN doublon retourne already_processed sans action', async () => {
       // Setup dossier et paiement
@@ -53,6 +173,7 @@ describe('IpnNgserService — RM-158/160', () => {
       expect(result2.action).toBe('NONE');
 
       // Cleanup
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: paiement.id } });
       await prisma.paiement.delete({ where: { id: paiement.id } });
       await prisma.dossier.delete({ where: { id: dossier.id } });
     });
@@ -126,6 +247,7 @@ describe('IpnNgserService — RM-158/160', () => {
       expect(result2.already_processed).toBe(true);
 
       // Cleanup
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: { in: [paiement1.id, paiement2.id] } } });
       await prisma.paiement.deleteMany({ where: { id: { in: [paiement1.id, paiement2.id] } } });
       await prisma.dossier.deleteMany({ where: { id: { in: [dossier1.id, dossier2.id] } } });
     });
@@ -215,8 +337,7 @@ describe('IpnNgserService — RM-158/160', () => {
 
   describe('RM-158.2: Statuts IPN', () => {
     it('SUCCESS: CONFIRME + PAYE + commissions créées', async () => {
-      const formation = await prisma.formation.findFirst({ where: { statut: 'PUBLIEE' } });
-      if (!formation) throw new Error('Aucune formation trouvée pour le test');
+      const formation = await prisma.formation.findUniqueOrThrow({ where: { id: TEST_IDS.formation } });
 
       const dossier = await prisma.dossier.create({
         data: {
@@ -395,8 +516,7 @@ describe('IpnNgserService — RM-158/160', () => {
 
   describe('RM-158.3: Commissions', () => {
     it('Commissions créées une seule fois (pas en doublon)', async () => {
-      const formation = await prisma.formation.findFirst({ where: { statut: 'PUBLIEE' } });
-      if (!formation) throw new Error('Aucune formation trouvée pour le test');
+      const formation = await prisma.formation.findUniqueOrThrow({ where: { id: TEST_IDS.formation } });
 
       const dossier = await prisma.dossier.create({
         data: {
