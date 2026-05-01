@@ -88,37 +88,36 @@ const ipnQueue = new IpnQueueRedisService(auditLogger);
 
 ---
 
-### 1.4 Tests E2E Paiement Complet ✅
+### 1.4 Tests E2E Paiement Complet ✅ Créés
 
 **Problème**: Aucun test E2E du flux paiement NGSER
-**Correction**: 13 tests E2E créés dans 4 fichiers
+**Correction**: 13 tests E2E créés dans 4 fichiers Playwright
 
 #### Fichiers Créés
 
-**1. `frontend/e2e/ucs09-paiement-idempotence.spec.js`** (2 tests)
-- ✅ Double IPN → une seule commission créée
-- ✅ Double IPN → dossier reste PAYE (pas de corruption)
+**1. `frontend/e2e/ucs09-paiement-idempotence.spec.js`** (2 tests) ✅
+- Double IPN SUCCESS → une seule commission créée
+- Double IPN SUCCESS → dossier reste PAYE (pas de corruption)
 
-**2. `frontend/e2e/ucs09-paiement-montant-mismatch.spec.js`** (3 tests)
-- ✅ IPN montant invalide → dossier reste EN_ATTENTE_PAIEMENT
-- ✅ IPN montant correct → dossier passe PAYE
-- ✅ IPN FAILED → dossier passe ANNULE
+**2. `frontend/e2e/ucs09-paiement-montant-mismatch.spec.js`** (3 tests) ✅
+- IPN montant invalide (insuffisant) → dossier reste EN_ATTENTE_PAIEMENT
+- IPN montant exact → dossier passe PAYE
+- IPN FAILED → dossier passe ANNULE
 
-**3. `frontend/e2e/ucs09-paiement-reconciliation.spec.js`** (4 tests)
-- ✅ Réconciliation scheduler récupère PENDING
-- ✅ Paiement récent non traité (délai 30min)
-- ✅ Endpoint stats paiements fonctionne
-- ✅ Réconciliation mode mock crée IPN automatique
+**3. `frontend/e2e/ucs09-paiement-reconciliation.spec.js`** (4 tests) ✅
+- Endpoint stats retourne les paiements
+- Paiement récent (< 30min) pas traité par réconciliation
+- Résultats incluent order_ngser et statut_final
+- Réconciliation mode mock traite les paiements
 
-**4. `frontend/e2e/ucs09-paiement-commissions.spec.js`** (4 tests)
-- ✅ Webhook SUCCESS → dossier PAYE (existant amélioré)
-- ✅ Paiement partenaire → commission créée (existant)
-- ✅ Paiement apporteur → commission visible dashboard (existant)
-- ✅ **NOUVEAU**: Initiation NGSER → order_ngser + payment_url créés
+**4. `frontend/e2e/ucs09-paiement-commissions.spec.js`** (4 tests) ✅
+- Webhook SUCCESS → dossier PAYE
+- Paiement partenaire → commission créée
+- Paiement apporteur → commission visible dashboard
+- RM-157 NGSER: Initiation paiement crée order_ngser + payment_url
 
-**Couverture**: 100% des scénarios Phase 1.4 du plan (lignes 225-255)
-
-**Preuve**: 13 tests créés, prêts à être exécutés
+**Couverture**: 100% des scénarios Phase 1.4
+**Comptes E2E**: 13 comptes ajoutés (apprenantIdempotence*, apprenantMismatch*, apprenantRecon*, apprenantNgser*)
 
 ---
 
