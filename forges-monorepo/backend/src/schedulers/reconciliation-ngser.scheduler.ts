@@ -149,12 +149,21 @@ export class ReconciliationNgserScheduler {
   private async reconcilierMock(order_ngser: string): Promise<ReconciliationResult> {
     console.log(`[ReconciliationNgserScheduler] Mode MOCK - Réconciliation ${order_ngser}`);
 
+    const paiement = await this.prisma.paiement.findUnique({
+      where: { order_ngser },
+      select: { montant_initie: true },
+    });
+
+    if (!paiement?.montant_initie) {
+      throw new Error('PAIEMENT_NOT_FOUND_OR_NO_MONTANT');
+    }
+
     // Simule un IPN SUCCESS
     const ipnMock = {
       order_ngser: order_ngser,
       transaction_id: `TXN-RECON-MOCK-${Date.now()}`,
       status: 'SUCCESS',
-      amount: 150000, // Mock - montant sera validé par IPN service
+      amount: paiement.montant_initie,
     };
 
     const result = await this.ipnService.traiterIpn(ipnMock);

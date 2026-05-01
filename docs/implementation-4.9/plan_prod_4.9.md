@@ -3,48 +3,42 @@
 ## Contexte
 
 FORGES v4.9 intègre le système de paiement NGSER (RM-157 à RM-162) avec:
-- Tests backend: 478/478 PASS (100%)
-- Décision J7: GO PRODUCTION LIMITÉE
-- **Problème critique**: Mode mock actif, plusieurs gaps de fiabilité identifiés
+- Tests backend: 484/484 PASS (100%)
+- Décision J7/J8: GO STAGING UNIQUEMENT
+- **Point critique restant**: gate staging NGSER réel non encore validé publiquement
 
 ## Problèmes Critiques Identifiés
 
 ### 🔴 BLOQUANTS (à corriger avant production)
 
-1. **Scheduler réconciliation NON ACTIVÉ**
+1. **Scheduler réconciliation NON ACTIVÉ** — ✅ corrigé
    - Fichier: `src/app.ts`
-   - Impact: Paiements PENDING bloqués indéfiniment
-   - Aucune récupération automatique en cas d'IPN perdu
+   - Statut: `ReconciliationNgserScheduler` démarre avec les autres schedulers hors `NODE_ENV=test`.
 
-2. **Bug montant hardcodé dans réconciliation**
+2. **Bug montant hardcodé dans réconciliation** — ✅ corrigé
    - Fichier: `src/schedulers/reconciliation-ngser.scheduler.ts` ligne 157
-   - Code: `amount: 150000` (devrait être `paiement.montant_initie`)
-   - Impact: RM-160 rejette IPN → paiement reste PENDING
+   - Statut: le mock récupère `paiement.montant_initie` avant de simuler l'IPN.
 
-3. **Queue IPN en mémoire (non persistante)**
+3. **Queue IPN en mémoire (non persistante)** — ✅ corrigé
    - Fichier: `src/shared/queue/ipn-queue.service.ts`
-   - Impact: Perte d'IPN en crash serveur
-   - Aucun retry automatique
+   - Statut: les routes paiement utilisent `IpnQueueRedisService`.
 
-4. **Item queue supprimé avant traitement**
-   - Même fichier, méthode `processQueue()`
-   - Impact: Item perdu si exception dans processor
-   - Pas de dead-letter queue
+4. **Item queue supprimé avant traitement** — ✅ corrigé
+   - Fichier: `src/shared/queue/ipn-queue-redis.service.ts`
+   - Statut: déplacement atomique vers liste `processing`, retry, puis DLQ après échecs.
 
-5. **Aucun test E2E du flux paiement complet**
+5. **Aucun test E2E du flux paiement complet** — ⚠️ reste à finaliser
    - Gap: Inscription → Paiement → IPN → Dossier PAYE
-   - Pas de test avec API NGSER réelle
+   - Statut: backend couvert par unit/integration; E2E Playwright à stabiliser avec fixtures isolées pour éviter de casser les scénarios existants.
 
 ### 🟡 IMPORTANTS (avant production finale)
 
 6. **Pas de circuit-breaker NGSER API**
-   - Impact: DDoS involontaire si 100+ paiements PENDING
-   - Pas de backoff exponentiel
+   - Statut: ✅ corrigé avec `CircuitBreakerService` intégré au client NGSER.
 
 7. **Aucun monitoring/alerting temps réel**
-   - Pas de métriques Prometheus
-   - Pas de dashboard paiements
-   - Incidents silencieux
+   - Statut: ⚠️ partiel, endpoint `/api/admin/paiements/stats` et script `check-critical-alerts.sh` ajoutés.
+   - Reste: configuration cron serveur, webhook Slack et dashboard.
 
 8. **Timeout NGSER trop strict (30s)**
    - Peut échouer inutilement en production
@@ -53,6 +47,8 @@ FORGES v4.9 intègre le système de paiement NGSER (RM-157 à RM-162) avec:
 ## Approche Recommandée
 
 ### Phase 1: Corrections Bloquantes (J8 - 1 jour)
+
+**Statut actuel**: corrections bloquantes backend terminées et validées par build + tests complets. Le test E2E paiement complet reste à stabiliser avant de déclarer la Phase 1 totalement fermée côté production.
 
 #### 1.1 Activer le scheduler réconciliation ✅ PRIORITÉ 1
 
@@ -264,7 +260,7 @@ test('E2E: Réconciliation scheduler récupère PENDING', async () => {
 
 ### Phase 2: Améliorations Importantes (J9 - 1 jour)
 
-#### 2.1 Implémenter circuit-breaker NGSER
+#### 2.1 Implémenter circuit-breaker NGSER ✅
 
 **Nouveau fichier**: `src/shared/circuit-breaker/circuit-breaker.service.ts`
 
@@ -278,7 +274,7 @@ test('E2E: Réconciliation scheduler récupère PENDING', async () => {
 
 ---
 
-#### 2.2 Améliorer logs audit pour monitoring
+#### 2.2 Améliorer logs audit pour monitoring ⚠️ partiel
 
 **Fichier**: `src/shared/audit/audit.logger.ts`
 
@@ -289,7 +285,7 @@ test('E2E: Réconciliation scheduler récupère PENDING', async () => {
 
 **Nouveau**: Endpoint admin pour statistiques temps réel
 
-**Fichier**: `src/modules/admin/paiements-stats.controller.ts`
+**Fichier**: `src/modules/paiements/paiement.controller.ts`
 
 ```typescript
 GET /api/admin/paiements/stats?period=24h
@@ -309,30 +305,21 @@ Response:
 
 ---
 
-#### 2.3 Alertes critiques via AuditLog
+#### 2.3 Alertes critiques via AuditLog ⚠️ partiel
 
-**Script cron**: `scripts/check-critical-alerts.sh` (toutes les 5 min)
+**Script cron**: `backend/scripts/check-critical-alerts.sh` (toutes les 5 min)
 
 ```bash
-#!/bin/bash
-# Vérifier si scheduler down
-if ! grep -q "RECONCILIATION_NGSER_DEBUT" logs/app.log --after=$(date -d '35 minutes ago' +%s); then
-  curl -X POST $SLACK_WEBHOOK -d '{"text":"⚠️ Scheduler réconciliation DOWN"}'
-fi
-
-# Vérifier montant mismatch
-if grep -q "IPN_MONTANT_MISMATCH" logs/app.log --since=$(date -d '5 minutes ago' +%s); then
-  curl -X POST $SLACK_WEBHOOK -d '{"text":"🚨 FRAUD: Montant mismatch détecté"}'
-fi
-
-# Vérifier paiements PENDING âgés
-PENDING_COUNT=$(psql $DATABASE_URL -t -c "SELECT COUNT(*) FROM Paiement WHERE statut='PENDING' AND created_at < now() - interval '60 minutes'")
-if [ $PENDING_COUNT -gt 5 ]; then
-  curl -X POST $SLACK_WEBHOOK -d "{\"text\":\"⚠️ $PENDING_COUNT paiements PENDING > 60min\"}"
-fi
+APP_LOG=logs/app.log \
+PENDING_THRESHOLD=5 \
+SLACK_WEBHOOK=https://hooks.slack.com/services/... \
+./scripts/check-critical-alerts.sh
 ```
 
-**Déploiement**: Cron toutes les 5 min sur serveur production
+**Statut**:
+- Script ajouté côté backend.
+- À configurer sur le serveur via cron toutes les 5 min.
+- À valider avec le webhook Slack réel hors dépôt.
 
 ---
 
@@ -429,8 +416,8 @@ if (Math.random() * 100 < Number(process.env.NGSER_ROLLOUT_PERCENTAGE)) {
 
 6. `src/shared/circuit-breaker/circuit-breaker.service.ts` - Nouveau
 7. `src/modules/paiements/ngser.client.ts` - Intégrer circuit-breaker
-8. `src/modules/admin/paiements-stats.controller.ts` - Nouveau (stats temps réel)
-9. `scripts/check-critical-alerts.sh` - Nouveau (cron alertes)
+8. `src/modules/paiements/paiement.controller.ts` - Endpoint stats temps réel
+9. `backend/scripts/check-critical-alerts.sh` - Nouveau (cron alertes)
 
 ### Recommandés (Phase 3)
 
@@ -444,17 +431,18 @@ if (Math.random() * 100 < Number(process.env.NGSER_ROLLOUT_PERCENTAGE)) {
 
 ### Phase 1 (Bloquants)
 
-- [ ] Scheduler réconciliation activé et testé
-- [ ] Bug montant corrigé avec tests
-- [ ] Queue IPN Redis fonctionnelle
+- [x] Scheduler réconciliation activé et testé
+- [x] Bug montant corrigé avec tests
+- [x] Queue IPN Redis fonctionnelle
 - [ ] Tests E2E paiement passent (4/4)
-- [ ] Tous tests backend passent (478/478)
+- [x] Tous tests backend passent (484/484)
 
 ### Phase 2 (Importants)
 
-- [ ] Circuit-breaker implémenté
-- [ ] Endpoint stats paiements créé (`/api/admin/paiements/stats`)
-- [ ] Script alertes cron configuré
+- [x] Circuit-breaker implémenté
+- [x] Endpoint stats paiements créé (`/api/admin/paiements/stats`)
+- [x] Script alertes ajouté
+- [ ] Script alertes cron configuré sur serveur
 - [ ] Webhook Slack testé
 - [ ] Load test 100 paiements OK
 
@@ -510,8 +498,8 @@ if (Math.random() * 100 < Number(process.env.NGSER_ROLLOUT_PERCENTAGE)) {
 
 ✅ Scheduler activé
 ✅ Bug montant corrigé
-✅ Queue Redis déployée
-✅ Tests E2E passent
+✅ Queue Redis implémentée
+⚠️ Tests E2E paiement complet à stabiliser avant production limitée
 
 ### Court terme (J10)
 
@@ -531,12 +519,12 @@ if (Math.random() * 100 < Number(process.env.NGSER_ROLLOUT_PERCENTAGE)) {
 
 ## Décision Finale
 
-**RECOMMANDATION**: Implémenter Phase 1 (bloquants) avant tout déploiement production.
+**RECOMMANDATION**: finaliser le test E2E paiement complet puis exécuter le gate staging NGSER réel avant tout déploiement production.
 
 **NO-GO PRODUCTION** tant que:
-1. Scheduler réconciliation n'est pas activé
-2. Bug montant n'est pas corrigé
-3. Queue IPN n'est pas persistante
-4. Tests E2E ne passent pas
+1. Tests E2E paiement complet ne passent pas
+2. Staging public HTTPS n'est pas accessible
+3. Paiement sandbox réel NGSER à 200 XOF non validé
+4. IPN réel non reçu et traité
 
-**GO PRODUCTION LIMITÉE** après Phase 1 + Phase 2 complètes et staging validé 24h.
+**GO PRODUCTION LIMITÉE** après test E2E paiement complet, Phase 2, PASS complet J8 staging réel et observation staging 24h.

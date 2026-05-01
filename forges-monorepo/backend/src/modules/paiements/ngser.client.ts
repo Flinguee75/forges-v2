@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { AuditLogger } from '../../shared/audit/audit.logger';
+import { ngserCircuitBreaker } from '../../shared/circuit-breaker/circuit-breaker.service';
 
 export interface NgserSessionRequest {
   order: string;
@@ -184,6 +185,14 @@ export class NgserClient {
    * Gestion centralisée des erreurs NGSER
    */
   private async postWithRetry<T>(url: string, payload: object, operation: string, order: string) {
+    if (!ngserCircuitBreaker.canExecute()) {
+      await this.audit.error('NGSER_CIRCUIT_OPEN', {
+        operation,
+        order,
+      });
+      throw new Error('NGSER_CIRCUIT_OPEN');
+    }
+
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
@@ -197,11 +206,14 @@ export class NgserClient {
           });
         }
 
-        return await this.client.post<T>(url, payload);
+        const response = await this.client.post<T>(url, payload);
+        ngserCircuitBreaker.recordSuccess();
+        return response;
       } catch (error) {
         lastError = error;
 
         if (!this.shouldRetry(error) || attempt === this.maxRetries) {
+          ngserCircuitBreaker.recordFailure();
           throw error;
         }
 

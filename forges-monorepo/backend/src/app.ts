@@ -20,6 +20,7 @@ import { CommissionAgregateurScheduler } from './schedulers/commission-agregateu
 import { AlerteValidationScheduler } from './schedulers/alerte-validation.scheduler';
 import { ReversementAbonnementScheduler } from './schedulers/reversement-abonnement.scheduler';
 import { AlerteB2BScheduler } from './schedulers/alerte-b2b.scheduler';
+import { ReconciliationNgserScheduler } from './schedulers/reconciliation-ngser.scheduler';
 
 // Initialiser les schedulers
 const dossierExpirationScheduler = new DossierExpirationScheduler();
@@ -28,6 +29,7 @@ const commissionAgregateurScheduler = new CommissionAgregateurScheduler();
 const alerteValidationScheduler = new AlerteValidationScheduler();
 const reversementAbonnementScheduler = new ReversementAbonnementScheduler();
 const alerteB2BScheduler = new AlerteB2BScheduler();
+const reconciliationNgserScheduler = new ReconciliationNgserScheduler();
 
 // Démarrer les schedulers uniquement en production/development (pas en test)
 if (process.env.NODE_ENV !== 'test') {
@@ -37,6 +39,8 @@ if (process.env.NODE_ENV !== 'test') {
   alerteValidationScheduler.start();
   reversementAbonnementScheduler.start();
   alerteB2BScheduler.start();
+  reconciliationNgserScheduler.start();
+  console.log('[Schedulers] ✅ Réconciliation NGSER démarrée');
   console.log('[Schedulers] ✅ Tous les schedulers démarrés');
 }
 
@@ -48,6 +52,7 @@ export const schedulers = {
   alerteValidation: alerteValidationScheduler,
   reversementAbonnement: reversementAbonnementScheduler,
   alerteB2B: alerteB2BScheduler,
+  reconciliationNgser: reconciliationNgserScheduler,
 };
 
 // =====================================================

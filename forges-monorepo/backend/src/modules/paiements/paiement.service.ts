@@ -337,6 +337,57 @@ export class PaiementService {
     });
   }
 
+  async getPaiementsStats(period = '24h') {
+    const hoursByPeriod: Record<string, number> = {
+      '1h': 1,
+      '24h': 24,
+      '7d': 24 * 7,
+      '30d': 24 * 30,
+    };
+    const hours = hoursByPeriod[period] ?? 24;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const pendingThreshold = new Date(Date.now() - 30 * 60 * 1000);
+
+    const paiements = await this.prisma.paiement.findMany({
+      where: { created_at: { gte: since } },
+      select: {
+        statut: true,
+        created_at: true,
+        confirmed_at: true,
+        provider: true,
+      },
+    });
+
+    const total = paiements.length;
+    const success = paiements.filter((paiement) => paiement.statut === 'CONFIRME').length;
+    const fail = paiements.filter((paiement) => ['ECHOUE', 'ECHEC', 'ANNULE'].includes(paiement.statut)).length;
+    const pending = paiements.filter((paiement) => ['PENDING', 'EN_ATTENTE'].includes(paiement.statut)).length;
+    const confirmedDurations = paiements
+      .filter((paiement) => paiement.confirmed_at)
+      .map((paiement) => (paiement.confirmed_at!.getTime() - paiement.created_at.getTime()) / 1000);
+
+    const pendingOver30min = await this.prisma.paiement.count({
+      where: {
+        statut: 'PENDING',
+        provider: 'NGSER',
+        created_at: { lt: pendingThreshold },
+      },
+    });
+
+    return {
+      period,
+      total,
+      success,
+      fail,
+      pending,
+      success_rate: total > 0 ? Number(((success / total) * 100).toFixed(2)) : 0,
+      avg_confirmation_time_seconds: confirmedDurations.length > 0
+        ? Number((confirmedDurations.reduce((sum, value) => sum + value, 0) / confirmedDurations.length).toFixed(2))
+        : 0,
+      pending_over_30min: pendingOver30min,
+    };
+  }
+
   // GET /api/paiements — Liste paiements apprenant (Sprint 1 Semaine 2)
   async getPaiementsByApprenant(apprenantId: string) {
     return this.paiementRepo.findByApprenant(apprenantId);

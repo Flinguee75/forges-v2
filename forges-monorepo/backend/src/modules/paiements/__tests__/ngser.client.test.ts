@@ -2,6 +2,7 @@ import { NgserClient } from '../ngser.client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { PrismaClient } from '@prisma/client';
 import axios from 'axios';
+import { ngserCircuitBreaker } from '../../../shared/circuit-breaker/circuit-breaker.service';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -22,6 +23,7 @@ describe('NgserClient - Client HTTP NGSER', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    ngserCircuitBreaker.reset();
 
     // Variables d'environnement de test
     process.env.NGSER_BASE_URL = 'https://securetest.crossroad-africa.net/';

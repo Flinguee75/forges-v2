@@ -2,13 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { PaiementService } from './paiement.service';
 import { InitierPaiementNgserSchema, InitierPaiementSchema, WebhookPaiementSchema } from './dto/paiement.dto';
 import { createHmac } from 'crypto';
-import { IpnQueueService } from '../../shared/queue/ipn-queue.service';
+import { QueueItem } from '../../shared/queue/ipn-queue.service';
 import { masquerSecrets } from '../../shared/utils/masque-secrets.util';
+
+interface IpnQueuePort {
+  enqueue(item: QueueItem): Promise<void>;
+}
 
 export class PaiementController {
   constructor(
     private readonly paiementService: PaiementService,
-    private readonly ipnQueue?: IpnQueueService
+    private readonly ipnQueue?: IpnQueuePort
   ) {}
 
   // POST /api/paiements/initier — initiation backend-only NGSER mock (RM-157)
@@ -121,6 +125,17 @@ export class PaiementController {
       });
       res.json(paiements);
     } catch (error) { next(error); }
+  }
+
+  // GET /api/admin/paiements/stats — ADMIN/AGENT
+  async getPaiementsStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const period = typeof req.query.period === 'string' ? req.query.period : '24h';
+      const stats = await this.paiementService.getPaiementsStats(period);
+      res.status(200).json({ statusCode: 200, data: stats });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // POST /api/backoffice/reversements/partenaires — AGENT (RM-139)

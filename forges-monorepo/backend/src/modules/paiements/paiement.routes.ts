@@ -8,7 +8,7 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { IpnQueueService } from '../../shared/queue/ipn-queue.service';
+import { IpnQueueRedisService } from '../../shared/queue/ipn-queue-redis.service';
 
 const router = Router();
 
@@ -32,7 +32,7 @@ const paiementService = new PaiementService(
 );
 
 // Queue IPN
-const ipnQueue = new IpnQueueService(auditLogger);
+const ipnQueue = new IpnQueueRedisService(auditLogger);
 
 // Définir le processor de la queue IPN
 ipnQueue.setProcessor(async (item) => {
@@ -64,6 +64,11 @@ router.get('/paiements', authenticate, authorize('APPRENANT'), (req, res, next) 
 // GET /api/backoffice/paiements — Liste tous les paiements (ADMIN, AGENT) - UCS09, RM-88
 router.get('/backoffice/paiements', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
   paiementController.getPaiements(req, res, next);
+});
+
+// GET /api/admin/paiements/stats — Statistiques paiement temps réel (Phase 2 prod v4.9)
+router.get('/admin/paiements/stats', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  paiementController.getPaiementsStats(req, res, next);
 });
 
 // POST /api/paiements/webhook — Webhook confirmation paiement legacy (PUBLIC avec signature)

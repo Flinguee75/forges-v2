@@ -3,12 +3,14 @@ jest.mock('node-cron', () => ({
 }));
 
 const mockPaiementFindMany = jest.fn();
+const mockPaiementFindUnique = jest.fn();
 const mockPaiementUpdate = jest.fn();
 
 jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({
     paiement: {
       findMany: mockPaiementFindMany,
+      findUnique: mockPaiementFindUnique,
       update: mockPaiementUpdate,
     },
   })),
@@ -44,6 +46,7 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
     mockAuditWarning.mockResolvedValue(undefined);
     mockAuditError.mockResolvedValue(undefined);
     mockTraiterIpn.mockResolvedValue({ paiement_statut: 'CONFIRME', dossier_statut: 'PAYE' });
+    mockPaiementFindUnique.mockResolvedValue({ montant_initie: 150000 });
     jest.useFakeTimers();
     jest.setSystemTime(NOW);
     process.env.NGSER_MOCK_MODE = 'true'; // Mode mock par défaut pour les tests
@@ -117,6 +120,7 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
 
   describe('RM-159.2: Réconciliation SUCCESS', () => {
     it('appelle IPN service avec SUCCESS et met à jour paiement', async () => {
+      mockPaiementFindUnique.mockResolvedValue({ montant_initie: 200000 });
       mockTraiterIpn.mockResolvedValue({
         paiement_statut: 'CONFIRME',
         dossier_statut: 'PAYE',
@@ -129,7 +133,7 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
         order_ngser: 'FRG-2026-003-CCCCCC',
         transaction_id: expect.stringContaining('TXN-RECON-MOCK'),
         status: 'SUCCESS',
-        amount: 150000,
+        amount: 200000,
       });
 
       expect(result).toBeDefined();
@@ -140,6 +144,7 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
 
   describe('RM-159.3: Réconciliation FAIL', () => {
     it('appelle IPN service avec FAIL et met à jour paiement', async () => {
+      mockPaiementFindUnique.mockResolvedValue({ montant_initie: 100000 });
       mockTraiterIpn.mockResolvedValueOnce({
         paiement_statut: 'ECHOUE',
         dossier_statut: 'ANNULE',
@@ -151,6 +156,7 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
       expect(result).toBeDefined();
       expect(result?.statut_final).toBe('ECHOUE');
       expect(result?.dossier_statut).toBe('ANNULE');
+      expect(mockTraiterIpn).toHaveBeenCalledWith(expect.objectContaining({ amount: 100000 }));
     });
   });
 
@@ -170,6 +176,18 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
           error: 'NGSER_TIMEOUT',
         })
       );
+    });
+
+    it('garde PENDING si paiement introuvable ou sans montant_initie', async () => {
+      mockPaiementFindUnique.mockResolvedValue(null);
+
+      const result = await scheduler.reconcilierPaiement('FRG-2026-005-NOMONTANT');
+
+      expect(result).toEqual(expect.objectContaining({
+        statut_final: 'PENDING',
+        error: 'PAIEMENT_NOT_FOUND_OR_NO_MONTANT',
+      }));
+      expect(mockTraiterIpn).not.toHaveBeenCalled();
     });
   });
 

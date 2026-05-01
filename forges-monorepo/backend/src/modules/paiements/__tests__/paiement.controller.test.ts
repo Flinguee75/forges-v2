@@ -13,6 +13,7 @@ describe('PaiementController', () => {
       initierPaiementNgser: jest.fn(),
       confirmerPaiement: jest.fn(),
       getPaiements: jest.fn(),
+      getPaiementsStats: jest.fn(),
       effectuerReversementsPartenaires: jest.fn(),
       annulerPaiementsExpires: jest.fn(),
     } as any;
@@ -178,6 +179,31 @@ describe('PaiementController', () => {
       },
     });
     expect(res.json).toHaveBeenCalledWith([{ id: 'paiement-01' }]);
+  });
+
+  it('retourne les stats paiements admin', async () => {
+    const req = createMockReq({ query: { period: '24h' } });
+    const res = createMockRes();
+    const next = createNext();
+    mockService.getPaiementsStats.mockResolvedValue({
+      period: '24h',
+      total: 10,
+      success: 9,
+      fail: 1,
+      pending: 0,
+      success_rate: 90,
+      avg_confirmation_time_seconds: 8.5,
+      pending_over_30min: 0,
+    } as any);
+
+    await controller.getPaiementsStats(req, res, next);
+
+    expect(mockService.getPaiementsStats).toHaveBeenCalledWith('24h');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 200,
+      data: expect.objectContaining({ success_rate: 90 }),
+    });
   });
 
   it('effectue les reversements et le scheduler', async () => {
