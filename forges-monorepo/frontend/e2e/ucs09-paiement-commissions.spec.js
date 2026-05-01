@@ -14,6 +14,9 @@ test('UCS09 RM-09: webhook SUCCESS confirme le paiement et passe le dossier en P
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.partenaireSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
+  if (!inscription.ok) {
+    console.log('INSCRIPTION FAILED:', JSON.stringify(inscription, null, 2));
+  }
   expect(inscription.ok).toBeTruthy();
 
   const dossier = inscription.payload.dossier;
@@ -66,10 +69,13 @@ test('UCS09 RM-145: paiement avec code apporteur crée une commission visible c�
  */
 test('UCS09 RM-157 NGSER: Initiation paiement crée order_ngser et payment_url', async ({ request }) => {
   // 1. Créer une inscription
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantNgser1);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantDossier);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.partenaireSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
+  if (!inscription.ok) {
+    console.log('RM-157 INSCRIPTION FAILED:', JSON.stringify(inscription, null, 2));
+  }
   expect(inscription.ok).toBeTruthy();
 
   const dossier = inscription.payload.dossier;

@@ -149,6 +149,17 @@ export class PaiementService {
     if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
 
     if (webhookData.statut === 'SUCCESS') {
+      // ✅ RM-160: Valider que montant IPN == montant initié (idempotence strict)
+      if (webhookData.montant !== paiement.montant_final) {
+        await this.audit.warning('PAIEMENT_MONTANT_MISMATCH', {
+          paiement_id: paiement.id,
+          montant_attendu: paiement.montant_final,
+          montant_recu: webhookData.montant,
+          dossier_id: webhookData.dossier_id
+        });
+        return { message: 'MONTANT_INVALIDE', statut: 'REJECTED' };
+      }
+
       // Confirmer le paiement
       await this.paiementRepo.confirmer(paiement.id, webhookData.transaction_id);
 
@@ -196,8 +207,19 @@ export class PaiementService {
       }
 
     } else {
+      // ✅ RM-160: Quand IPN FAILED, annuler le dossier
       await this.paiementRepo.echouer(paiement.id);
-      await this.audit.warning('PAIEMENT_ECHOUE', { paiement_id: paiement.id });
+      
+      // Passer le dossier en ANNULE
+      await this.prisma.dossier.update({
+        where: { id: webhookData.dossier_id },
+        data: { statut: 'ANNULE' }
+      });
+      
+      await this.audit.warning('PAIEMENT_ECHOUE', { 
+        paiement_id: paiement.id,
+        dossier_id: webhookData.dossier_id 
+      });
     }
 
     return { statut: webhookData.statut };
