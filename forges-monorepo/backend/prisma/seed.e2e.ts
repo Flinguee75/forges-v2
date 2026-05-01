@@ -30,6 +30,7 @@ const IDS = {
   apprenantRecon2: 'app-e2e-recon-2',
   apprenantRecon3: 'app-e2e-recon-3',
   apprenantRecon4: 'app-e2e-recon-4',
+  apprenantRecon5: 'app-e2e-recon-5',
   apprenantNgser1: 'app-e2e-ngser-1',
   organisation: 'org-e2e-01',
   partenaire: 'part-e2e-01',
@@ -46,6 +47,10 @@ const IDS = {
   sessionPremiumB2b: 'S-E2E-PREM-B2B-OPEN-01',
   sessionPartenaire: 'S-E2E-PART-OPEN-01',
   sessionDossier: 'S-E2E-DOSSIER-OPEN-01',
+  sessionNgserReconciliation: 'S-E2E-NGSER-RECON-01',
+  sessionNgserReconciliationIsolation: 'S-E2E-NGSER-RECON-02',
+  sessionNgserReconciliationFresh: 'S-E2E-NGSER-RECON-03',
+  sessionNgserReconciliationSolo: 'S-E2E-NGSER-RECON-04',
   sessionPlanifiee: 'S-E2E-PLANIFIEE-01',
   sessionAVenir: 'S-E2E-A-VENIR-01',
   sessionOuverte: 'S-E2E-OUVERTE-01',
@@ -54,6 +59,8 @@ const IDS = {
   sessionArchivable: 'S-E2E-ARCHIVABLE-01',
   dossierEnAttente: 'D-E2E-EN-ATTENTE-01',
   dossierRetenu: 'D-E2E-RETENU-01',
+  dossierRetenuUi: 'D-E2E-RETENU-UI-01',
+  dossierRetenuRecon: 'D-E2E-RETENU-RECON-01',
   dossierPaye: 'D-E2E-PAYE-01',
   dossierAnnule: 'D-E2E-ANNULE-01',
   dossierExpire: 'D-E2E-EXPIRE-01',
@@ -142,6 +149,7 @@ async function cleanupScenarioData() {
     IDS.apprenantRecon2,
     IDS.apprenantRecon3,
     IDS.apprenantRecon4,
+    IDS.apprenantRecon5,
     IDS.apprenantNgser1,
     IDS.apporteur,
   ];
@@ -165,6 +173,8 @@ async function cleanupScenarioData() {
     IDS.sessionEnCours,
     IDS.sessionCloturee,
     IDS.sessionArchivable,
+    IDS.sessionNgserReconciliationFresh,
+    IDS.sessionNgserReconciliationSolo,
   ];
   const commissionDossierIds = Array.from({ length: 3 }, (_, index) => `D-E2E-COMM-${index + 1}`);
   const commissionPaiementIds = Array.from({ length: 3 }, (_, index) => `P-E2E-COMM-${index + 1}`);
@@ -629,6 +639,10 @@ async function main() {
   await createSession(IDS.sessionPremiumB2b, IDS.formationPremiumB2b, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionPartenaire, IDS.formationPartenaire, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionDossier, IDS.formationPremiumRetail, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliation, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationIsolation, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationFresh, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationSolo, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionPlanifiee, IDS.formationStandard, 'PLANIFIEE', {
     date_ouverture: daysFromNow(-1),
     date_cloture: daysFromNow(5),
@@ -679,6 +693,17 @@ async function main() {
   await prisma.dossier.create({
     data: {
       id: IDS.dossierRetenu,
+      apprenant_id: IDS.apprenantDossier,
+      formation_id: IDS.formationPremiumRetail,
+      session_id: IDS.sessionPremiumRetail,
+      statut: 'RETENU',
+      source_financement: 'RETAIL',
+      expires_at: daysFromNow(3),
+    },
+  });
+  await prisma.dossier.create({
+    data: {
+      id: IDS.dossierRetenuUi,
       apprenant_id: IDS.apprenantDossier,
       formation_id: IDS.formationPremiumRetail,
       session_id: IDS.sessionPremiumRetail,

@@ -20,8 +20,8 @@ import {
 
 test('UCS09 RM-159 Réconciliation: Endpoint stats retourne les paiements', async ({ request }) => {
   // 1. Créer une inscription et initier paiement
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon1);
-  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon2);
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.ngserReconciliationSoloSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
   expect(inscription.ok).toBeTruthy();
@@ -55,7 +55,7 @@ test('UCS09 RM-159 Réconciliation: Endpoint stats retourne les paiements', asyn
 test('UCS09 RM-159 Réconciliation: Paiement récent (< 30min) pas traité', async ({ request }) => {
   // 1. Créer inscription et paiement
   const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon2);
-  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.ngserReconciliationFreshSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
   expect(inscription.ok).toBeTruthy();
@@ -93,8 +93,8 @@ test('UCS09 RM-159 Réconciliation: Paiement récent (< 30min) pas traité', asy
 
 test('UCS09 RM-159 Réconciliation: Résultats incluent order_ngser et statut_final', async ({ request }) => {
   // 1. Créer inscription et paiement
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon4);
-  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon3);
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.ngserReconciliationFreshSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
   expect(inscription.ok).toBeTruthy();
@@ -133,8 +133,8 @@ test('UCS09 RM-159 Réconciliation: Résultats incluent order_ngser et statut_fi
 
 test('UCS09 RM-159 Réconciliation Mode Mock: IPN automatique crée commission', async ({ request }) => {
   // 1. Créer inscription
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon3);
-  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon4);
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.ngserReconciliationFreshSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
   expect(inscription.ok).toBeTruthy();

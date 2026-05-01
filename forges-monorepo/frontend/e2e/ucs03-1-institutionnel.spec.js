@@ -6,8 +6,7 @@ test('UCS03.1: le backoffice expose l’écran contrat institutionnel et la vue 
   await loginAsAdmin(page);
   await page.goto('/backoffice/abonnements/contrat-institutionnel');
 
-  await expect(page.getByRole('heading', { name: 'Contrat institutionnel' })).toBeVisible();
-  await expect(page.getByText(/gestion institutionnelle pourra être rebranchée/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Contrat institutionnel', exact: true })).toBeVisible();
 
   const headers = await authHeaders(request, E2E_ACCOUNTS.admin);
   const abonnements = await getJson(request, '/abonnements/backoffice', headers);

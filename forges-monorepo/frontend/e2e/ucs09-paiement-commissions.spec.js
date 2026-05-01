@@ -10,24 +10,52 @@ import {
 } from './helpers';
 
 test('UCS09 RM-09: webhook SUCCESS confirme le paiement et passe le dossier en PAYE', async ({ request }) => {
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantPremiumRetail);
-  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.premiumRetailSessionId}/inscrire`, {
-    source_financement: 'RETAIL',
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantDossier);
+  const dossierId = E2E_SCENARIO.dossierRetenuId;
+
+  // Initier paiement NGSER
+  const paiementResponse = await postJson(request, '/paiements/initier', {
+    dossier_id: dossierId,
   }, headers);
-  if (!inscription.ok) {
-    console.log('INSCRIPTION FAILED:', JSON.stringify(inscription, null, 2));
-  }
-  expect(inscription.ok).toBeTruthy();
+  expect(paiementResponse.ok).toBeTruthy();
 
-  const dossier = inscription.payload.dossier;
-  await createPaiementAndConfirm(request, headers, dossier.id, 'tx-ucs09-partenaire', 250000);
+  // Envoyer webhook SUCCESS
+  const webhookBody = {
+    transaction_id: `tx-ucs09-partenaire-${Date.now()}`,
+    dossier_id: dossierId,
+    statut: 'SUCCESS',
+    montant: 250000,
+  };
 
-  const updated = await findDossier(request, headers, (item) => item.id === dossier.id);
+  const webhookResponse = await postJson(request, '/paiements/webhook', webhookBody, {});
+  expect(webhookResponse.ok).toBeTruthy();
+
+  const updated = await findDossier(request, headers, (item) => item.id === dossierId);
   expect(updated?.statut).toBe('PAYE');
   expect(updated?.paiement?.statut).toBe('CONFIRME');
 });
 
 test('UCS09 RM-129: paiement partenaire génère une commission nette partenaire', async ({ request }) => {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMismatch2);
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.partenaireSessionId}/inscrire`, {
+    source_financement: 'RETAIL',
+  }, headers);
+  expect(inscription.ok).toBeTruthy();
+
+  const dossierId = inscription.payload.dossier.id;
+  const paiementResponse = await postJson(request, '/paiements/initier', {
+    dossier_id: dossierId,
+  }, headers);
+  expect(paiementResponse.ok).toBeTruthy();
+
+  const webhookResponse = await postJson(request, '/paiements/webhook', {
+    transaction_id: `tx-ucs09-partenaire-${Date.now()}`,
+    dossier_id: dossierId,
+    statut: 'SUCCESS',
+    montant: 250000,
+  }, {});
+  expect(webhookResponse.ok).toBeTruthy();
+
   const agentHeaders = await authHeaders(request, E2E_ACCOUNTS.agent);
   const response = await getJson(request, '/agent/reversements/partenaires', agentHeaders);
   const rows = Array.isArray(response?.data) ? response.data : response;
@@ -38,25 +66,37 @@ test('UCS09 RM-129: paiement partenaire génère une commission nette partenaire
 });
 
 test('UCS09 RM-145: paiement avec code apporteur crée une commission visible côté apporteur', async ({ page, request }) => {
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRm145);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMismatch1);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
     source_financement: 'RETAIL',
     code_apporteur: E2E_SCENARIO.apporteurCode,
   }, headers);
   expect(inscription.ok).toBeTruthy();
 
-  const { webhook } = await createPaiementAndConfirm(
-    request,
-    headers,
-    inscription.payload.dossier.id,
-    'tx-ucs09-apporteur',
-    150000,
-  );
+  const dossierId = inscription.payload.dossier.id;
+
+  // Initier paiement NGSER
+  const paiementResponse = await postJson(request, '/paiements/initier', {
+    dossier_id: dossierId,
+  }, headers);
+  expect(paiementResponse.ok).toBeTruthy();
+
+  // Envoyer webhook SUCCESS
+  const transactionId = `tx-ucs09-apporteur-${Date.now()}`;
+  const webhookBody = {
+    transaction_id: transactionId,
+    dossier_id: dossierId,
+    statut: 'SUCCESS',
+    montant: 150000,
+  };
+
+  const webhookResponse = await postJson(request, '/paiements/webhook', webhookBody, {});
+  expect(webhookResponse.ok).toBeTruthy();
 
   await loginAsApporteur(page);
   await page.goto('/apporteur/commissions');
 
-  const commissionRow = page.getByRole('row', { name: new RegExp(webhook.transaction_id) });
+  const commissionRow = page.getByRole('row', { name: new RegExp(transactionId) });
   await expect(commissionRow).toBeVisible();
   await expect(commissionRow).toContainText('1 500 FCFA');
   await expect(commissionRow).toContainText('75 FCFA');
@@ -69,7 +109,7 @@ test('UCS09 RM-145: paiement avec code apporteur crée une commission visible c�
  */
 test('UCS09 RM-157 NGSER: Initiation paiement crée order_ngser et payment_url', async ({ request }) => {
   // 1. Créer une inscription
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantNgser1);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon1);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
@@ -108,4 +148,3 @@ test('UCS09 RM-157 NGSER: Initiation paiement crée order_ngser et payment_url',
 
   console.log(`✅ RM-157 OK: order_ngser=${paiementData.order_ngser}`);
 });
-
