@@ -11,7 +11,7 @@ import {
 
 test('UCS09 RM-09: webhook SUCCESS confirme le paiement et passe le dossier en PAYE', async ({ request }) => {
   const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantPremiumRetail);
-  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.partenaireSessionId}/inscrire`, {
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.premiumRetailSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
   if (!inscription.ok) {
