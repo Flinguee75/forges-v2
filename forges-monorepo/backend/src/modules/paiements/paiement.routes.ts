@@ -8,6 +8,7 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
+import { IpnQueueService } from '../../shared/queue/ipn-queue.service';
 
 const router = Router();
 
@@ -30,12 +31,25 @@ const paiementService = new PaiementService(
   emailService
 );
 
+// Queue IPN
+const ipnQueue = new IpnQueueService(auditLogger);
+
+// Définir le processor de la queue IPN
+ipnQueue.setProcessor(async (item) => {
+  await paiementService.traiterIpnNgser(item.payload);
+});
+
 // Controller
-const paiementController = new PaiementController(paiementService);
+const paiementController = new PaiementController(paiementService, ipnQueue);
 
 // ========================================
 // ROUTES PAIEMENTS - Sprint 1 Semaine 2
 // ========================================
+
+// POST /api/paiements/initier — Initier un paiement NGSER mock (APPRENANT|ORGANISATION)
+router.post('/paiements/initier', authenticate, authorize('APPRENANT', 'ORGANISATION'), (req, res, next) => {
+  paiementController.initierPaiementNgser(req, res, next);
+});
 
 // POST /api/paiements — Initier un paiement (APPRENANT|ORGANISATION)
 router.post('/paiements', authenticate, authorize('APPRENANT', 'ORGANISATION'), (req, res, next) => {
@@ -52,9 +66,19 @@ router.get('/backoffice/paiements', authenticate, authorize('ADMIN', 'AGENT'), (
   paiementController.getPaiements(req, res, next);
 });
 
-// POST /api/paiements/webhook — Webhook confirmation paiement (PUBLIC avec signature)
+// POST /api/paiements/webhook — Webhook confirmation paiement legacy (PUBLIC avec signature)
 router.post('/paiements/webhook', (req, res, next) => {
   paiementController.handleWebhook(req, res, next);
+});
+
+// POST /webhooks/paiement — IPN NGSER canonical endpoint (PUBLIC avec signature) - RM-158/160
+router.post('/webhooks/paiement', (req, res, next) => {
+  paiementController.traiterIpnNgser(req, res, next);
+});
+
+// POST /api/paiements/webhook — Alias legacy pour IPN NGSER
+router.post('/api/paiements/webhook', (req, res, next) => {
+  paiementController.traiterIpnNgser(req, res, next);
 });
 
 export default router;

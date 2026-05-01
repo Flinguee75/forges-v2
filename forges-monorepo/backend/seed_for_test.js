@@ -1,12 +1,12 @@
 /**
- * FORGES — seed-validation.js
+ * FORGES — seed_for_test.js
  * Données de test pour le Plan de Validation v1.1 (Specs v4.8)
  * Schéma de référence : CONCEPTION v1.3 section 15 (Prisma v2)
  *
  * Usage :
- *   node prisma/seed-validation.js           → seed normal
- *   node prisma/seed-validation.js --reset   → supprime tout puis seed
- *   node prisma/seed-validation.js --check   → vérifie sans modifier
+ *   node seed_for_test.js           → seed normal
+ *   node seed_for_test.js --reset   → supprime tout puis seed
+ *   node seed_for_test.js --check   → vérifie sans modifier
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -17,6 +17,7 @@ const prisma = new PrismaClient();
 const args = process.argv.slice(2);
 const RESET = args.includes('--reset');
 const CHECK = args.includes('--check');
+const ENV_TARGET = args.find((arg) => arg.startsWith('--env-'))?.replace('--env-', '') || process.env.NODE_ENV || 'local';
 const BCRYPT_COST = 12;
 const PWD_HASH = bcrypt.hashSync('Test@FORGES2026!', BCRYPT_COST);
 
@@ -735,6 +736,7 @@ async function main() {
   console.log('═══════════════════════════════════════');
   console.log('  FORGES — Seed Validation v4.8');
   console.log('═══════════════════════════════════════');
+  console.log(`Environnement cible : ${ENV_TARGET}`);
 
   if (CHECK) {
     await check();

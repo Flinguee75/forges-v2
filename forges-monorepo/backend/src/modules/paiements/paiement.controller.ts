@@ -1,10 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
 import { PaiementService } from './paiement.service';
-import { InitierPaiementSchema, WebhookPaiementSchema } from './dto/paiement.dto';
+import { InitierPaiementNgserSchema, InitierPaiementSchema, WebhookPaiementSchema } from './dto/paiement.dto';
 import { createHmac } from 'crypto';
+import { IpnQueueService } from '../../shared/queue/ipn-queue.service';
+import { masquerSecrets } from '../../shared/utils/masque-secrets.util';
 
 export class PaiementController {
-  constructor(private readonly paiementService: PaiementService) {}
+  constructor(
+    private readonly paiementService: PaiementService,
+    private readonly ipnQueue?: IpnQueueService
+  ) {}
+
+  // POST /api/paiements/initier — initiation backend-only NGSER mock (RM-157)
+  async initierPaiementNgser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const dto = InitierPaiementNgserSchema.parse(req.body);
+      const result = await this.paiementService.initierPaiementNgser(dto, req.user!.userId);
+      res.status(201).json({ statusCode: 201, data: result });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ statusCode: 400, error: 'VALIDATION_ERROR', details: error.errors });
+      }
+      if (error.message === 'DOSSIER_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DOSSIER_NOT_FOUND', message: 'Dossier non trouvé' });
+      }
+      if (error.message === 'FORBIDDEN') {
+        return res.status(403).json({ statusCode: 403, error: 'FORBIDDEN', message: 'Accès refusé' });
+      }
+      if (error.message === 'PAIEMENT_DEJA_VALIDE') {
+        return res.status(409).json({ statusCode: 409, error: 'PAIEMENT_DEJA_VALIDE', message: 'Un paiement validé existe déjà pour ce dossier (RM-06).' });
+      }
+      if (error.message === 'DOSSIER_STATUT_INVALIDE') {
+        return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE', message: 'Le dossier doit être RETENU ou PAYE_DIRECTEMENT' });
+      }
+      next(error);
+    }
+  }
 
   // POST /api/paiements — APPRENANT|ORGANISATION (Sprint 1 Semaine 2)
   async createPaiement(req: Request, res: Response, next: NextFunction) {
@@ -106,5 +137,54 @@ export class PaiementController {
       const count = await this.paiementService.annulerPaiementsExpires();
       res.json({ annules: count });
     } catch (error) { next(error); }
+  }
+
+  // POST /webhooks/paiement — IPN NGSER (RM-158/160)
+  async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Vérification signature HMAC
+      const signature = req.headers['x-webhook-signature'];
+      const payload = JSON.stringify(req.body);
+      const expectedSig = createHmac('sha256', process.env.WEBHOOK_SECRET || 'dev-secret')
+        .update(payload)
+        .digest('hex');
+
+      if (!signature || signature !== expectedSig) {
+        return res.status(401).json({
+          statusCode: 401,
+          error: 'INVALID_SIGNATURE',
+          message: 'Signature webhook invalide',
+        });
+      }
+
+      // Masquer les secrets avant d'enqueuer
+      const payloadMasque = masquerSecrets(req.body);
+      const headersMasques = masquerSecrets(req.headers);
+
+      // Enqueuer pour traitement asynchrone
+      if (this.ipnQueue) {
+        await this.ipnQueue.enqueue({
+          provider: 'NGSER',
+          payload: req.body, // payload original non masqué pour traitement
+          received_at: new Date(),
+          headers: headersMasques,
+        });
+      } else {
+        // Fallback synchrone si pas de queue (ne devrait pas arriver)
+        await this.paiementService.traiterIpnNgser(req.body);
+      }
+
+      // Réponse HTTP 200 immédiate (RM-158)
+      return res.status(200).json({
+        statusCode: 200,
+        data: { accepted: true },
+      });
+    } catch (error: any) {
+      // Toujours répondre 200 pour éviter les retry NGSER
+      return res.status(200).json({
+        statusCode: 200,
+        data: { accepted: false, error: error.message },
+      });
+    }
   }
 }

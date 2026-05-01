@@ -19,7 +19,6 @@ export default function MesPaiementsPage() {
   const [dossiers, setDossiers] = useState([]);
   const [selectedDossier, setSelectedDossier] = useState(null);
   const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
-  const [methodePaiement, setMethodePaiement] = useState('MOBILE_MONEY');
 
   const { execute, isLoading } = useApi();
   const { showToast } = useToast();
@@ -42,19 +41,19 @@ export default function MesPaiementsPage() {
 
     await execute(
       () =>
-        paiementsApi.initier({
+        paiementsApi.initierNgser({
           dossier_id: selectedDossier.id,
-          methode: methodePaiement,
         }),
       {
         onSuccess: (data) => {
-          showToast('Paiement initié avec succès', 'success');
+          const paiement = data?.data || data;
+          showToast('Session NGSER créée', 'success');
           setIsPaiementModalOpen(false);
           setSelectedDossier(null);
           loadDossiersEnAttentePaiement();
 
-          if (data.redirect_url) {
-            window.open(data.redirect_url, '_blank');
+          if (paiement.payment_url) {
+            window.location.assign(paiement.payment_url);
           }
         },
         onError: (error) => {
@@ -97,7 +96,7 @@ export default function MesPaiementsPage() {
     {
       key: 'formation',
       label: 'Formation',
-      render: (dossier) => (
+      render: (_, dossier) => (
         <div>
           <div className="font-medium text-primary">
             {getFormationTitre(dossier)}
@@ -111,7 +110,7 @@ export default function MesPaiementsPage() {
     {
       key: 'montant',
       label: 'Montant à payer',
-      render: (dossier) => {
+      render: (_, dossier) => {
         const montant = calculateMontantFinal(dossier);
         return (
           <div>
@@ -131,7 +130,7 @@ export default function MesPaiementsPage() {
     {
       key: 'date_limite',
       label: 'Date limite',
-      render: (dossier) => {
+      render: (_, dossier) => {
         const dateRetenu = new Date(dossier.updated_at || dossier.updatedAt || dossier.created_at);
         const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
         const isExpired = dateLimite < new Date();
@@ -153,7 +152,7 @@ export default function MesPaiementsPage() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (dossier) => (
+      render: (_, dossier) => (
         <Button
           variant="primary"
           size="small"
@@ -246,18 +245,10 @@ export default function MesPaiementsPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-text">
-                Méthode de paiement
-              </label>
-              <select
-                value={methodePaiement}
-                onChange={(e) => setMethodePaiement(e.target.value)}
-                className="w-full rounded-lg border border-border px-3 py-2 focus:border-primary focus:outline-none"
-              >
-                <option value="MOBILE_MONEY">Mobile Money</option>
-                <option value="CARTE">Carte bancaire</option>
-                <option value="VIREMENT">Virement bancaire</option>
-              </select>
+              <label className="mb-2 block text-sm font-medium text-text">Opérateur de paiement</label>
+              <div className="rounded-lg border border-border bg-bg p-3 text-sm text-subtext">
+                Le choix du moyen de paiement est effectué sur la page sécurisée NGSER.
+              </div>
             </div>
 
             <div className="flex gap-3">

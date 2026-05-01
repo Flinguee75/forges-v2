@@ -27,7 +27,7 @@ export default function PaiementDetail() {
   }, [id]);
 
   const loadPaiement = async () => {
-    await execute(() => paiementsApi.getById(id), {
+    await execute(() => paiementsApi.getBackofficeById(id), {
       onSuccess: (data) => {
         setPaiement(data);
       },
@@ -37,6 +37,7 @@ export default function PaiementDetail() {
   const getStatutBadge = (statut) => {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
+      PENDING: { variant: 'warning', label: 'En attente' },
       INITIE: { variant: 'gray', label: 'Initié' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       ECHOUE: { variant: 'danger', label: 'Échoué' },
@@ -72,10 +73,13 @@ export default function PaiementDetail() {
     return null;
   }
 
-  const montantFCFA = paiement.montant / 100;
-  const etudiant = paiement.dossier?.etudiant || {};
+  const montant =
+    paiement.montant_final ?? paiement.montant_initie ?? paiement.montant ?? paiement.montant_catalogue ?? 0;
+  const montantFCFA = montant / 100;
+  const etudiant = paiement.dossier?.apprenant || paiement.dossier?.etudiant || {};
   const session = paiement.dossier?.session || {};
-  const formation = session.formation || {};
+  const formation = paiement.dossier?.formation || session.formation || {};
+  const methodePaiement = paiement.methode || paiement.methode_paiement || paiement.provider || 'NGSER';
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -138,7 +142,7 @@ export default function PaiementDetail() {
                 Méthode de paiement
               </dt>
               <dd className="mt-1 text-sm text-text">
-                {getMethodeBadge(paiement.methode_paiement)}
+                {getMethodeBadge(methodePaiement)}
               </dd>
             </div>
             <div>
@@ -160,6 +164,45 @@ export default function PaiementDetail() {
               </dd>
             </div>
           </dl>
+
+          {(paiement.order_ngser || paiement.transaction_id || paiement.status_ngser) && (
+            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4">
+              {paiement.order_ngser && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    Commande NGSER
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">{paiement.order_ngser}</dd>
+                </div>
+              )}
+              {paiement.transaction_id && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    Transaction NGSER
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">{paiement.transaction_id}</dd>
+                </div>
+              )}
+              {paiement.status_ngser && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    Statut NGSER
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">{paiement.status_ngser}</dd>
+                </div>
+              )}
+              {paiement.reconciled_at && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    Réconcilié le
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {new Date(paiement.reconciled_at).toLocaleString('fr-FR')}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
 
           {paiement.external_id && (
             <div className="mt-6">
@@ -228,7 +271,7 @@ export default function PaiementDetail() {
               <dt className="text-xs font-medium uppercase text-subtext">
                 Formation
               </dt>
-              <dd className="mt-1 text-sm text-text">{formation.titre}</dd>
+              <dd className="mt-1 text-sm text-text">{formation.titre || formation.intitule || 'N/A'}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
@@ -241,7 +284,7 @@ export default function PaiementDetail() {
                 Prix formation
               </dt>
               <dd className="mt-1 text-sm text-text">
-                {Math.round((formation.prix || 0) / 100).toLocaleString('fr-FR')} FCFA
+                {Math.round((formation.prix || formation.cout_catalogue || 0) / 100).toLocaleString('fr-FR')} FCFA
               </dd>
             </div>
             <div>

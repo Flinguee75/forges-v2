@@ -38,6 +38,8 @@ const DossierDetail = lazy(() => import('../pages/etudiant/DossierDetail'));
 const CatalogueApprenantPage = lazy(() => import('../pages/apprenant/CatalogueApprenantPage'));
 const MesPaiementsPage = lazy(() => import('../pages/etudiant/MesPaiementsPage'));
 const PaiementDetailEtudiant = lazy(() => import('../pages/etudiant/PaiementDetail'));
+const PaiementInitiation = lazy(() => import('../pages/apprenant/PaiementInitiation'));
+const PaiementCallback = lazy(() => import('../pages/apprenant/PaiementCallback'));
 const MesAttestationsPage = lazy(() => import('../pages/etudiant/MesAttestationsPage'));
 const MonProfilPage = lazy(() => import('../pages/etudiant/MonProfilPage'));
 
@@ -284,6 +286,14 @@ const router = createBrowserRouter([
       {
         path: 'paiements',
         element: withSuspense(<MesPaiementsPage />),
+      },
+      {
+        path: 'paiements/initier/:dossierId',
+        element: withSuspense(<PaiementInitiation />),
+      },
+      {
+        path: 'paiements/callback',
+        element: withSuspense(<PaiementCallback />),
       },
       {
         path: 'paiements/:id',
