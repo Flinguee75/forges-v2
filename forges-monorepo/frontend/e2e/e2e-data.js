@@ -59,6 +59,47 @@ export const E2E_ACCOUNTS = {
     email: 'apprenant-retail-e2e@forges.ci',
     password: 'Test@FORGES2026!',
   },
+  // Nouveaux comptes pour tests paiement NGSER
+  apprenantIdempotence1: {
+    email: 'apprenant-idempotence-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantIdempotence2: {
+    email: 'apprenant-idempotence-2@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantMismatch1: {
+    email: 'apprenant-mismatch-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantMismatch2: {
+    email: 'apprenant-mismatch-2@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantMismatch3: {
+    email: 'apprenant-mismatch-3@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon1: {
+    email: 'apprenant-recon-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon2: {
+    email: 'apprenant-recon-2@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon3: {
+    email: 'apprenant-recon-3@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon4: {
+    email: 'apprenant-recon-4@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantNgser1: {
+    email: 'apprenant-ngser-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
 };
 
 export const E2E_SCENARIO = {

@@ -59,3 +59,43 @@ test('UCS09 RM-145: paiement avec code apporteur crée une commission visible c�
   await expect(commissionRow).toContainText('75 FCFA');
   await expect(commissionRow).toContainText('En attente');
 });
+
+/**
+ * RM-157 NGSER - Initiation paiement backend-only
+ * Montant recalculé côté backend, order_ngser généré
+ */
+test('UCS09 RM-157 NGSER: Initiation paiement crée order_ngser et payment_url', async ({ request }) => {
+  // 1. Créer une inscription
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantNgser1);
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.partenaireSessionId}/inscrire`, {
+    source_financement: 'RETAIL',
+  }, headers);
+  expect(inscription.ok).toBeTruthy();
+
+  const dossier = inscription.payload.dossier;
+  const dossierId = dossier.id;
+
+  // 2. Initier paiement NGSER (nouveau endpoint RM-157)
+  const paiementResponse = await postJson(request, '/paiements/initier', {
+    dossier_id: dossierId,
+  }, headers);
+
+  expect(paiementResponse.ok).toBeTruthy();
+  const paiementData = paiementResponse.payload;
+
+  // 3. Vérifier que order_ngser est créé au format FORGES-YYYY-SEQ-XXXXXX
+  expect(paiementData.order_ngser).toBeTruthy();
+  expect(paiementData.order_ngser).toMatch(/^FORGES-\d{4}-\d+-\w+$/);
+
+  // 4. Vérifier que payment_url est présent (redirection vers NGSER)
+  expect(paiementData.payment_url).toBeTruthy();
+  expect(paiementData.payment_url).toContain('securetest.crossroad-africa.net');
+
+  // 5. Vérifier que paiement est créé avec statut PENDING
+  const dossierAfter = await findDossier(request, headers, (item) => item.id === dossierId);
+  expect(dossierAfter?.paiement?.statut).toBe('PENDING');
+  expect(dossierAfter?.paiement?.provider).toBe('NGSER');
+
+  console.log(`✅ RM-157 OK: order_ngser=${paiementData.order_ngser}`);
+});
+
