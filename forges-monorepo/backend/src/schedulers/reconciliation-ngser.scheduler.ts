@@ -119,6 +119,7 @@ export class ReconciliationNgserScheduler {
   /**
    * Réconcilie un paiement individuel
    * @param order_ngser - Numéro de commande NGSER
+   * Public pour permettre déclenchement manuel via endpoint admin
    */
   async reconcilierPaiement(order_ngser: string): Promise<ReconciliationResult> {
     try {
@@ -223,3 +224,8 @@ export class ReconciliationNgserScheduler {
     await this.reconcilierPaiementsPending();
   }
 }
+
+/**
+ * Instance unique du scheduler (singleton)
+ */
+export const reconciliationNgserScheduler = new ReconciliationNgserScheduler();

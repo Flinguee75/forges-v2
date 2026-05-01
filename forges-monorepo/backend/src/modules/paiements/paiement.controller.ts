@@ -154,6 +154,19 @@ export class PaiementController {
     } catch (error) { next(error); }
   }
 
+  // POST /api/admin/scheduler/reconciliation-ngser — ADMIN (Phase 1 v4.9)
+  async runReconciliationScheduler(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.paiementService.reconcilierPaiementsPendingNgser();
+      res.status(200).json({
+        statusCode: 200,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // POST /webhooks/paiement — IPN NGSER (RM-158/160)
   async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
     try {

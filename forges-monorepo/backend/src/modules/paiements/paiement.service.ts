@@ -397,4 +397,27 @@ export class PaiementService {
   async traiterIpnNgser(payload: any) {
     return this.ipnNgserService.traiterIpn(payload);
   }
+
+  // Déclencher réconciliation manuelle NGSER (Phase 1 v4.9)
+  async reconcilierPaiementsPendingNgser() {
+    const { reconciliationNgserScheduler } = await import('../../schedulers/reconciliation-ngser.scheduler');
+    const delaiMinutes = Number(process.env.NGSER_RECONCILIATION_PENDING_MINUTES) || 0;
+    const paiements = await reconciliationNgserScheduler.getPaiementsPendingEligibles(delaiMinutes);
+
+    const results = [];
+    for (const paiement of paiements) {
+      try {
+        const result = await reconciliationNgserScheduler.reconcilierPaiement(paiement.order_ngser!);
+        results.push({ order_ngser: paiement.order_ngser, ...result });
+      } catch (error: any) {
+        results.push({ order_ngser: paiement.order_ngser, error: error.message });
+      }
+    }
+
+    return {
+      nb_paiements_trouves: paiements.length,
+      nb_paiements_traites: results.length,
+      results,
+    };
+  }
 }

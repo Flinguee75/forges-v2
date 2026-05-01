@@ -86,4 +86,9 @@ router.post('/api/paiements/webhook', (req, res, next) => {
   paiementController.traiterIpnNgser(req, res, next);
 });
 
+// POST /api/admin/scheduler/reconciliation-ngser — Déclencher réconciliation manuelle (ADMIN) - Phase 1 v4.9
+router.post('/admin/scheduler/reconciliation-ngser', authenticate, authorize('ADMIN'), (req, res, next) => {
+  paiementController.runReconciliationScheduler(req, res, next);
+});
+
 export default router;
