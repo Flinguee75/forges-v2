@@ -250,7 +250,7 @@ Le préflight staging NGSER réel a été préparé avec les tokens sandbox exis
 
 | Bug | Description | Résolution | Date |
 |---|---|---|---|
-| **BUG-J7-001** | 10 tests en échec (credentials + IPN) | Ajout `NGSER_AUTHENTICATION_TOKEN` dans `.env.example` + fix FK tests | 2026-05-01 |
+| **BUG-J7-001** | 10 tests en échec (credentials + IPN) | Correction `.env.example` + fixtures FK tests IPN + cleanup commissions | 2026-05-01 |
 
 ### Bugs P1/P2 Connus
 
@@ -367,38 +367,34 @@ FORMATION_PROXY_TOKEN_TTL_SECONDS=300
 
 ## Décision Go/No-Go
 
-### Option 1: GO PRODUCTION LIMITÉE (Recommandée)
+### Option 1: GO STAGING UNIQUEMENT (Retenue)
 
 **Justification:**
 - ✅ Tous les critères bloquants validés
 - ✅ Tous les risques P0 maîtrisés
 - ✅ Tests backend 100% PASS
 - ✅ Rollback documenté et prêt
-- ⚠️ Mode mock actif (acceptable pour validation interne)
+- ⚠️ Gate staging NGSER réel non validé
 
-**Conditions de mise en production:**
-1. **Avant production finale:**
-   - Désactiver mode mock
-   - Tester API NGSER sandbox réelle (1-2 paiements)
-   - Vérifier réception IPN depuis NGSER
-   - Valider réconciliation avec API réelle
+**Conditions avant production limitée:**
+1. Staging public HTTPS accessible.
+2. Paiement sandbox NGSER réel validé à 200 XOF.
+3. Redirection checkout confirmée.
+4. IPN réel reçu et traité.
+5. DB validée après IPN: `Paiement.CONFIRME`, `Dossier.PAYE`, `transaction_id`, `status_ngser=SUCCESS`.
+6. Aucun secret exposé.
 
-2. **Déploiement progressif:**
-   - Phase 1: Staging avec API NGSER sandbox
-   - Phase 2: Production limitée (quelques utilisateurs tests)
-   - Phase 3: Production complète après validation 48h
+**Monitoring requis:**
+- Logs paiements NGSER en temps réel
+- Alertes sur erreurs IPN
+- Métriques paiements PENDING
+- Dashboard commissions partenaires
 
-3. **Monitoring requis:**
-   - Logs paiements NGSER en temps réel
-   - Alertes sur erreurs IPN
-   - Métriques paiements PENDING
-   - Dashboard commissions partenaires
-
-**Risque résiduel:** FAIBLE (mode mock validé, infrastructure prête)
+**Risque résiduel:** maîtrisé côté applicatif, non clos côté environnement tant que J8 réel n'est pas PASS.
 
 ---
 
-### Option 2: NO-GO PRODUCTION (Non Recommandée)
+### Option 2: NO-GO PRODUCTION
 
 **Justification si choisie:**
 - API NGSER sandbox non testée
@@ -414,18 +410,19 @@ FORMATION_PROXY_TOKEN_TTL_SECONDS=300
 
 ---
 
-### Option 3: GO STAGING UNIQUEMENT (Intermédiaire)
+### Option 3: GO PRODUCTION LIMITÉE
 
-**Justification:**
-- Valider en staging avant production
-- Tester API NGSER réelle en environnement contrôlé
+**Justification si choisie plus tard:**
+- J8 staging réel PASS
+- 3 à 5 paiements internes contrôlés
+- Observation renforcée 48h
 
-**Durée staging:** 48-72h
+**Statut actuel:** non autorisée.
 
-**Critères passage staging → production:**
-- Paiement sandbox SUCCESS/FAIL testés
+**Critères passage staging → production limitée:**
+- Paiement sandbox SUCCESS testé
 - IPN reçu et traité correctement
-- Réconciliation fonctionne avec API réelle
+- Réconciliation documentée ou blocage NGSER support documenté
 - Aucune erreur critique logs 24h
 
 ---

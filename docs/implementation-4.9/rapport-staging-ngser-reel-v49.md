@@ -24,9 +24,7 @@ Valider le gate J8 avec l'API NGSER sandbox réelle, en désactivant le mode moc
 | `NGSER_MOCK_MODE` | ✅ `false` |
 | `NGSER_BASE_URL` | ✅ `https://securetest.crossroad-africa.net/` |
 | `NGSER_NAME` | ✅ `FORGES TEST` |
-| `NGSER_AUTH_TOKEN` | ✅ Présent, masqué |
-| `NGSER_AUTHENTICATION_TOKEN` | ✅ Présent, masqué |
-| `NGSER_OPERATION_TOKEN_PAIEMENT` | ✅ Présent, masqué |
+| Tokens NGSER sandbox | ✅ Présents, masqués |
 | `NGSER_NOTIFICATION_URL` | ✅ `https://staging.forges-group.com/webhooks/paiement` |
 | `VITE_API_URL` | ✅ `https://staging.forges-group.com/api` |
 | `FRONTEND_URL` | ✅ `https://staging.forges-group.com` |
