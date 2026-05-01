@@ -382,6 +382,7 @@ describe('PaiementService', () => {
       mockPaiementRepo.findByDossierId.mockResolvedValueOnce({
         id: 'p-01',
         dossier_id: 'd-01',
+        montant_final: 100000,
       } as any);
       mockPaiementRepo.confirmer.mockResolvedValueOnce({} as any);
       mockPrisma.dossier.update.mockResolvedValueOnce({} as any);
@@ -444,7 +445,7 @@ describe('PaiementService', () => {
         apporteur_id: 'apt-01',
         montant_commission: 5000,
       });
-      expect(calculerCommissionsSpy).toHaveBeenCalledWith({ id: 'p-01', dossier_id: 'd-01' }, 'd-01');
+      expect(calculerCommissionsSpy).toHaveBeenCalledWith({ id: 'p-01', dossier_id: 'd-01', montant_final: 100000 }, 'd-01');
       expect(mockVoucherRepo.utiliser).toHaveBeenCalledWith('voucher-01');
       expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith(
         'test@test.ci',
@@ -473,7 +474,7 @@ describe('PaiementService', () => {
 
       expect(result).toEqual({ statut: 'FAILED' });
       expect(mockPaiementRepo.echouer).toHaveBeenCalledWith('p-01');
-      expect(mockAudit.warning).toHaveBeenCalledWith('PAIEMENT_ECHOUE', { paiement_id: 'p-01' });
+      expect(mockAudit.warning).toHaveBeenCalledWith('PAIEMENT_ECHOUE', { paiement_id: 'p-01', dossier_id: 'd-01' });
     });
 
     it('rejette le webhook si aucun paiement n’est trouvé pour le dossier', async () => {
