@@ -156,6 +156,7 @@ async function reset() {
   console.log('🗑️  Suppression des données de test...');
   // Ordre inverse des dépendances
   await prisma.commissionApporteur.deleteMany();
+  await prisma.commissionPartenaire.deleteMany();
   await prisma.voucherApporteur.deleteMany();
   await prisma.apporteur.deleteMany();
   await prisma.paiement.deleteMany();
@@ -197,6 +198,87 @@ async function seed() {
       langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'GN',
       role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
       consentement_timestamp: agoD(5), consentement_version_cgu: 'v1.0',
+    },
+    // ✨ Nouveaux comptes E2E pour tests paiement NGSER (Phase 1.4)
+    {
+      id: uuidv4(), nom: 'IDEMPOTENCE', prenoms: 'Test 1',
+      email: 'apprenant-idempotence-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'IDEMPOTENCE', prenoms: 'Test 2',
+      email: 'apprenant-idempotence-2@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'MISMATCH', prenoms: 'Test 1',
+      email: 'apprenant-mismatch-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'MISMATCH', prenoms: 'Test 2',
+      email: 'apprenant-mismatch-2@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'MISMATCH', prenoms: 'Test 3',
+      email: 'apprenant-mismatch-3@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 1',
+      email: 'apprenant-recon-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 2',
+      email: 'apprenant-recon-2@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 3',
+      email: 'apprenant-recon-3@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 4',
+      email: 'apprenant-recon-4@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'NGSER', prenoms: 'Test 1',
+      email: 'apprenant-ngser-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
     },
   ]});
 
@@ -713,13 +795,18 @@ async function seed() {
     progression: 0,
   }});
 
-  console.log('\n✅ Seed v4.8 terminé\n');
+  console.log('\n✅ Seed v4.8 + Phase 1.4 E2E Tests terminé\n');
   console.log('  Comptes créés :');
   console.log('    apprenant1@forges-test.ci     — APPRENANT (KOUASSI Jean-Baptiste)');
   console.log('    apprenant2@forges-test.ci     — APPRENANT (DIALLO Fatima)');
   console.log('    org@forges-test.ci            — ORGANISATION (TechCorp CI)');
   console.log('    partenaire@forges-test.ci     — PARTENAIRE (Institut Tech Test CI)');
   console.log('    apporteur@forges-test.ci      — APPORTEUR (TRAORE Mamadou)');
+  console.log('\n  ✨ Comptes E2E Tests Paiement NGSER (Phase 1.4):');
+  console.log('    apprenant-idempotence-[1-2]@forges.ci  — Tests idempotence IPN');
+  console.log('    apprenant-mismatch-[1-3]@forges.ci     — Tests montant mismatch');
+  console.log('    apprenant-recon-[1-4]@forges.ci        — Tests réconciliation');
+  console.log('    apprenant-ngser-1@forges.ci            — Test initiation NGSER');
   console.log('  Mot de passe : Test@FORGES2026!\n');
   console.log('  Données de référence :');
   console.log('    F-STD-01  F-PREM-01  F-DEM-01  F-PART-01  F-ARCH-01');
