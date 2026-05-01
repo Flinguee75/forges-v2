@@ -20,7 +20,7 @@ import {
 
 test('UCS09 RM-159 Réconciliation: Endpoint stats retourne les paiements', async ({ request }) => {
   // 1. Créer une inscription et initier paiement
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon2);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon5);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.ngserReconciliationSoloSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);

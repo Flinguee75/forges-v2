@@ -100,6 +100,7 @@ const EMAILS = {
   apprenantRecon2: 'apprenant-recon-2@forges.ci',
   apprenantRecon3: 'apprenant-recon-3@forges.ci',
   apprenantRecon4: 'apprenant-recon-4@forges.ci',
+  apprenantRecon5: 'apprenant-recon-5@forges.ci',
   apprenantNgser1: 'apprenant-ngser-1@forges.ci',
   organisation: 'org@forges.ci',
   partenaire: 'partenaire-e2e@forges.ci',
@@ -451,6 +452,7 @@ async function main() {
   await createApprenant(IDS.apprenantRecon2, EMAILS.apprenantRecon2, passwordHash);
   await createApprenant(IDS.apprenantRecon3, EMAILS.apprenantRecon3, passwordHash);
   await createApprenant(IDS.apprenantRecon4, EMAILS.apprenantRecon4, passwordHash);
+  await createApprenant(IDS.apprenantRecon5, EMAILS.apprenantRecon5, passwordHash);
   await createApprenant(IDS.apprenantNgser1, EMAILS.apprenantNgser1, passwordHash);
 
   await prisma.organisation.create({

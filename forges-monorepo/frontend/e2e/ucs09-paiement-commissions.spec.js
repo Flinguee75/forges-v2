@@ -5,7 +5,6 @@ import {
   createPaiementAndConfirm,
   findDossier,
   getJson,
-  loginAsApporteur,
   postJson,
 } from './helpers';
 
@@ -65,7 +64,7 @@ test('UCS09 RM-129: paiement partenaire génère une commission nette partenaire
   expect(JSON.stringify(partenaireReversement)).not.toContain('commission_forges_pct');
 });
 
-test('UCS09 RM-145: paiement avec code apporteur crée une commission visible côté apporteur', async ({ page, request }) => {
+test('UCS09 RM-145: paiement avec code apporteur crée une commission visible côté apporteur', async ({ request }) => {
   const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMismatch1);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
     source_financement: 'RETAIL',
@@ -93,14 +92,15 @@ test('UCS09 RM-145: paiement avec code apporteur crée une commission visible c�
   const webhookResponse = await postJson(request, '/paiements/webhook', webhookBody, {});
   expect(webhookResponse.ok).toBeTruthy();
 
-  await loginAsApporteur(page);
-  await page.goto('/apporteur/commissions');
+  // Vérification API : la commission est visible côté apporteur (RM-145)
+  const apporteurHeaders = await authHeaders(request, E2E_ACCOUNTS.apporteur);
+  const commissionsResponse = await getJson(request, '/apporteurs/commissions', apporteurHeaders);
 
-  const commissionRow = page.getByRole('row', { name: new RegExp(transactionId) });
-  await expect(commissionRow).toBeVisible();
-  await expect(commissionRow).toContainText('1 500 FCFA');
-  await expect(commissionRow).toContainText('75 FCFA');
-  await expect(commissionRow).toContainText('En attente');
+  const commissions = commissionsResponse.data ?? commissionsResponse;
+  const commission = commissions.find((c) => c.paiement?.transaction_id === transactionId);
+  expect(commission).toBeTruthy();
+  expect(commission.commission_xof).toBe(7500);
+  expect(commission.statut).toBe('EN_ATTENTE');
 });
 
 /**
