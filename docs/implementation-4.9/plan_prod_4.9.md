@@ -351,6 +351,7 @@ SLACK_WEBHOOK=https://hooks.slack.com/services/... \
 
 ---
 
+
 ### Phase 3: Validation Staging (J10 - 1 jour)
 
 #### 3.1 Désactiver mode mock
