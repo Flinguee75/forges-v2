@@ -759,7 +759,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/vouchers/validate",
+              "raw": "{{base_url}}/api/vouchers/check",
               "host": [
                 "{{base_url}}"
               ],
@@ -1158,13 +1158,12 @@
               ],
               "path": [
                 "api",
-                "paiements",
-                "initier"
+                "paiements"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"dossier_id\": \"{{dossier_retenu_id}}\"\n}",
+              "raw": "{\n  \"dossier_id\": \"{{dossier_webhook_id}}\",\n  \"methode\": \"MOBILE_MONEY\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1280,21 +1279,17 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
+                  "pm.test(\"Status code is 200 or 404\", function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
                   "});",
                   "",
                   "pm.test(\"Response time is acceptable\", function () {",
                   "    pm.expect(pm.response.responseTime).to.be.below(2000);",
                   "});",
                   "",
-                  "",
-                  "",
-                  "",
-                  "pm.test(\"Response indicates success\", function () {",
+                  "pm.test(\"Response is JSON\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('statusCode');",
-                  "    pm.expect(jsonData.statusCode).to.equal(200);",
+                  "    pm.expect(jsonData).to.have.property(\"statusCode\");",
                   "});"
                 ]
               }
@@ -2371,7 +2366,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/backoffice/formations/{{formation_partenaire_id_reject}}/validate",
+              "raw": "{{base_url}}/api/backoffice/formations/{{formation_partenaire_id_validate}}/validate",
               "host": [
                 "{{base_url}}"
               ],

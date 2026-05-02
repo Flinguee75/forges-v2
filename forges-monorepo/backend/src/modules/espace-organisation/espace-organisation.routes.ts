@@ -53,6 +53,10 @@ router.get('/membres', authenticate, authorize('ORGANISATION'), (req, res, next)
   orgController.getBeneficiaires(req, res, next);
 });
 
+router.get('/apprenants', authenticate, authorize('ORGANISATION'), (req, res, next) => {
+  orgController.getBeneficiaires(req, res, next);
+});
+
 // POST /api/organisation/membres - Créer un membre
 router.post('/membres', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   orgController.createMembre(req, res, next);

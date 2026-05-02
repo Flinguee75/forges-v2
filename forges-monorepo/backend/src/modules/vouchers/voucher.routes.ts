@@ -25,7 +25,8 @@ router.get('/apporteur/:code/check', authenticate, authorize('APPRENANT', 'ADMIN
   voucherController.checkApporteurCode(req, res, next);
 });
 
-router.post('/check', authenticate, authorize('APPRENANT', 'ORGANISATION', 'ADMIN', 'AGENT', 'SUPERVISEUR'), (req, res, next) => {
+// POST /api/vouchers/check — Valider un voucher (PUBLIC)
+router.post('/check', (req, res, next) => {
   voucherController.validateVoucher(req, res, next);
 });
 

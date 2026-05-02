@@ -254,6 +254,9 @@ export class InscriptionService {
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
 
     // RM-05 : RETENU irréversible — vérifier statut actuel
+    if (dossier.statut === 'RETENU') {
+      return { success: true, message: 'Dossier déjà retenu.' };
+    }
     if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
       throw new Error('DOSSIER_ALREADY_PROCESSED');
     }
@@ -320,6 +323,9 @@ export class InscriptionService {
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
 
     // Vérifier statut actuel
+    if (dossier.statut === 'REJETE') {
+      return { success: true, message: 'Dossier déjà rejeté.' };
+    }
     if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
       throw new Error('DOSSIER_ALREADY_PROCESSED');
     }
