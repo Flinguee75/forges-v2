@@ -165,6 +165,15 @@
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.have.property('statusCode');",
                   "    pm.expect(jsonData.statusCode).to.equal(200);",
+                  "});",
+                  "",
+                  "// Capture access token for subsequent requests",
+                  "pm.test('Capture access token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.access_token) {",
+                  "        pm.environment.set('token_apprenant', jsonData.data.access_token);",
+                  "        pm.environment.set('token_apprenant_expires_at', Date.now() + (jsonData.data.expires_in || 3600) * 1000);",
+                  "    }",
                   "});"
                 ]
               }
@@ -435,6 +444,15 @@
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.have.property('statusCode');",
                   "    pm.expect(jsonData.statusCode).to.equal(201);",
+                  "});",
+                  "",
+                  "// Capture access token for subsequent requests",
+                  "pm.test('Capture access token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.access_token) {",
+                  "        pm.environment.set('token_organisation', jsonData.data.access_token);",
+                  "        pm.environment.set('token_apprenant_expires_at', Date.now() + (jsonData.data.expires_in || 3600) * 1000);",
+                  "    }",
                   "});"
                 ]
               }
@@ -638,12 +656,13 @@
               ],
               "path": [
                 "api",
-                "vouchers"
+                "vouchers",
+                "organisation"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"formation_id\": \"{{formation_id_test}}\",\n  \"quota_max\": 10,\n  \"date_expiration\": \"2027-12-31T23:59:59Z\"\n}",
+              "raw": "{\n  \"formation_id\": \"{{formation_id_test}}\",\n  \"quota_max\": 10,\n  \"date_expiration\": \"2027-12-31T23:59:59Z\",\n  \"valeur\": 25,\n  \"type_valeur\": \"POURCENTAGE\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -741,7 +760,7 @@
               "path": [
                 "api",
                 "vouchers",
-                "validate"
+                "check"
               ]
             },
             "body": {
@@ -1133,12 +1152,13 @@
               ],
               "path": [
                 "api",
-                "paiements"
+                "paiements",
+                "initier"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"dossier_id\": \"{{dossier_retenu_id}}\",\n  \"methode\": \"MOBILE_MONEY\"\n}",
+              "raw": "{\n  \"dossier_id\": \"{{dossier_retenu_id}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1609,18 +1629,16 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
+                  "pm.test('Status code is 200', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Response time is acceptable\", function () {",
+                  "pm.test('Response time is acceptable', function () {",
                   "    pm.expect(pm.response.responseTime).to.be.below(2000);",
                   "});",
                   "",
-                  "",
-                  "pm.test(\"Response has data field\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
+                  "pm.test('Content-Type is PDF', function () {",
+                  "    pm.expect(pm.response.headers.get('content-type')).to.include('application/pdf');",
                   "});"
                 ]
               }

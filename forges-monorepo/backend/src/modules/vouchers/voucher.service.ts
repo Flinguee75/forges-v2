@@ -48,7 +48,7 @@ export class VoucherService {
   }
 
   async createVoucher(dto: CreateVoucherDto, organisationId: string) {
-    const organisation = await this.prisma.organisation.findUnique({ where: { id: dto.organisation_id } });
+    const organisation = await this.prisma.organisation.findUnique({ where: { id: organisationId } });
     if (!organisation) {
       throw new Error('ORGANISATION_NOT_FOUND');
     }
@@ -73,7 +73,7 @@ export class VoucherService {
       quota_utilise: 0,
       date_expiration: dto.date_expiration,
       statut: 'ACTIF',
-      cree_par: organisationId,
+      // note: cree_par not in VoucherOrganisation schema
     });
 
     await this.audit.info('VOUCHER_ORGANISATION_CREE', {

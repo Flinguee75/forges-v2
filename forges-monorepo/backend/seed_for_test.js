@@ -61,6 +61,8 @@ const IDS = {
   d_retenu_01:   'dos-ret-000001-0000-0000-000000000002',
   d_paye_01:     'dos-pay-000001-0000-0000-000000000003',
   d_retenu_exp:  'dos-exp-000001-0000-0000-000000000004',
+  d_rejeter_01:  'dos-rej-000001-0000-0000-000000000005',  // D2: UCS08 Rejeter
+  d_webhook_01:  'dos-wbk-000001-0000-0000-000000000006',  // D3: UCS09 Webhook (RETENU pour apprenant1)
 
   // Vouchers
   vch_org_01:    'vch-org-000001-0000-0000-000000000001',
@@ -80,6 +82,11 @@ const IDS = {
 
   // FormationPartenaire
   fp_part_01:    'fpa-part-00001-0000-0000-000000000001',
+  fp_part_02:    'fpa-part-00002-0000-0000-000000000002',  // D7: 2nd formation for UCS18 Rejeter test
+
+  // Conversation & Message (D6: UCS15)
+  conv_01:       'conv-test-00001-0000-0000-000000000001',
+  msg_01:        'msg-test-0000001-0000-0000-000000000001',
 };
 
 // ── Helpers date ──────────────────────────────────────────────
@@ -472,7 +479,7 @@ async function seed() {
       formation_id: IDS.f_part_01,
       partenaire_id: IDS.partenaire,
       responsable_validateur_id: IDS.responsable,
-      statut_validation: 'EN_ATTENTE',
+      statut_validation: 'EN_ATTENTE_VALIDATION',  // D7: Changed from EN_ATTENTE
       date_soumission: agoD(2),
       prix_coutant_soumis: 80000,
       prix_coutant_valide: null,
@@ -487,6 +494,17 @@ async function seed() {
       date_validation: agoD(25),
       prix_coutant_soumis: 1400000,
       prix_coutant_valide: 1400000,
+    },
+    {
+      // D7: UCS18 Rejeter — 2nd formation for reject test
+      id: IDS.fp_part_02,
+      formation_id: IDS.f_arch_01,
+      partenaire_id: IDS.partenaire,
+      responsable_validateur_id: IDS.responsable,
+      statut_validation: 'EN_ATTENTE_VALIDATION',
+      date_soumission: agoD(1),
+      prix_coutant_soumis: 150000,
+      prix_coutant_valide: null,
     },
   ]});
 
@@ -547,29 +565,7 @@ async function seed() {
     },
   ]});
 
-  // ── 6. ABONNEMENT RETAIL apprenant1 ───────────────────────
-  console.log('  6/11 AbonnementRetail...');
-  await prisma.abonnementRetail.create({ data: {
-    id: IDS.abo_ret_01,
-    apprenant_id: IDS.apprenant1,
-    offre: 'ESSENTIEL',
-    statut: 'ACTIF',
-    montant_mensuel: 15000,
-    methode_paiement: 'MOBILE_MONEY',
-    date_debut: agoD(15),
-    date_fin: inD(15),
-    renouvellement_auto: true,
-    nb_formations_actives: 1,
-    consentement_auto: true,
-    consentement_timestamp: agoD(15),
-    prorata_premier_mois: 15000,
-  }});
-
-  // Mettre à jour apprenant1 avec son abonnement
-  await prisma.apprenant.update({
-    where: { id: IDS.apprenant1 },
-    data: { abonnement_retail: { connect: { id: IDS.abo_ret_01 } } },
-  });
+  // ── 6. ABONNEMENT RETAIL — REMOVED (D4: Subscribe test creates it) ───
 
   // ── 7. VOUCHER ORGANISATIONS ──────────────────────────
   console.log('  7/11 VoucherOrganisations...');
@@ -665,6 +661,29 @@ async function seed() {
       created_at: agoH(74),
       updated_at: agoH(74),
     },
+    {
+      // D2: UCS08 Rejeter — EN_ATTENTE_VERIFICATION fresh dossier for reject test
+      id: IDS.d_rejeter_01,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      created_at: agoH(1),
+      updated_at: agoH(1),
+    },
+    {
+      // D3: UCS09 Webhook — RETENU dossier for apprenant1 (not apprenant2)
+      id: IDS.d_webhook_01,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_prem_01,
+      statut: 'RETENU',
+      source_financement: 'RETAIL',
+      expires_at: inH(60),
+      created_at: agoH(8),
+      updated_at: agoH(8),
+    },
   ]});
 
   // ── 9. PAIEMENT pour D-PAYE-01 ───────────────────────────
@@ -714,8 +733,10 @@ async function seed() {
   // Créer des dossiers et paiements fictifs pour les commissions
   const dossierComm1Id = uuidv4();
   const dossierComm2Id = uuidv4();
+  const dossierComm3Id = uuidv4();  // D9: Third dossier for extra commission
   const paiement1Id = uuidv4();
   const paiement2Id = uuidv4();
+  const paiement3Id = uuidv4();  // D9: Third paiement for extra commission
   
   // Dossiers fictifs pour les commissions
   await prisma.dossier.createMany({ data: [
@@ -738,6 +759,17 @@ async function seed() {
       source_financement: 'RETAIL',
       created_at: agoD(15),
       updated_at: agoD(15),
+    },
+    {
+      // D9: Extra dossier for 3rd commission (to exceed 5000 threshold)
+      id: dossierComm3Id,
+      apprenant_id: IDS.apprenant2,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      statut: 'PAYE',
+      source_financement: 'RETAIL',
+      created_at: agoD(10),
+      updated_at: agoD(10),
     },
   ]});
   
@@ -767,9 +799,24 @@ async function seed() {
       confirmed_at: agoD(15),
       created_at: agoD(15),
     },
+    {
+      // D9: Extra paiement for 3rd commission (500 XOF commission)
+      id: paiement3Id,
+      dossier_id: dossierComm3Id,
+      montant_catalogue: 10000,
+      montant_final: 10000,
+      methode: 'MOBILE_MONEY',
+      statut: 'CONFIRME',
+      transaction_id: 'TXN-COMM-3',
+      code_apporteur_id: IDS.vch_apt_01,
+      confirmed_at: agoD(10),
+      created_at: agoD(10),
+    },
   ]});
 
-  // CommissionsApporteur EN_ATTENTE (cumul 4500 XOF < seuil 5000 — pour test RM-147)
+  // CommissionsApporteur VALIDEE (cumul 5500 XOF > seuil 5000 — pour test RM-147)
+  // Change: VALIDEE not EN_ATTENTE (getCumulDu only counts VALIDEE)
+  // Change: Add 500 XOF more to exceed 5000 threshold (via paiement3Id)
   const moisCourant = new Date().toISOString().slice(0, 7); // AAAA-MM
   await prisma.commissionApporteur.createMany({ data: [
     {
@@ -781,10 +828,9 @@ async function seed() {
       montant_commission_xof: 2000,
       date_generation: agoD(20), 
       mois_facturation: moisCourant,
-      statut: 'EN_ATTENTE', 
+      statut: 'VALIDEE',  // CHANGED: was EN_ATTENTE
       created_at: agoD(20),
     },
-    // Deux autres commissions en attente — cumul total 4500 XOF (< 5000 seuil)
     {
       id: uuidv4(), 
       apporteur_id: IDS.apporteur,
@@ -794,10 +840,28 @@ async function seed() {
       montant_commission_xof: 2500,
       date_generation: agoD(15), 
       mois_facturation: moisCourant,
-      statut: 'EN_ATTENTE', 
+      statut: 'VALIDEE',  // CHANGED: was EN_ATTENTE
       created_at: agoD(15),
     },
-  ]});
+    {
+      // D9: Extra commission (paiement3) to exceed 5000 threshold
+      id: uuidv4(),
+      apporteur_id: IDS.apporteur,
+      paiement_id: paiement3Id,
+      montant_base_xof: 10000,
+      taux_commission_pct: 5,
+      montant_commission_xof: 500,
+      date_generation: agoD(10),
+      mois_facturation: moisCourant,
+      statut: 'VALIDEE',
+      created_at: agoD(10),
+    },
+  ] });
+
+  // ── 10b. CONVERSATION (D6: UCS15 Répondre/Historique) ──────
+  // NOTE: D6 needs ConversationBot seed — deferred pending schema validation
+  // For now, UCS15 pre-request will need to capture conversation_id dynamically
+  console.log('  10b/11 Conversation & Message... (deferred)');
 
   // ── 11. CONTRAT INSTITUTIONNEL ────────────────────────────
   console.log('  11/11 ContratInstitutionnel...');

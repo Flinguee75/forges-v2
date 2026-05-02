@@ -1,7 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 
+type VoucherType = 'ORGANISATION' | 'APPORTEUR' | 'PROMOTIONNEL';
+
 export class VoucherRepository {
   constructor(public readonly prisma: PrismaClient) {}
+
+  private getModel(type: VoucherType) {
+    if (type === 'ORGANISATION') return this.prisma.voucherOrganisation;
+    if (type === 'APPORTEUR') return this.prisma.voucherApporteur;
+    return this.prisma.voucherApporteur; // PROMOTIONNEL also uses voucherApporteur
+  }
 
   async findByCode(code: string) {
     // Chercher d'abord dans VoucherOrganisation
@@ -20,7 +28,10 @@ export class VoucherRepository {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, type?: VoucherType) {
+    if (type === 'ORGANISATION') {
+      return this.prisma.voucherOrganisation.findUnique({ where: { id } });
+    }
     return this.prisma.voucherApporteur.findUnique({
       where: { id },
       include: {
@@ -73,36 +84,70 @@ export class VoucherRepository {
   }
 
   async create(data: Record<string, unknown>) {
+    const type = (data.type || 'APPORTEUR') as VoucherType;
+    if (type === 'ORGANISATION') {
+      return this.prisma.voucherOrganisation.create({ data: data as any });
+    }
     return this.prisma.voucherApporteur.create({ data: data as any });
   }
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: string, data: Record<string, unknown>, type?: VoucherType) {
+    if (type === 'ORGANISATION') {
+      return this.prisma.voucherOrganisation.update({ where: { id }, data: data as any });
+    }
     return this.prisma.voucherApporteur.update({ where: { id }, data: data as any });
   }
 
-  async utiliser(id: string) {
-    const voucher = await this.prisma.voucherApporteur.update({
-      where: { id },
-      data: { quota_utilise: { increment: 1 } },
-    });
-    if (voucher.quota_max && voucher.quota_utilise >= voucher.quota_max) {
-      await this.prisma.voucherApporteur.update({
+  async utiliser(id: string, type?: VoucherType) {
+    let voucher;
+    if (type === 'ORGANISATION') {
+      voucher = await this.prisma.voucherOrganisation.update({
         where: { id },
-        data: { statut: 'EPUISE' },
+        data: { quota_utilise: { increment: 1 } },
       });
+      if (voucher.quota_max && voucher.quota_utilise >= voucher.quota_max) {
+        await this.prisma.voucherOrganisation.update({
+          where: { id },
+          data: { statut: 'EPUISE' },
+        });
+      }
+    } else {
+      voucher = await this.prisma.voucherApporteur.update({
+        where: { id },
+        data: { quota_utilise: { increment: 1 } },
+      });
+      if (voucher.quota_max && voucher.quota_utilise >= voucher.quota_max) {
+        await this.prisma.voucherApporteur.update({
+          where: { id },
+          data: { statut: 'EPUISE' },
+        });
+      }
     }
     return voucher;
   }
 
-  async reactiverApresRejet(id: string) {
-    const voucher = await this.prisma.voucherApporteur.findUnique({ where: { id } });
-    if (!voucher) return;
-    await this.prisma.voucherApporteur.update({
-      where: { id },
-      data: {
-        quota_utilise: { decrement: 1 },
-        statut: voucher.statut === 'EPUISE' ? 'ACTIF' : voucher.statut,
-      },
-    });
+  async reactiverApresRejet(id: string, type?: VoucherType) {
+    let voucher;
+    if (type === 'ORGANISATION') {
+      voucher = await this.prisma.voucherOrganisation.findUnique({ where: { id } });
+      if (!voucher) return;
+      await this.prisma.voucherOrganisation.update({
+        where: { id },
+        data: {
+          quota_utilise: { decrement: 1 },
+          statut: voucher.statut === 'EPUISE' ? 'ACTIF' : voucher.statut,
+        },
+      });
+    } else {
+      voucher = await this.prisma.voucherApporteur.findUnique({ where: { id } });
+      if (!voucher) return;
+      await this.prisma.voucherApporteur.update({
+        where: { id },
+        data: {
+          quota_utilise: { decrement: 1 },
+          statut: voucher.statut === 'EPUISE' ? 'ACTIF' : voucher.statut,
+        },
+      });
+    }
   }
 }
