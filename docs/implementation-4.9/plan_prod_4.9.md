@@ -1,6 +1,6 @@
 # Plan de Fiabilisation Production FORGES v4.9
 
-## 📊 État Actuel (Mise à jour: 2026-04-30)
+## 📊 État Actuel (Mise à jour: 2026-05-01)
 
 ### ✅ Phase 1 : COMPLÈTE (100%)
 - Scheduler réconciliation activé
@@ -18,10 +18,12 @@
 - Timeout NGSER optimisé (60s)
 - Load test k6 créé et documenté
 
-### ⏭️ Phase 3 : PRÊTE À DÉMARRER
-- Tests E2E à exécuter avec backend actif
-- Load test à valider localement
-- Validation staging NGSER réel reste à faire
+### 🔄 Phase 3 : EN COURS
+- **13/13 tests E2E paiement NGSER PASS** (seed E2E + backend actif) ✅
+- Fixes isolation comptes E2E (apprenantRecon5 ajouté au seed, RM-145 API-only) ✅
+- Load test k6 local : à exécuter
+- Smoke tests + Newman baseline : à exécuter
+- Validation staging NGSER réel : dépend accès staging HTTPS + credentials sandbox
 
 ---
 
@@ -487,12 +489,14 @@ if (Math.random() * 100 < Number(process.env.NGSER_ROLLOUT_PERCENTAGE)) {
 
 ### Phase 3 (Staging)
 
-- [ ] Mode mock désactivé
+- [x] 13/13 tests E2E paiement NGSER PASS (seed E2E propre + backend actif)
+- [x] Fix isolation comptes E2E (apprenantRecon5, RM-145 API-only)
+- [ ] Load test k6 exécuté et validé localement
+- [ ] Smoke tests passent (Newman baseline v4.8)
+- [ ] Mode mock désactivé en staging
 - [ ] Paiement sandbox SUCCESS testé
-- [ ] IPN reçu depuis NGSER
+- [ ] IPN reçu depuis NGSER réel
 - [ ] Réconciliation fonctionne avec API réelle
-- [ ] Smoke tests passent
-- [ ] Newman baseline OK
 
 ### Phase 4 (Production)
 

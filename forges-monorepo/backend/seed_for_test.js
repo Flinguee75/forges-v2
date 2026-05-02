@@ -280,6 +280,39 @@ async function seed() {
       role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
       consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
     },
+    // Comptes backoffice pour Newman/validation
+    {
+      id: IDS.admin, nom: 'Admin', prenoms: 'FORGES Test',
+      email: 'admin@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'ADMIN', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: IDS.responsable, nom: 'Responsable', prenoms: 'FORGES Test',
+      email: 'responsable@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'RESPONSABLE', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: IDS.superviseur, nom: 'Superviseur', prenoms: 'FORGES Test',
+      email: 'superviseur@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'SUPERVISEUR', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: IDS.agent, nom: 'Agent', prenoms: 'FORGES Test',
+      email: 'agent@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'AGENT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
   ]});
 
   // ── 2. ORGANISATION ─────────────────────────────────────────
