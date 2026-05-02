@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "FORGES v4.8 - Collection Complète",
+    "name": "FORGES v4.8 - Collection Compl\u00e8te",
     "description": "Collection exhaustive de tests automatiques pour tous les endpoints FORGES v4.8 avec authentification JWT",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_postman_id": "09f621af-f2b9-4cc5-acf7-57a1857d1030"
@@ -550,7 +550,7 @@
           ]
         },
         {
-          "name": "Public - Détails Formation",
+          "name": "Public - D\u00e9tails Formation",
           "request": {
             "method": "GET",
             "header": [],
@@ -634,7 +634,7 @@
       "name": "UCS06",
       "item": [
         {
-          "name": "ORGANISATION - Créer Voucher",
+          "name": "ORGANISATION - Cr\u00e9er Voucher",
           "request": {
             "method": "POST",
             "header": [
@@ -683,8 +683,14 @@
                   "    pm.expect(pm.response.responseTime).to.be.below(2000);",
                   "});",
                   "",
-                  "",
-                  "",
+                  "// Capture voucher code for validation test",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.code) {",
+                  "        pm.environment.set('voucher_code_test', jsonData.data.code);",
+                  "        pm.environment.set('voucher_id_test', jsonData.data.id);",
+                  "    }",
+                  "}",
                   "",
                   "pm.test(\"Response indicates success\", function () {",
                   "    var jsonData = pm.response.json();",
@@ -805,7 +811,7 @@
       "name": "UCS07",
       "item": [
         {
-          "name": "APPRENANT - Créer Dossier Inscription",
+          "name": "APPRENANT - Cr\u00e9er Dossier Inscription",
           "request": {
             "method": "POST",
             "header": [
@@ -912,7 +918,7 @@
           ]
         },
         {
-          "name": "APPRENANT - Détails Dossier",
+          "name": "APPRENANT - D\u00e9tails Dossier",
           "request": {
             "method": "GET",
             "header": [
@@ -963,7 +969,7 @@
       "name": "UCS08",
       "item": [
         {
-          "name": "RESPONSABLE - Liste Dossiers à Valider",
+          "name": "RESPONSABLE - Liste Dossiers \u00e0 Valider",
           "request": {
             "method": "GET",
             "header": [
@@ -1442,7 +1448,7 @@
           ]
         },
         {
-          "name": "ADMIN - Configuration Système",
+          "name": "ADMIN - Configuration Syst\u00e8me",
           "request": {
             "method": "GET",
             "header": [
@@ -1601,7 +1607,7 @@
           ]
         },
         {
-          "name": "APPRENANT - Télécharger Attestation",
+          "name": "APPRENANT - T\u00e9l\u00e9charger Attestation",
           "request": {
             "method": "GET",
             "header": [
@@ -1760,7 +1766,7 @@
           ]
         },
         {
-          "name": "APPRENANT - Résilier Abonnement",
+          "name": "APPRENANT - R\u00e9silier Abonnement",
           "request": {
             "method": "POST",
             "header": [
@@ -1974,7 +1980,7 @@
       "name": "UCS15",
       "item": [
         {
-          "name": "APPRENANT - Démarrer Conversation Bot",
+          "name": "APPRENANT - D\u00e9marrer Conversation Bot",
           "request": {
             "method": "POST",
             "header": [
@@ -2024,7 +2030,7 @@
           ]
         },
         {
-          "name": "APPRENANT - Répondre au Bot",
+          "name": "APPRENANT - R\u00e9pondre au Bot",
           "request": {
             "method": "POST",
             "header": [
@@ -2054,7 +2060,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"question_id\": 1,\n  \"valeur\": \"Certifier mes compétences\"\n}",
+              "raw": "{\n  \"question_id\": 1,\n  \"valeur\": \"Certifier mes comp\u00e9tences\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2169,7 +2175,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"intitule\": \"Formation Test Postman\",\n  \"description_courte\": \"Test automatique\",\n  \"description_longue\": \"<p>Description complète test</p>\",\n  \"mode_formation\": \"AVEC_SESSION\",\n  \"duree_jours\": 5,\n  \"prix_coutant_propose\": 100000,\n  \"modalite\": \"DISTANCIEL\",\n  \"public_cible\": \"Professionnels IT\",\n  \"objectifs_pedagogiques\": [\n    \"Objectif 1\",\n    \"Objectif 2\"\n  ],\n  \"langues_disponibles\": [\n    \"FR\"\n  ],\n  \"certification_delivree\": false,\n  \"nb_places_max_session\": 20\n}",
+              "raw": "{\n  \"intitule\": \"Formation Test Postman\",\n  \"description_courte\": \"Test automatique\",\n  \"description_longue\": \"<p>Description compl\u00e8te test</p>\",\n  \"mode_formation\": \"AVEC_SESSION\",\n  \"duree_jours\": 5,\n  \"prix_coutant_propose\": 100000,\n  \"modalite\": \"DISTANCIEL\",\n  \"public_cible\": \"Professionnels IT\",\n  \"objectifs_pedagogiques\": [\n    \"Objectif 1\",\n    \"Objectif 2\"\n  ],\n  \"langues_disponibles\": [\n    \"FR\"\n  ],\n  \"certification_delivree\": false,\n  \"nb_places_max_session\": 20\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2443,7 +2449,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"motif\": \"Dossier de test Newman incomplet pour validation.\",\n  \"corrections_suggeres\": \"Ajouter les pièces et métadonnées manquantes.\"\n}",
+              "raw": "{\n  \"motif\": \"Dossier de test Newman incomplet pour validation.\",\n  \"corrections_suggeres\": \"Ajouter les pi\u00e8ces et m\u00e9tadonn\u00e9es manquantes.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
