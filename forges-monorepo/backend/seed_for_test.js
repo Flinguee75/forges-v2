@@ -33,9 +33,11 @@ const IDS = {
   // Apprenants
   apprenant1:    'apr-00001-00000-0000-0000-000000000001',
   apprenant2:    'apr-00002-00000-0000-0000-000000000002',
+  apprenant3:    'apr-00003-00000-0000-0000-000000000003',  // Pour UCS12 (sans abonnement)
 
-  // Organisation
+  // Organisations
   org_techcorp:  'org-techcorp-000-0000-0000-000000000001',
+  org_test_02:   'org-test-02-00-0000-0000-000000000002',    // Pour UCS13 (sans B2B)
 
   // Partenaire
   partenaire:    'prt-instittech-000-0000-000000000001',
@@ -55,6 +57,7 @@ const IDS = {
   s_prem_01:     'ses-prem-00001-0000-0000-000000000002',
   s_closed_01:   'ses-clos-00001-0000-0000-000000000003',
   s_future_01:   'ses-fut-000001-0000-0000-000000000004',
+  s_open_02:     'ses-open-00002-0000-0000-000000000005',  // Pour UCS07 (apprenant3)
 
   // Dossiers
   d_attente_01:  'dos-att-000001-0000-0000-000000000001',
@@ -206,6 +209,14 @@ async function seed() {
       role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
       consentement_timestamp: agoD(5), consentement_version_cgu: 'v1.0',
     },
+    {
+      id: IDS.apprenant3, nom: 'TOURE', prenoms: 'Awa',
+      email: 'apprenant3@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Education',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'SN',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(3), consentement_version_cgu: 'v1.0',
+    },
     // ✨ Nouveaux comptes E2E pour tests paiement NGSER (Phase 1.4)
     {
       id: uuidv4(), nom: 'IDEMPOTENCE', prenoms: 'Test 1',
@@ -333,6 +344,22 @@ async function seed() {
     identifiant_legal: 'CI-RCCM-TEST-2026-001',
     contact_referent: 'Directeur RH Test',
     email: 'org@forges-test.ci',
+    password_hash: PWD_HASH,
+    pays: 'CI',
+    langue_preferee: 'FR',
+    statut: 'ACTIF',
+    date_fin_essai: agoD(1),
+  }});
+
+  // Organisation 2 pour UCS13 (sans B2B)
+  await prisma.organisation.create({ data: {
+    id: IDS.org_test_02,
+    raison_sociale: 'Test Organisation 2',
+    type: 'ENTREPRISE',
+    sous_types: [],
+    identifiant_legal: 'CI-RCCM-TEST-2026-002',
+    contact_referent: 'Gestionnaire Test',
+    email: 'org2@forges-test.ci',
     password_hash: PWD_HASH,
     pays: 'CI',
     langue_preferee: 'FR',
@@ -562,6 +589,19 @@ async function seed() {
       nb_inscrits: 0,
       places_restantes: 10,
       statut: 'PLANIFIEE',
+    },
+    {
+      // S-OPEN-02 : ouverte — pour UCS07 avec apprenant3
+      id: IDS.s_open_02,
+      formation_id: IDS.f_std_01,
+      date_ouverture: agoD(2),
+      date_cloture: inD(12),
+      date_debut: inD(18),
+      date_fin: inD(48),
+      capacite: 8,
+      nb_inscrits: 0,
+      places_restantes: 8,
+      statut: 'INSCRIPTIONS_OUVERTES',
     },
   ]});
 

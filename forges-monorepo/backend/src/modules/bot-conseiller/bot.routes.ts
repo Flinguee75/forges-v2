@@ -60,4 +60,10 @@ router.post('/conversation/:id/answer', (req, res, next) => botController.repond
  */
 router.post('/session/:id/abandon', (req, res, next) => botController.abandonner(req, res, next));
 
+/**
+ * GET /api/bot/conversation/:id/messages
+ * Récupère l'historique des messages de la conversation
+ */
+router.get('/conversation/:id/messages', (req, res, next) => botController.getSessionById(req, res, next));
+
 export default router;

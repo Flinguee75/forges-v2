@@ -165,6 +165,29 @@ async function generateTokens() {
   generated.confirmation_token_test = 'token-test-invalide';
   generated.conversation_id_test = conversationBot?.id || CONVERSATION_FIXTURE_ID;
 
+  // === Tokens pour données alternatives (UCS12, UCS13) ===
+  const apprenant3 = await prisma.apprenant.findUnique({ where: { email: 'apprenant3@forges-test.ci' } });
+  if (apprenant3) {
+    const token3 = jwt.sign(
+      { sub: apprenant3.id, role: 'APPRENANT', langue: apprenant3.langue_preferee },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    console.log(`APPRENANT3: Bearer ${token3}\n`);
+    generated.token_apprenant3 = token3;
+  }
+
+  const org2 = await prisma.organisation.findUnique({ where: { email: 'org2@forges-test.ci' } });
+  if (org2) {
+    const token2 = jwt.sign(
+      { sub: org2.id, role: 'ORGANISATION', langue: org2.langue_preferee },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    console.log(`ORGANISATION2: Bearer ${token2}\n`);
+    generated.token_organisation2 = token2;
+  }
+
   const environmentPath = require('path').join(__dirname, '../tests/forges-v4.8-complete.postman_environment.json');
   if (require('fs').existsSync(environmentPath)) {
     const environment = JSON.parse(require('fs').readFileSync(environmentPath, 'utf-8'));
