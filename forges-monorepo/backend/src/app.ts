@@ -162,6 +162,7 @@ app.use('/api/espace-organisation', espaceOrganisationRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/partenaires', partenaireRoutes);
 app.use('/api/apporteurs', apporteurRoutes); // ✅ CORRIGÉ: singular → plural
+app.use('/api', devisRoutes); // RM-149 à RM-151: devis SUR_DEVIS — monté avant /api/admin pour éviter le authorize('ADMIN') global
 app.use('/api/admin', adminRoutes); // ✅ NOUVEAU: création admin utilisateurs / partenaires / apporteurs
 app.use('/api/admin', backofficeRoutes); // Alias pour config
 app.use('/api/admin', responsableRoutes); // Alias pour formations attente
@@ -170,7 +171,6 @@ app.use('/api/apprenant', espaceApprenantRoutes); // Alias pour Postman
 app.use('/api', inscriptionRoutes); // ✅ NOUVEAU: endpoints inscriptions/dossiers/sessions
 app.use('/api', paiementRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET paiements, webhook, backoffice paiements
 app.use('/', paiementRoutes); // ✅ v4.9: IPN NGSER canonical /webhooks/paiement
-app.use('/api', devisRoutes); // RM-149 à RM-151: devis SUR_DEVIS
 app.use('/api/vouchers', voucherRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET vouchers, validate
 app.use('/api/responsable', responsableRoutes); // ✅ NOUVEAU: endpoints validation formations (UCS18)
 app.use('/api/backoffice', responsableRoutes);
