@@ -69,7 +69,7 @@ describe('backoffice.routes', () => {
     await request(app).get('/api/backoffice/config').expect(200).expect(({ body }) => {
       expect(body.statusCode).toBe(200);
       expect(body.data).toMatchObject({
-        default_commission_forges_pct: 20,
+        default_commission_forges_pct: 30,
         default_commission_apporteur_pct: 5,
         seuil_reversement_partenaire_xof: 50000,
         seuil_reversement_apporteur_xof: 5000,
