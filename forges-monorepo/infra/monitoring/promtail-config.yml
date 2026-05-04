@@ -1,0 +1,138 @@
+# Promtail Configuration
+# Collecte des logs Docker avec tags par environnement
+# Date: 4 mai 2026
+
+server:
+  http_listen_port: 9080
+  log_level: info
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Logs du backend DEV
+  - job_name: forges-backend-dev
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^forges-backend-dev.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - target_label: environment
+        replacement: dev
+
+  # Logs du frontend DEV
+  - job_name: forges-frontend-dev
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^forges-frontend-dev.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - target_label: environment
+        replacement: dev
+
+  # Logs du backend TEST
+  - job_name: forges-backend-test
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^forges-backend-test.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - target_label: environment
+        replacement: test
+
+  # Logs du frontend TEST
+  - job_name: forges-frontend-test
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^forges-frontend-test.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - target_label: environment
+        replacement: test
+
+  # Logs du backend DEMO
+  - job_name: forges-backend-demo
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^forges-backend-demo.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - target_label: environment
+        replacement: demo
+
+  # Logs du frontend DEMO
+  - job_name: forges-frontend-demo
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^forges-frontend-demo.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - target_label: environment
+        replacement: demo
+
+  # Logs des bases de données
+  - job_name: postgres
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^postgres.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - source_labels: ['__meta_docker_container_name']
+        regex: '.*-(dev|test|demo).*'
+        target_label: environment
+        replacement: '$1'
+
+  # Logs Redis
+  - job_name: redis
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '^redis.*'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - source_labels: ['__meta_docker_container_name']
+        regex: '.*-(dev|test|demo).*'
+        target_label: environment
+        replacement: '$1'

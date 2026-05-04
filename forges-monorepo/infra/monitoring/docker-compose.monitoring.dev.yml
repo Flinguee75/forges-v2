@@ -1,0 +1,115 @@
+version: '3.8'
+
+# Docker Compose - Monitoring UNIFIED avec logs séparés
+# Stack monitoring UNIQUE pour dev, test et demo
+# Services: Portainer CE, Uptime Kuma, Loki (logs centralisés + séparés par env)
+# Date: 4 mai 2026
+#
+# Architecture:
+# - Portainer: Interface unique pour voir tous les conteneurs (dev/test/demo)
+# - Uptime Kuma: Monitoring unique pour tous les endpoints
+# - Loki: Agrégation des logs avec tags par environnement
+# - Promtail: Collecteur de logs par conteneur
+
+services:
+  # Portainer CE - Interface Docker
+  # Voit tous les conteneurs des 3 environnements
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    ports:
+      - "9443:9443"      # HTTPS
+      - "9000:9000"      # HTTP
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    environment:
+      - AGENT_SECRET=forges_monitoring_secret
+    networks:
+      - monitoring
+    labels:
+      - "monitoring=true"
+      - "environment=monitoring"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:9443"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Uptime Kuma - Surveillance disponibilité
+  # Monitore les 3 environnements: dev, test, demo
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: always
+    ports:
+      - "3001:3001"      # HTTP
+    volumes:
+      - uptime_kuma_data:/app/data
+    environment:
+      - TZ=Europe/Paris
+    networks:
+      - monitoring
+    labels:
+      - "monitoring=true"
+      - "environment=monitoring"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Loki - Agrégation des logs avec séparation par environnement
+  # Les logs de chaque env sont taggés et séparables
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: always
+    ports:
+      - "3100:3100"      # Loki API
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+    labels:
+      - "monitoring=true"
+      - "environment=monitoring"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Promtail - Collecteur de logs Docker
+  # Envoie les logs à Loki avec tags par environnement
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: always
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring
+    labels:
+      - "monitoring=true"
+      - "environment=monitoring"
+    depends_on:
+      - loki
+
+volumes:
+  portainer_data:
+    driver: local
+  uptime_kuma_data:
+    driver: local
+  loki_data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
