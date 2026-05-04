@@ -221,4 +221,61 @@ export class PaiementController {
       });
     }
   }
+
+  // GET /api/paiements/retour — Payment Data Transfer NGSER (redirection post-paiement)
+  async retourPaiementNgser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        order_id,
+        status_id,
+        transaction_id,
+        transaction_amount,
+        paid_transaction_amount,
+        currency,
+        paid_currency,
+        wallet,
+        wallet_alias,
+        phone_number,
+      } = req.query as Record<string, string>;
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const statutInt = parseInt(status_id || '0', 10);
+      const succes = statutInt === 1;
+
+      // Si l'IPN n'est pas encore arrivé, on traite le retour comme fallback
+      if (order_id) {
+        const ipnPayload = {
+          order_id,
+          status_id: statutInt,
+          transaction_id: transaction_id || `PDT-${order_id}`,
+          transaction_amount: transaction_amount ? parseFloat(transaction_amount) : undefined,
+          paid_transaction_amount: paid_transaction_amount ? parseFloat(paid_transaction_amount) : undefined,
+          currency,
+          paid_currency,
+          wallet,
+          wallet_alias,
+          phone_number,
+        };
+
+        void this.paiementService.traiterIpnNgser(ipnPayload).catch(() => undefined);
+      }
+
+      // Rediriger vers la page frontend appropriée
+      const params = new URLSearchParams({
+        order_id: order_id || '',
+        status: succes ? 'success' : 'fail',
+        status_id: status_id || '0',
+        ...(transaction_id ? { transaction_id } : {}),
+      });
+
+      const redirectUrl = succes
+        ? `${frontendUrl}/paiement/succes?${params}`
+        : `${frontendUrl}/paiement/echec?${params}`;
+
+      return res.redirect(302, redirectUrl);
+    } catch (error: any) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(302, `${frontendUrl}/paiement/echec?error=redirect_error`);
+    }
+  }
 }

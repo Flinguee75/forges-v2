@@ -161,12 +161,14 @@ export class PaiementNgserService {
     const ngserClient = await this.getNgserClient();
 
     const notificationUrl = process.env.NGSER_NOTIFICATION_URL || 'http://localhost:3000/webhooks/paiement';
+    const returnUrl = process.env.NGSER_RETURN_URL || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/paiement/retour`;
 
     const response = await ngserClient.createSession({
       order,
       amount: Math.round(montant / 100), // centimes → XOF
       currency: 'XOF',
       notification_url: notificationUrl,
+      return_url: returnUrl,
     });
 
     return {

@@ -7,6 +7,7 @@ export interface NgserSessionRequest {
   amount: number;
   currency: string;
   notification_url: string;
+  return_url?: string; // URL de redirection post-paiement (Payment Data Transfer)
   customer_email?: string;
   customer_phone?: string;
 }
@@ -110,6 +111,7 @@ export class NgserClient {
         transaction_amount: request.amount,
         currency: request.currency.toLowerCase(),
         notification_url: request.notification_url,
+        return_url: request.return_url,
         customer_email: request.customer_email,
         customer_phone: request.customer_phone,
       };

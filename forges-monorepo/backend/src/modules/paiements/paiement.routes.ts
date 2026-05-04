@@ -86,6 +86,11 @@ router.post('/api/paiements/webhook', (req, res, next) => {
   paiementController.traiterIpnNgser(req, res, next);
 });
 
+// GET /api/paiements/retour — Payment Data Transfer NGSER (redirection post-paiement, PUBLIC)
+router.get('/paiements/retour', (req, res, next) => {
+  paiementController.retourPaiementNgser(req, res, next);
+});
+
 // POST /api/admin/scheduler/reconciliation-ngser — Déclencher réconciliation manuelle (ADMIN) - Phase 1 v4.9
 router.post('/admin/scheduler/reconciliation-ngser', authenticate, authorize('ADMIN'), (req, res, next) => {
   paiementController.runReconciliationScheduler(req, res, next);
