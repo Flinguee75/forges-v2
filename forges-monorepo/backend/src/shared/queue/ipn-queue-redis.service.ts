@@ -59,6 +59,7 @@ export class IpnQueueRedisService {
     try {
       await this.ensureConnected();
 
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         const itemStr = await this.redisClient.rPopLPush(this.queueKey, this.processingKey);
         if (!itemStr) break;
