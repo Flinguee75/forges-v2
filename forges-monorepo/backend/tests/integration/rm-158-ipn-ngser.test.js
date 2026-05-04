@@ -83,7 +83,7 @@ describe('RM-158/160 — IPN NGSER', () => {
       transaction_id: `TXN-SUCCESS-${Date.now()}`,
       status: 'SUCCESS',
       code_ngser: '1',
-      amount: montant_initie,
+      amount: Math.round(montant_initie / 100),
     };
     const signature = signWebhookNgser(webhookBody);
 
@@ -132,7 +132,7 @@ describe('RM-158/160 — IPN NGSER', () => {
       transaction_id: `TXN-DOUBLON-${Date.now()}`,
       status: 'SUCCESS',
       code_ngser: '1',
-      amount: initiation.body.data.montant_initie,
+      amount: Math.round(initiation.body.data.montant_initie / 100),
     };
     const signature = signWebhookNgser(webhookBody);
 
@@ -231,7 +231,7 @@ describe('RM-158/160 — IPN NGSER', () => {
       transaction_id: `TXN-FAIL-${Date.now()}`,
       status: 'FAIL',
       code_ngser: '0',
-      amount: initiation.body.data.montant_initie,
+      amount: Math.round(initiation.body.data.montant_initie / 100),
     };
     const signature = signWebhookNgser(webhookBody);
 
@@ -274,7 +274,7 @@ describe('RM-158/160 — IPN NGSER', () => {
       transaction_id: `TXN-PENDING-${Date.now()}`,
       status: 'PENDING',
       code_ngser: '3',
-      amount: initiation.body.data.montant_initie,
+      amount: Math.round(initiation.body.data.montant_initie / 100),
     };
     const signature = signWebhookNgser(webhookBody);
 
@@ -336,7 +336,7 @@ describe('RM-158/160 — IPN NGSER', () => {
       transaction_id: `TXN-CODE-${Date.now()}`,
       status: 'SUCCESS',
       code_ngser: 1, // numérique au lieu de string
-      amount: initiation.body.data.montant_initie,
+      amount: Math.round(initiation.body.data.montant_initie / 100),
     };
     const signature = signWebhookNgser(webhookBody);
 
