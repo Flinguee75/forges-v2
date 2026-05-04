@@ -215,9 +215,8 @@ export class VoucherService {
   }
 
   async validateVoucher(code: string, formation_id: string, apprenant_id?: string) {
-    const voucher = await this.prisma.voucherApporteur.findUnique({
+    const voucher = await this.prisma.voucherOrganisation.findUnique({
       where: { code },
-      include: { formation: true },
     });
 
     if (!voucher) {
@@ -255,7 +254,7 @@ export class VoucherService {
       }
     }
 
-    const montantCatalogue = Number(voucher.formation?.cout_catalogue || 0);
+    const montantCatalogue = 0;
     let montant_reduit = 0;
 
     if (voucher.organisation_id) {

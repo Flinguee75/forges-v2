@@ -2003,6 +2003,12 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var json = pm.response.json();",
+                  "  if (json.data && json.data.session_id) {",
+                  "    pm.environment.set(\"conversation_id_test\", json.data.session_id);",
+                  "  }",
+                  "}",
                   "pm.test(\"Status code is 201\", function () {",
                   "    pm.response.to.have.status(201);",
                   "});",
