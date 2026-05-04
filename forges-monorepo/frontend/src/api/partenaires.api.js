@@ -200,6 +200,14 @@ export const updateMonProfilPartenaire = async (data = {}) => {
 export const getProfilPartenaire = getMonProfilPartenaire;
 export const updateProfilPartenaire = updateMonProfilPartenaire;
 
+export const exportCsvPartenaire = async (mois) => {
+  const response = await apiClient.get(`${PARTENAIRES_BASE_URL}/export-csv`, {
+    params: { mois },
+    responseType: 'blob',
+  });
+  return response;
+};
+
 export const registerPartenaire = async (registerData = {}) => {
   const payload = {
     raison_sociale: registerData.raison_sociale?.trim?.() || registerData.raison_sociale || '',

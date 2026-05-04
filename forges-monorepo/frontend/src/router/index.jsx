@@ -56,6 +56,7 @@ const MesFormations = lazy(() => import('../pages/partenaire/MesFormations'));
 const SoumettreFormation = lazy(() => import('../pages/partenaire/SoumettreFormation'));
 const PartenaireFormationDetail = lazy(() => import('../pages/partenaire/FormationDetail'));
 const MesReversements = lazy(() => import('../pages/partenaire/MesReversements'));
+const ExportCSVPartenaire = lazy(() => import('../pages/partenaire/ExportCSV'));
 const ProfilPartenairePage = lazy(() => import('../pages/partenaire/ProfilPartenaire'));
 
 const ApporteurDashboard = lazy(() => import('../pages/apporteur/ApporteurDashboard'));
@@ -411,6 +412,10 @@ const router = createBrowserRouter([
       {
         path: 'reversements',
         element: withSuspense(<MesReversements />),
+      },
+      {
+        path: 'export-csv',
+        element: withSuspense(<ExportCSVPartenaire />),
       },
       {
         path: 'profil',

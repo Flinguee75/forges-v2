@@ -29,6 +29,7 @@ export default function PartenaireLayout() {
     { name: copy.formations, href: '/partenaire/formations', icon: 'clipboardList' },
     { name: copy.submitFormation, href: '/partenaire/soumettre-formation', icon: 'academicCap' },
     { name: copy.reversements, href: '/partenaire/reversements', icon: 'cash' },
+    { name: 'Export CSV', href: '/partenaire/export-csv', icon: 'download' },
     { name: copy.profile, href: '/partenaire/profil', icon: 'user' },
   ];
 
