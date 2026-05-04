@@ -100,6 +100,10 @@ const ApprenantDetail = lazy(() => import('../pages/backoffice/apprenants/Appren
 const OrganisationsList = lazy(() => import('../pages/backoffice/organisations/OrganisationsList'));
 const OrganisationDetail = lazy(() => import('../pages/backoffice/organisations/OrganisationDetail'));
 
+const DevisList = lazy(() => import('../pages/backoffice/devis/DevisList'));
+const DevisForm = lazy(() => import('../pages/backoffice/devis/DevisForm'));
+const DevisDetail = lazy(() => import('../pages/backoffice/devis/DevisDetail'));
+
 const PlaceholderPage = lazy(() => import('../pages/PlaceholderPage'));
 const ComponentsDemo = lazy(() => import('../pages/ComponentsDemo'));
 const MockCheckoutPage = lazy(() => import('../pages/MockCheckoutPage'));
@@ -612,6 +616,30 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'AGENT', 'SUPERVISEUR']}>
             {withSuspense(<VoucherDetail />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'devis',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
+            {withSuspense(<DevisList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'devis/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<DevisForm />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'devis/:id',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
+            {withSuspense(<DevisDetail />)}
           </RoleGuard>
         ),
       },
