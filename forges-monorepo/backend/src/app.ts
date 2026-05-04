@@ -140,6 +140,7 @@ import agentRoutes from './modules/agent/agent.routes';
 import sessionBackofficeRoutes from './modules/sessions/session.routes';
 import paiementRoutes from './modules/paiements/paiement.routes'; // ✅ SPRINT 1 SEMAINE 2
 import voucherRoutes from './modules/vouchers/voucher.routes'; // ✅ SPRINT 1 SEMAINE 2
+import devisRoutes from './modules/devis/devis.routes'; // RM-149 à RM-151
 import abonnementAliasRoutes from './modules/abonnements/abonnement-alias.routes';
 import backofficeRoutes from './modules/dashboard/backoffice.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
@@ -169,6 +170,7 @@ app.use('/api/apprenant', espaceApprenantRoutes); // Alias pour Postman
 app.use('/api', inscriptionRoutes); // ✅ NOUVEAU: endpoints inscriptions/dossiers/sessions
 app.use('/api', paiementRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET paiements, webhook, backoffice paiements
 app.use('/', paiementRoutes); // ✅ v4.9: IPN NGSER canonical /webhooks/paiement
+app.use('/api', devisRoutes); // RM-149 à RM-151: devis SUR_DEVIS
 app.use('/api/vouchers', voucherRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET vouchers, validate
 app.use('/api/responsable', responsableRoutes); // ✅ NOUVEAU: endpoints validation formations (UCS18)
 app.use('/api/backoffice', responsableRoutes);
