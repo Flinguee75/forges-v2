@@ -56,8 +56,8 @@ router.get('/config', authenticate, authorize('ADMIN'), (req, res) => {
 
 router.put('/config', authenticate, authorize('ADMIN'), (req, res) => {
   const allowedKeys = [
-    'DEFAULT_COMMISSION_FORGES_PCT',
-    'DEFAULT_COMMISSION_APPORTEUR_PCT',
+    'COMMISSION_FORGES_DEFAULT_PCT',
+    'COMMISSION_APPORTEUR_DEFAULT_PCT',
     'SEUIL_REVERSEMENT_PARTENAIRE_XOF',
     'SEUIL_REVERSEMENT_APPORTEUR_XOF',
     'VALIDATION_PARTENAIRE_DELAI_JOURS',
