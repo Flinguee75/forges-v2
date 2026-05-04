@@ -88,7 +88,7 @@ const IDS = {
   fp_part_02:    'fpa-part-00002-0000-0000-000000000002',  // D7: 2nd formation for UCS18 Rejeter test
 
   // Conversation & Message (D6: UCS15)
-  conv_01:       'CONV-DEV-01',
+  conv_01:       'conv-test-00001-0000-0000-000000000001',
   msg_01:        'msg-test-0000001-0000-0000-000000000001',
 };
 
@@ -167,7 +167,6 @@ async function reset() {
   // Ordre inverse des dépendances
   await prisma.commissionApporteur.deleteMany();
   await prisma.commissionPartenaire.deleteMany();
-  await prisma.conversationBot.deleteMany();
   await prisma.voucherApporteur.deleteMany();
   await prisma.apporteur.deleteMany();
   await prisma.paiement.deleteMany();
@@ -430,7 +429,7 @@ async function seed() {
       type_formation: 'STANDARD',
       mode_formation: 'AVEC_SESSION',
       statut: 'ACTIVE',
-      cout_catalogue: 10000000, // 100 000 XOF
+      cout_catalogue: 100000,
       duree_jours: 30,
       inclus_abonnement: true,
       pilier_abonnement: 'RETAIL',
@@ -445,7 +444,7 @@ async function seed() {
       type_formation: 'PREMIUM',
       mode_formation: 'AVEC_SESSION',
       statut: 'ACTIVE',
-      cout_catalogue: 200000000, // 2 000 000 XOF
+      cout_catalogue: 2000000,
       duree_jours: 60,
       inclus_abonnement: false,
       pilier_abonnement: null,
@@ -461,7 +460,7 @@ async function seed() {
       type_formation: 'STANDARD',
       mode_formation: 'A_LA_DEMANDE',
       statut: 'ACTIVE',
-      cout_catalogue: 10000000, // 100 000 XOF
+      cout_catalogue: 100000,
       duree_jours: 30,
       duree_acces_jours: 365,
       inclus_abonnement: true,
@@ -477,7 +476,7 @@ async function seed() {
       type_formation: 'STANDARD', // temporaire, sera assigné par FORGES lors UCS18 (RM-127)
       mode_formation: 'AVEC_SESSION',
       statut: 'EN_ATTENTE_VALIDATION',
-      cout_catalogue: 10000000, // 100 000 XOF
+      cout_catalogue: 100000, // obligatoire dans schéma
       duree_jours: 30,
       inclus_abonnement: false,
       langues_disponibles: ['FR'],
@@ -492,7 +491,7 @@ async function seed() {
       type_formation: 'STANDARD',
       mode_formation: 'AVEC_SESSION',
       statut: 'ARCHIVEE',
-      cout_catalogue: 5000000, // 50 000 XOF
+      cout_catalogue: 50000,
       duree_jours: 10,
       inclus_abonnement: false,
       langues_disponibles: ['FR'],
@@ -509,7 +508,7 @@ async function seed() {
       responsable_validateur_id: IDS.responsable,
       statut_validation: 'EN_ATTENTE_VALIDATION',  // D7: Changed from EN_ATTENTE
       date_soumission: agoD(2),
-      prix_coutant_soumis: 8000000, // 80 000 XOF
+      prix_coutant_soumis: 80000,
       prix_coutant_valide: null,
     },
     {
@@ -520,8 +519,8 @@ async function seed() {
       statut_validation: 'VALIDEE',
       date_soumission: agoD(30),
       date_validation: agoD(25),
-      prix_coutant_soumis: 140000000, // 1 400 000 XOF
-      prix_coutant_valide: 140000000,
+      prix_coutant_soumis: 1400000,
+      prix_coutant_valide: 1400000,
     },
     {
       // D7: UCS18 Rejeter — 2nd formation for reject test
@@ -531,7 +530,7 @@ async function seed() {
       responsable_validateur_id: IDS.responsable,
       statut_validation: 'EN_ATTENTE_VALIDATION',
       date_soumission: agoD(1),
-      prix_coutant_soumis: 15000000, // 150 000 XOF
+      prix_coutant_soumis: 150000,
       prix_coutant_valide: null,
     },
   ]});
@@ -706,8 +705,8 @@ async function seed() {
       // D2: UCS08 Rejeter — EN_ATTENTE_VERIFICATION fresh dossier for reject test
       id: IDS.d_rejeter_01,
       apprenant_id: IDS.apprenant1,
-      formation_id: IDS.f_prem_01, // ✅ Fixed: must be PREMIUM for reject logic
-      session_id: IDS.s_prem_01,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
       statut: 'EN_ATTENTE_VERIFICATION',
       source_financement: 'RETAIL',
       created_at: agoH(1),
@@ -732,8 +731,8 @@ async function seed() {
   await prisma.paiement.create({ data: {
     id: uuidv4(),
     dossier_id: IDS.d_paye_01,
-    montant_catalogue: 10000000, // 100 000 XOF
-    montant_final: 10000000,
+    montant_catalogue: 100000,
+    montant_final: 100000,
     methode: 'MOBILE_MONEY',
     statut: 'CONFIRME',
     transaction_id: 'TXN-TEST-2026-001',
@@ -819,8 +818,8 @@ async function seed() {
     {
       id: paiement1Id,
       dossier_id: dossierComm1Id,
-      montant_catalogue: 4000000, // 40 000 XOF
-      montant_final: 4000000,
+      montant_catalogue: 40000,
+      montant_final: 40000,
       methode: 'MOBILE_MONEY',
       statut: 'CONFIRME',
       transaction_id: 'TXN-COMM-1',
@@ -831,8 +830,8 @@ async function seed() {
     {
       id: paiement2Id,
       dossier_id: dossierComm2Id,
-      montant_catalogue: 5000000, // 50 000 XOF
-      montant_final: 5000000,
+      montant_catalogue: 50000,
+      montant_final: 50000,
       methode: 'MOBILE_MONEY',
       statut: 'CONFIRME',
       transaction_id: 'TXN-COMM-2',
@@ -844,8 +843,8 @@ async function seed() {
       // D9: Extra paiement for 3rd commission (500 XOF commission)
       id: paiement3Id,
       dossier_id: dossierComm3Id,
-      montant_catalogue: 1000000, // 10 000 XOF
-      montant_final: 1000000,
+      montant_catalogue: 10000,
+      montant_final: 10000,
       methode: 'MOBILE_MONEY',
       statut: 'CONFIRME',
       transaction_id: 'TXN-COMM-3',
@@ -855,46 +854,43 @@ async function seed() {
     },
   ]});
 
-  // CommissionsApporteur VALIDEE (cumul 500 000 centimes = 5 000 XOF — seuil atteint)
+  // CommissionsApporteur VALIDEE (cumul 5500 XOF > seuil 5000 — pour test RM-147)
+  // Change: VALIDEE not EN_ATTENTE (getCumulDu only counts VALIDEE)
+  // Change: Add 500 XOF more to exceed 5000 threshold (via paiement3Id)
   const moisCourant = new Date().toISOString().slice(0, 7); // AAAA-MM
   await prisma.commissionApporteur.createMany({ data: [
     {
       id: uuidv4(), 
       apporteur_id: IDS.apporteur,
       paiement_id: paiement1Id,
-      montant_base_xof: 4000000, 
-      montant_base: 4000000, 
+      montant_base_xof: 40000, 
       taux_commission_pct: 5, 
-      montant_commission_xof: 200000, // 2000 XOF
-      montant_commission: 200000,
+      montant_commission_xof: 2000,
       date_generation: agoD(20), 
       mois_facturation: moisCourant,
-      statut: 'VALIDEE',
+      statut: 'VALIDEE',  // CHANGED: was EN_ATTENTE
       created_at: agoD(20),
     },
     {
       id: uuidv4(), 
       apporteur_id: IDS.apporteur,
       paiement_id: paiement2Id,
-      montant_base_xof: 5000000, 
-      montant_base: 5000000, 
+      montant_base_xof: 50000, 
       taux_commission_pct: 5, 
-      montant_commission_xof: 250000, // 2500 XOF
-      montant_commission: 250000,
+      montant_commission_xof: 2500,
       date_generation: agoD(15), 
       mois_facturation: moisCourant,
-      statut: 'VALIDEE',
+      statut: 'VALIDEE',  // CHANGED: was EN_ATTENTE
       created_at: agoD(15),
     },
     {
+      // D9: Extra commission (paiement3) to exceed 5000 threshold
       id: uuidv4(),
       apporteur_id: IDS.apporteur,
       paiement_id: paiement3Id,
-      montant_base_xof: 1000000,
-      montant_base: 1000000,
+      montant_base_xof: 10000,
       taux_commission_pct: 5,
-      montant_commission_xof: 50000, // 500 XOF
-      montant_commission: 50000,
+      montant_commission_xof: 500,
       date_generation: agoD(10),
       mois_facturation: moisCourant,
       statut: 'VALIDEE',
@@ -902,57 +898,10 @@ async function seed() {
     },
   ] });
 
-  // Commissions Partenaire (pour UCS19 - Seuil 50 000 XOF = 5 000 000 centimes)
-  const dPartId = uuidv4();
-  await prisma.dossier.create({ data: {
-    id: dPartId,
-    apprenant_id: IDS.apprenant1,
-    formation_id: IDS.f_prem_01,
-    session_id: IDS.s_prem_01,
-    statut: 'PAYE',
-    source_financement: 'RETAIL',
-    created_at: agoD(5),
-  }});
-
-  const pId = uuidv4();
-  await prisma.paiement.create({ data: {
-    id: pId,
-    dossier_id: dPartId,
-    montant_catalogue: 10000000, // 100 000 XOF
-    montant_final: 10000000,
-    methode: 'MOBILE_MONEY',
-    statut: 'CONFIRME',
-    transaction_id: 'TXN-PART-1',
-    confirmed_at: agoD(5),
-    created_at: agoD(5),
-  }});
-
-  await prisma.commissionPartenaire.create({ data: {
-    id: uuidv4(),
-    paiement_id: pId,
-    partenaire_id: IDS.partenaire,
-    formation_id: IDS.f_prem_01,
-    montant_catalogue: 10000000,
-    commission_forges_pct: 30,
-    montant_reverse: 7000000, // 70 000 XOF > 50 000 XOF
-    statut: 'EN_ATTENTE',
-    created_at: agoD(5),
-  }});
-
   // ── 10b. CONVERSATION (D6: UCS15 Répondre/Historique) ──────
-  console.log('  10b/11 Conversation & Message...');
-  await prisma.conversationBot.create({ data: {
-    id: IDS.conv_01,
-    utilisateur_id: IDS.apprenant1,
-    apprenant_id: IDS.apprenant1,
-    type_utilisateur: 'APPRENANT',
-    flux_actif: 'ORIENTATION',
-    statut: 'EN_COURS',
-    date_debut: agoD(1),
-    historique_json: [
-      { role: 'bot', content: 'Bonjour, comment puis-je vous aider ?', options: ['Orientation', 'Upgrade'] }
-    ]
-  }});
+  // NOTE: D6 needs ConversationBot seed — deferred pending schema validation
+  // For now, UCS15 pre-request will need to capture conversation_id dynamically
+  console.log('  10b/11 Conversation & Message... (deferred)');
 
   // ── 11. CONTRAT INSTITUTIONNEL ────────────────────────────
   console.log('  11/11 ContratInstitutionnel...');

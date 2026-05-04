@@ -127,7 +127,7 @@ export class IpnNgserService {
 
     // Mapping codes NGSER
     if (codeString === '1') return 'SUCCESS';
-    if (['0', '4', '5'].includes(codeString || '')) return 'FAIL';
+    if (['0', '2', '4', '5'].includes(codeString || '')) return 'FAIL';
     if (codeString === '3') return 'PENDING';
 
     // Fallback sur status string
