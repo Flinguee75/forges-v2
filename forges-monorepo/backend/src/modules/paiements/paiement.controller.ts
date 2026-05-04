@@ -170,19 +170,21 @@ export class PaiementController {
   // POST /webhooks/paiement — IPN NGSER (RM-158/160)
   async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
     try {
-      // Vérification signature HMAC
+      // La doc NGSER ne décrit pas de mécanisme de signature pour l'IPN.
+      // On vérifie la signature seulement si elle est présente (intégrations internes).
       const signature = req.headers['x-webhook-signature'];
-      const payload = JSON.stringify(req.body);
-      const expectedSig = createHmac('sha256', process.env.WEBHOOK_SECRET || 'dev-secret')
-        .update(payload)
-        .digest('hex');
-
-      if (!signature || signature !== expectedSig) {
-        return res.status(401).json({
-          statusCode: 401,
-          error: 'INVALID_SIGNATURE',
-          message: 'Signature webhook invalide',
-        });
+      if (signature) {
+        const payload = JSON.stringify(req.body);
+        const expectedSig = createHmac('sha256', process.env.WEBHOOK_SECRET || 'dev-secret')
+          .update(payload)
+          .digest('hex');
+        if (signature !== expectedSig) {
+          return res.status(401).json({
+            statusCode: 401,
+            error: 'INVALID_SIGNATURE',
+            message: 'Signature webhook invalide',
+          });
+        }
       }
 
       // Masquer les secrets avant d'enqueuer

@@ -3,13 +3,23 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CommissionService } from './commission.service';
 
 export interface IpnPayload {
-  order_ngser?: string;
-  order?: string; // alias NGSER réel
+  // Champs réels NGSER (doc officielle)
+  order_id?: string;           // identifiant commande NGSER
+  status_id?: number;          // 1=SUCCESS, 0/4/5=FAIL
   transaction_id: string;
-  status: string;
+  transaction_amount?: number; // en XOF (int)
+  paid_transaction_amount?: number;
+  currency?: string;
+  wallet?: string;
+  wallet_reference_id?: string;
+  phone_number?: string;
+  // Champs internes / alias legacy
+  order_ngser?: string;
+  order?: string;
+  status?: string;
   code_ngser?: string | number;
   wallet_ngser?: string;
-  amount: number; // en XOF (unité NGSER)
+  amount?: number;
 }
 
 export interface IpnResult {
@@ -32,13 +42,20 @@ export class IpnNgserService {
   }
 
   async traiterIpn(ipn: IpnPayload): Promise<IpnResult> {
-    // Bug fix 1: NGSER envoie "order", notre interface utilisait "order_ngser"
-    const orderNgser = ipn.order_ngser || ipn.order;
+    // Normaliser les champs NGSER réels vers notre modèle interne
+    // Doc NGSER: order_id, status_id, transaction_amount (XOF int)
+    const orderNgser = ipn.order_id || ipn.order_ngser || ipn.order;
     if (!orderNgser) {
       throw new Error('IPN_ORDER_MANQUANT');
     }
 
-    const statutNgser = this.normaliserStatutNgser(ipn.status, ipn.code_ngser);
+    const montantIpn = ipn.transaction_amount ?? ipn.amount;
+
+    // status_id: 1=SUCCESS, 0/4/5=FAIL (doc NGSER)
+    const statutNgser = this.normaliserStatutNgser(
+      ipn.status,
+      ipn.status_id ?? ipn.code_ngser
+    );
 
     // RM-158: Idempotence via transaction_id
     const paiementExistant = await this.prisma.paiement.findFirst({
@@ -72,20 +89,19 @@ export class IpnNgserService {
       throw new Error('PAIEMENT_NOT_FOUND');
     }
 
-    // Bug fix 2: NGSER envoie le montant en XOF, DB stocke en centimes
-    // montant_initie (centimes) / 100 = XOF envoyé à NGSER
+    // Contrôle montant : NGSER envoie XOF (int), DB stocke en centimes
     const montantInitieXof = Math.round((paiement.montant_initie || 0) / 100);
-    if (Math.abs(ipn.amount - montantInitieXof) > 1) {
+    if (montantIpn !== undefined && Math.abs(montantIpn - montantInitieXof) > 1) {
       await this.audit.error('IPN_MONTANT_MISMATCH', {
         order_ngser: orderNgser,
         montant_initie_xof: montantInitieXof,
-        montant_ipn: ipn.amount,
-        difference: Math.abs(ipn.amount - montantInitieXof),
+        montant_ipn: montantIpn,
+        difference: Math.abs(montantIpn - montantInitieXof),
       });
       throw new Error('MONTANT_MISMATCH');
     }
 
-    // Normaliser order_ngser dans le payload pour la suite
+    // Normaliser pour la suite du traitement
     ipn.order_ngser = orderNgser;
 
     // RM-158: Traiter selon statut
@@ -128,8 +144,8 @@ export class IpnNgserService {
         data: {
           statut: 'CONFIRME',
           status_ngser: 'SUCCESS',
-          code_ngser: ipn.code_ngser ? String(ipn.code_ngser) : null,
-          wallet_ngser: ipn.wallet_ngser,
+          code_ngser: ipn.status_id !== undefined ? String(ipn.status_id) : (ipn.code_ngser ? String(ipn.code_ngser) : null),
+          wallet_ngser: ipn.wallet || ipn.wallet_ngser,
           ngser_payload_last: ipn as any,
           transaction_id: ipn.transaction_id,
           confirmed_at: new Date(),
@@ -173,8 +189,8 @@ export class IpnNgserService {
         data: {
           statut: 'ECHOUE',
           status_ngser: 'FAIL',
-          code_ngser: ipn.code_ngser ? String(ipn.code_ngser) : null,
-          wallet_ngser: ipn.wallet_ngser,
+          code_ngser: ipn.status_id !== undefined ? String(ipn.status_id) : (ipn.code_ngser ? String(ipn.code_ngser) : null),
+          wallet_ngser: ipn.wallet || ipn.wallet_ngser,
           ngser_payload_last: ipn as any,
           transaction_id: ipn.transaction_id,
         },
