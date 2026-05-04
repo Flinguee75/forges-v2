@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 import { E2E_ACCOUNTS, E2E_SCENARIO } from './e2e-data';
 import {
   authHeaders,
-  createPaiementAndConfirm,
   findDossier,
   getJson,
   postJson,

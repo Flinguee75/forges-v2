@@ -2,8 +2,6 @@ import { test, expect } from '@playwright/test';
 import { E2E_ACCOUNTS, E2E_SCENARIO } from './e2e-data';
 import {
   authHeaders,
-  findDossier,
-  getJson,
   postJson,
 } from './helpers';
 
@@ -108,8 +106,6 @@ test('UCS09 RM-159 Réconciliation: Résultats incluent order_ngser et statut_fi
   }, headers);
   expect(paiementResponse.ok).toBeTruthy();
   
-  const orderNgser = paiementResponse.payload.order_ngser;
-
   // 3. Déclencher réconciliation
   const agentHeaders = await authHeaders(request, E2E_ACCOUNTS.agent);
   const reconcilResponse = await postJson(
