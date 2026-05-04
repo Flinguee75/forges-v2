@@ -164,7 +164,7 @@ export class PaiementNgserService {
 
     const response = await ngserClient.createSession({
       order,
-      amount: montant,
+      amount: Math.round(montant / 100), // centimes → XOF
       currency: 'XOF',
       notification_url: notificationUrl,
     });

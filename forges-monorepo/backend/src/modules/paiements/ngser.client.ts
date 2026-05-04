@@ -282,7 +282,9 @@ export class NgserClient {
       }
 
       if (status === 404) {
-        throw new Error('NGSER_NOT_FOUND: Order not found or invalid endpoint');
+        // L'endpoint check-status peut ne pas exister sur certaines versions sandbox
+        // On lève une erreur distincte pour que le scheduler puisse garder le paiement PENDING
+        throw new Error('NGSER_CHECK_STATUS_UNAVAILABLE: endpoint not found or order unknown');
       }
 
       if (status >= 500) {

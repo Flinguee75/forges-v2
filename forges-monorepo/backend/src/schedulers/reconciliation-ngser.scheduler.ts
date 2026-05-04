@@ -159,12 +159,12 @@ export class ReconciliationNgserScheduler {
       throw new Error('PAIEMENT_NOT_FOUND_OR_NO_MONTANT');
     }
 
-    // Simule un IPN SUCCESS
+    // Simule un IPN SUCCESS — amount en XOF (centimes / 100)
     const ipnMock = {
       order_ngser: order_ngser,
       transaction_id: `TXN-RECON-MOCK-${Date.now()}`,
       status: 'SUCCESS',
-      amount: paiement.montant_initie,
+      amount: Math.round(paiement.montant_initie / 100),
     };
 
     const result = await this.ipnService.traiterIpn(ipnMock);
@@ -189,7 +189,16 @@ export class ReconciliationNgserScheduler {
     console.log(`[ReconciliationNgserScheduler] Mode RÉEL - Réconciliation ${order_ngser}`);
 
     const ngserClient = new NgserClient(this.audit);
-    const ngserStatus = await ngserClient.getStatus({ order: order_ngser });
+    let ngserStatus: Awaited<ReturnType<typeof ngserClient.getStatus>>;
+    try {
+      ngserStatus = await ngserClient.getStatus({ order: order_ngser });
+    } catch (error: any) {
+      if (error.message?.includes('NGSER_CHECK_STATUS_UNAVAILABLE')) {
+        await this.audit.info('RECONCILIATION_CHECK_STATUS_INDISPONIBLE', { order_ngser });
+        return { statut_final: 'PENDING', order_ngser };
+      }
+      throw error;
+    }
     const paiement = await this.prisma.paiement.findUnique({
       where: { order_ngser },
       select: { montant_initie: true },
