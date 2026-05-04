@@ -1,357 +1,253 @@
-# FORGES - Monitoring Infrastructure
+# 📊 FORGES Monitoring Stack
 
-_Maintenance et monitoring Docker pour DEV, TEST, DEMO_
+**Unified monitoring for dev, test, and demo environments with separated logs**
 
-**Version**: 1.0.0  
-**Date**: 4 mai 2026  
-**Statut**: Production Ready
+> ⚡ **TL;DR**: Run `./monitoring.sh start` and access dashboards at `localhost:9443` (Portainer), `localhost:3001` (Uptime Kuma), `localhost:3100` (Loki)
 
-## 📋 Vue d'ensemble
+---
 
-Ce dossier contient tous les outils et scripts nécessaires pour monitorer les environnements Docker de FORGES.
+## 🎯 What's in the Box
 
-## 📁 Structure du projet
+### Core Services (Docker Compose)
+- **Portainer CE** - Unified Docker management interface
+- **Uptime Kuma** - Endpoint availability monitoring
+- **Loki** - Centralized log aggregation with environment tags
+- **Promtail** - Docker log collector (auto-discovery)
+
+### External Services (Configuration)
+- **Sentry** - Crash reporting & error tracking
+- **Better Stack** - Centralized logs + alerts
+- **Trivy** - Docker image security scanning
+
+### Key Features
+✅ Unified interface for dev/test/demo  
+✅ Separated logs by environment (Loki tags)  
+✅ Health checks on all services  
+✅ Automatic Docker log collection  
+✅ Single management script  
+✅ Production-ready configuration  
+
+---
+
+## 📁 File Structure
 
 ```
-monitoring/
-├── docker-compose.monitoring.dev.yml    # Stack monitoring DEV
-├── docker-compose.monitoring.test.yml   # Stack monitoring TEST
-├── docker-compose.monitoring.demo.yml   # Stack monitoring DEMO
-├── monitoring-dev.sh                    # Script gestion DEV
-├── monitoring-test.sh                   # Script gestion TEST
-├── monitoring-demo.sh                   # Script gestion DEMO
-├── trivy-scan.sh                        # Scanner sécurité images Docker
-├── SETUP_MONITORING.md                  # Documentation complète
-├── README.md                            # Ce fichier
-└── backups/                             # Backups des configurations
+infra/monitoring/
+├── 📋 DOCUMENTATION
+│   ├── INDEX.md                          ← Start here for navigation
+│   ├── README.md                         ← This file
+│   ├── QUICKSTART.md                     ← 30-min quick start
+│   ├── SETUP_MONITORING.md               ← Detailed setup
+│   ├── DEPLOYMENT_CHECKLIST.md           ← VPS deployment
+│   ├── INSTALLATION_CHECKLIST.md         ← Validation
+│   └── ALERTS_CONFIGURATION.md           ← Alert rules
+│
+├── 🐳 DOCKER
+│   ├── docker-compose.monitoring.dev.yml ← Main (unified)
+│   ├── loki-config.yml                   ← Loki config
+│   └── promtail-config.yml               ← Promtail config
+│
+├── 🛠️ SCRIPTS
+│   ├── monitoring.sh                     ← Main management
+│   └── trivy-scan.sh                     ← Security scanner
+│
+└── 📚 BACKEND INTEGRATION (backend/ dir)
+    ├── src/config/sentry.ts              ← Sentry config
+    ├── src/config/logger.ts              ← Better Stack logger
+    └── .env.monitoring.example           ← Env template
 ```
 
-## 🚀 Démarrage Rapide
+---
 
-### DEV Environment
+## 🚀 Quick Start
+
+### 1. Start Monitoring Stack
 
 ```bash
 cd infra/monitoring
-chmod +x *.sh
-
-# Démarrer
-./monitoring-dev.sh start
-
-# Accéder
-# - Portainer: https://localhost:9443
-# - Uptime Kuma: http://localhost:3001
-
-# Arrêter
-./monitoring-dev.sh stop
+./monitoring.sh start
 ```
 
-### TEST Environment
+### 2. Access Dashboards
+
+| Service | URL | Port |
+|---------|-----|------|
+| Portainer | https://localhost:9443 | 9443 |
+| Uptime Kuma | http://localhost:3001 | 3001 |
+| Loki Logs | http://localhost:3100 | 3100 |
+
+### 3. Check Health
 
 ```bash
-# Démarrer
-./monitoring-test.sh start
-
-# Vérifier
-./monitoring-test.sh health
+./monitoring.sh health
 ```
 
-### DEMO Environment
+---
+
+## 📋 Management Commands
 
 ```bash
-# Démarrer avec backup automatique
-./monitoring-demo.sh start
+cd infra/monitoring
 
-# Vérifier la santé complète
-./monitoring-demo.sh health
-
-# Faire un backup
-./monitoring-demo.sh backup
+./monitoring.sh start              # Start all services
+./monitoring.sh stop               # Stop all services
+./monitoring.sh restart            # Restart services
+./monitoring.sh health             # Show health status
+./monitoring.sh logs               # View all logs
+./monitoring.sh backup             # Backup data
+./monitoring.sh cleanup            # Delete all data (⚠️)
+./monitoring.sh summary            # Show config summary
 ```
 
-## 🛠️ Commandes Principales
+---
 
-### Gestion générale
+## 🎯 Quick Navigation
 
-| Commande | DEV | TEST | DEMO | Effet |
-|----------|-----|------|------|-------|
-| `./monitoring-[env].sh start` | ✅ | ✅ | ✅ | Démarrer la stack |
-| `./monitoring-[env].sh stop` | ✅ | ✅ | ✅ | Arrêter la stack |
-| `./monitoring-[env].sh restart` | ✅ | ✅ | ✅ | Redémarrer la stack |
-| `./monitoring-[env].sh status` | ✅ | ✅ | ✅ | Voir le statut |
-| `./monitoring-[env].sh logs` | ✅ | ✅ | ✅ | Voir tous les logs |
-| `./monitoring-[env].sh health` | ✅ | ✅ | ✅ | Vérifier la santé |
-| `./monitoring-[env].sh cleanup` | ✅ | ✅ | ✅ | Nettoyer (⚠️ destructif) |
-| `./monitoring-demo.sh backup` | ✗ | ✗ | ✅ | Backup config |
+| Need | File | Time |
+|------|------|------|
+| **Start Now** | [`QUICKSTART.md`](./QUICKSTART.md) | 30 min |
+| **Full Documentation** | [`INDEX.md`](./INDEX.md) | 5 min |
+| **Setup Instructions** | [`SETUP_MONITORING.md`](./SETUP_MONITORING.md) | 1-2 hrs |
+| **Deploy to VPS** | [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md) | 50 min |
+| **Validation** | [`INSTALLATION_CHECKLIST.md`](./INSTALLATION_CHECKLIST.md) | 15 min |
+| **Alert Configuration** | [`ALERTS_CONFIGURATION.md`](./ALERTS_CONFIGURATION.md) | 20 min |
 
-### Scan Sécurité
+---
+
+## 📚 Integration with Backend
+
+To integrate Sentry & Better Stack in your backend:
 
 ```bash
-# Scanner une image
-./trivy-scan.sh forges-backend:latest dev
+# 1. Install Sentry SDK
+npm install @sentry/node
 
-# Scanner le frontend
-./trivy-scan.sh forges-frontend:latest test
+# 2. Copy environment template
+cp backend/.env.monitoring.example backend/.env.dev
 
-# Résultats dans trivy-reports/
+# 3. Fill in your Sentry DSN and Better Stack token
+
+# 4. Initialize in app.ts
+import { initSentry } from './config/sentry';
+initSentry();
 ```
 
-## 📊 Stack Monitoring
+See [`SETUP_MONITORING.md`](./SETUP_MONITORING.md) for full integration steps.
 
-### 1. Portainer CE - Interface Docker
+---
 
-- **Port**: 9443 (HTTPS)
-- **URL**: https://localhost:9443
-- **Rôle**: Gestion des conteneurs, volumes, réseaux
-- **Première visite**: Créer compte admin
-- **Accès**: Lecture logs, restart conteneurs, voir volumes
+## 🔍 Query Logs in Loki
 
-### 2. Uptime Kuma - Surveillance Disponibilité
+### Query Syntax
 
-- **Port**: 3001 (HTTP)
-- **URL**: http://localhost:3001
-- **Rôle**: Monitorer endpoints, alerter si down
-- **Configuration**: Via interface web
-- **Alertes**: Email, Slack, Telegram
+```promql
+# All DEV logs
+{environment="dev"}
 
-### 3. Sentry - Crash Reporting
+# DEV backend only
+{environment="dev", service="backend"}
 
-- **URL**: https://sentry.io
-- **Rôle**: Capturer erreurs 500, stack traces
-- **Configuration**: Require DSN + installation SDK
-- **Intégration**: Dans backend via `config/sentry.ts`
+# All errors
+{job=~"forges-.*"} | regexp "error"
 
-### 4. Better Stack / Logtail - Logs Centralisés
+# TEST frontend
+{environment="test", service="frontend"}
+```
 
-- **URL**: https://betterstack.com
-- **Rôle**: Centraliser logs applicatifs
-- **Configuration**: Require token + initialization
-- **Utilisation**: Via `config/logger.ts`
+---
 
-### 5. Trivy - Scan Sécurité
+## � Architecture
 
-- **Type**: CLI
-- **Rôle**: Scan vulnérabilités des images
-- **Résultats**: HTML reports + SBOM JSON
-- **Blocage**: CRITICAL vulnerabilities
+```
+┌──────────────────────────────────────┐
+│    UNIFIED MONITORING INTERFACE      │
+├──────────────────────────────────────┤
+│  Portainer (Docker Mgmt)             │
+│  Uptime Kuma (Availability)          │
+├──────────────────────────────────────┤
+│    CENTRALIZED LOG AGGREGATION       │
+├──────────────────────────────────────┤
+│  Loki (Storage)  ← Promtail (Collect)│
+├──────────────────────────────────────┤
+│   ENVIRONMENT SEPARATION             │
+├──────────────────────────────────────┤
+│  {environment="dev"}                 │
+│  {environment="test"}                │
+│  {environment="demo"}                │
+└──────────────────────────────────────┘
+```
 
-## ⚙️ Configuration
+---
 
-### Prérequis
+## ⚙️ System Requirements
 
+- Docker & Docker Compose installed
+- Ports available: 9443, 9000, 3001, 3100
+- ~2GB disk space for logs (varies by retention)
+- 1-2 CPU cores minimum
+
+---
+
+## ⚠️ Common Issues
+
+### Port Already in Use
 ```bash
-# Vérifier Docker
-docker --version
-docker compose version
-
-# Optionnel: Trivy
-brew install trivy  # macOS
-apt-get install trivy  # Linux
+sudo lsof -i :9443
+kill -9 <PID>
 ```
 
-### Variables d'Environnement
-
-Voir `backend/.env.monitoring.example`:
-
-```env
-# Sentry
-SENTRY_DSN_DEV=https://...
-SENTRY_DSN_TEST=https://...
-SENTRY_DSN_DEMO=https://...
-
-# Better Stack
-LOGTAIL_TOKEN_DEV=...
-LOGTAIL_TOKEN_TEST=...
-LOGTAIL_TOKEN_DEMO=...
-```
-
-### Setup Sentry
-
-1. Créer compte sur https://sentry.io
-2. Créer 3 projets (dev/test/demo)
-3. Copier les DSN
-4. Ajouter dans .env.dev/.env.test/.env.demo
-5. Installer SDK: `npm install @sentry/node`
-
-### Setup Better Stack
-
-1. Créer compte sur https://betterstack.com
-2. Créer 3 sources (dev/test/demo)
-3. Copier les tokens
-4. Ajouter dans .env.dev/.env.test/.env.demo
-
-### Setup Uptime Kuma
-
-1. Accéder http://localhost:3001
-2. Créer monitors:
-   - Frontend endpoint
-   - Backend /health endpoint
-   - API endpoint
-3. Configurer notifications (email/Slack)
-
-## 📈 Monitoring Pattern
-
-### Erreur dans Backend
-
-```
-Backend Error
-    ↓
-Sentry captée
-    ↓
-Stack trace visible sur Sentry
-    ↓
-Alert Sentry (email/Slack)
-    ↓
-Better Stack logs l'erreur
-```
-
-### Service Down
-
-```
-Endpoint Down
-    ↓
-Uptime Kuma détecte (30-60s)
-    ↓
-Alert Uptime Kuma
-    ↓
-Vérifier dans Portainer
-```
-
-### Webhook Paiement Échoue
-
-```
-Webhook Failed
-    ↓
-Backend log "WEBHOOK_FAILED"
-    ↓
-Better Stack alerte
-    ↓
-Sentry capture exception
-    ↓
-OPS averties
-```
-
-## 🔒 Sécurité
-
-### Images Docker
-
+### Logs Not Appearing
 ```bash
-# Avant chaque déploiement
-./trivy-scan.sh forges-backend:latest demo
-./trivy-scan.sh forges-frontend:latest demo
-
-# Règle: Aucun CRITICAL sans exception documentée
+./monitoring.sh logs
+# Check Promtail connection to Loki
 ```
 
-### Secrets & Tokens
-
-- 🔐 Ne jamais committer .env files
-- 🔐 Ne jamais partager tokens en clair
-- 🔐 Rotationner tokens tous les 3 mois
-- 🔐 Ajouter .env.* au .gitignore
-
-## 📊 Checklist de Validation
-
-### ✅ Portainer
-
-- [ ] Accessible https://localhost:9443
-- [ ] Compte admin créé
-- [ ] Conteneurs visibles
-- [ ] Logs consultables
-- [ ] Restart possible
-
-### ✅ Uptime Kuma
-
-- [ ] Accessible http://localhost:3001
-- [ ] Monitors créés
-- [ ] Tous les monitors "UP"
-- [ ] Alertes configurées
-- [ ] Test d'alerte reçu
-
-### ✅ Sentry
-
-- [ ] Projet créé
-- [ ] DSN configuré
-- [ ] Erreur test capturée
-- [ ] Stack trace visible
-
-### ✅ Better Stack
-
-- [ ] Source créée
-- [ ] Token configuré
-- [ ] Logs visibles
-- [ ] Alertes configurées
-
-### ✅ Trivy
-
-- [ ] Images scannées
-- [ ] Rapports générés
-- [ ] Aucun CRITICAL
-
-## 🐛 Dépannage
-
-### Portainer ne démarre pas
-
+### Services Won't Start
 ```bash
-docker logs portainer-[env]
-docker compose -f docker-compose.monitoring.[env].yml up -d portainer --force-recreate
+docker compose config  # Validate syntax
+./monitoring.sh logs   # Check errors
 ```
 
-### Uptime Kuma ne démarre pas
+See [`SETUP_MONITORING.md`](./SETUP_MONITORING.md) troubleshooting section for more.
 
-```bash
-docker logs uptime-kuma-[env]
-docker volume rm uptime_kuma_data_[env]
-docker compose -f docker-compose.monitoring.[env].yml up -d uptime-kuma
-```
+---
 
-### Sentry ne capture pas
+## 🔒 Security
 
-```bash
-# Vérifier DSN
-echo $SENTRY_DSN_[ENV]
+- All services run in isolated Docker containers
+- Portainer HTTPS on port 9443
+- Trivy for image vulnerability scanning
+- Environment-based access control via Sentry/Better Stack
 
-# Test manuel
-npm run dev
-curl -X POST http://localhost:3000/test-error
-```
+---
 
-### Better Stack ne reçoit pas de logs
+## 📞 Need Help?
 
-```bash
-# Vérifier token
-echo $LOGTAIL_TOKEN_[ENV]
+1. **Quick help**: Read [`QUICKSTART.md`](./QUICKSTART.md)
+2. **Setup help**: Read [`SETUP_MONITORING.md`](./SETUP_MONITORING.md)
+3. **Navigation**: Check [`INDEX.md`](./INDEX.md) for full guide index
+4. **View logs**: Run `./monitoring.sh logs`
 
-# Vérifier utilisation du logger dans le code
-```
+---
 
-## 📚 Documentation Complète
+## 🚀 Deployment Path
 
-Voir [SETUP_MONITORING.md](./SETUP_MONITORING.md) pour:
-- Installation détaillée
-- Configuration complète par outil
-- Procédures de maintenance
-- Gestion des erreurs avancées
+**Local Development** → **Git Sync** → **VPS Deployment** → **Configure External** → **Monitor**
 
-## 🔗 Ressources Externes
+Follow [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md) for step-by-step VPS deployment.
 
-| Outil | Docs | Support |
-|-------|------|---------|
-| Portainer | https://docs.portainer.io | Commercial |
-| Uptime Kuma | https://github.com/louislam/uptime-kuma | Community |
-| Sentry | https://docs.sentry.io | Commercial |
-| Better Stack | https://docs.betterstack.com | Commercial |
-| Trivy | https://trivy.dev | Community |
+---
 
-## 📞 Support
+## ✅ Status
 
-Pour questions spécifiques:
-1. Consulter [SETUP_MONITORING.md](./SETUP_MONITORING.md)
-2. Vérifier les logs: `./monitoring-[env].sh logs`
-3. Consulter Sentry dashboard
-4. Consulter Better Stack dashboard
-5. Consulter Uptime Kuma dashboard
+**Version**: 1.0 (Unified)  
+**Status**: ✅ Production Ready  
+**Last Updated**: May 4, 2026  
+**Environments**: dev, test, demo  
 
-## 📝 Notes Importantes
+---
+
+**Ready to start?** → Go to [`QUICKSTART.md`](./QUICKSTART.md) or [`INDEX.md`](./INDEX.md)
 
 ⚠️ **Pour DEMO environment:**
 - Faire un backup régulier: `./monitoring-demo.sh backup`
