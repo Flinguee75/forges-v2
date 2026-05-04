@@ -16,10 +16,13 @@ describe('PaiementController', () => {
       getPaiementsStats: jest.fn(),
       effectuerReversementsPartenaires: jest.fn(),
       annulerPaiementsExpires: jest.fn(),
+      traiterIpnNgser: jest.fn(),
+      reconcilierPaiementsPendingNgser: jest.fn(),
     } as any;
 
     controller = new PaiementController(mockService);
     process.env.WEBHOOK_SECRET = 'webhook-secret';
+    process.env.FRONTEND_URL = 'http://localhost:5173';
   });
 
   it('initie un paiement valide', async () => {
@@ -218,5 +221,109 @@ describe('PaiementController', () => {
 
     expect(res.json).toHaveBeenCalledWith({ nb_reversements: 2 });
     expect(res.json).toHaveBeenCalledWith({ annules: 3 });
+  });
+
+  describe('traiterIpnNgser — RM-158', () => {
+    it('accepte un IPN sans signature et répond 200 accepted:true', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001', transaction_amount: 1500 },
+        headers: {},
+      });
+      const res = createMockRes();
+
+      await controller.traiterIpnNgser(req, res, createNext());
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ statusCode: 200, data: { accepted: true } });
+    });
+
+    it('accepte un IPN avec signature valide et répond 200 accepted:true', async () => {
+      const body = { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-002', transaction_amount: 1500 };
+      const signature = createHmac('sha256', 'webhook-secret').update(JSON.stringify(body)).digest('hex');
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+
+      const req = createMockReq({ body, headers: { 'x-webhook-signature': signature } });
+      const res = createMockRes();
+
+      await controller.traiterIpnNgser(req, res, createNext());
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ statusCode: 200, data: { accepted: true } });
+    });
+
+    it('rejette un IPN avec signature invalide et répond 401', async () => {
+      const req = createMockReq({
+        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-003' },
+        headers: { 'x-webhook-signature': 'mauvaise-signature' },
+      });
+      const res = createMockRes();
+
+      await controller.traiterIpnNgser(req, res, createNext());
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('retourPaiementNgser — Payment Data Transfer', () => {
+    it('status_id=1 redirige vers le frontend avec status=success', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '1', transaction_id: 'TXN-100', transaction_amount: '1500' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status=success'));
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('order_id=FRG-2026-042-A3F7B2'));
+    });
+
+    it('status_id=0 redirige vers le frontend avec status=fail', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '0', transaction_id: 'TXN-101' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status=fail'));
+    });
+
+    it('status_id=2 (montant insuffisant) redirige avec status=fail et status_id=2', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '2', transaction_id: 'TXN-102' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status=fail'));
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status_id=2'));
+    });
+
+    it('inclut transaction_id dans la redirection si présent', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '1', transaction_id: 'TXN-200' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('transaction_id=TXN-200'));
+    });
+
+    it('redirige même sans order_id sans lever d\'erreur', async () => {
+      const req = createMockReq({ query: { status_id: '0' } });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.any(String));
+    });
   });
 });

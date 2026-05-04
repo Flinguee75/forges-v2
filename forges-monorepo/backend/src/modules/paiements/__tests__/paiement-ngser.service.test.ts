@@ -2,6 +2,13 @@ import { PaiementNgserService } from '../paiement-ngser.service';
 import { VoucherRepository } from '../../vouchers/voucher.repository';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 
+const mockCreateSession = jest.fn();
+jest.mock('../ngser.client', () => ({
+  NgserClient: jest.fn().mockImplementation(() => ({
+    createSession: mockCreateSession,
+  })),
+}));
+
 describe('PaiementNgserService — RM-157 initiation backend-only', () => {
   let service: PaiementNgserService;
   let mockPrisma: any;
@@ -124,6 +131,32 @@ describe('PaiementNgserService — RM-157 initiation backend-only', () => {
     await expect(
       service.initierPaiement({ dossier_id: 'd-01' }, 'a-01')
     ).rejects.toThrow('PAIEMENT_DEJA_VALIDE');
+  });
+
+  it('mode réel: envoie le montant en XOF (centimes / 100) à NgserClient', async () => {
+    process.env.NGSER_MOCK_MODE = 'false';
+    mockCreateSession.mockResolvedValueOnce({
+      payment_token: 'real-token-001',
+      payment_url: 'https://securetest.crossroad-africa.net/pay?order=FRG-2026-001-AAAAAA',
+    });
+
+    mockPrisma.dossier.findUnique.mockResolvedValue({
+      ...dossierStandard,
+      formation: { ...dossierStandard.formation, cout_catalogue: 200000 }, // 200 000 centimes = 2 000 XOF
+    });
+    mockPrisma.paiement.findUnique.mockResolvedValue(null);
+    mockPrisma.paiement.findFirst.mockResolvedValue(null);
+    mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
+    mockPrisma.paiement.create.mockImplementation(({ data }: any) => ({ id: 'p-real', ...data }));
+
+    await service.initierPaiement({ dossier_id: 'd-01' }, 'a-01');
+
+    expect(mockCreateSession).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 2000 }) // 200000 centimes / 100 = 2000 XOF
+    );
+    // Pas de fuite du montant en centimes bruts
+    const callArgs = mockCreateSession.mock.calls[0][0];
+    expect(callArgs.amount).not.toBe(200000);
   });
 
   it('conserve la reduction Premium -15% si un abonnement actif la rend applicable', async () => {

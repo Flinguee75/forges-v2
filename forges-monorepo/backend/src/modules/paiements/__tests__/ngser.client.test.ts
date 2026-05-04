@@ -223,19 +223,24 @@ describe('NgserClient - Client HTTP NGSER', () => {
   });
 
   describe('getStatus - Réconciliation statut paiement', () => {
+    // Format réel NGSER: POST /check_payment_status/{order}
+    // Réponse: { status, code, data: { order_id, transaction_id, transaction_amount (string XOF), wallet } }
+
     it('doit récupérer le statut SUCCESS avec transaction_id', async () => {
       const mockResponse = {
+        status: 200,
         data: {
-          order: 'FRG-2026-120-ABCDEF',
           status: 'SUCCESS',
           code: '1',
-          transaction_id: 'TXN-NGSER-12345',
-          amount: 150000,
-          wallet: 'ORANGE_MONEY',
-          payment_date: '2026-04-29T10:30:00Z',
+          data: {
+            order_id: 'FRG-2026-120-ABCDEF',
+            transaction_id: 'TXN-NGSER-12345',
+            transaction_amount: '1500.00', // XOF en string
+            wallet: 'ORANGE_MONEY',
+            payment_date: '2026-04-29T10:30:00Z',
+          },
         },
-        status: 200,
-        config: { url: '/v3/check-status' },
+        config: { url: '/check_payment_status/FRG-2026-120-ABCDEF' },
       };
 
       const mockAxiosInstance = mockedAxios.create() as any;
@@ -248,25 +253,25 @@ describe('NgserClient - Client HTTP NGSER', () => {
       expect(result.status).toBe('SUCCESS');
       expect(result.code).toBe('1');
       expect(result.transaction_id).toBe('TXN-NGSER-12345');
-      expect(result.amount).toBe(150000);
+      expect(result.amount).toBe(1500); // parseFloat('1500.00')
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/v3/check-status',
+        '/check_payment_status/FRG-2026-120-ABCDEF',
+        {},
         expect.objectContaining({
-          name: 'FORGES',
-          order: 'FRG-2026-120-ABCDEF',
+          headers: expect.objectContaining({ Authorization: expect.stringContaining('Token') }),
         })
       );
     });
 
     it('doit récupérer le statut PENDING', async () => {
       const mockResponse = {
+        status: 200,
         data: {
-          order: 'FRG-2026-120-PENDING',
           status: 'PENDING',
           code: '3',
+          data: { order_id: 'FRG-2026-120-PENDING' },
         },
-        status: 200,
-        config: { url: '/v3/check-status' },
+        config: { url: '/check_payment_status/FRG-2026-120-PENDING' },
       };
 
       const mockAxiosInstance = mockedAxios.create() as any;
@@ -282,13 +287,13 @@ describe('NgserClient - Client HTTP NGSER', () => {
 
     it('doit récupérer le statut FAIL', async () => {
       const mockResponse = {
+        status: 200,
         data: {
-          order: 'FRG-2026-120-FAIL',
           status: 'FAIL',
           code: '0',
+          data: { order_id: 'FRG-2026-120-FAIL' },
         },
-        status: 200,
-        config: { url: '/v3/check-status' },
+        config: { url: '/check_payment_status/FRG-2026-120-FAIL' },
       };
 
       const mockAxiosInstance = mockedAxios.create() as any;
