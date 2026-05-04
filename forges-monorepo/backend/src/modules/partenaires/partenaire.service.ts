@@ -7,6 +7,7 @@ import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
 import { SoumettreFormationDto, AutoInscriptionPartenaireDto } from './dto/partenaire.dto';
 import { UpdateProfilPartenaireDto } from './dto/profil.dto';
+import { getCommissionForgesDefaut } from '../../config/env.config';
 
 export class PartenaireService {
   constructor(
@@ -27,7 +28,7 @@ export class PartenaireService {
       type: dto.type,
       pays: dto.pays,
       email_principal: dto.email_principal,
-      commission_forges_pct: 20, // défaut, modifiable Admin
+      commission_forges_pct: getCommissionForgesDefaut(),
       mode_inscription: 'AUTO_INSCRIPTION',
       statut: 'EN_ATTENTE_VERIFICATION',
     });

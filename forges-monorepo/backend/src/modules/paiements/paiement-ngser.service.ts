@@ -3,8 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import { VoucherRepository } from '../vouchers/voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { InitierPaiementNgserDto } from './dto/paiement.dto';
+import { getDelaiPaiementH } from '../../config/env.config';
 
-const DELAI_PAIEMENT_H = 72;
 const NGSER_PROVIDER = 'NGSER';
 const NGSER_MOCK_BASE_URL = 'https://mock-ngser.forges.ci/pay';
 
@@ -51,7 +51,7 @@ export class PaiementNgserService {
     const montantFinal = await this.calculerMontantFinal(dossier, apprenantId);
     const orderNgser = await this.generateUniqueOrderNgser();
     const session = await this.createNgserSession(orderNgser, montantFinal);
-    const expiresAt = new Date(Date.now() + DELAI_PAIEMENT_H * 3600 * 1000);
+    const expiresAt = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
 
     const paiement = await this.prisma.paiement.create({
       data: {

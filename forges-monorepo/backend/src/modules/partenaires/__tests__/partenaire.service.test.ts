@@ -23,7 +23,7 @@ describe('MOD-12 — Partenaires & Validation', () => {
     prix_coutant_soumis: 80000,
     version: 1,
     date_soumission: new Date(Date.now() - 2 * 24 * 3600 * 1000),
-    partenaire: { email_principal: 'partner@test.ci', commission_forges_pct: 20, raison_sociale: 'TestOrg' },
+    partenaire: { email_principal: 'partner@test.ci', commission_forges_pct: 30, raison_sociale: 'TestOrg' },
     formation: { intitule: 'Cybersécurité GWU' },
   };
 
@@ -109,7 +109,7 @@ describe('MOD-12 — Partenaires & Validation', () => {
         type: 'ONG',
         pays: 'CI',
         email_principal: 'partner@test.ci',
-        commission_forges_pct: 20,
+        commission_forges_pct: 30,
         mode_inscription: 'AUTO_INSCRIPTION',
         statut: 'EN_ATTENTE_VERIFICATION',
       });
@@ -352,7 +352,7 @@ describe('MOD-12 — Partenaires & Validation', () => {
 
   // RM-137 : calcul prix catalogue = prix_coutant / (1 - commission%)
   describe('RM-137 — Calcul prix catalogue automatique', () => {
-    it('calcule correctement : 80000 / (1 - 0.20) = 100000 XOF', async () => {
+    it('calcule correctement : 80000 / (1 - 0.30) = 114286 XOF', async () => {
       mockFpRepo.findById.mockResolvedValue(fp as any);
       mockFpRepo.valider.mockResolvedValue({} as any);
       mockPrisma.formation.update.mockResolvedValue({});
@@ -366,7 +366,7 @@ describe('MOD-12 — Partenaires & Validation', () => {
         responsable_id: 'resp-01',
       });
 
-      expect(result.prix_catalogue).toBe(100000); // 80000/(1-0.20)
+      expect(result.prix_catalogue).toBe(114286); // Math.ceil(80000/(1-0.30))
       expect(result.prix_coutant_valide).toBe(80000);
     });
 

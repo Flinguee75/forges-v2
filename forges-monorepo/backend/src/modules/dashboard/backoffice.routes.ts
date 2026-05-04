@@ -7,6 +7,7 @@ import { DashboardService } from './dashboard.service';
 import { ApporteurRepository } from '../apporteurs/apporteur.repository';
 import { ApporteurService } from '../apporteurs/apporteur.service';
 import { EmailService } from '../../shared/email/email.service';
+import { getCommissionForgesDefaut, getCommissionApporteurDefaut, getSeuilReversementPartenaire, getSeuilReversementApporteur } from '../../config/env.config';
 
 const router = Router();
 const audit = new AuditLogger();
@@ -15,11 +16,11 @@ const dashboardService = new DashboardService(dashboardRepository, audit);
 const apporteurService = new ApporteurService(new ApporteurRepository(prisma), prisma, audit, new EmailService());
 
 const getConfigPayload = () => ({
-  default_commission_forges_pct: Number(process.env.DEFAULT_COMMISSION_FORGES_PCT || 20),
-  default_commission_apporteur_pct: Number(process.env.DEFAULT_COMMISSION_APPORTEUR_PCT || 5),
-  seuil_reversement_partenaire_xof: Number(process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || 50000),
-  seuil_reversement_apporteur_xof: Number(process.env.SEUIL_REVERSEMENT_APPORTEUR_XOF || 5000),
-  validation_partenaire_delai_jours: Number(process.env.VALIDATION_PARTENAIRE_DELAI_JOURS || 5),
+  default_commission_forges_pct: getCommissionForgesDefaut(),
+  default_commission_apporteur_pct: getCommissionApporteurDefaut(),
+  seuil_reversement_partenaire_xof: getSeuilReversementPartenaire(),
+  seuil_reversement_apporteur_xof: getSeuilReversementApporteur(),
+  validation_partenaire_delai_jours: Number(process.env.VALIDATION_PARTENAIRE_DELAI_JOURS ?? 5),
 });
 
 router.get('/dashboard/superviseur', authenticate, authorize('SUPERVISEUR', 'ADMIN'), async (req, res, next) => {

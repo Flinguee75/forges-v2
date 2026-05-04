@@ -8,9 +8,9 @@ import { InitierPaiementDto, InitierPaiementNgserDto } from './dto/paiement.dto'
 import { PaiementNgserService } from './paiement-ngser.service';
 import { IpnNgserService } from './ipn-ngser.service';
 import { CommissionService } from './commission.service';
+import { getDelaiPaiementH } from '../../config/env.config';
 
 const MAX_TENTATIVES = 3;      // RM-08
-const DELAI_PAIEMENT_H = 72;  // RM-07
 const TIMEOUT_API_S = 30;      // RM-09
 
 export class PaiementService {
@@ -77,7 +77,7 @@ export class PaiementService {
     const reduction = dossier.formation.cout_catalogue - montantFinal;
 
     // Création paiement
-    const expires_at = new Date(Date.now() + DELAI_PAIEMENT_H * 3600 * 1000); // RM-07
+    const expires_at = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000); // RM-07
     const paiement = await this.paiementRepo.create({
       dossier_id: dto.dossier_id,
       montant_catalogue: dossier.formation.cout_catalogue,

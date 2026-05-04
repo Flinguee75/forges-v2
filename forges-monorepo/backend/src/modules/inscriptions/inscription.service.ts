@@ -1,4 +1,5 @@
 import { DossierRepository } from './dossier.repository';
+import { getDelaiPaiementMs } from '../../config/env.config';
 import { SessionRepository } from '../sessions/session.repository';
 import { FormationRepository } from '../formations/formation.repository';
 import { VoucherValidationService } from '../vouchers/voucher-validation.service';
@@ -273,12 +274,12 @@ export class InscriptionService {
     const updated = await this.dossierRepo.updateStatut(dossierId, 'RETENU');
 
     // RM-07 : Déclencher délai 72h pour paiement
-    await this.dossierRepo.setDelaiPaiement(dossierId, new Date(Date.now() + 72 * 3600 * 1000));
+    await this.dossierRepo.setDelaiPaiement(dossierId, new Date(Date.now() + getDelaiPaiementMs()));
 
     await this.audit.info('DOSSIER_RETENU', {
       dossier_id: dossierId,
       responsable_id: responsableId,
-      delai_expiration: new Date(Date.now() + 72 * 3600 * 1000)
+      delai_expiration: new Date(Date.now() + getDelaiPaiementMs())
     });
 
     // Notifier l'apprenant du statut RETENU (RM-100)
@@ -287,7 +288,7 @@ export class InscriptionService {
     });
 
     if (apprenant) {
-      const delaiExpiration = new Date(Date.now() + 72 * 3600 * 1000);
+      const delaiExpiration = new Date(Date.now() + getDelaiPaiementMs());
       try {
         await this.email.sendDossierRetenu(
           apprenant.email,
