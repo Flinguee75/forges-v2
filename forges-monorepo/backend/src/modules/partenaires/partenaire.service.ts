@@ -443,7 +443,7 @@ export class PartenaireService {
   // GET /api/agent/reversements/partenaires — AGENT (RM-138, RM-132)
   async getReversementsEnAttente(agentId: string) {
     // RM-138 : seuil minimum 50 000 XOF (stocké en centimes)
-    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || '5000000'); // 50 000 XOF = 5 000 000 centimes
+    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || '50000');
 
     // 1. Commissions retail (CommissionPartenaire)
     const commissionsRetail = await this.prisma.commissionPartenaire.groupBy({
