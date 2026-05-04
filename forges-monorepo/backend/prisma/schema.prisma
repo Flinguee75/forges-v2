@@ -84,6 +84,7 @@ model Formation {
   inclus_abonnement       Boolean                @default(false)
   pilier_abonnement       String?
   duree_acces_jours       Int                    @default(365)
+  url_externe_chiffree    String?
   prix_coutant            Int?
   prerequis               String?
   objectifs_pedagogiques  String[]

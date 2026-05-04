@@ -141,6 +141,7 @@ import sessionBackofficeRoutes from './modules/sessions/session.routes';
 import paiementRoutes from './modules/paiements/paiement.routes'; // ✅ SPRINT 1 SEMAINE 2
 import voucherRoutes from './modules/vouchers/voucher.routes'; // ✅ SPRINT 1 SEMAINE 2
 import devisRoutes from './modules/devis/devis.routes'; // RM-149 à RM-151
+import proxyAccesRoutes from './modules/acces/proxy-acces.routes'; // RM-152 à RM-154
 import abonnementAliasRoutes from './modules/abonnements/abonnement-alias.routes';
 import backofficeRoutes from './modules/dashboard/backoffice.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
@@ -163,6 +164,7 @@ app.use('/api/bot', botRoutes);
 app.use('/api/partenaires', partenaireRoutes);
 app.use('/api/apporteurs', apporteurRoutes); // ✅ CORRIGÉ: singular → plural
 app.use('/api', devisRoutes); // RM-149 à RM-151: devis SUR_DEVIS — monté avant /api/admin pour éviter le authorize('ADMIN') global
+app.use('/api/formations-demande', proxyAccesRoutes); // RM-152 à RM-154: proxy AES formations à la demande
 app.use('/api/admin', adminRoutes); // ✅ NOUVEAU: création admin utilisateurs / partenaires / apporteurs
 app.use('/api/admin', backofficeRoutes); // Alias pour config
 app.use('/api/admin', responsableRoutes); // Alias pour formations attente

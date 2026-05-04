@@ -46,6 +46,22 @@ export const apprenantApi = {
       progression: Number(progression),
     })),
   accederFormationDemande: (formationId) => apiClient.post(`/formations/${formationId}/acceder`),
+  proxyAccesFormation: async (accesId) => {
+    const { getAccessToken } = await import('../utils/authStorage');
+    const token = getAccessToken();
+    const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') ?? '';
+    const response = await fetch(`${baseUrl}/api/formations-demande/${accesId}/acceder`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      redirect: 'follow',
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body.error || 'Acces refuse');
+      err.statusCode = response.status;
+      throw err;
+    }
+    return response.url;
+  },
   inscrireSession: (sessionId, data) => apiClient.post(`/sessions/${sessionId}/inscrire`, data),
 };
 
