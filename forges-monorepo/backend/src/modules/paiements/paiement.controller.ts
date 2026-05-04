@@ -268,9 +268,7 @@ export class PaiementController {
         ...(transaction_id ? { transaction_id } : {}),
       });
 
-      const redirectUrl = succes
-        ? `${frontendUrl}/paiement/succes?${params}`
-        : `${frontendUrl}/paiement/echec?${params}`;
+      const redirectUrl = `${frontendUrl}/apprenant/paiements/callback?${params}`;
 
       return res.redirect(302, redirectUrl);
     } catch (error: any) {

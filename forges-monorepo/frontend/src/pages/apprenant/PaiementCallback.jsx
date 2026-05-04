@@ -18,20 +18,45 @@ function getStatutBadge(statut) {
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
+// status_id NGSER : 1=Succès, 0=Échec, 2=Échec montant insuffisant
+function resolveNgserStatus(statusId) {
+  const id = parseInt(statusId, 10);
+  if (id === 1) return 'CONFIRME';
+  if (id === 2) return 'ECHOUE'; // montant insuffisant
+  return 'ECHOUE';
+}
+
 export default function PaiementCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  // Params legacy (depuis PaiementInitiation interne)
   const paiementId = searchParams.get('paiement_id');
   const orderNgser = searchParams.get('order_ngser') || searchParams.get('order');
+
+  // Params NGSER Payment Data Transfer (redirection post-paiement réel)
+  const orderId = searchParams.get('order_id');
+  const statusId = searchParams.get('status_id');
+  const statusParam = searchParams.get('status'); // 'success' | 'fail'
+  const transactionId = searchParams.get('transaction_id');
+  const transactionAmount = searchParams.get('transaction_amount');
+
+  const isNgserRedirect = Boolean(orderId && statusId !== null);
+
   const [paiement, setPaiement] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
 
+  const ngserStatut = isNgserRedirect ? resolveNgserStatus(statusId) : null;
+
   const title = useMemo(() => {
-    if (paiement?.statut === 'CONFIRME') return 'Paiement confirmé';
-    if (paiement?.statut === 'ECHOUE') return 'Paiement échoué';
+    const statut = paiement?.statut || ngserStatut;
+    if (statut === 'CONFIRME') return 'Paiement confirmé';
+    if (statut === 'ECHOUE') return 'Paiement échoué';
+    if (statusParam === 'success') return 'Paiement confirmé';
+    if (statusParam === 'fail') return 'Paiement échoué';
     return 'Confirmation du paiement';
-  }, [paiement?.statut]);
+  }, [paiement?.statut, ngserStatut, statusParam]);
 
   useEffect(() => {
     let isMounted = true;
@@ -41,7 +66,6 @@ export default function PaiementCallback() {
         setStatus('ready');
         return;
       }
-
       try {
         const data = await paiementsApi.getById(paiementId);
         if (!isMounted) return;
@@ -55,11 +79,12 @@ export default function PaiementCallback() {
     }
 
     loadPaiement();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [paiementId]);
+
+  const statutAffiche = paiement?.statut || ngserStatut || 'PENDING';
+  const succes = statutAffiche === 'CONFIRME' || statusParam === 'success';
+  const echec = statutAffiche === 'ECHOUE' || statusParam === 'fail';
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -67,12 +92,12 @@ export default function PaiementCallback() {
         <div>
           <h1 className="text-2xl font-semibold text-primary">{title}</h1>
           <p className="mt-2 text-sm text-subtext">
-            Le statut définitif est confirmé par webhook NGSER. Cette page affiche le dernier
+            Le statut définitif est confirmé par notification NGSER. Cette page affiche le dernier
             état connu par FORGES.
           </p>
         </div>
 
-        {status === 'loading' && (
+        {status === 'loading' && !isNgserRedirect && (
           <div className="flex justify-center py-8">
             <Spinner size="large" />
           </div>
@@ -84,35 +109,60 @@ export default function PaiementCallback() {
           </div>
         )}
 
-        {status === 'ready' && (
+        {(status === 'ready' || isNgserRedirect) && (
           <div className="space-y-3 rounded-lg border border-border bg-bg p-4">
+
             <div className="flex items-center justify-between">
               <span className="text-subtext">Statut</span>
-              <span>{getStatutBadge(paiement?.statut || 'PENDING')}</span>
+              <span>{getStatutBadge(statutAffiche)}</span>
             </div>
-            {orderNgser && (
+
+            {(orderId || orderNgser) && (
               <div className="flex items-center justify-between">
                 <span className="text-subtext">Commande NGSER</span>
-                <span className="font-medium text-text">{orderNgser}</span>
+                <span className="font-medium text-text">{orderId || orderNgser}</span>
               </div>
             )}
-            {paiement?.montant_final && (
+
+            {transactionId && (
+              <div className="flex items-center justify-between">
+                <span className="text-subtext">Transaction</span>
+                <span className="font-medium text-text">{transactionId}</span>
+              </div>
+            )}
+
+            {(transactionAmount || paiement?.montant_final) && (
               <div className="flex items-center justify-between">
                 <span className="text-subtext">Montant</span>
                 <span className="font-semibold text-primary">
-                  {(paiement.montant_final / 100).toLocaleString('fr-FR')} FCFA
+                  {transactionAmount
+                    ? Number(transactionAmount).toLocaleString('fr-FR')
+                    : (paiement.montant_final / 100).toLocaleString('fr-FR')
+                  } FCFA
                 </span>
+              </div>
+            )}
+
+            {echec && parseInt(statusId, 10) === 2 && (
+              <div className="rounded-lg border border-warning bg-warning-soft p-3 text-sm text-warning">
+                Le paiement a échoué en raison d'un montant insuffisant sur votre compte.
               </div>
             )}
           </div>
         )}
 
+        {succes && (
+          <div className="rounded-lg border border-success bg-success-soft p-3 text-sm text-success">
+            Votre paiement a été pris en compte. Vous pouvez accéder à votre formation.
+          </div>
+        )}
+
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="primary" onClick={() => navigate('/apprenant/paiements')}>
-            Voir mes paiements
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/apprenant/dossiers')}>
+          <Button variant="primary" onClick={() => navigate('/apprenant/dossiers')}>
             Voir mes dossiers
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/apprenant/paiements')}>
+            Voir mes paiements
           </Button>
         </div>
       </Card>
