@@ -103,6 +103,7 @@ const OrganisationDetail = lazy(() => import('../pages/backoffice/organisations/
 const DevisList = lazy(() => import('../pages/backoffice/devis/DevisList'));
 const DevisForm = lazy(() => import('../pages/backoffice/devis/DevisForm'));
 const DevisDetail = lazy(() => import('../pages/backoffice/devis/DevisDetail'));
+const DevisPage = lazy(() => import('../pages/organisation/DevisPage'));
 
 const PlaceholderPage = lazy(() => import('../pages/PlaceholderPage'));
 const ComponentsDemo = lazy(() => import('../pages/ComponentsDemo'));
@@ -362,6 +363,10 @@ const router = createBrowserRouter([
       {
         path: 'paiements',
         element: withSuspense(<PaiementsOrganisationPage />),
+      },
+      {
+        path: 'devis',
+        element: withSuspense(<DevisPage />),
       },
       {
         path: 'profil',
