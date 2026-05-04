@@ -189,17 +189,21 @@ export class PaiementController {
       const payloadMasque = masquerSecrets(req.body);
       const headersMasques = masquerSecrets(req.headers);
 
-      // Enqueuer pour traitement asynchrone
+      // Enqueuer pour traitement asynchrone, fallback synchrone si Redis indisponible
+      // Les erreurs métier du fallback ne doivent pas affecter accepted:true (RM-158)
       if (this.ipnQueue) {
-        await this.ipnQueue.enqueue({
-          provider: 'NGSER',
-          payload: req.body, // payload original non masqué pour traitement
-          received_at: new Date(),
-          headers: headersMasques,
-        });
+        try {
+          await this.ipnQueue.enqueue({
+            provider: 'NGSER',
+            payload: req.body,
+            received_at: new Date(),
+            headers: headersMasques,
+          });
+        } catch {
+          void this.paiementService.traiterIpnNgser(req.body).catch(() => undefined);
+        }
       } else {
-        // Fallback synchrone si pas de queue (ne devrait pas arriver)
-        await this.paiementService.traiterIpnNgser(req.body);
+        void this.paiementService.traiterIpnNgser(req.body).catch(() => undefined);
       }
 
       // Réponse HTTP 200 immédiate (RM-158)
