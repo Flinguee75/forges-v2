@@ -30,6 +30,13 @@ export class PartenaireRepository {
     });
   }
 
+  async findByUserId(userId: string) {
+    return this.prisma.partenaire.findUnique({
+      where: { id: userId },
+      select: { id: true, statut: true },
+    });
+  }
+
   async findByToken(token: string) {
     return this.prisma.partenaire.findFirst({
       where: { token_invitation: token }
