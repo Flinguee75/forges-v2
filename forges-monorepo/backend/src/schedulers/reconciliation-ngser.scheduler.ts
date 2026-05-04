@@ -189,16 +189,7 @@ export class ReconciliationNgserScheduler {
     console.log(`[ReconciliationNgserScheduler] Mode RÉEL - Réconciliation ${order_ngser}`);
 
     const ngserClient = new NgserClient(this.audit);
-    let ngserStatus: Awaited<ReturnType<typeof ngserClient.getStatus>>;
-    try {
-      ngserStatus = await ngserClient.getStatus({ order: order_ngser });
-    } catch (error: any) {
-      if (error.message?.includes('NGSER_CHECK_STATUS_UNAVAILABLE')) {
-        await this.audit.info('RECONCILIATION_CHECK_STATUS_INDISPONIBLE', { order_ngser });
-        return { statut_final: 'PENDING', order_ngser };
-      }
-      throw error;
-    }
+    const ngserStatus = await ngserClient.getStatus({ order: order_ngser });
     const paiement = await this.prisma.paiement.findUnique({
       where: { order_ngser },
       select: { montant_initie: true },

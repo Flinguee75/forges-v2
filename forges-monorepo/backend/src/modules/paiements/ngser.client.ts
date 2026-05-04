@@ -145,36 +145,50 @@ export class NgserClient {
 
   /**
    * Réconciliation : vérifier le statut d'un paiement NGSER
-   * Endpoint décrit par l'addendum v4.9: POST /v3/check-status
+   * Endpoint doc NGSER: POST /check_payment_status/{order}
+   * Auth: Authorization: Token <auth_token>
    */
   async getStatus(request: NgserStatusRequest): Promise<NgserStatusResponse> {
     try {
-      const payload = {
-        name: this.name,
-        authentication_token: this.authenticationToken,
-        auth_token: this.authToken,
-        operation_token: this.operationTokenPaiement,
-        order: request.order,
-      };
-
       await this.audit.info('NGSER_GET_STATUS_REQUEST', {
         order: request.order,
       });
 
-      const response = await this.postWithRetry<NgserStatusResponse>(
-        '/v3/check-status',
-        payload,
-        'GET_STATUS',
-        request.order
+      const response = await this.client.post<any>(
+        `/check_payment_status/${request.order}`,
+        {},
+        {
+          headers: {
+            Authorization: `Token ${this.authToken}`,
+          },
+        }
       );
+
+      const raw = response.data;
+      const data = raw.data || raw;
+
+      // Normaliser : transaction_amount est une string XOF ("500.00")
+      const amount = data.transaction_amount
+        ? parseFloat(data.transaction_amount)
+        : undefined;
+
+      const normalized: NgserStatusResponse = {
+        order: data.order_id || request.order,
+        status: raw.status || 'UNKNOWN',
+        code: raw.code,
+        transaction_id: data.transaction_id,
+        amount,
+        wallet: data.wallet,
+        payment_date: data.payment_date,
+      };
 
       await this.audit.info('NGSER_GET_STATUS_SUCCESS', {
         order: request.order,
-        status: response.data.status,
-        code: response.data.code,
+        status: normalized.status,
+        code: normalized.code,
       });
 
-      return response.data;
+      return normalized;
     } catch (error: any) {
       await this.handleNgserError(error, 'GET_STATUS', request.order);
       throw error;
@@ -282,9 +296,7 @@ export class NgserClient {
       }
 
       if (status === 404) {
-        // L'endpoint check-status peut ne pas exister sur certaines versions sandbox
-        // On lève une erreur distincte pour que le scheduler puisse garder le paiement PENDING
-        throw new Error('NGSER_CHECK_STATUS_UNAVAILABLE: endpoint not found or order unknown');
+        throw new Error('NGSER_NOT_FOUND: Order not found or invalid endpoint');
       }
 
       if (status >= 500) {
