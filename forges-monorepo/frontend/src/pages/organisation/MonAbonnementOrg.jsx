@@ -124,7 +124,7 @@ export default function MonAbonnementOrg() {
               {isTrial ? 'Convertir votre essai' : 'Piloter votre accès plateforme'}
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              Gérez l&apos;accès de votre organisation à la plateforme et les offres annuelles Basique, Pro et Enterprise.
+              L&apos;abonnement organisation donne à votre structure un accès annuel à la plateforme FORGES : gestion des inscriptions, des vouchers, du tableau de bord et de l&apos;abonnement B2B. Sans abonnement actif, l&apos;accès est suspendu à la fin de la période d&apos;essai.
             </p>
           </div>
           {getStatusBadge(abonnement?.statut || 'ABSENT')}
@@ -238,15 +238,25 @@ export default function MonAbonnementOrg() {
                   </div>
                   {isSelected && <Badge variant="success" size="small">Sélectionnée</Badge>}
                 </div>
-                <div className="mt-5">
+                <div className="mt-4">
                   <p className="text-sm text-subtext">Tarif annuel</p>
                   <p className="mt-1 text-2xl font-semibold text-text">{formatFcfa(displayAmount)}</p>
                   {welcomeOfferActive && (
                     <p className="mt-1 text-xs text-warning">
-                      Tarif catalogue: {formatFcfa(offer.annualAmount)}
+                      Tarif catalogue : {formatFcfa(offer.annualAmount)}
                     </p>
                   )}
                 </div>
+                {offer.features?.length > 0 && (
+                  <ul className="mt-4 space-y-1.5">
+                    {offer.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm text-text">
+                        <span className="mt-0.5 text-success">✓</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-6">
                   <Button
                     variant={isSelected ? 'primary' : 'outline'}

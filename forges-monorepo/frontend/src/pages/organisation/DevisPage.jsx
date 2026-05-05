@@ -45,7 +45,7 @@ export default function DevisPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">Mes devis</p>
         <h2 className="mt-3 text-2xl font-semibold text-primary">Devis en cours</h2>
         <p className="mt-2 text-subtext">
-          Vos devis SUR_DEVIS établis par FORGES. Le paiement s'effectue hors plateforme.
+          Vos devis établis par l&apos;équipe FORGES. Le paiement s&apos;effectue hors plateforme sur accord de votre interlocuteur.
         </p>
       </div>
 
@@ -105,7 +105,7 @@ export default function DevisPage() {
                 </div>
 
                 {devis.statut === 'CREE' && (
-                  <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <div className="mt-4 rounded-lg bg-warning/5 px-4 py-3 text-sm text-warning">
                     Paiement à effectuer hors plateforme. Contactez votre interlocuteur FORGES pour confirmer la réception.
                   </div>
                 )}

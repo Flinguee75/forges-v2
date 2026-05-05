@@ -238,7 +238,7 @@ export default function AbonnementB2B() {
               Gestion multi-apprenants
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              Gérez votre palier B2B, suivez votre consommation et administrez vos apprenants.
+              L&apos;abonnement B2B vous permet d&apos;inscrire plusieurs apprenants de votre organisation à des formations via un contrat annuel. Il complète votre abonnement organisation et s&apos;active par palier selon le nombre de bénéficiaires.
             </p>
           </div>
           <Badge variant={currentStatus.variant} size="small">{currentStatus.label}</Badge>
@@ -339,13 +339,20 @@ export default function AbonnementB2B() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-lg font-semibold text-text">{palier.label}</p>
-                        <p className="mt-1 text-sm text-subtext">Capacite: {palier.range}</p>
+                        <p className="mt-1 text-xs font-semibold text-subtext uppercase tracking-wide">
+                          {palier.range} apprenant{palier.nbMax !== 1 ? 's' : ''}
+                        </p>
                       </div>
                       {isCurrent && <Badge variant="success" size="small">Actuel</Badge>}
                     </div>
+                    {palier.description && (
+                      <p className="mt-2 text-sm text-subtext">{palier.description}</p>
+                    )}
                     <div className="mt-4">
-                      <p className="text-sm text-subtext">Annuel</p>
-                      <p className="mt-1 text-2xl font-semibold text-text">{formatFcfa(palier.annualAmount)}</p>
+                      <p className="text-sm text-subtext">Tarif annuel</p>
+                      <p className="mt-1 text-2xl font-semibold text-text">
+                        {palier.annualAmount > 0 ? formatFcfa(palier.annualAmount) : 'Sur devis'}
+                      </p>
                     </div>
                     {isDowngradeBlocked && (
                       <p className="mt-3 text-xs text-danger">
