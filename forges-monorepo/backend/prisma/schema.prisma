@@ -64,6 +64,7 @@ model Organisation {
   apporteur          Apporteur?               @relation(fields: [apporteur_id], references: [id])
   apprenants         Apprenant[]
   feedbacks          FeedbackFormation[]
+  devis              Devis[]
   created_at         DateTime                 @default(now())
   date_fin_essai     DateTime?
 
@@ -100,6 +101,7 @@ model Formation {
   feedbacks               FeedbackFormation[]
   langues_disponibles     String[]
   acces_demande           AccesFormationDemande[]
+  devis                   Devis[]
   created_at              DateTime               @default(now())
 }
 
@@ -138,6 +140,7 @@ model Session {
   created_at       DateTime  @default(now())
   formation        Formation @relation(fields: [formation_id], references: [id])
   dossiers         Dossier[]
+  devis            Devis[]
 }
 
 model Dossier {
@@ -209,6 +212,10 @@ model Devis {
   cancelled_at       DateTime?
   created_by         String
   created_at         DateTime    @default(now())
+
+  organisation       Organisation @relation(fields: [organisation_id], references: [id])
+  formation          Formation    @relation(fields: [formation_id], references: [id])
+  session            Session?     @relation(fields: [session_id], references: [id])
 
   @@index([organisation_id])
   @@index([formation_id])

@@ -4,7 +4,14 @@ export class DevisRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async findById(id: string) {
-    return this.prisma.devis.findUnique({ where: { id } });
+    return this.prisma.devis.findUnique({
+      where: { id },
+      include: {
+        organisation: { select: { id: true, raison_sociale: true, email: true } },
+        formation:    { select: { id: true, intitule: true } },
+        session:      { select: { id: true, date_debut: true, date_fin: true } },
+      },
+    });
   }
 
   async findAll(filters: { organisation_id?: string; statut?: string } = {}) {
@@ -12,6 +19,10 @@ export class DevisRepository {
       where: {
         ...(filters.organisation_id ? { organisation_id: filters.organisation_id } : {}),
         ...(filters.statut ? { statut: filters.statut as any } : {}),
+      },
+      include: {
+        organisation: { select: { id: true, raison_sociale: true } },
+        formation:    { select: { id: true, intitule: true } },
       },
       orderBy: { created_at: 'desc' },
     });

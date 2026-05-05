@@ -393,21 +393,31 @@ export class InscriptionService {
     });
   }
 
-  async getDossiersBackoffice() {
-    const dossiers = await this.prisma.dossier.findMany({
-      where: {
+  async getDossiersBackoffice(filters: { statut?: string; search?: string } = {}) {
+    const where: any = {};
+
+    if (filters.statut) {
+      where.statut = filters.statut;
+    }
+
+    if (filters.search) {
+      where.apprenant = {
         OR: [
-          { statut: 'EN_ATTENTE_VERIFICATION' },
-          { statut: { in: ['GRIS', 'EXCEPTION'] } },
-          { type_fenetre: { in: ['GRIS', 'EXCEPTION'] } },
+          { nom: { contains: filters.search, mode: 'insensitive' } },
+          { prenoms: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
         ],
-      },
+      };
+    }
+
+    const dossiers = await this.prisma.dossier.findMany({
+      where,
       include: {
         apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
-        formation: { select: { id: true, intitule: true, type_formation: true, cout_catalogue: true } },
+        formation: { select: { id: true, intitule: true, type_formation: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
       },
-      orderBy: { created_at: 'asc' }
+      orderBy: { created_at: 'desc' },
     });
 
     const priority = (dossier: any) => {
@@ -417,11 +427,7 @@ export class InscriptionService {
       return 2;
     };
 
-    return dossiers.sort((a, b) => {
-      const byPriority = priority(a) - priority(b);
-      if (byPriority !== 0) return byPriority;
-      return a.created_at.getTime() - b.created_at.getTime();
-    });
+    return dossiers.sort((a, b) => priority(a) - priority(b));
   }
 
   async getDossiersBySession(sessionId: string) {

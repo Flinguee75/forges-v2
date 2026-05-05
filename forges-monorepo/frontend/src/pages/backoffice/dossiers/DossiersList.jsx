@@ -83,11 +83,11 @@ export default function DossiersList() {
 
   const columns = [
     {
-      key: 'etudiant',
+      key: 'apprenant',
       label: 'Apprenant',
       render: (value, dossier) => {
-        const etudiant = dossier.etudiant || {};
-        const fullName = `${etudiant.nom || ''} ${etudiant.prenom || ''}`.trim() || 'N/A';
+        const apprenant = dossier.apprenant || {};
+        const fullName = `${apprenant.nom || ''} ${apprenant.prenoms || ''}`.trim() || 'N/A';
         const isPriority = isPriorityDossier(dossier.statut);
 
         return (
@@ -104,12 +104,9 @@ export default function DossiersList() {
       },
     },
     {
-      key: 'session',
-      label: 'Session',
-      render: (_, dossier) => {
-        const formation = dossier.session?.formation;
-        return formation?.titre || 'N/A';
-      },
+      key: 'formation',
+      label: 'Formation',
+      render: (_, dossier) => dossier.formation?.intitule || '-',
     },
     {
       key: 'statut',
@@ -182,7 +179,7 @@ export default function DossiersList() {
         <div className="mb-4 flex items-center gap-4">
           <div className="flex-1">
             <Input
-              placeholder="Rechercher par nom d'étudiant..."
+              placeholder="Rechercher par nom, prénom ou email..."
               value={filters.search}
               onChange={handleSearchChange}
             />

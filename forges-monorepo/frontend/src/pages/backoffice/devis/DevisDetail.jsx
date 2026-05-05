@@ -18,10 +18,10 @@ function formatMontant(value) {
   return Number(value).toLocaleString('fr-FR') + ' XOF';
 }
 
-const STATUT_VARIANT = {
-  CREE: 'warning',
-  PAYE: 'success',
-  ANNULE: 'gray',
+const STATUT_CONFIG = {
+  CREE:   { variant: 'warning', label: 'En attente de paiement' },
+  PAYE:   { variant: 'success', label: 'Payé' },
+  ANNULE: { variant: 'gray',    label: 'Annulé' },
 };
 
 export default function DevisDetail() {
@@ -92,8 +92,8 @@ export default function DevisDetail() {
           {devis.numero_devis}
         </h2>
         <div className="mt-3 flex flex-wrap gap-3">
-          <Badge variant={STATUT_VARIANT[devis.statut] || 'gray'} data-testid="devis-statut">
-            {devis.statut}
+          <Badge variant={STATUT_CONFIG[devis.statut]?.variant || 'gray'} data-testid="devis-statut">
+            {STATUT_CONFIG[devis.statut]?.label || devis.statut}
           </Badge>
         </div>
       </div>
@@ -114,10 +114,14 @@ export default function DevisDetail() {
                 {devis.formation?.intitule || devis.formation_id}
               </dd>
             </div>
-            {devis.session_id && (
+            {devis.session && (
               <div>
                 <dt className="text-xs text-subtext">Session</dt>
-                <dd className="mt-1 font-mono text-sm text-text">{devis.session_id}</dd>
+                <dd className="mt-1 text-sm text-text">
+                  {devis.session.date_debut
+                    ? `${formatDate(devis.session.date_debut)} — ${formatDate(devis.session.date_fin)}`
+                    : devis.session.lieu || 'Session liée'}
+                </dd>
               </div>
             )}
             <div>

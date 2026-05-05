@@ -95,8 +95,9 @@ export class InscriptionController {
 
   async getBackofficeDossiers(req: Request, res: Response, next: NextFunction) {
     try {
-      const dossiers = await this.inscriptionService.getDossiersBackoffice();
-      res.status(200).json({ statusCode: 200, data: dossiers });
+      const { statut, search } = req.query as { statut?: string; search?: string };
+      const dossiers = await this.inscriptionService.getDossiersBackoffice({ statut, search });
+      res.status(200).json({ statusCode: 200, data: dossiers, meta: { total: dossiers.length } });
     } catch (error: any) {
       next(error);
     }

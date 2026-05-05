@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
 import devisApi from '../../../api/devis.api';
+import { organisationsApi } from '../../../api/organisations.api';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import EmptyState from '../../../components/feedback/EmptyState';
 import Spinner from '../../../components/feedback/Spinner';
-import Input from '../../../components/ui/Input';
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString('fr-FR') : '-';
@@ -18,16 +18,17 @@ function formatMontant(value) {
   return Number(value).toLocaleString('fr-FR') + ' XOF';
 }
 
-const STATUT_VARIANT = {
-  CREE: 'warning',
-  PAYE: 'success',
-  ANNULE: 'gray',
+const STATUT_CONFIG = {
+  CREE:   { variant: 'warning', label: 'En attente de paiement' },
+  PAYE:   { variant: 'success', label: 'Payé' },
+  ANNULE: { variant: 'gray',    label: 'Annulé' },
 };
 
 export default function DevisList() {
   const navigate = useNavigate();
   const { execute, isLoading } = useApi();
   const [devisList, setDevisList] = useState([]);
+  const [organisations, setOrganisations] = useState([]);
   const [meta, setMeta] = useState({ total: 0 });
   const [filters, setFilters] = useState({ organisation_id: '', statut: '' });
 
@@ -41,9 +42,17 @@ export default function DevisList() {
   };
 
   useEffect(() => {
+    execute(() => organisationsApi.getAll({ limit: 200 }), {
+      onSuccess: (data) => setOrganisations(Array.isArray(data?.data) ? data.data : []),
+      showErrorToast: false,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     loadDevis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.statut]);
+  }, [filters.statut, filters.organisation_id]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -62,19 +71,23 @@ export default function DevisList() {
 
       <Card>
         <div className="mb-4 grid gap-4 md:grid-cols-2">
-          <Input
-            placeholder="ID organisation"
+          <select
             value={filters.organisation_id}
             onChange={(e) => setFilters((f) => ({ ...f, organisation_id: e.target.value }))}
-            onKeyDown={(e) => e.key === 'Enter' && loadDevis()}
-          />
+            className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
+          >
+            <option value="">Toutes les organisations</option>
+            {organisations.map((org) => (
+              <option key={org.id} value={org.id}>{org.raison_sociale}</option>
+            ))}
+          </select>
           <select
             value={filters.statut}
             onChange={(e) => setFilters((f) => ({ ...f, statut: e.target.value }))}
             className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
           >
             <option value="">Tous les statuts</option>
-            <option value="CREE">Créé</option>
+            <option value="CREE">En attente de paiement</option>
             <option value="PAYE">Payé</option>
             <option value="ANNULE">Annulé</option>
           </select>
@@ -91,37 +104,37 @@ export default function DevisList() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border text-left text-sm font-semibold text-primary">
-                  <th className="pb-3">Numéro</th>
-                  <th className="pb-3">Organisation</th>
-                  <th className="pb-3">Formation</th>
-                  <th className="pb-3 text-right">Places</th>
-                  <th className="pb-3 text-right">Montant total</th>
-                  <th className="pb-3">Statut</th>
-                  <th className="pb-3">Créé le</th>
-                  <th className="pb-3 text-right">Actions</th>
+                  <th className="pb-4 pr-6">Numéro</th>
+                  <th className="pb-4 pr-6">Organisation</th>
+                  <th className="pb-4 pr-6">Formation</th>
+                  <th className="pb-4 pr-6 text-right">Places</th>
+                  <th className="pb-4 pr-6 text-right">Montant total</th>
+                  <th className="pb-4 pr-6">Statut</th>
+                  <th className="pb-4 pr-6">Créé le</th>
+                  <th className="pb-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {devisList.map((devis) => (
                   <tr key={devis.id} className="border-b border-border hover:bg-gray-50">
-                    <td className="py-4 font-mono text-sm text-text">{devis.numero_devis}</td>
-                    <td className="py-4 text-sm text-text">
+                    <td className="py-5 pr-6 font-mono text-sm text-text">{devis.numero_devis}</td>
+                    <td className="py-5 pr-6 text-sm text-text">
                       {devis.organisation?.raison_sociale || devis.organisation_id}
                     </td>
-                    <td className="py-4 text-sm text-text">
+                    <td className="py-5 pr-6 text-sm text-text">
                       {devis.formation?.intitule || devis.formation_id}
                     </td>
-                    <td className="py-4 text-right text-sm text-text">{devis.nb_places}</td>
-                    <td className="py-4 text-right text-sm font-medium text-text">
+                    <td className="py-5 pr-6 text-right text-sm text-text">{devis.nb_places}</td>
+                    <td className="py-5 pr-6 text-right text-sm font-medium text-text">
                       {formatMontant(devis.montant_total_xof)}
                     </td>
-                    <td className="py-4">
-                      <Badge variant={STATUT_VARIANT[devis.statut] || 'gray'}>
-                        {devis.statut}
+                    <td className="py-5 pr-6">
+                      <Badge variant={STATUT_CONFIG[devis.statut]?.variant || 'gray'}>
+                        {STATUT_CONFIG[devis.statut]?.label || devis.statut}
                       </Badge>
                     </td>
-                    <td className="py-4 text-sm text-text">{formatDate(devis.created_at)}</td>
-                    <td className="py-4 text-right">
+                    <td className="py-5 pr-6 text-sm text-subtext">{formatDate(devis.created_at)}</td>
+                    <td className="py-5 text-right">
                       <Button
                         size="small"
                         variant="outline"
