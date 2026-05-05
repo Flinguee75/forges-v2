@@ -144,7 +144,7 @@ describe('FormationDetailPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('📋 Prérequis')).toBeInTheDocument();
+      expect(screen.getByText('Prérequis')).toBeInTheDocument();
       expect(screen.getByText(mockFormation.prerequis)).toBeInTheDocument();
     });
   });
@@ -161,7 +161,7 @@ describe('FormationDetailPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('✨ Compétences acquises')).toBeInTheDocument();
+      expect(screen.getByText('Compétences acquises')).toBeInTheDocument();
       mockFormation.objectifs_pedagogiques.forEach((competence) => {
         expect(screen.getByText(competence)).toBeInTheDocument();
       });
@@ -180,7 +180,7 @@ describe('FormationDetailPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('🏆 Certification obtenue')).toBeInTheDocument();
+      expect(screen.getByText('Certification obtenue')).toBeInTheDocument();
     });
   });
 
@@ -297,9 +297,9 @@ describe('FormationDetailPage', () => {
 
     await waitFor(() => {
       // Les sections vides ne doivent pas s'afficher
-      expect(screen.queryByText('📋 Prérequis')).not.toBeInTheDocument();
-      expect(screen.queryByText('✨ Compétences acquises')).not.toBeInTheDocument();
-      expect(screen.queryByText('🏆 Certification obtenue')).not.toBeInTheDocument();
+      expect(screen.queryByText('Prérequis')).not.toBeInTheDocument();
+      expect(screen.queryByText('Compétences acquises')).not.toBeInTheDocument();
+      expect(screen.queryByText('Certification obtenue')).not.toBeInTheDocument();
     });
   });
 });

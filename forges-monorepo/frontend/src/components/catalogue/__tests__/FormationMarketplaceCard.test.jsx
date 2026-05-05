@@ -82,7 +82,7 @@ describe('FormationMarketplaceCard', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText('🏆 Certifiante')).toBeInTheDocument();
+    expect(screen.getByText('Certifiante')).toBeInTheDocument();
   });
 
   it('devrait afficher le badge Inclus si inclus_abonnement est true', () => {

@@ -152,6 +152,7 @@ export default function PaiementsOrganisationPage() {
               <option value="CONFIRME">Confirmé</option>
               <option value="ECHOUE">Échoué</option>
               <option value="EXPIRE">Expiré</option>
+              <option value="REMBOURSE">Remboursé</option>
             </select>
           </div>
         </div>

@@ -19,8 +19,8 @@ import {
 const STATUS_META = {
   ACTIF: { variant: 'success', label: 'Actif' },
   SUSPENDU: { variant: 'warning', label: 'Suspendu' },
-  EXPIRE: { variant: 'danger', label: 'Expire' },
-  RESILIE: { variant: 'danger', label: 'Resilie' },
+  EXPIRE: { variant: 'danger', label: 'Expiré' },
+  RESILIE: { variant: 'danger', label: 'Résilié' },
   ESSAI: { variant: 'info', label: 'Essai gratuit' },
   ABSENT: { variant: 'gray', label: 'Aucun abonnement' },
 };
@@ -94,7 +94,7 @@ export default function MonAbonnementOrg() {
   const handleSubscribe = async () => {
     await execute(() => organisationApi.souscrireOrganisation({ offre: selectedOffer }), {
       showSuccessToast: true,
-      successMessage: 'Abonnement organisation active',
+      successMessage: 'Abonnement organisation activé',
       onSuccess: (data) => {
         setAbonnement(data);
         navigate('/organisation/abonnement');
@@ -121,10 +121,10 @@ export default function MonAbonnementOrg() {
               Abonnement Organisation
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-text">
-              {isTrial ? 'Convertir votre essai' : 'Piloter votre acces plateforme'}
+              {isTrial ? 'Convertir votre essai' : 'Piloter votre accès plateforme'}
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              Gere l acces de votre organisation a la plateforme et les offres annuelles Basique, Pro et Enterprise.
+              Gérez l&apos;accès de votre organisation à la plateforme et les offres annuelles Basique, Pro et Enterprise.
             </p>
           </div>
           {getStatusBadge(abonnement?.statut || 'ABSENT')}
@@ -139,11 +139,11 @@ export default function MonAbonnementOrg() {
                 Essai gratuit en cours
               </p>
               <p className="mt-1 text-sm text-subtext">
-                {abonnement.jours_restants_essai} jour(s) restant(s) avant suspension automatique si aucun abonnement n est souscrit.
+                {abonnement.jours_restants_essai} jour(s) restant(s) avant suspension automatique si aucun abonnement n&apos;est souscrit.
               </p>
             </div>
             <div className="text-right text-sm text-subtext">
-              <div>Fin de l essai</div>
+              <div>Fin de l&apos;essai</div>
               <div className="font-semibold text-text">{formatDate(abonnement.date_fin_essai)}</div>
             </div>
           </div>
@@ -158,11 +158,11 @@ export default function MonAbonnementOrg() {
                 Offre bienvenue -{abonnement?.welcome_offer_pct || 20}%
               </p>
               <p className="mt-1 text-sm text-subtext">
-                Cette remise est visible pendant la fenetre de conversion de l essai.
+                Cette remise est visible pendant la fenêtre de conversion de l&apos;essai.
               </p>
             </div>
             <div className="text-right text-sm text-subtext">
-              <div>Valable jusqu au</div>
+              <div>Valable jusqu&apos;au</div>
               <div className="font-semibold text-text">{formatDate(abonnement?.welcome_offer_expires_at)}</div>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function MonAbonnementOrg() {
       {!abonnement && !shouldHighlightSubscribe && (
         <EmptyState
           title="Aucun abonnement organisation"
-          message="Souscrivez une offre annuelle pour conserver l acces complet a la plateforme."
+          message="Souscrivez une offre annuelle pour conserver l'accès complet à la plateforme."
           action={(
             <Link to="/organisation/abonnement/souscrire">
               <Button variant="primary">Choisir une offre</Button>
@@ -236,7 +236,7 @@ export default function MonAbonnementOrg() {
                     <p className="text-lg font-semibold text-text">{offer.label}</p>
                     <p className="mt-1 text-sm text-subtext">{offer.description}</p>
                   </div>
-                  {isSelected && <Badge variant="success" size="small">Selectionnee</Badge>}
+                  {isSelected && <Badge variant="success" size="small">Sélectionnée</Badge>}
                 </div>
                 <div className="mt-5">
                   <p className="text-sm text-subtext">Tarif annuel</p>
@@ -262,13 +262,13 @@ export default function MonAbonnementOrg() {
         </div>
 
         <div className={`rounded-lg border p-4 ${shouldHighlightSubscribe ? 'border-warning bg-warning/5' : 'border-border bg-bg'}`}>
-          <p className="text-sm font-semibold text-text">Previsualisation</p>
+          <p className="text-sm font-semibold text-text">Prévisualisation</p>
           <p className="mt-1 text-sm text-subtext">
             Offre {offerPreview.label} a {offerPreview.formattedAmount} par an.
           </p>
           {welcomeOfferActive && (
             <p className="mt-2 text-sm text-warning">
-              La remise bienvenue s affiche sur cette selection tant que la fenetre de conversion est active.
+              La remise bienvenue s&apos;affiche sur cette sélection tant que la fenêtre de conversion est active.
             </p>
           )}
         </div>

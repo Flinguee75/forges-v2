@@ -166,11 +166,16 @@ export default function FormationDetailPage() {
 
                 {/* Prérequis */}
                 {getFormationPrerequis(formation) && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                      📋 Prérequis
-                    </h3>
-                    <p className="text-blue-800 dark:text-blue-200 text-sm">
+                  <div className="bg-blue-100 border-l-4 border-blue-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <svg className="w-5 h-5 text-blue-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 className="font-bold text-blue-900 text-base">
+                        Prérequis
+                      </h3>
+                    </div>
+                    <p className="text-blue-900 text-sm ml-8">
                       {getFormationPrerequis(formation)}
                     </p>
                   </div>
@@ -178,14 +183,21 @@ export default function FormationDetailPage() {
 
                 {/* Compétences acquises / Objectifs pédagogiques */}
                 {getFormationCompetences(formation).length > 0 && (
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3">
-                      ✨ Compétences acquises
-                    </h3>
-                    <ul className="space-y-2">
+                  <div className="bg-green-100 border-l-4 border-green-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <svg className="w-5 h-5 text-green-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <h3 className="font-bold text-green-900 text-base">
+                        Compétences acquises
+                      </h3>
+                    </div>
+                    <ul className="space-y-2 ml-8">
                       {getFormationCompetences(formation).map((competence, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-green-800 dark:text-green-200 text-sm">
-                          <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <li key={idx} className="flex items-start gap-2 text-green-900 text-sm">
+                          <svg className="w-4 h-4 text-green-700 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                          </svg>
                           <span>{competence}</span>
                         </li>
                       ))}
@@ -195,11 +207,16 @@ export default function FormationDetailPage() {
 
                 {/* Certification */}
                 {getCertificationDelivree(formation) && (
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                      🏆 Certification obtenue
-                    </h3>
-                    <p className="text-amber-800 dark:text-amber-200 text-sm">
+                  <div className="bg-amber-100 border-l-4 border-amber-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <svg className="w-5 h-5 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 className="font-bold text-amber-900 text-base">
+                        Certification obtenue
+                      </h3>
+                    </div>
+                    <p className="text-amber-900 text-sm ml-8">
                       Cette formation vous permettra d'obtenir une certification reconnue à l'issue de la formation.
                     </p>
                   </div>
