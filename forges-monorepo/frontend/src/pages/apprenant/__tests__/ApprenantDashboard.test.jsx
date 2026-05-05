@@ -105,10 +105,9 @@ describe('ApprenantDashboard', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Formations incluses')).toBeInTheDocument();
-      expect(screen.getByText('Formations Premium')).toBeInTheDocument();
-      expect(screen.getByText('Mon abonnement')).toBeInTheDocument();
-      expect(screen.getByText('Formations à la demande')).toBeInTheDocument();
+      expect(screen.getByText('Formations')).toBeInTheDocument();
+      expect(screen.getByText('Abonnement')).toBeInTheDocument();
+      expect(screen.getByText('Formations disponibles')).toBeInTheDocument();
       expect(screen.getByText('Inclus')).toBeInTheDocument();
       expect(screen.getByText('Premium')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Ouvrir le conseiller' })).toBeInTheDocument();

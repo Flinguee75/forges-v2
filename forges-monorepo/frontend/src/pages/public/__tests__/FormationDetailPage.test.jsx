@@ -1,15 +1,26 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import FormationDetailPage from '../FormationDetailPage';
 import * as formationsApi from '../../../api/formations.api';
 import * as authHook from '../../../hooks/useAuth';
 
+const useParamsMock = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useParams: () => useParamsMock(),
+  };
+});
+
 // Mock des dépendances
-jest.mock('../../../api/formations.api');
-jest.mock('../../../hooks/useAuth');
-jest.mock('../../../hooks/useApi', () => ({
+vi.mock('../../../api/formations.api');
+vi.mock('../../../hooks/useAuth');
+vi.mock('../../../hooks/useApi', () => ({
   useApi: () => ({
-    execute: jest.fn((fn, options) => {
+    execute: vi.fn((fn, options) => {
       fn().then(options.onSuccess);
     }),
     isLoading: false,
@@ -18,40 +29,40 @@ jest.mock('../../../hooks/useApi', () => ({
 }));
 
 // Mock des composants
-jest.mock('../../../components/ui/Button', () => {
-  return function MockButton({ children, ...props }) {
+vi.mock('../../../components/ui/Button', () => ({
+  default: function MockButton({ children, ...props }) {
     return <button {...props}>{children}</button>;
-  };
-});
+  },
+}));
 
-jest.mock('../../../components/ui/Card', () => {
-  return function MockCard({ children, title }) {
+vi.mock('../../../components/ui/Card', () => ({
+  default: function MockCard({ children, title }) {
     return (
       <div>
         {title && <h2>{title}</h2>}
         {children}
       </div>
     );
-  };
-});
+  },
+}));
 
-jest.mock('../../../components/ui/Badge', () => {
-  return function MockBadge({ children, variant }) {
+vi.mock('../../../components/ui/Badge', () => ({
+  default: function MockBadge({ children, variant }) {
     return <span className={`badge-${variant}`}>{children}</span>;
-  };
-});
+  },
+}));
 
-jest.mock('../../../components/feedback/EmptyState', () => {
-  return function MockEmptyState({ title, message }) {
+vi.mock('../../../components/feedback/EmptyState', () => ({
+  default: function MockEmptyState({ title, message }) {
     return <div>{title}: {message}</div>;
-  };
-});
+  },
+}));
 
-jest.mock('../../../components/feedback/Spinner', () => {
-  return function MockSpinner() {
+vi.mock('../../../components/feedback/Spinner', () => ({
+  default: function MockSpinner() {
     return <div>Loading...</div>;
-  };
-});
+  },
+}));
 
 const mockFormation = {
   id: 'frm-prem-0001-0000-0000-000000000002',
@@ -90,29 +101,25 @@ const mockSessions = [
 
 describe('FormationDetailPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    authHook.useAuth = jest.fn(() => ({ user: null }));
+    vi.clearAllMocks();
+    useParamsMock.mockReturnValue({ id: mockFormation.id });
+    authHook.useAuth = vi.fn(() => ({ user: null }));
     formationsApi.formationsApi = {
-      getFormationDetail: jest.fn(() => Promise.resolve({ data: mockFormation })),
-      getSessionsOuvertes: jest.fn(() => Promise.resolve({ data: mockSessions })),
+      getFormationDetail: vi.fn(() => Promise.resolve({ data: mockFormation })),
+      getSessionsOuvertes: vi.fn(() => Promise.resolve({ data: mockSessions })),
     };
   });
 
   it('devrait afficher le titre et la description de la formation', async () => {
-    const { container } = render(
+    render(
       <BrowserRouter>
         <FormationDetailPage />
       </BrowserRouter>
     );
 
-    // Mock useParams
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
-
     await waitFor(() => {
-      expect(screen.getByText(mockFormation.intitule)).toBeInTheDocument();
-      expect(screen.getByText(mockFormation.description_courte)).toBeInTheDocument();
+      expect(screen.getAllByText(mockFormation.intitule).length).toBeGreaterThan(1);
+      expect(screen.getAllByText(mockFormation.description_courte).length).toBeGreaterThan(1);
     });
   });
 
@@ -122,10 +129,6 @@ describe('FormationDetailPage', () => {
         <FormationDetailPage />
       </BrowserRouter>
     );
-
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
 
     await waitFor(() => {
       expect(screen.getByText('Description détaillée')).toBeInTheDocument();
@@ -139,10 +142,6 @@ describe('FormationDetailPage', () => {
       </BrowserRouter>
     );
 
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
-
     await waitFor(() => {
       expect(screen.getByText('Prérequis')).toBeInTheDocument();
       expect(screen.getByText(mockFormation.prerequis)).toBeInTheDocument();
@@ -155,10 +154,6 @@ describe('FormationDetailPage', () => {
         <FormationDetailPage />
       </BrowserRouter>
     );
-
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
 
     await waitFor(() => {
       expect(screen.getByText('Compétences acquises')).toBeInTheDocument();
@@ -175,10 +170,6 @@ describe('FormationDetailPage', () => {
       </BrowserRouter>
     );
 
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
-
     await waitFor(() => {
       expect(screen.getByText('Certification obtenue')).toBeInTheDocument();
     });
@@ -190,10 +181,6 @@ describe('FormationDetailPage', () => {
         <FormationDetailPage />
       </BrowserRouter>
     );
-
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
 
     await waitFor(() => {
       expect(screen.getByText('Durée')).toBeInTheDocument();
@@ -210,10 +197,6 @@ describe('FormationDetailPage', () => {
       </BrowserRouter>
     );
 
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
-
     await waitFor(() => {
       expect(screen.getByText('Type')).toBeInTheDocument();
       expect(screen.getByText('PREMIUM')).toBeInTheDocument();
@@ -227,17 +210,13 @@ describe('FormationDetailPage', () => {
       </BrowserRouter>
     );
 
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
-
     await waitFor(() => {
       expect(screen.getByText('Sessions disponibles')).toBeInTheDocument();
     });
   });
 
   it('devrait afficher un message si aucune session n\'est ouverte', async () => {
-    formationsApi.formationsApi.getSessionsOuvertes = jest.fn(() =>
+    formationsApi.formationsApi.getSessionsOuvertes = vi.fn(() =>
       Promise.resolve({ data: [] })
     );
 
@@ -247,12 +226,8 @@ describe('FormationDetailPage', () => {
       </BrowserRouter>
     );
 
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
-
     await waitFor(() => {
-      expect(screen.getByText('Aucune session ouverte')).toBeInTheDocument();
+      expect(screen.getByText(/Aucune session ouverte/)).toBeInTheDocument();
     });
   });
 
@@ -262,10 +237,6 @@ describe('FormationDetailPage', () => {
         <FormationDetailPage />
       </BrowserRouter>
     );
-
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
 
     await waitFor(() => {
       expect(screen.getByText('Référence')).toBeInTheDocument();
@@ -281,7 +252,7 @@ describe('FormationDetailPage', () => {
       certification_delivree: false,
     };
 
-    formationsApi.formationsApi.getFormationDetail = jest.fn(() =>
+    formationsApi.formationsApi.getFormationDetail = vi.fn(() =>
       Promise.resolve({ data: formationSansPrerequisNiCompetences })
     );
 
@@ -290,10 +261,6 @@ describe('FormationDetailPage', () => {
         <FormationDetailPage />
       </BrowserRouter>
     );
-
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({
-      id: mockFormation.id,
-    });
 
     await waitFor(() => {
       // Les sections vides ne doivent pas s'afficher

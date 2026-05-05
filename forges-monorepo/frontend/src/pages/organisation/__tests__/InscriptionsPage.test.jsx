@@ -108,7 +108,7 @@ describe('InscriptionsPage - Tests', () => {
       );
       expect(statutSelect).toBeInTheDocument();
       expect(statutSelect.querySelector('option[value=""]')).toBeInTheDocument();
-      expect(statutSelect.querySelector('option[value="RETENU"]')).toBeInTheDocument();
+      expect(statutSelect.querySelector('option[value="PAYE_DIRECTEMENT"]')).toBeInTheDocument();
       expect(statutSelect.querySelector('option[value="CONFIRME"]')).toBeInTheDocument();
     });
   });

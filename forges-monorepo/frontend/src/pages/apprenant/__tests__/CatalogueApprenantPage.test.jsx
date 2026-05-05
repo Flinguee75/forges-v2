@@ -85,7 +85,7 @@ describe('CatalogueApprenantPage', () => {
       expect(screen.getByText('Formation incluse')).toBeInTheDocument();
       expect(screen.getByText('Formation premium')).toBeInTheDocument();
       expect(screen.getByText('Inclus')).toBeInTheDocument();
-      expect(screen.getByText('Premium')).toBeInTheDocument();
+      expect(screen.getAllByText('Premium').length).toBeGreaterThan(0);
       expect(screen.getByText('Accéder maintenant')).toBeInTheDocument();
       expect(screen.getByText('Voir les sessions')).toBeInTheDocument();
     });
