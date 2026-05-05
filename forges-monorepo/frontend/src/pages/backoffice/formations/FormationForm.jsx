@@ -22,6 +22,7 @@ const DEFAULT_FORM = {
   objectifs_pedagogiques: '',
   prerequis: '',
   duree_acces_jours: 365,
+  url_contenu: '',
 };
 
 function normalizeToForm(formation) {
@@ -46,6 +47,7 @@ function normalizeToForm(formation) {
       : '',
     prerequis: formation.prerequis || '',
     duree_acces_jours: formation.duree_acces_jours ?? 365,
+    url_contenu: formation.url_contenu || '',
   };
 }
 
@@ -74,6 +76,10 @@ function buildPayload(formData) {
     prerequis: formData.prerequis.trim() || undefined,
     duree_acces_jours: Number(formData.duree_acces_jours),
   };
+
+  if (formData.url_contenu && formData.url_contenu.trim()) {
+    payload.url_contenu = formData.url_contenu.trim();
+  }
 
   if (formData.type_formation) {
     payload.type_formation = formData.type_formation;
@@ -331,6 +337,24 @@ export default function FormationForm() {
               className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+
+          {formData.mode_formation === 'A_LA_DEMANDE' && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-text">
+                URL du contenu (LMS)
+              </label>
+              <input
+                type="url"
+                value={formData.url_contenu}
+                onChange={(event) => handleChange('url_contenu', event.target.value)}
+                placeholder="https://lms.forges.com/formations/..."
+                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <p className="mt-1 text-xs text-subtext">
+                L'URL sera chiffrée (AES-256) avant stockage. Visible uniquement pour les formations à la demande.
+              </p>
+            </div>
+          )}
 
           <label className="flex items-center gap-3 text-sm text-text">
             <input

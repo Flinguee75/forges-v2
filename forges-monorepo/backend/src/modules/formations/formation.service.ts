@@ -3,6 +3,7 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CreateFormationDto, AssignerTypeFormationDto, UpdateFormationDto } from './dto/formation.dto';
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '../../shared/prisma/prisma.client';
+import { chiffrerUrl } from '../../shared/crypto/crypto.service';
 
 export class FormationService {
   private prisma: PrismaClient;
@@ -18,6 +19,8 @@ export class FormationService {
   async create(dto: CreateFormationDto, userId: string) {
     // RM-86 : type_formation assigné par FORGES uniquement
     // Si non fourni : null (sera assigné via assignerType)
+    const urlExterneChiffree = dto.url_contenu ? chiffrerUrl(dto.url_contenu) : undefined;
+
     const formation = await this.formationRepo.create({
       intitule: dto.intitule,
       description_courte: dto.description_courte,
@@ -34,6 +37,7 @@ export class FormationService {
       objectifs_pedagogiques: dto.objectifs_pedagogiques,
       prerequis: dto.prerequis,
       duree_acces_jours: dto.duree_acces_jours,
+      url_externe_chiffree: urlExterneChiffree,
     });
 
     // RM-96 : pas de session possible pour formations à la demande
@@ -69,6 +73,11 @@ export class FormationService {
         formation.type_formation || undefined,
         dto.pilier_abonnement
       );
+    }
+
+    // Chiffrer l'URL contenu si fournie
+    if (dto.url_contenu) {
+      updatedData.url_externe_chiffree = chiffrerUrl(dto.url_contenu);
     }
 
     const updated = await this.formationRepo.update(id, updatedData);

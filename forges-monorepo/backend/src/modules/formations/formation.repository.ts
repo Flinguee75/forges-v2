@@ -136,6 +136,7 @@ export class FormationRepository {
     objectifs_pedagogiques?: string[];
     prerequis?: string;
     duree_acces_jours?: number;
+    url_externe_chiffree?: string;
   }) {
     // RM-102 : calcul automatique inclus_abonnement
     const inclus_abonnement = this.calculerInclus(data.type_formation, data.pilier_abonnement);
@@ -161,6 +162,7 @@ export class FormationRepository {
     public_cible: string;
     objectifs_pedagogiques: string[];
     prerequis: string;
+    url_externe_chiffree?: string;
   }>) {
     return this.prisma.formation.update({ where: { id }, data });
   }

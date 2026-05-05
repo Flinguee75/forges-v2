@@ -816,6 +816,9 @@ export const PARTNER_SUBMIT_COPY = {
     inPerson: 'Presentiel',
     withSession: 'Avec session',
     onDemand: 'A la demande',
+    section6: '6. Contenu LMS',
+    contentUrl: 'URL du contenu (LMS)',
+    contentUrlHint: 'L\'URL sera chiffree (AES-256) avant stockage. Facultatif, uniquement pour les formations a la demande.',
   },
   EN: {
     requiredField: 'Required field',
@@ -875,6 +878,9 @@ export const PARTNER_SUBMIT_COPY = {
     inPerson: 'In person',
     withSession: 'With session',
     onDemand: 'On demand',
+    section6: '6. LMS Content',
+    contentUrl: 'Content URL (LMS)',
+    contentUrlHint: 'The URL will be encrypted (AES-256) before storage. Optional, for on-demand courses only.',
   },
   ES: {
     requiredField: 'Campo obligatorio',
@@ -934,6 +940,9 @@ export const PARTNER_SUBMIT_COPY = {
     inPerson: 'Presencial',
     withSession: 'Con sesion',
     onDemand: 'A demanda',
+    section6: '6. Contenido LMS',
+    contentUrl: 'URL del contenido (LMS)',
+    contentUrlHint: 'La URL se cifrara (AES-256) antes del almacenamiento. Opcional, solo para formaciones a demanda.',
   },
   PT: {
     requiredField: 'Campo obrigatorio',
@@ -993,5 +1002,8 @@ export const PARTNER_SUBMIT_COPY = {
     inPerson: 'Presencial',
     withSession: 'Com sessao',
     onDemand: 'A pedido',
+    section6: '6. Conteudo LMS',
+    contentUrl: 'URL do conteudo (LMS)',
+    contentUrlHint: 'A URL sera encriptada (AES-256) antes do armazenamento. Opcional, apenas para formacoes a pedido.',
   },
 };

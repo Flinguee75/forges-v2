@@ -8,6 +8,7 @@ import { PrismaClient } from '@prisma/client';
 import { SoumettreFormationDto, AutoInscriptionPartenaireDto } from './dto/partenaire.dto';
 import { UpdateProfilPartenaireDto } from './dto/profil.dto';
 import { getCommissionForgesDefaut } from '../../config/env.config';
+import { chiffrerUrl } from '../../shared/crypto/crypto.service';
 
 export class PartenaireService {
   constructor(
@@ -82,6 +83,8 @@ export class PartenaireService {
 
     // RM-127 : type_formation/pilier_abonnement ABSENTS du DTO partenaire
     // Création formation sans type_formation (null)
+    const urlExterneChiffree = dto.url_contenu ? chiffrerUrl(dto.url_contenu) : undefined;
+
     const formation = await this.prisma.formation.create({
       data: {
         intitule: dto.intitule,
@@ -101,6 +104,7 @@ export class PartenaireService {
         partenaire_id,
         statut: 'EN_ATTENTE_VALIDATION',
         inclus_abonnement: false,
+        url_externe_chiffree: urlExterneChiffree,
       }
     });
 
