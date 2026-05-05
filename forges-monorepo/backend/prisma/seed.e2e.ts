@@ -836,7 +836,7 @@ async function main() {
       apprenant_id: IDS.apprenantDossier,
       formation_id: IDS.formationDemande,
       source_financement: 'ABONNEMENT',
-      statut: 'EXPIRE',
+      statut: 'ACTIF',
       date_activation: daysFromNow(-370),
       date_expiration: daysFromNow(-5),
       progression: 100,
