@@ -133,7 +133,7 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
         order_ngser: 'FRG-2026-003-CCCCCC',
         transaction_id: expect.stringContaining('TXN-RECON-MOCK'),
         status: 'SUCCESS',
-        amount: 200000,
+        amount: 2000,
       });
 
       expect(result).toBeDefined();
@@ -156,7 +156,7 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
       expect(result).toBeDefined();
       expect(result?.statut_final).toBe('ECHOUE');
       expect(result?.dossier_statut).toBe('ANNULE');
-      expect(mockTraiterIpn).toHaveBeenCalledWith(expect.objectContaining({ amount: 100000 }));
+      expect(mockTraiterIpn).toHaveBeenCalledWith(expect.objectContaining({ amount: 1000 }));
     });
   });
 

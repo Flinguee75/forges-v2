@@ -351,11 +351,27 @@ async function createApprenant(
     consentement_version_cgu: '1.0',
     ...extra,
   };
-  return prisma.apprenant.upsert({
+  const existingById = await prisma.apprenant.findUnique({
     where: { id },
-    update: data,
-    create: data,
+    select: { id: true },
   });
+  if (existingById) {
+    return prisma.apprenant.update({
+      where: { id: existingById.id },
+      data,
+    });
+  }
+  const existingByEmail = await prisma.apprenant.findFirst({
+    where: { email },
+    select: { id: true },
+  });
+  if (existingByEmail) {
+    return prisma.apprenant.update({
+      where: { id: existingByEmail.id },
+      data,
+    });
+  }
+  return prisma.apprenant.create({ data });
 }
 
 async function createFormation(data: {
@@ -885,6 +901,10 @@ async function main() {
         created_at: previousMonth,
       },
     });
+    const paiementComm = await prisma.paiement.findUnique({ where: { id: paiementId } });
+    if (!paiementComm) {
+      continue;
+    }
     await prisma.commissionApporteur.create({
       data: {
         id: `C-E2E-COMM-${index}`,

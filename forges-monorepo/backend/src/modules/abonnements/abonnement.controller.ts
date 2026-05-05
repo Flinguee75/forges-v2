@@ -120,7 +120,10 @@ export class AbonnementController {
     try {
       const { offre } = req.body;
       const result = await this.orgService.souscrire(req.user!.userId, offre);
-      res.status(201).json({ statusCode: 201, data: result });
+      res.status(201).json({
+        statusCode: 201,
+        data: { ...result.abonnement, payment_url: result.payment_url, order_ngser: result.order_ngser },
+      });
     } catch (error: any) {
       if (error.message === 'ABONNEMENT_ORG_DEJA_ACTIF') {
         return res.status(409).json({ statusCode: 409, error: 'ABONNEMENT_ORG_DEJA_ACTIF' });
@@ -145,7 +148,10 @@ export class AbonnementController {
     try {
       const { palier } = req.body;
       const result = await this.b2bService.souscrire(req.user!.userId, palier);
-      res.status(201).json({ statusCode: 201, data: result });
+      res.status(201).json({
+        statusCode: 201,
+        data: { ...result.abonnement, payment_url: result.payment_url, order_ngser: result.order_ngser },
+      });
     } catch (error: any) {
       if (error.message === 'PALIER_INVALIDE') {
         return res.status(400).json({

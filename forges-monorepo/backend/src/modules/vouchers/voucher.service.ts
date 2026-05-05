@@ -217,6 +217,9 @@ export class VoucherService {
   async validateVoucher(code: string, formation_id: string, apprenant_id?: string) {
     const voucher = await this.prisma.voucherOrganisation.findUnique({
       where: { code },
+    }) || await this.prisma.voucherApporteur.findUnique({
+      where: { code },
+      include: { formation: true, apporteur: true },
     });
 
     if (!voucher) {
@@ -254,23 +257,23 @@ export class VoucherService {
       }
     }
 
-    const montantCatalogue = 0;
+    const montantCatalogue = Number((voucher as any).formation?.cout_catalogue || 0);
     let montant_reduit = 0;
 
-    if (voucher.organisation_id) {
+    if ((voucher as any).organisation_id) {
       montant_reduit = 0;
-    } else if (voucher.type_valeur === 'MONTANT') {
-      montant_reduit = Math.max(0, montantCatalogue - Number(voucher.valeur || 0));
-    } else if (voucher.type_valeur === 'POURCENTAGE') {
-      montant_reduit = Math.floor(montantCatalogue * (1 - Number(voucher.valeur || 0) / 100));
+    } else if ((voucher as any).type_valeur === 'MONTANT') {
+      montant_reduit = Math.max(0, montantCatalogue - Number((voucher as any).valeur || 0));
+    } else if ((voucher as any).type_valeur === 'POURCENTAGE') {
+      montant_reduit = Math.floor(montantCatalogue * (1 - Number((voucher as any).valeur || 0) / 100));
     }
 
     return {
       valid: true,
       voucher_id: voucher.id,
-      type: voucher.type,
+      type: (voucher as any).type,
       montant_reduit,
-      quota_restant: Math.max(0, Number(voucher.quota_max || 0) - Number(voucher.quota_utilise || 0)),
+      quota_restant: Math.max(0, Number((voucher as any).quota_max || 0) - Number((voucher as any).quota_utilise || 0)),
     };
   }
 

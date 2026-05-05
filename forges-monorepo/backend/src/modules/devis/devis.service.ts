@@ -73,15 +73,12 @@ export class DevisService {
       });
     }
 
-    await this.emailService.sendEmailWithAttachment({
+    await this.emailService.sendEmail({
       to: organisation.email,
       subject: langue === 'EN'
         ? `Your quote ${numero_devis} from FORGES`
         : `Votre devis ${numero_devis} — FORGES AGGREGATEUR`,
       html: this.buildEmailDevis(devis, organisation, formation, langue),
-      attachment: pdfBuffer
-        ? { filename: `${numero_devis}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }
-        : undefined,
     }).catch(async (emailError: any) => {
       await this.audit.warning('DEVIS_EMAIL_ECHEC', {
         devis_id: devis.id,
@@ -90,6 +87,24 @@ export class DevisService {
         error: emailError?.message || 'UNKNOWN',
       });
     });
+
+    if (pdfBuffer) {
+      await this.emailService.sendEmailWithAttachment({
+        to: organisation.email,
+        subject: langue === 'EN'
+          ? `Your quote ${numero_devis} from FORGES`
+          : `Votre devis ${numero_devis} — FORGES AGGREGATEUR`,
+        html: this.buildEmailDevis(devis, organisation, formation, langue),
+        attachment: { filename: `${numero_devis}.pdf`, content: pdfBuffer, contentType: 'application/pdf' },
+      }).catch(async (emailError: any) => {
+        await this.audit.warning('DEVIS_PDF_EMAIL_ECHEC', {
+          devis_id: devis.id,
+          numero_devis,
+          to: organisation.email,
+          error: emailError?.message || 'UNKNOWN',
+        });
+      });
+    }
 
     return devis;
   }

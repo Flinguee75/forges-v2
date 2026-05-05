@@ -81,7 +81,9 @@ export class AbonnementRetailRepository {
         montant_premier_mois: data.montant_premier_mois,
         consentement_auto: data.consentement_auto,
         consentement_timestamp: data.consentement_timestamp,
-        statut: data.order_ngser ? 'EN_ATTENTE_PAIEMENT' : 'ACTIF',
+        // RM-70/RM-106 : la souscription Retail est effective immédiatement.
+        // On conserve order_ngser pour tracer la session de paiement, mais le statut métier reste ACTIF.
+        statut: 'ACTIF',
         suspension_count: 0,
         order_ngser: data.order_ngser ?? null,
         apprenant: { connect: { id: data.apprenant_id } }

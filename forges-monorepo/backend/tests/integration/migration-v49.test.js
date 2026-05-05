@@ -6,6 +6,19 @@ describe('Migration v4.9 - schema DB', () => {
   });
 
   test('MIG-01: le modele Devis existe avec montants XOF entiers', async () => {
+    await prisma.organisation.create({
+      data: {
+        id: 'org-test-mig',
+        raison_sociale: 'Org Test MIG',
+        type: 'ENTREPRISE',
+        sous_types: [],
+        contact_referent: 'Contact Test',
+        pays: 'CI',
+        email: `org-test-mig-${Date.now()}@forges.ci`,
+        password_hash: 'hash',
+      },
+    });
+
     const devis = await prisma.devis.create({
       data: {
         numero_devis: `DEV-TEST-MIG-${Date.now()}`,
@@ -25,6 +38,7 @@ describe('Migration v4.9 - schema DB', () => {
     expect(devis.montant_total_xof).toBe(1000000);
 
     await prisma.devis.delete({ where: { id: devis.id } });
+    await prisma.organisation.delete({ where: { id: 'org-test-mig' } });
   });
 
   test('MIG-02: enum StatutDevis contient CREE, PAYE, ANNULE', async () => {

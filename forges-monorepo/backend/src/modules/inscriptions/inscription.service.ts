@@ -348,6 +348,34 @@ export class InscriptionService {
       }
     });
 
+    if (dossier.voucher_organisation_id) {
+      await this.prisma.voucherOrganisation.update({
+        where: { id: dossier.voucher_organisation_id },
+        data: {
+          quota_utilise: { decrement: 1 },
+          statut: 'ACTIF',
+        },
+      });
+    }
+
+    if (dossier.voucher_code) {
+      const voucherPromo = await this.prisma.voucherApporteur.findFirst({
+        where: {
+          code: dossier.voucher_code,
+          type: 'PROMOTIONNEL',
+        },
+      });
+      if (voucherPromo) {
+        await this.prisma.voucherApporteur.update({
+          where: { id: voucherPromo.id },
+          data: {
+            quota_utilise: { decrement: 1 },
+            statut: voucherPromo.quota_max && voucherPromo.quota_utilise <= 1 ? 'ACTIF' : voucherPromo.statut,
+          },
+        });
+      }
+    }
+
     await this.audit.info('DOSSIER_REJETE', {
       dossier_id: dossierId,
       responsable_id: responsableId,

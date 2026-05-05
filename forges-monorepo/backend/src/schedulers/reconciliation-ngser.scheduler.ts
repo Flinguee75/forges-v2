@@ -159,7 +159,7 @@ export class ReconciliationNgserScheduler {
       throw new Error('PAIEMENT_NOT_FOUND_OR_NO_MONTANT');
     }
 
-    // Simule un IPN SUCCESS — amount en XOF (centimes / 100)
+    // Le contrat opérationnel attend le montant en XOF, donc conversion depuis les centimes stockés.
     const ipnMock = {
       order_ngser: order_ngser,
       transaction_id: `TXN-RECON-MOCK-${Date.now()}`,
@@ -199,7 +199,7 @@ export class ReconciliationNgserScheduler {
       order_ngser: order_ngser,
       transaction_id: ngserStatus.transaction_id || `RECON-${order_ngser}`,
       status: ngserStatus.status,
-      amount: ngserStatus.amount ?? paiement?.montant_initie ?? 0,
+      amount: ngserStatus.amount ?? Math.round((paiement?.montant_initie ?? 0) / 100),
       code_ngser: ngserStatus.code,
       wallet_ngser: ngserStatus.wallet,
     });

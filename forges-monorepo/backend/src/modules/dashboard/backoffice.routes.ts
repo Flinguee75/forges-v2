@@ -72,7 +72,7 @@ router.put('/config', authenticate, authorize('ADMIN'), (req, res) => {
   res.status(200).json({ statusCode: 200, data: getConfigPayload() });
 });
 
-router.get('/admin/organisations/:id/config', authenticate, authorize('ADMIN'), async (req, res, next) => {
+const handleOrganisationConfigGet = async (req: any, res: any, next: any) => {
   try {
     const config = await prisma.organisationConfig.findUnique({
       where: { organisation_id: req.params.id },
@@ -91,9 +91,9 @@ router.get('/admin/organisations/:id/config', authenticate, authorize('ADMIN'), 
   } catch (error) {
     next(error);
   }
-});
+};
 
-router.patch('/admin/organisations/:id/config', authenticate, authorize('ADMIN'), async (req, res, next) => {
+const handleOrganisationConfigPatch = async (req: any, res: any, next: any) => {
   try {
     const { commission_forges_pct, seuil_reversement_xof } = req.body;
     const data: { commission_forges_pct?: number | null; seuil_reversement_xof?: number | null } = {};
@@ -127,6 +127,11 @@ router.patch('/admin/organisations/:id/config', authenticate, authorize('ADMIN')
   } catch (error) {
     next(error);
   }
-});
+};
+
+router.get('/admin/organisations/:id/config', authenticate, authorize('ADMIN'), handleOrganisationConfigGet);
+router.get('/organisations/:id/config', authenticate, authorize('ADMIN'), handleOrganisationConfigGet);
+router.patch('/admin/organisations/:id/config', authenticate, authorize('ADMIN'), handleOrganisationConfigPatch);
+router.patch('/organisations/:id/config', authenticate, authorize('ADMIN'), handleOrganisationConfigPatch);
 
 export default router;

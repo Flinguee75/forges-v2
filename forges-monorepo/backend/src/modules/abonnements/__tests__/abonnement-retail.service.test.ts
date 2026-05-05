@@ -87,7 +87,7 @@ describe('AbonnementRetailService', () => {
 
     it('permet souscription si aucun abonnement', async () => {
       mockRepo.findByApprenant.mockResolvedValue(null);
-      mockRepo.create.mockResolvedValue({ ...aboActifEssentiel, statut: 'EN_ATTENTE_PAIEMENT', order_ngser: 'ABO-2026-001-CCCCCC' } as any);
+      mockRepo.create.mockResolvedValue({ ...aboActifEssentiel, statut: 'ACTIF', order_ngser: 'ABO-2026-001-CCCCCC' } as any);
       mockAudit.info.mockResolvedValue(undefined);
 
       const result = await service.souscrire('a-01', 'ESSENTIEL', 'FR');
@@ -108,7 +108,7 @@ describe('AbonnementRetailService', () => {
     it('retourne payment_url non vide apres souscription', async () => {
       mockRepo.create.mockResolvedValue({
         ...aboActifEssentiel,
-        statut: 'EN_ATTENTE_PAIEMENT',
+        statut: 'ACTIF',
         order_ngser: 'ABO-2026-001-DDDDDD',
         id: 'abo-new-01',
       } as any);
@@ -121,7 +121,7 @@ describe('AbonnementRetailService', () => {
     it('retourne order_ngser au format ABO-YYYY-DDD-XXXXXX', async () => {
       mockRepo.create.mockImplementation(async (data: any) => ({
         ...aboActifEssentiel,
-        statut: 'EN_ATTENTE_PAIEMENT',
+        statut: 'ACTIF',
         order_ngser: data.order_ngser,
         id: 'abo-new-02',
       } as any));
@@ -132,7 +132,7 @@ describe('AbonnementRetailService', () => {
 
     it('cree l\'abonnement avec montant_mensuel correct pour ESSENTIEL', async () => {
       mockRepo.create.mockImplementation(async (data: any) => ({
-        ...data, id: 'abo-ess', statut: 'EN_ATTENTE_PAIEMENT',
+        ...data, id: 'abo-ess', statut: 'ACTIF',
       } as any));
 
       await service.souscrire('a-01', 'ESSENTIEL', 'FR');
@@ -143,7 +143,7 @@ describe('AbonnementRetailService', () => {
 
     it('cree l\'abonnement avec montant_mensuel correct pour PREMIUM', async () => {
       mockRepo.create.mockImplementation(async (data: any) => ({
-        ...data, id: 'abo-prem', statut: 'EN_ATTENTE_PAIEMENT',
+        ...data, id: 'abo-prem', statut: 'ACTIF',
       } as any));
 
       await service.souscrire('a-01', 'PREMIUM', 'FR');
@@ -154,7 +154,7 @@ describe('AbonnementRetailService', () => {
 
     it('passe order_ngser au repo.create', async () => {
       mockRepo.create.mockImplementation(async (data: any) => ({
-        ...data, id: 'abo-order', statut: 'EN_ATTENTE_PAIEMENT',
+        ...data, id: 'abo-order', statut: 'ACTIF',
       } as any));
 
       await service.souscrire('a-01', 'ESSENTIEL', 'FR');
@@ -194,7 +194,7 @@ describe('AbonnementRetailService', () => {
     it('calcule un montant prorata > 0 et <= tarif mensuel', async () => {
       mockRepo.findByApprenant.mockResolvedValue(null);
       mockRepo.create.mockImplementation(async (data: any) => ({
-        ...data, id: 'abo-prorata', statut: 'EN_ATTENTE_PAIEMENT',
+        ...data, id: 'abo-prorata', statut: 'ACTIF',
       } as any));
       mockAudit.info.mockResolvedValue(undefined);
 
