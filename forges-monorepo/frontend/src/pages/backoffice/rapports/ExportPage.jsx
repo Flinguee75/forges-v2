@@ -49,13 +49,13 @@ export default function ExportPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-primary">Export de Rapports</h1>
         <p className="mt-2 text-subtext">
-          Exportez les données runtime au format CSV ou PDF.
+          Exportez les données de la plateforme au format CSV ou PDF.
         </p>
       </div>
 
-      <Card title="Exports runtime" bodyClassName="space-y-4">
+      <Card title="Exports" bodyClassName="space-y-4">
         <p className="text-sm text-subtext">
-          Les exports utilisent désormais les routes dashboard runtime. Les fichiers sont téléchargés côté navigateur.
+          Les fichiers sont téléchargés directement dans votre navigateur.
         </p>
 
         {error ? (

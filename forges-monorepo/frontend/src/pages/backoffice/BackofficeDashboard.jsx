@@ -39,7 +39,7 @@ function getQuickLinks(role) {
       { to: '/backoffice/organisations', label: 'Organisations', description: 'Gestion des comptes organisations' },
       { to: '/backoffice/formations', label: 'Formations', description: 'Catalogue et validation' },
       { to: '/backoffice/sessions', label: 'Sessions', description: 'Lecture des sessions' },
-      { to: '/backoffice/rapports', label: 'Rapports', description: 'Vue disponible selon runtime' },
+      { to: '/backoffice/rapports', label: 'Rapports', description: 'Consultez et exportez les rapports' },
     );
   }
 
@@ -118,7 +118,7 @@ export default function BackofficeDashboard() {
     return (
       <RuntimeUnavailable
         title="Dashboard backoffice indisponible"
-        message="Le runtime backend n'expose un dashboard backoffice que pour ADMIN et SUPERVISEUR. Les autres vues métier sont accessibles dans leurs espaces dédiés."
+        message="Le tableau de bord consolidé est accessible aux rôles ADMIN et SUPERVISEUR. Les autres vues métier sont accessibles dans leurs espaces dédiés."
       />
     );
   }
@@ -164,7 +164,7 @@ export default function BackofficeDashboard() {
               Vue {role === 'ADMIN' ? 'administrateur' : 'superviseur'}
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              Cette vue est alignée sur les routes runtime exposées par le backend.
+              Vue consolidée de l&apos;activité de la plateforme FORGES.
             </p>
             <p className="mt-1 text-xs text-subtext">
               Dernière mise à jour : {snapshot?.timestamp ? new Date(snapshot.timestamp).toLocaleString('fr-FR') : 'N/A'}

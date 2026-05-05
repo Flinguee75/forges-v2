@@ -105,7 +105,7 @@ export default function DevisForm() {
 
           <Input
             label="ID session (optionnel)"
-            placeholder="UUID de la session liée"
+            placeholder="Identifiant de la session (optionnel)"
             value={formData.session_id}
             onChange={handleChange('session_id')}
             data-testid="input-session-id"

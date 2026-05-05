@@ -68,10 +68,10 @@ export default function RapportsDashboard() {
           Dashboard rapports
         </p>
         <h1 className="mt-3 text-2xl font-semibold text-primary">
-          Rapports runtime
+          Rapports d'activité
         </h1>
         <p className="mt-2 text-sm text-subtext">
-          Données consolidées depuis le routeur dashboard runtime. Les vues historiques restent visibles mais n&apos;appellent plus d&apos;API fantôme.
+          Consultez et exportez les rapports d&apos;activité de la plateforme.
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export default function RapportsDashboard() {
         ) : (
           <EmptyState
             title="Aucun rapport"
-            message="Aucune ligne n'a été remontée par le runtime pour la période courante."
+            message="Aucun rapport disponible pour la période sélectionnée."
           />
         )}
       </Card>

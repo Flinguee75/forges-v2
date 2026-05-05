@@ -222,8 +222,7 @@ export default function InvitationPartenaire() {
           </div>
 
           <div className="rounded-lg border border-border bg-gray-50 p-4 text-sm text-subtext">
-            Le runtime backend accepte uniquement les champs d&apos;invitation admin suivants:
-            raison sociale, type, email et commission FORGES. Les champs de contact complémentaires restent figés.
+            Les champs obligatoires sont : raison sociale, type, email et commission FORGES.
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-border pt-6">

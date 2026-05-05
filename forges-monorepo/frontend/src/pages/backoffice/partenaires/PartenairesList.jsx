@@ -38,7 +38,7 @@ export default function PartenairesList() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">Partenaires</p>
             <h2 className="mt-3 text-2xl font-semibold text-primary">Liste des partenaires</h2>
-            <p className="mt-2 text-subtext">La liste admin est maintenant branchée sur le runtime réel.</p>
+            <p className="mt-2 text-subtext">Gérez les partenaires et leurs formations sur la plateforme.</p>
           </div>
           <Button onClick={() => navigate('/backoffice/partenaires/invitation')}>Inviter un partenaire</Button>
         </div>
