@@ -143,6 +143,33 @@ export default function PaiementCallback() {
               </div>
             )}
 
+            {/* Détails de la formation */}
+            {paiement?.dossier?.formation && (
+              <>
+                <div className="my-3 border-t border-border" />
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-primary">Formation</div>
+                  <div className="rounded-lg bg-white p-3">
+                    <div className="font-medium text-text">
+                      {paiement.dossier.formation.intitule}
+                    </div>
+                    {paiement.dossier.formation.type_formation && (
+                      <div className="mt-1 text-xs text-subtext">
+                        Type : {paiement.dossier.formation.type_formation}
+                      </div>
+                    )}
+                    {paiement.dossier.session && (
+                      <div className="mt-2 text-xs text-subtext">
+                        <span className="font-medium">Session :</span>{' '}
+                        {new Date(paiement.dossier.session.date_debut).toLocaleDateString('fr-FR')} —{' '}
+                        {new Date(paiement.dossier.session.date_fin).toLocaleDateString('fr-FR')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
             {echec && parseInt(statusId, 10) === 2 && (
               <div className="rounded-lg border border-warning bg-warning-soft p-3 text-sm text-warning">
                 Le paiement a échoué en raison d'un montant insuffisant sur votre compte.
@@ -153,12 +180,28 @@ export default function PaiementCallback() {
 
         {succes && (
           <div className="rounded-lg border border-success bg-success-soft p-3 text-sm text-success">
-            Votre paiement a été pris en compte. Vous pouvez accéder à votre formation.
+            Votre paiement a été confirmé. Votre accès à la formation est maintenant actif.
           </div>
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="primary" onClick={() => navigate('/apprenant/dossiers')}>
+          {succes && paiement?.dossier?.formation?.mode_formation === 'A_LA_DEMANDE' && (
+            <Button
+              variant="primary"
+              onClick={() => navigate('/apprenant/formations-a-la-demande')}
+            >
+              Accéder à la formation
+            </Button>
+          )}
+          {succes && paiement?.dossier?.formation?.mode_formation === 'AVEC_SESSION' && (
+            <Button
+              variant="primary"
+              onClick={() => navigate(`/apprenant/dossiers/${paiement.dossier.id}`)}
+            >
+              Voir mon dossier
+            </Button>
+          )}
+          <Button variant={succes ? 'outline' : 'primary'} onClick={() => navigate('/apprenant/dossiers')}>
             Voir mes dossiers
           </Button>
           <Button variant="outline" onClick={() => navigate('/apprenant/paiements')}>
