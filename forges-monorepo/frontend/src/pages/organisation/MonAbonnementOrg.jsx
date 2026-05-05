@@ -18,7 +18,9 @@ import {
 
 const STATUS_META = {
   ACTIF: { variant: 'success', label: 'Actif' },
+  EN_ATTENTE_PAIEMENT: { variant: 'warning', label: 'Paiement en cours' },
   SUSPENDU: { variant: 'warning', label: 'Suspendu' },
+  ANNULE: { variant: 'danger', label: 'Annulé' },
   EXPIRE: { variant: 'danger', label: 'Expiré' },
   RESILIE: { variant: 'danger', label: 'Résilié' },
   ESSAI: { variant: 'info', label: 'Essai gratuit' },
@@ -86,18 +88,21 @@ export default function MonAbonnementOrg() {
     [abonnement]
   );
   const isTrial = abonnement?.is_trial ?? abonnement?.statut === 'ESSAI';
-  // Ne jamais permettre de souscrire si un abonnement ACTIF existe déjà
-  const canSubscribe = abonnement?.statut === 'ACTIF'
+  // Bloquer si ACTIF ou EN_ATTENTE_PAIEMENT
+  const canSubscribe = ['ACTIF', 'EN_ATTENTE_PAIEMENT'].includes(abonnement?.statut)
     ? false
     : (!abonnement || (abonnement?.can_subscribe ?? isTrial));
 
   const handleSubscribe = async () => {
     await execute(() => organisationApi.souscrireOrganisation({ offre: selectedOffer }), {
-      showSuccessToast: true,
-      successMessage: 'Abonnement organisation activé',
+      showSuccessToast: false,
       onSuccess: (data) => {
-        setAbonnement(data);
-        navigate('/organisation/abonnement');
+        if (data?.payment_url) {
+          window.location.href = data.payment_url;
+        } else {
+          setAbonnement(data?.abonnement ?? data);
+          navigate('/organisation/abonnement');
+        }
       },
     });
   };
@@ -146,6 +151,30 @@ export default function MonAbonnementOrg() {
               <div>Fin de l&apos;essai</div>
               <div className="font-semibold text-text">{formatDate(abonnement.date_fin_essai)}</div>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {abonnement?.statut === 'EN_ATTENTE_PAIEMENT' && (
+        <Card className="border-l-4 border-warning">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-text">
+                Paiement en cours de traitement
+              </p>
+              <p className="mt-1 text-sm text-subtext">
+                Votre souscription est initiée. Elle sera activée dès confirmation du paiement par NGSER.
+                Si vous n&apos;avez pas été redirigé, cliquez sur le bouton ci-dessous pour reprendre.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              onClick={handleSubscribe}
+              disabled={isLoading}
+              loading={isLoading}
+            >
+              Reprendre le paiement
+            </Button>
           </div>
         </Card>
       )}

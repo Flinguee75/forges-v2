@@ -29,8 +29,10 @@ function isNotFound(error) {
 function statusMeta(statut) {
   const mapping = {
     ACTIF: { variant: 'success', label: 'Actif' },
+    EN_ATTENTE_PAIEMENT: { variant: 'warning', label: 'Paiement en cours' },
     ESSAI: { variant: 'info', label: 'Essai' },
     SUSPENDU: { variant: 'warning', label: 'Suspendu' },
+    ANNULE: { variant: 'danger', label: 'Annulé' },
     EXPIRE: { variant: 'danger', label: 'Expiré' },
     ABSENT: { variant: 'gray', label: 'Aucun abonnement' },
     INACTIF: { variant: 'gray', label: 'Inactif' },
@@ -121,10 +123,13 @@ export default function AbonnementB2B() {
       : () => organisationApi.souscrireB2B({ palier });
 
     await execute(action, {
-      showSuccessToast: true,
-      successMessage: isExisting ? 'Palier B2B mis à jour' : 'Abonnement B2B activé',
-      onSuccess: async () => {
-        await loadData(meta.page);
+      showSuccessToast: false,
+      onSuccess: async (data) => {
+        if (data?.payment_url) {
+          window.location.href = data.payment_url;
+        } else {
+          await loadData(meta.page);
+        }
       },
     });
   };
@@ -274,7 +279,29 @@ export default function AbonnementB2B() {
       {/* Tab: Abonnement */}
       {activeTab === 'abonnement' && (
         <div className="space-y-6">
-          {b2b?.message && (
+          {b2b?.statut === 'EN_ATTENTE_PAIEMENT' && (
+            <Card className="border-l-4 border-warning">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-text">Paiement B2B en cours de traitement</p>
+                  <p className="mt-1 text-sm text-subtext">
+                    Votre palier B2B sera activé dès confirmation du paiement par NGSER.
+                    Si vous n&apos;avez pas été redirigé, cliquez sur le bouton ci-dessous pour reprendre.
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => handleSubmit(b2b.palier)}
+                  disabled={isLoading}
+                  loading={isLoading}
+                >
+                  Reprendre le paiement
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {b2b?.message && b2b?.statut !== 'EN_ATTENTE_PAIEMENT' && (
             <Card className={`border-l-4 ${progressVariant === 'danger' ? 'border-danger' : progressVariant === 'warning' ? 'border-warning' : 'border-success'}`}>
               <p className="text-sm font-semibold text-text">{b2b.message}</p>
               {b2b?.downgrade_message && (

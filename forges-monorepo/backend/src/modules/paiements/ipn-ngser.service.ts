@@ -82,14 +82,34 @@ export class IpnNgserService {
     });
 
     if (!paiement) {
-      // Fallback : vérifier si c'est un paiement d'abonnement Retail (order commence par ABO-)
-      const abonnement = await this.prisma.abonnementRetail.findUnique({
+      // Fallback 1 : abonnement Retail
+      const abonnementRetail = await this.prisma.abonnementRetail.findUnique({
         where: { order_ngser: orderNgser },
         include: { apprenant: true },
       });
 
-      if (abonnement) {
-        return await this.traiterIpnAbonnement(abonnement, statutNgser, ipn);
+      if (abonnementRetail) {
+        return await this.traiterIpnAbonnement(abonnementRetail, statutNgser, ipn);
+      }
+
+      // Fallback 2 : abonnement Organisation
+      const abonnementOrg = await this.prisma.abonnementOrganisation.findUnique({
+        where: { order_ngser: orderNgser },
+        include: { organisation: true },
+      });
+
+      if (abonnementOrg) {
+        return await this.traiterIpnAbonnementOrg(abonnementOrg, statutNgser, ipn);
+      }
+
+      // Fallback 3 : abonnement B2B
+      const abonnementB2B = await this.prisma.abonnementB2B.findUnique({
+        where: { order_ngser: orderNgser },
+        include: { organisation: true },
+      });
+
+      if (abonnementB2B) {
+        return await this.traiterIpnAbonnementB2B(abonnementB2B, statutNgser, ipn);
       }
 
       await this.audit.error('IPN_PAIEMENT_INTROUVABLE', {
@@ -267,6 +287,110 @@ export class IpnNgserService {
     }
 
     return { action: 'ABONNEMENT_PENDING', reconciliation_eligible: true };
+  }
+
+  private async traiterIpnAbonnementOrg(abonnement: any, statutNgser: string, ipn: IpnPayload): Promise<IpnResult> {
+    if (abonnement.statut !== 'EN_ATTENTE_PAIEMENT') {
+      await this.audit.info('IPN_ABONNEMENT_ORG_DEJA_TRAITE', {
+        abonnement_id: abonnement.id,
+        statut: abonnement.statut,
+      });
+      return { already_processed: true, action: 'NONE' };
+    }
+
+    if (statutNgser === 'SUCCESS') {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.abonnementOrganisation.update({
+          where: { id: abonnement.id },
+          data: {
+            statut: 'ACTIF',
+            transaction_id_ngser: ipn.transaction_id,
+          },
+        });
+
+        await tx.organisation.update({
+          where: { id: abonnement.organisation_id },
+          data: { abonnement_org_id: abonnement.id },
+        });
+      });
+
+      await this.audit.info('IPN_ABONNEMENT_ORG_ACTIVE', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+        offre: abonnement.offre,
+        transaction_id: ipn.transaction_id,
+      });
+
+      return { action: 'ABONNEMENT_ORG_ACTIVE', paiement_statut: 'CONFIRME' };
+    }
+
+    if (statutNgser === 'FAIL') {
+      await this.prisma.abonnementOrganisation.update({
+        where: { id: abonnement.id },
+        data: { statut: 'ANNULE' },
+      });
+
+      await this.audit.warning('IPN_ABONNEMENT_ORG_ECHEC', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+      });
+
+      return { action: 'ABONNEMENT_ORG_ANNULE', paiement_statut: 'ECHOUE' };
+    }
+
+    return { action: 'ABONNEMENT_ORG_PENDING', reconciliation_eligible: true };
+  }
+
+  private async traiterIpnAbonnementB2B(abonnement: any, statutNgser: string, ipn: IpnPayload): Promise<IpnResult> {
+    if (abonnement.statut !== 'EN_ATTENTE_PAIEMENT') {
+      await this.audit.info('IPN_ABONNEMENT_B2B_DEJA_TRAITE', {
+        abonnement_id: abonnement.id,
+        statut: abonnement.statut,
+      });
+      return { already_processed: true, action: 'NONE' };
+    }
+
+    if (statutNgser === 'SUCCESS') {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.abonnementB2B.update({
+          where: { id: abonnement.id },
+          data: {
+            statut: 'ACTIF',
+            transaction_id_ngser: ipn.transaction_id,
+          },
+        });
+
+        await tx.organisation.update({
+          where: { id: abonnement.organisation_id },
+          data: { abonnement_b2b_id: abonnement.id },
+        });
+      });
+
+      await this.audit.info('IPN_ABONNEMENT_B2B_ACTIVE', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+        palier: abonnement.palier,
+        transaction_id: ipn.transaction_id,
+      });
+
+      return { action: 'ABONNEMENT_B2B_ACTIVE', paiement_statut: 'CONFIRME' };
+    }
+
+    if (statutNgser === 'FAIL') {
+      await this.prisma.abonnementB2B.update({
+        where: { id: abonnement.id },
+        data: { statut: 'ANNULE' },
+      });
+
+      await this.audit.warning('IPN_ABONNEMENT_B2B_ECHEC', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+      });
+
+      return { action: 'ABONNEMENT_B2B_ANNULE', paiement_statut: 'ECHOUE' };
+    }
+
+    return { action: 'ABONNEMENT_B2B_PENDING', reconciliation_eligible: true };
   }
 
   private async traiterPending(paiement: any, ipn: IpnPayload): Promise<IpnResult> {

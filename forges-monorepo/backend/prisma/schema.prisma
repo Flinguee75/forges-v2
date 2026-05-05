@@ -400,11 +400,13 @@ model AbonnementB2B {
   premium_inclus_par_an     Int?
   premium_consommes         Int            @default(0)
   date_renouvellement       DateTime?
-  statut                    String         @default("ACTIF")
+  statut                    String         @default("EN_ATTENTE_PAIEMENT")
   compteur_premium_used     Int            @default(0)
   compteur_premium_reset_at DateTime?
   descente_planifiee        Boolean        @default(false)
   palier_descente_cible     String?
+  order_ngser               String?        @unique
+  transaction_id_ngser      String?        @unique
   organisation              Organisation   @relation("OrganisationAbonnementsB2B", fields: [organisation_id], references: [id])
   organisations_courantes   Organisation[] @relation("OrganisationAbonnementB2BCourant")
 }
@@ -413,12 +415,14 @@ model AbonnementOrganisation {
   id                      String         @id @default(uuid())
   organisation_id         String         @unique
   offre                   String
-  statut                  String         @default("ACTIF")
+  statut                  String         @default("EN_ATTENTE_PAIEMENT")
   montant_annuel          Int
   perimetre_fonctionnel   String[]
   date_debut              DateTime
   date_fin                DateTime
   renouvellement_auto     Boolean        @default(true)
+  order_ngser             String?        @unique
+  transaction_id_ngser    String?        @unique
   organisation            Organisation   @relation("OrganisationAbonnementsOrg", fields: [organisation_id], references: [id])
   organisations_courantes Organisation[] @relation("OrganisationAbonnementOrgCourant")
 }

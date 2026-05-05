@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { formationsApi } from '../../api/formations.api';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
+import { useSEO, getFormationSchema } from '../../hooks/useSEO';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -59,6 +60,21 @@ export default function FormationDetailPage() {
     loadSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // SEO Hook - Mettre à jour les meta tags quand la formation est chargée
+  useSEO({
+    title: formation ? `${getFormationTitre(formation)} | FORGES` : 'FORGES',
+    description:
+      formation && getFormationDescription(formation)
+        ? getFormationDescription(formation)
+        : 'Découvrez cette formation certifiante',
+    keywords: formation
+      ? `${getFormationTitre(formation)}, formation, certification, FORGES`
+      : 'formation, certification',
+    canonical: `https://forges.com/formations/${id}`,
+    ogImage: '/logo_forges.png',
+    schema: formation ? getFormationSchema(formation) : null,
+  });
 
   const handleInscription = () => {
     if (!user) {

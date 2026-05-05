@@ -90,6 +90,20 @@ const IDS = {
   // Conversation & Message (D6: UCS15)
   conv_01:       'conv-test-00001-0000-0000-000000000001',
   msg_01:        'msg-test-0000001-0000-0000-000000000001',
+
+  // Devis Apprenants et Organisations
+  devis_app_01:  'dvs-app-000001-0000-0000-000000000001',  // KOUASSI, F-PREM-01
+  devis_app_02:  'dvs-app-000002-0000-0000-000000000002',  // DIALLO, F-STD-01 + voucher
+  devis_org_01:  'dvs-org-000001-0000-0000-000000000001',  // TechCorp, B2B upgrade
+  devis_org_02:  'dvs-org-000002-0000-0000-000000000002',  // TechCorp, contrat institutionnel
+
+  // Paiements additionnels Apprenants
+  paiement_app_01:  'pay-app-000001-0000-0000-000000000001',
+  paiement_app_02:  'pay-app-000002-0000-0000-000000000002',
+
+  // Paiements additionnels Organisations
+  paiement_org_01:  'pay-org-000001-0000-0000-000000000001',
+  paiement_org_02:  'pay-org-000002-0000-0000-000000000002',
 };
 
 // ── Helpers date ──────────────────────────────────────────────
@@ -125,13 +139,15 @@ async function check() {
       count: await prisma.apporteur.count() },
     { label: 'ContratInstitutionnel', model: 'contratInstitutionnel',
       count: await prisma.contratInstitutionnel.count() },
+    { label: 'Devis', model: 'devis',
+      count: await prisma.devis.count() },
   ];
 
   const expected = {
     apprenant: 2, organisation: 1, partenaire: 1,
     formation: 5, session: 4, dossier: 6, voucherOrganisation: 3,
     abonnementRetail: 1, abonnementB2B: 1, apporteur: 1,
-    contratInstitutionnel: 1,
+    contratInstitutionnel: 1, devis: 4,
   };
 
   let ok = true;
@@ -393,6 +409,7 @@ async function seed() {
     statut: 'ACTIF',
     offre: 'PRO',
     montant_annuel: 150000,
+    perimetre_fonctionnel: ['TDB', 'VOUCHERS', 'EXPORT_PDF'],
     date_debut: agoD(30),
     date_fin: inD(335),
     renouvellement_auto: true,
@@ -800,7 +817,7 @@ async function seed() {
   ]});
 
   // ── 9. PAIEMENT pour D-PAYE-01 ───────────────────────────
-  console.log('  9/11 Paiement...');
+  console.log('  9/13 Paiement...');
   await prisma.paiement.create({ data: {
     id: uuidv4(),
     dossier_id: IDS.d_paye_01,
@@ -815,8 +832,136 @@ async function seed() {
     created_at: agoD(90),
   }});
 
+  // ── 10. DEVIS POUR APPRENANTS ────────────────────────────
+  console.log('  10/13 Devis Apprenants...');
+  await prisma.devis.createMany({ skipDuplicates: true, data: [
+    {
+      id: IDS.devis_app_01,
+      numero_devis: 'DVS-APP-2026-001',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_prem_01,
+      nb_places: 1,
+      tarif_unitaire_xof: 2000000,
+      montant_total_xof: 2000000,
+      statut: 'PAYE',
+      notes_admin: 'Réduction abonné actif Premium (-5%)',
+      created_by: IDS.responsable,
+      paid_at: agoD(6),
+      created_at: agoD(7),
+    },
+    {
+      id: IDS.devis_app_02,
+      numero_devis: 'DVS-APP-2026-002',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      nb_places: 1,
+      tarif_unitaire_xof: 100000,
+      montant_total_xof: 100000,
+      statut: 'CREE',
+      notes_admin: 'Voucher promo VCH-PROMO-01 appliqué (-20%)',
+      created_by: IDS.responsable,
+      created_at: agoD(2),
+    },
+  ]});
+
+  // ── 11. DEVIS POUR ORGANISATIONS ─────────────────────────
+  console.log('  11/13 Devis Organisations...');
+  await prisma.devis.createMany({ skipDuplicates: true, data: [
+    {
+      id: IDS.devis_org_01,
+      numero_devis: 'DVS-ORG-2026-001',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_std_01,
+      session_id: null,
+      nb_places: 50,  // Business palier : 21-50 apprenants
+      tarif_unitaire_xof: 24000,  // 1 200 000 / 50
+      montant_total_xof: 1200000,
+      statut: 'PAYE',
+      notes_admin: 'Upgrade AbonnementB2B Starter → Business',
+      created_by: IDS.responsable,
+      paid_at: agoD(4),
+      created_at: agoD(5),
+    },
+    {
+      id: IDS.devis_org_02,
+      numero_devis: 'DVS-ORG-2026-002',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_std_01,
+      session_id: null,
+      nb_places: 250,  // Contrat Ministère : 250 certifiés
+      tarif_unitaire_xof: 20000,  // Fee par certifié
+      montant_total_xof: 5000000,
+      statut: 'CREE',
+      notes_admin: 'Contrat Ministère Numérique CI',
+      created_by: IDS.responsable,
+      created_at: agoD(3),
+    },
+  ]});
+
+  // ── 12. PAIEMENTS POUR APPRENANTS ET ORGANISATIONS ────────
+  console.log('  12/13 Paiements Apprenants & Organisations...');
+  
+  // Note: Les paiements doivent être liés à des dossiers existants
+  // Créer des dossiers additionnels pour les paiements de devis apprenants
+  const dossierPaiementApp1 = uuidv4();
+  const dossierPaiementApp2 = uuidv4();
+  
+  await prisma.dossier.createMany({ data: [
+    {
+      id: dossierPaiementApp1,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_prem_01,
+      statut: 'PAYE',
+      source_financement: 'RETAIL',
+      created_at: agoD(7),
+      updated_at: agoD(6),
+    },
+    {
+      id: dossierPaiementApp2,
+      apprenant_id: IDS.apprenant2,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      created_at: agoD(2),
+      updated_at: agoD(2),
+    },
+  ]});
+
+  // Paiements pour apprenants
+  await prisma.paiement.createMany({ skipDuplicates: true, data: [
+    {
+      id: IDS.paiement_app_01,
+      dossier_id: dossierPaiementApp1,
+      montant_catalogue: 2000000,
+      montant_final: 1900000,
+      reduction_appliquee: 100000,
+      methode: 'MOBILE_MONEY',
+      statut: 'CONFIRME',
+      transaction_id: 'TXN-TEST-APP-001',
+      commission_partenaire_pct: 30,
+      montant_reverse_partenaire: 1330000,
+      confirmed_at: agoD(6),
+      created_at: agoD(7),
+    },
+    {
+      id: IDS.paiement_app_02,
+      dossier_id: dossierPaiementApp2,
+      montant_catalogue: 100000,
+      montant_final: 80000,
+      reduction_appliquee: 20000,
+      methode: 'WAVE',
+      statut: 'EN_ATTENTE',
+      transaction_id: 'TXN-TEST-APP-002-PENDING',
+      created_at: agoD(2),
+    },
+  ]});
+
   // ── 10. APPORTEUR + VOUCHERAPPORTEUR ──────────────────────
-  console.log('  10/11 Apporteur TRAORE Mamadou...');
+  console.log('  13/13 Apporteur TRAORE Mamadou...');
   await prisma.apporteur.create({ data: {
     id: IDS.apporteur,
     nom: 'TRAORE Mamadou', // combiné car pas de champ prenoms
@@ -974,10 +1119,10 @@ async function seed() {
   // ── 10b. CONVERSATION (D6: UCS15 Répondre/Historique) ──────
   // NOTE: D6 needs ConversationBot seed — deferred pending schema validation
   // For now, UCS15 pre-request will need to capture conversation_id dynamically
-  console.log('  10b/11 Conversation & Message... (deferred)');
+  console.log('  10b/13 Conversation & Message... (deferred)');
 
   // ── 11. CONTRAT INSTITUTIONNEL ────────────────────────────
-  console.log('  11/11 ContratInstitutionnel...');
+  console.log('  11/13 ContratInstitutionnel...');
   await prisma.contratInstitutionnel.create({ data: {
     id: IDS.contrat_inst,
     numero_contrat: 'INST-2026-001',
@@ -1012,6 +1157,14 @@ async function seed() {
   console.log('    org@forges-test.ci            — ORGANISATION (TechCorp CI)');
   console.log('    partenaire@forges-test.ci     — PARTENAIRE (Institut Tech Test CI)');
   console.log('    apporteur@forges-test.ci      — APPORTEUR (TRAORE Mamadou)');
+  console.log('\n  ✨ Nouveaux Devis & Paiements Apprenants :');
+  console.log('    DVS-APP-2026-001 (KOUASSI, F-PREM-01, 2 000 000 XOF, PAYE)');
+  console.log('    DVS-APP-2026-002 (DIALLO, F-STD-01, 100 000 XOF, CREE)');
+  console.log('    PAIEMENT-APP-01 (2 000 000 XOF, CONFIRME, commission 30%)');
+  console.log('    PAIEMENT-APP-02 (100 000 XOF, EN_ATTENTE)');
+  console.log('\n  ✨ Nouveaux Devis Organisations :');
+  console.log('    DVS-ORG-2026-001 (TechCorp, B2B Upgrade, 1 200 000 XOF, PAYE)');
+  console.log('    DVS-ORG-2026-002 (TechCorp, Ministère Contrat, 5 000 000 XOF, CREE)');
   console.log('\n  ✨ Comptes E2E Tests Paiement NGSER (Phase 1.4):');
   console.log('    apprenant-idempotence-[1-2]@forges.ci  — Tests idempotence IPN');
   console.log('    apprenant-mismatch-[1-3]@forges.ci     — Tests montant mismatch');
