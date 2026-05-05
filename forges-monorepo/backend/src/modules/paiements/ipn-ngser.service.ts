@@ -71,7 +71,7 @@ export class IpnNgserService {
       return { already_processed: true, action: 'NONE' };
     }
 
-    // Récupérer paiement via order_ngser
+    // Récupérer paiement via order_ngser (dossier)
     const paiement = await this.prisma.paiement.findUnique({
       where: { order_ngser: orderNgser },
       include: {
@@ -82,6 +82,16 @@ export class IpnNgserService {
     });
 
     if (!paiement) {
+      // Fallback : vérifier si c'est un paiement d'abonnement Retail (order commence par ABO-)
+      const abonnement = await this.prisma.abonnementRetail.findUnique({
+        where: { order_ngser: orderNgser },
+        include: { apprenant: true },
+      });
+
+      if (abonnement) {
+        return await this.traiterIpnAbonnement(abonnement, statutNgser, ipn);
+      }
+
       await this.audit.error('IPN_PAIEMENT_INTROUVABLE', {
         order_ngser: orderNgser,
         transaction_id: ipn.transaction_id,
@@ -212,6 +222,51 @@ export class IpnNgserService {
       paiement_statut: 'ECHOUE',
       dossier_statut: 'ANNULE',
     };
+  }
+
+  private async traiterIpnAbonnement(abonnement: any, statutNgser: string, ipn: IpnPayload): Promise<IpnResult> {
+    if (abonnement.statut !== 'EN_ATTENTE_PAIEMENT') {
+      await this.audit.info('IPN_ABONNEMENT_DEJA_TRAITE', {
+        abonnement_id: abonnement.id,
+        statut: abonnement.statut,
+      });
+      return { already_processed: true, action: 'NONE' };
+    }
+
+    if (statutNgser === 'SUCCESS') {
+      await this.prisma.abonnementRetail.update({
+        where: { id: abonnement.id },
+        data: {
+          statut: 'ACTIF',
+          transaction_id_ngser: ipn.transaction_id,
+        },
+      });
+
+      await this.audit.info('IPN_ABONNEMENT_ACTIVE', {
+        abonnement_id: abonnement.id,
+        apprenant_id: abonnement.apprenant_id,
+        offre: abonnement.offre,
+        transaction_id: ipn.transaction_id,
+      });
+
+      return { action: 'ABONNEMENT_ACTIVE', paiement_statut: 'CONFIRME' };
+    }
+
+    if (statutNgser === 'FAIL') {
+      await this.prisma.abonnementRetail.update({
+        where: { id: abonnement.id },
+        data: { statut: 'ANNULE' },
+      });
+
+      await this.audit.warning('IPN_ABONNEMENT_ECHEC', {
+        abonnement_id: abonnement.id,
+        apprenant_id: abonnement.apprenant_id,
+      });
+
+      return { action: 'ABONNEMENT_ANNULE', paiement_statut: 'ECHOUE' };
+    }
+
+    return { action: 'ABONNEMENT_PENDING', reconciliation_eligible: true };
   }
 
   private async traiterPending(paiement: any, ipn: IpnPayload): Promise<IpnResult> {

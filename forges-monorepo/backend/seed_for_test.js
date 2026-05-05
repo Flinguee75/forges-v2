@@ -298,6 +298,23 @@ async function seed() {
       role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
       consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
     },
+    // Comptes dedies aux tests flux paiement abonnement NGSER
+    {
+      id: uuidv4(), nom: 'ABO', prenoms: 'NGSER Success',
+      email: 'apprenant-abo-ngser-ok@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'ABO', prenoms: 'NGSER Fail',
+      email: 'apprenant-abo-ngser-ko@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
     // Comptes backoffice pour Newman/validation
     {
       id: IDS.admin, nom: 'Admin', prenoms: 'FORGES Test',

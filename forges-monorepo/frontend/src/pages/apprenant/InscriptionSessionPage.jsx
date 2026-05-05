@@ -22,7 +22,8 @@ export default function InscriptionSessionPage() {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
   const [apporteurCode, setApporteurCode] = useState('');
-  const [sourceFinancement, setSourceFinancement] = useState('VOUCHER');
+  const [sourceFinancement, setSourceFinancement] = useState('RETAIL');
+  const [formError, setFormError] = useState('');
 
   const { execute: executeFormation, isLoading: loadingFormation } = useApi();
   const { execute: executeSessions, isLoading: loadingSessions } = useApi();
@@ -52,8 +53,9 @@ export default function InscriptionSessionPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setFormError('');
     if (!selectedSessionId) {
-      alert('Veuillez sélectionner une session');
+      setFormError('Veuillez sélectionner une session.');
       return;
     }
 
@@ -71,9 +73,12 @@ export default function InscriptionSessionPage() {
 
     await executeInscription(() => apprenantApi.inscrireSession(selectedSessionId, payload), {
       onSuccess: () => {
-        navigate('/apprenant/mes-dossiers', {
+        navigate('/apprenant/dossiers', {
           state: { message: 'Inscription réussie ! Votre dossier a été créé.' },
         });
+      },
+      onError: (err) => {
+        setFormError(err?.message || 'Une erreur est survenue lors de l\'inscription.');
       },
     });
   };
@@ -94,7 +99,7 @@ export default function InscriptionSessionPage() {
           title="Aucune session disponible"
           message="Il n'y a pas de session ouverte pour cette formation."
           action={
-            <Button onClick={() => navigate('/catalogue')}>
+            <Button onClick={() => navigate('/apprenant/catalogue')}>
               Retour au catalogue
             </Button>
           }
@@ -106,12 +111,24 @@ export default function InscriptionSessionPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => navigate('/apprenant/catalogue')}
+          className="mb-3 text-sm text-primary hover:underline"
+        >
+          &larr; Retour au catalogue
+        </button>
         <h1 className="text-3xl font-bold text-text mb-2">
           Inscription à une session
         </h1>
         <p className="text-subtext">
           {formation.titre || formation.intitule}
         </p>
+        {formation.tarif && (
+          <p className="mt-1 text-sm font-semibold text-primary">
+            {Math.round(Number(formation.tarif) / 100).toLocaleString('fr-FR')} FCFA
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -232,12 +249,18 @@ export default function InscriptionSessionPage() {
           )}
         </Card>
 
+        {formError && (
+          <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger" data-testid="inscription-error">
+            {formError}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-4 justify-end">
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/catalogue/${formationId}`)}
+            onClick={() => navigate('/apprenant/catalogue')}
           >
             Annuler
           </Button>

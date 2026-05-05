@@ -1,7 +1,10 @@
+import { randomBytes } from 'crypto';
 import { AbonnementRetailRepository, TARIFS_RETAIL } from './abonnement-retail.repository';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
+
+const NGSER_MOCK_BASE_URL = 'https://mock-ngser.forges.ci/pay';
 
 export class AbonnementRetailService {
   constructor(
@@ -44,11 +47,23 @@ export class AbonnementRetailService {
     return this.aboRepo.findFormationsIncluses();
   }
 
-  // UCS11.1 — Souscrire abonnement Retail
+  // UCS11.1 — Souscrire abonnement Retail avec initiation paiement NGSER
   async souscrire(apprenant_id: string, offre: 'ESSENTIEL' | 'PREMIUM', langue: string) {
     // RM-70 : unicité abonnement Retail
     const existant = await this.aboRepo.findByApprenant(apprenant_id);
-    if (existant) throw new Error('ABONNEMENT_DEJA_ACTIF');
+    if (existant) {
+      // Idempotence : si en attente paiement, recréer une session NGSER
+      if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
+        const session = await this.creerSessionNgser(existant.id, existant.montant_premier_mois ?? 0);
+        return {
+          abonnement: existant,
+          montant_premier_mois: existant.montant_premier_mois ?? 0,
+          payment_url: session.payment_url,
+          order_ngser: existant.order_ngser,
+        };
+      }
+      throw new Error('ABONNEMENT_DEJA_ACTIF');
+    }
 
     const montant = TARIFS_RETAIL[offre];
     const maintenant = new Date();
@@ -58,6 +73,9 @@ export class AbonnementRetailService {
     const joursRestantsMois = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 0).getDate() - maintenant.getDate() + 1;
     const joursMois = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 0).getDate();
     const montantProrata = Math.floor(montant * joursRestantsMois / joursMois);
+
+    // Générer order_ngser avant création pour stocker sur l'abonnement
+    const orderNgser = this.generateOrderNgser();
 
     const abonnement = await this.aboRepo.create({
       apprenant_id,
@@ -69,20 +87,61 @@ export class AbonnementRetailService {
       // RM-75 : consentement auto obligatoire
       consentement_auto: true,
       consentement_timestamp: maintenant,
+      order_ngser: orderNgser,
     });
 
-    await this.audit.info('ABONNEMENT_RETAIL_SOUSCRIT', { apprenant_id, offre, montant_prorata: montantProrata });
-    try {
-      await this.email.sendConfirmationAbonnement(apprenant_id, offre, montantProrata, langue);
-    } catch (error: any) {
-      await this.audit.warning('ABONNEMENT_RETAIL_CONFIRMATION_EMAIL_FAILED', {
-        apprenant_id,
-        offre,
-        error: error?.message || 'UNKNOWN_ERROR',
-      });
+    const session = await this.creerSessionNgser(abonnement.id, montantProrata);
+
+    await this.audit.info('ABONNEMENT_RETAIL_SOUSCRIT_EN_ATTENTE', {
+      apprenant_id,
+      offre,
+      montant_prorata: montantProrata,
+      order_ngser: orderNgser,
+    });
+
+    return {
+      abonnement,
+      montant_premier_mois: montantProrata,
+      payment_url: session.payment_url,
+      order_ngser: orderNgser,
+    };
+  }
+
+  private generateOrderNgser(date = new Date()): string {
+    const year = date.getUTCFullYear();
+    const start = Date.UTC(year, 0, 0);
+    const dayOfYear = Math.floor((date.getTime() - start) / 86400000)
+      .toString()
+      .padStart(3, '0');
+    const suffix = randomBytes(3).toString('hex').toUpperCase();
+    return `ABO-${year}-${dayOfYear}-${suffix}`;
+  }
+
+  private async creerSessionNgser(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
+    const isMock = process.env.NGSER_MOCK_MODE !== 'false';
+    // On récupère l'order_ngser depuis l'abonnement
+    const abo = await this.prisma.abonnementRetail.findUnique({ where: { id: abonnement_id } });
+    const order = abo?.order_ngser ?? this.generateOrderNgser();
+
+    if (isMock) {
+      return { payment_url: `${NGSER_MOCK_BASE_URL}?order=${order}` };
     }
 
-    return { abonnement, montant_premier_mois: montantProrata };
+    const { NgserClient } = await import('../../paiements/ngser.client');
+    const ngserClient = new NgserClient(this.audit);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const notificationUrl = process.env.NGSER_NOTIFICATION_URL || 'http://localhost:3000/webhooks/paiement';
+    const returnUrl = `${frontendUrl}/apprenant/abonnement/callback`;
+
+    const session = await ngserClient.createSession({
+      order,
+      amount: montantXof, // déjà en XOF
+      currency: 'XOF',
+      notification_url: notificationUrl,
+      return_url: returnUrl,
+    });
+
+    return { payment_url: session.payment_url };
   }
 
   // UCS11.1 — Upgrade Essentiel → Premium (RM-79)

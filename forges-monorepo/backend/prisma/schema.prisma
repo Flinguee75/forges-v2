@@ -367,7 +367,7 @@ model AbonnementRetail {
   id                     String    @id @default(uuid())
   apprenant_id           String    @unique
   offre                  String
-  statut                 String    @default("ACTIF")
+  statut                 String    @default("EN_ATTENTE_PAIEMENT")
   montant_mensuel        Int
   methode_paiement       String?
   date_debut             DateTime
@@ -383,6 +383,8 @@ model AbonnementRetail {
   prorata_premier_mois   Int?
   suspension_count       Int       @default(0)
   last_suspension_at     DateTime?
+  order_ngser            String?   @unique
+  transaction_id_ngser   String?   @unique
   apprenant              Apprenant @relation(fields: [apprenant_id], references: [id])
 }
 

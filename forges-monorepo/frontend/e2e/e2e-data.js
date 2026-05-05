@@ -59,6 +59,15 @@ export const E2E_ACCOUNTS = {
     email: 'apprenant-retail-e2e@forges.ci',
     password: 'Test@FORGES2026!',
   },
+  // Comptes dedies aux tests du flux paiement abonnement NGSER
+  apprenantAboNgserOk: {
+    email: 'apprenant-abo-ngser-ok@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantAboNgserKo: {
+    email: 'apprenant-abo-ngser-ko@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
   // Nouveaux comptes pour tests paiement NGSER
   apprenantIdempotence1: {
     email: 'apprenant-idempotence-1@forges.ci',

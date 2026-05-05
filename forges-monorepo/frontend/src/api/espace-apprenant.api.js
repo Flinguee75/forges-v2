@@ -29,7 +29,10 @@ export const apprenantApi = {
   annulerDossier: (dossierId) => apiClient.delete(`/espace-apprenant/dossiers/${dossierId}`),
 
   getMonAbonnementRetail: async () => unwrapData(await apiClient.get('/abonnements/retail/me')),
-  souscrireAbonnementRetail: async (data) => unwrapData(await apiClient.post('/abonnements/retail', data)),
+  souscrireAbonnementRetail: async (data) => {
+    // Retourne { abonnement, montant_premier_mois, payment_url, order_ngser }
+    return unwrapData(await apiClient.post('/abonnements/retail', data));
+  },
   upgradeAbonnementRetail: async (data) => unwrapData(await apiClient.put('/abonnements/retail/upgrade', data)),
   downgradeAbonnementRetail: async (data) => unwrapData(await apiClient.put('/abonnements/retail/downgrade', data)),
   suspendreAbonnementRetail: async (data = {}) => unwrapData(await apiClient.put('/abonnements/retail/suspendre', data)),

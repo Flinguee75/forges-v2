@@ -26,6 +26,7 @@ vi.mock('../../../hooks/useApi', () => ({
       }
     },
     isLoading: false,
+    error: null,
     reset: vi.fn(),
   }),
 }));
@@ -40,115 +41,203 @@ vi.mock('../../../hooks/useToast', () => ({
   }),
 }));
 
+// Capture window.location.assign pour les redirections NGSER
+const mockAssign = vi.fn();
+Object.defineProperty(window, 'location', {
+  value: { assign: mockAssign },
+  writable: true,
+});
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+const CATALOGUE_RESPONSE = {
+  data: [
+    {
+      id: 'f1',
+      titre: 'Formation Essentiel',
+      description: 'Formation standard incluse',
+      tarif: 500000,
+      duree: 20,
+      type_formation: 'STANDARD',
+      pilier_abonnement: 'RETAIL',
+      inclus_abonnement: true,
+    },
+    {
+      id: 'f2',
+      titre: 'Formation Premium',
+      description: 'Formation exclusive',
+      tarif: 800000,
+      duree: 30,
+      type_formation: 'PREMIUM',
+      pilier_abonnement: 'RETAIL',
+      inclus_abonnement: false,
+    },
+  ],
+  meta: { page: 1, totalPages: 1, total: 2 },
+};
+
 const renderPage = () => render(
   <BrowserRouter>
     <SouscrireAbonnement />
   </BrowserRouter>
 );
 
+function setupNoAbonnement() {
+  apiClient.get.mockImplementation((url) => {
+    if (url === '/formations') return Promise.resolve(CATALOGUE_RESPONSE);
+    if (url === '/abonnements/retail/me') {
+      return Promise.reject(Object.assign(new Error('NOT_FOUND'), { statusCode: 404, code: 'NOT_FOUND' }));
+    }
+    return Promise.resolve({});
+  });
+}
+
+function setupAbonnementActif() {
+  apiClient.get.mockImplementation((url) => {
+    if (url === '/formations') return Promise.resolve(CATALOGUE_RESPONSE);
+    if (url === '/abonnements/retail/me') {
+      return Promise.resolve({ data: { id: 'abo-1', offre: 'ESSENTIEL', statut: 'ACTIF' } });
+    }
+    return Promise.resolve({});
+  });
+}
+
 describe('SouscrireAbonnement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    apiClient.get.mockImplementation((url) => {
-      if (url === '/abonnements/retail/me') {
-        return Promise.reject({ statusCode: 404, code: 'NOT_FOUND' });
-      }
-
-      if (url === '/abonnements/retail/formations-incluses') {
-        return Promise.resolve({
-          data: [
-            {
-              id: 'f1',
-              titre: 'Formation incluse',
-              description_courte: 'Parcours standard inclus',
-              cout_catalogue: 500000,
-              duree_jours: 20,
-              type_formation: 'STANDARD',
-              pilier_abonnement: 'RETAIL',
-              inclus_abonnement: true,
-            },
-          ],
-        });
-      }
-
-      if (url === '/formations') {
-        return Promise.resolve({
-          data: [],
-          meta: { page: 1, totalPages: 1, total: 0 },
-        });
-      }
-
-      return Promise.resolve({});
-    });
-
-    apiClient.post.mockResolvedValue({
-      id: 'abo-1',
-      offre: 'ESSENTIEL',
-      statut: 'ACTIF',
-    });
+    setupNoAbonnement();
   });
 
-  it('compare les offres et affiche les formations incluses', async () => {
-    apiClient.get.mockReset();
-    apiClient.get
-      .mockResolvedValueOnce({
-        id: 'abo-1',
-        offre: 'ESSENTIEL',
-        statut: 'ACTIF',
-      })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            id: 'f1',
-            titre: 'Formation incluse',
-            description_courte: 'Parcours standard inclus',
-            cout_catalogue: 500000,
-            duree_jours: 20,
-            type_formation: 'STANDARD',
-            pilier_abonnement: 'RETAIL',
-            inclus_abonnement: true,
-          },
-        ],
-      });
+  // ─── Affichage ────────────────────────────────────────────────────
 
+  it('affiche les 3 tiers : Catalogue libre, Essentiel, Premium', async () => {
     renderPage();
-
     await waitFor(() => {
-      expect(screen.getByText('Abonnement déjà actif')).toBeInTheDocument();
-      expect(screen.getByText('Formation incluse')).toBeInTheDocument();
-      expect(screen.getByText(/Code:\s*f1/i)).toBeInTheDocument();
-      expect(screen.getByText('Inclus')).toBeInTheDocument();
+      expect(screen.getByText('Catalogue libre')).toBeInTheDocument();
+      expect(screen.getByText('Essentiel')).toBeInTheDocument();
       expect(screen.getByText('Premium')).toBeInTheDocument();
-      expect(screen.getAllByText(/1 formation\(s\) incluse\(s\)/).length).toBeGreaterThan(0);
     });
   });
 
-  it('bloque la confirmation sans consentement local', async () => {
+  it('affiche le badge "Recommande" sur le tier Premium', async () => {
     renderPage();
-
     await waitFor(() => {
-      expect(screen.getByText('Confirmer la souscription')).toBeDisabled();
+      expect(screen.getByText('Recommandé')).toBeInTheDocument();
     });
   });
 
-  it('permet de souscrire après consentement', async () => {
+  it('affiche le bandeau abonnement deja actif si abonnement ACTIF', async () => {
+    setupAbonnementActif();
     renderPage();
-
     await waitFor(() => {
-      expect(screen.getByText('Confirmer la souscription')).toBeDisabled();
+      expect(screen.getByText(/d.*j.*abonnement actif/i)).toBeInTheDocument();
+    });
+  });
+
+  it('affiche le nombre de formations incluses et Premium', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getAllByText(/1 formation/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  // ─── Souscription bloquee sans consentement ───────────────────────
+
+  it('desactive le bouton souscrire sans consentement', async () => {
+    renderPage();
+    await waitFor(() => {
+      const btn = screen.getByTestId('btn-souscrire');
+      expect(btn).toBeDisabled();
+    });
+  });
+
+  it('active le bouton souscrire apres consentement', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('consent-checkbox')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('consent-checkbox'));
+    await waitFor(() => {
+      expect(screen.getByTestId('btn-souscrire')).not.toBeDisabled();
+    });
+  });
+
+  // ─── NGSER : redirect vers payment_url ───────────────────────────
+
+  it('redirige vers payment_url NGSER apres souscription', async () => {
+    const paymentUrl = 'https://mock-ngser.forges.ci/pay?order=ABO-2026-001-ABCDEF';
+    apiClient.post.mockResolvedValue({
+      data: {
+        abonnement: { id: 'abo-new', offre: 'ESSENTIEL', statut: 'EN_ATTENTE_PAIEMENT' },
+        montant_premier_mois: 12000,
+        payment_url: paymentUrl,
+        order_ngser: 'ABO-2026-001-ABCDEF',
+      },
     });
 
-    fireEvent.click(screen.getByLabelText(/accepter le renouvellement automatique/i));
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('consent-checkbox')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('consent-checkbox'));
+    await waitFor(() => expect(screen.getByTestId('btn-souscrire')).not.toBeDisabled());
+
+    fireEvent.click(screen.getByTestId('btn-souscrire'));
 
     await waitFor(() => {
-      expect(screen.getByText('Confirmer la souscription')).not.toBeDisabled();
+      expect(mockAssign).toHaveBeenCalledWith(paymentUrl);
+    });
+  });
+
+  it('navigue vers /apprenant/abonnement si payment_url absent (fallback)', async () => {
+    apiClient.post.mockResolvedValue({
+      data: {
+        abonnement: { id: 'abo-legacy', offre: 'ESSENTIEL', statut: 'ACTIF' },
+        montant_premier_mois: 12000,
+        // pas de payment_url
+      },
     });
 
-    fireEvent.click(screen.getByText('Confirmer la souscription'));
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('consent-checkbox')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('consent-checkbox'));
+    await waitFor(() => expect(screen.getByTestId('btn-souscrire')).not.toBeDisabled());
+
+    fireEvent.click(screen.getByTestId('btn-souscrire'));
 
     await waitFor(() => {
-      expect(apiClient.post).toHaveBeenCalledWith('/abonnements/retail', { offre: 'ESSENTIEL' });
+      expect(mockNavigate).toHaveBeenCalledWith('/apprenant/abonnement');
+    });
+  });
+
+  it('envoie l\'offre selectionnee au backend', async () => {
+    apiClient.post.mockResolvedValue({
+      data: {
+        abonnement: { id: 'abo-prem', offre: 'PREMIUM', statut: 'EN_ATTENTE_PAIEMENT' },
+        payment_url: 'https://mock-ngser.forges.ci/pay?order=ABO-P',
+        order_ngser: 'ABO-P',
+        montant_premier_mois: 20000,
+      },
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Choisir Premium')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Choisir Premium'));
+
+    await waitFor(() => expect(screen.getByTestId('consent-checkbox')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('consent-checkbox'));
+    await waitFor(() => expect(screen.getByTestId('btn-souscrire')).not.toBeDisabled());
+
+    fireEvent.click(screen.getByTestId('btn-souscrire'));
+
+    await waitFor(() => {
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/abonnements/retail',
+        expect.objectContaining({ offre: 'PREMIUM' })
+      );
     });
   });
 });

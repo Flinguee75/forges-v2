@@ -40,6 +40,7 @@ const MesPaiementsPage = lazy(() => import('../pages/etudiant/MesPaiementsPage')
 const PaiementDetailEtudiant = lazy(() => import('../pages/etudiant/PaiementDetail'));
 const PaiementInitiation = lazy(() => import('../pages/apprenant/PaiementInitiation'));
 const PaiementCallback = lazy(() => import('../pages/apprenant/PaiementCallback'));
+const AbonnementCallback = lazy(() => import('../pages/apprenant/AbonnementCallback'));
 const MesAttestationsPage = lazy(() => import('../pages/etudiant/MesAttestationsPage'));
 const MonProfilPage = lazy(() => import('../pages/etudiant/MonProfilPage'));
 
@@ -264,6 +265,10 @@ const router = createBrowserRouter([
       {
         path: 'abonnement/souscrire',
         element: withSuspense(<SouscrireAbonnement />),
+      },
+      {
+        path: 'abonnement/callback',
+        element: withSuspense(<AbonnementCallback />),
       },
       {
         path: 'formations-a-la-demande',

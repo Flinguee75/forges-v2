@@ -21,6 +21,7 @@ export class AbonnementController {
         return res.status(400).json({ statusCode: 400, error: 'OFFRE_INVALIDE' });
       }
       const result = await this.retailService.souscrire(req.user!.userId, offre, req.user!.langue || 'FR');
+      // result contient { abonnement, montant_premier_mois, payment_url, order_ngser }
       res.status(201).json({ statusCode: 201, data: result });
     } catch (error: any) {
       if (error.message === 'ABONNEMENT_DEJA_ACTIF') {
