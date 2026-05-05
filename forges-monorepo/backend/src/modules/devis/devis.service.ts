@@ -78,7 +78,7 @@ export class DevisService {
       to: organisation.email,
       subject: langue === 'EN'
         ? `Your quote ${numero_devis} from FORGES`
-        : `Votre devis ${numero_devis} — FORGES AGGREGATEUR`,
+        : `Votre devis ${numero_devis} — FORGES AGRÉGATEUR`,
       html: this.buildEmailDevis(devis, organisation, formation, session, langue),
     }).catch(async (emailError: any) => {
       await this.audit.warning('DEVIS_EMAIL_ECHEC', {
@@ -94,7 +94,7 @@ export class DevisService {
         to: organisation.email,
         subject: langue === 'EN'
           ? `Your quote ${numero_devis} from FORGES`
-          : `Votre devis ${numero_devis} — FORGES AGGREGATEUR`,
+          : `Votre devis ${numero_devis} — FORGES AGRÉGATEUR`,
         html: this.buildEmailDevis(devis, organisation, formation, session, langue),
         attachment: { filename: `${numero_devis}.pdf`, content: pdfBuffer, contentType: 'application/pdf' },
       }).catch(async (emailError: any) => {
@@ -207,7 +207,7 @@ export class DevisService {
         ${styles}
         <div class="devis-container">
           <div class="devis-header">
-            <h2>FORGES AGGREGATEUR — QUOTE</h2>
+            <h2>FORGES AGRÉGATEUR — QUOTE</h2>
             <p>${devis.numero_devis} — Issued on ${new Date(devis.created_at || Date.now()).toLocaleDateString('en-GB')}</p>
           </div>
           <div class="devis-content">
@@ -247,7 +247,7 @@ export class DevisService {
               <div class="instructions-text">Payment must be made by bank transfer to the following account:</div>
               <table class="rib-table">
                 <tr><td class="rib-label">Bank:</td><td>${process.env.FORGES_BANK_NOM || 'Banque FORGES CI'}</td></tr>
-                <tr><td class="rib-label">Account holder:</td><td>GIE FORGES AGGREGATEUR</td></tr>
+                <tr><td class="rib-label">Account holder:</td><td>GIE FORGES AGRÉGATEUR</td></tr>
                 <tr><td class="rib-label">IBAN / RIB:</td><td>${process.env.FORGES_BANK_IBAN || 'To be configured in FORGES_BANK_IBAN'}</td></tr>
                 <tr><td class="rib-label">BIC/SIFT code:</td><td>${process.env.FORGES_BANK_BIC || 'To be configured in FORGES_BANK_BIC'}</td></tr>
                 <tr><td class="rib-label">Mandatory reference:</td><td><strong>${devis.numero_devis}</strong></td></tr>
@@ -257,7 +257,7 @@ export class DevisService {
               <strong>Terms:</strong> This quote is valid for 30 days from the date of issue. Please include the reference <strong>${devis.numero_devis}</strong> in your transfer label. Upon receipt of payment, your FORGES contact will proceed with enrollment confirmation.
             </div>
             <div class="footer">
-              FORGES AGGREGATEUR — Contact: ${process.env.EMAIL_FROM || 'contact@forges-group.com'}
+              FORGES AGRÉGATEUR — Contact: ${process.env.EMAIL_FROM || 'contact@forges-group.com'}
             </div>
           </div>
         </div>
@@ -268,7 +268,7 @@ export class DevisService {
       ${styles}
       <div class="devis-container">
         <div class="devis-header">
-          <h2>FORGES AGGREGATEUR — DEVIS</h2>
+          <h2>FORGES AGRÉGATEUR — DEVIS</h2>
           <p>${devis.numero_devis} — Émis le ${new Date(devis.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
         </div>
         <div class="devis-content">
@@ -309,7 +309,7 @@ export class DevisService {
             <div class="instructions-text">Le paiement s'effectue par virement bancaire aux coordonnées suivantes :</div>
             <table class="rib-table">
               <tr><td class="rib-label">Banque :</td><td>${process.env.FORGES_BANK_NOM || 'Banque FORGES CI'}</td></tr>
-              <tr><td class="rib-label">Titulaire du compte :</td><td>GIE FORGES AGGREGATEUR</td></tr>
+              <tr><td class="rib-label">Titulaire du compte :</td><td>GIE FORGES AGRÉGATEUR</td></tr>
               <tr><td class="rib-label">IBAN / RIB :</td><td>${process.env.FORGES_BANK_IBAN || 'À renseigner dans FORGES_BANK_IBAN'}</td></tr>
               <tr><td class="rib-label">Code BIC/SWIFT :</td><td>${process.env.FORGES_BANK_BIC || 'À renseigner dans FORGES_BANK_BIC'}</td></tr>
               <tr><td class="rib-label">Référence obligatoire :</td><td><strong>${devis.numero_devis}</strong></td></tr>
@@ -319,7 +319,7 @@ export class DevisService {
             <strong>Conditions :</strong> Ce devis est valable 30 jours à compter de sa date d'émission. Merci d'indiquer obligatoirement la référence <strong>${devis.numero_devis}</strong> dans le libellé de votre virement. Après réception du paiement, votre contact FORGES procédera à la confirmation des inscriptions.
           </div>
           <div class="footer">
-            FORGES AGGREGATEUR — Contact : ${process.env.EMAIL_FROM || 'contact@forges-group.com'}
+            FORGES AGRÉGATEUR — Contact : ${process.env.EMAIL_FROM || 'contact@forges-group.com'}
           </div>
         </div>
       </div>

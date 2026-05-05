@@ -46,7 +46,7 @@ export async function genererPdfDevis(params: {
       .fillColor(COULEUR_PRIMAIRE)
       .fontSize(22)
       .font('Helvetica-Bold')
-      .text('FORGES AGGREGATEUR', 60, 55);
+      .text('FORGES AGRÉGATEUR', 60, 55);
 
     doc
       .fillColor(COULEUR_SUBTEXT)
@@ -189,7 +189,7 @@ export async function genererPdfDevis(params: {
 
     const ribData = [
       ['Banque', process.env.FORGES_BANK_NOM || 'Banque FORGES CI'],
-      ['Titulaire du compte', 'GIE FORGES AGGREGATEUR'],
+      ['Titulaire du compte', 'GIE FORGES AGRÉGATEUR'],
       ['IBAN / RIB', process.env.FORGES_BANK_IBAN || 'À renseigner dans FORGES_BANK_IBAN'],
       ['Code BIC/SWIFT', process.env.FORGES_BANK_BIC || 'À renseigner dans FORGES_BANK_BIC'],
       ['Référence obligatoire', devis.numero_devis],
@@ -250,7 +250,7 @@ export async function genererPdfDevis(params: {
       .fontSize(8)
       .font('Helvetica')
       .text(
-        `Pour toute question : ${supportEmail} — FORGES AGGREGATEUR, GIE enregistré en Côte d'Ivoire`,
+        `Pour toute question : ${supportEmail} — FORGES AGRÉGATEUR, GIE enregistré en Côte d'Ivoire`,
         50,
         yFooter + 10,
         { align: 'center', width: pageWidth }

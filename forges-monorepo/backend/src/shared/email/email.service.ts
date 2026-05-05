@@ -190,7 +190,7 @@ export class EmailService {
   async sendEmail(options: EmailOptions): Promise<void> {
     try {
       const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
-      const fromAddress = `"FORGES AGGREGATEUR" <${fromEmail}>`;
+      const fromAddress = `"FORGES AGRÉGATEUR" <${fromEmail}>`;
 
       await this.transporter.sendMail({
         from: fromAddress,
@@ -208,7 +208,7 @@ export class EmailService {
 
   async sendEmailWithAttachment(options: EmailWithAttachmentOptions): Promise<void> {
     const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
-    const fromAddress = `"FORGES AGGREGATEUR" <${fromEmail}>`;
+    const fromAddress = `"FORGES AGRÉGATEUR" <${fromEmail}>`;
 
     await this.transporter.sendMail({
       from: fromAddress,
