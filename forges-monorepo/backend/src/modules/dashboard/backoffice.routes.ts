@@ -72,4 +72,61 @@ router.put('/config', authenticate, authorize('ADMIN'), (req, res) => {
   res.status(200).json({ statusCode: 200, data: getConfigPayload() });
 });
 
+router.get('/admin/organisations/:id/config', authenticate, authorize('ADMIN'), async (req, res, next) => {
+  try {
+    const config = await prisma.organisationConfig.findUnique({
+      where: { organisation_id: req.params.id },
+    });
+    const defaults = getConfigPayload();
+    res.status(200).json({
+      statusCode: 200,
+      data: {
+        organisation_id: req.params.id,
+        commission_forges_pct: config?.commission_forges_pct ?? null,
+        seuil_reversement_xof: config?.seuil_reversement_xof ?? null,
+        effective_commission_forges_pct: config?.commission_forges_pct ?? defaults.default_commission_forges_pct,
+        effective_seuil_reversement_xof: config?.seuil_reversement_xof ?? defaults.seuil_reversement_partenaire_xof,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/admin/organisations/:id/config', authenticate, authorize('ADMIN'), async (req, res, next) => {
+  try {
+    const { commission_forges_pct, seuil_reversement_xof } = req.body;
+    const data: { commission_forges_pct?: number | null; seuil_reversement_xof?: number | null } = {};
+
+    if (commission_forges_pct !== undefined) {
+      data.commission_forges_pct = commission_forges_pct === null ? null : Number(commission_forges_pct);
+    }
+    if (seuil_reversement_xof !== undefined) {
+      data.seuil_reversement_xof = seuil_reversement_xof === null ? null : Number(seuil_reversement_xof);
+    }
+
+    const config = await prisma.organisationConfig.upsert({
+      where: { organisation_id: req.params.id },
+      create: { organisation_id: req.params.id, ...data },
+      update: data,
+    });
+
+    await audit.log('INFO', 'ORGANISATION_CONFIG_UPDATE', { organisation_id: req.params.id, ...data }, req.user!.userId);
+
+    const defaults = getConfigPayload();
+    res.status(200).json({
+      statusCode: 200,
+      data: {
+        organisation_id: req.params.id,
+        commission_forges_pct: config.commission_forges_pct,
+        seuil_reversement_xof: config.seuil_reversement_xof,
+        effective_commission_forges_pct: config.commission_forges_pct ?? defaults.default_commission_forges_pct,
+        effective_seuil_reversement_xof: config.seuil_reversement_xof ?? defaults.seuil_reversement_partenaire_xof,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

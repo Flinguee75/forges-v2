@@ -68,7 +68,19 @@ model Organisation {
   created_at         DateTime                 @default(now())
   date_fin_essai     DateTime?
 
+  config             OrganisationConfig?
+
   @@unique([identifiant_legal, type])
+}
+
+model OrganisationConfig {
+  id                    String       @id @default(uuid())
+  organisation_id       String       @unique
+  organisation          Organisation @relation(fields: [organisation_id], references: [id])
+  commission_forges_pct Int?
+  seuil_reversement_xof Int?
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
 }
 
 model Formation {
