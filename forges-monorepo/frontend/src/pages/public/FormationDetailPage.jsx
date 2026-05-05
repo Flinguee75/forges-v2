@@ -32,6 +32,10 @@ export default function FormationDetailPage() {
     item?.description || item?.description_courte || item?.description_longue || '';
   const getFormationDuree = (item) => item?.duree ?? item?.duree_jours;
   const getFormationTarif = (item) => item?.tarif ?? item?.cout_catalogue;
+  const getFormationDescriptionLongue = (item) => item?.description_longue || '';
+  const getFormationPrerequis = (item) => item?.prerequis || '';
+  const getFormationCompetences = (item) => item?.objectifs_pedagogiques || [];
+  const getCertificationDelivree = (item) => item?.certification_delivree || false;
 
   const loadFormationDetail = async () => {
     await executeFormation(() => formationsApi.getFormationDetail(id), {
@@ -131,13 +135,75 @@ export default function FormationDetailPage() {
 
             {/* Détails */}
             <Card title="Détails de la formation">
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Description courte */}
                 <div>
-                  <h3 className="font-semibold text-text mb-2">Description</h3>
-                  <p className="text-subtext whitespace-pre-line">
+                  <h3 className="font-semibold text-text mb-2">Aperçu</h3>
+                  <p className="text-subtext">
                     {getFormationDescription(formation) || 'Aucune description disponible.'}
                   </p>
                 </div>
+
+                {/* Description longue */}
+                {getFormationDescriptionLongue(formation) && (
+                  <div>
+                    <h3 className="font-semibold text-text mb-2">Description détaillée</h3>
+                    <div className="text-subtext whitespace-pre-wrap prose prose-sm max-w-none">
+                      {/* Parser HTML si présent */}
+                      {getFormationDescriptionLongue(formation).includes('<') ? (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: getFormationDescriptionLongue(formation),
+                          }}
+                          className="prose prose-sm max-w-none dark:prose-invert"
+                        />
+                      ) : (
+                        <p>{getFormationDescriptionLongue(formation)}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Prérequis */}
+                {getFormationPrerequis(formation) && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                      📋 Prérequis
+                    </h3>
+                    <p className="text-blue-800 dark:text-blue-200 text-sm">
+                      {getFormationPrerequis(formation)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Compétences acquises / Objectifs pédagogiques */}
+                {getFormationCompetences(formation).length > 0 && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3">
+                      ✨ Compétences acquises
+                    </h3>
+                    <ul className="space-y-2">
+                      {getFormationCompetences(formation).map((competence, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-green-800 dark:text-green-200 text-sm">
+                          <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                          <span>{competence}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Certification */}
+                {getCertificationDelivree(formation) && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                      🏆 Certification obtenue
+                    </h3>
+                    <p className="text-amber-800 dark:text-amber-200 text-sm">
+                      Cette formation vous permettra d'obtenir une certification reconnue à l'issue de la formation.
+                    </p>
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -230,6 +296,30 @@ export default function FormationDetailPage() {
                   </div>
                 )}
 
+                {formation.duree_acces_jours && (
+                  <div className="flex items-start gap-3">
+                    <svg
+                      className="w-5 h-5 text-secondary mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-text">Accès</p>
+                      <p className="text-sm text-subtext">
+                        {formation.duree_acces_jours} jours d'accès
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-start gap-3">
                   <svg
                     className="w-5 h-5 text-secondary mt-0.5"
@@ -250,6 +340,30 @@ export default function FormationDetailPage() {
                   </div>
                 </div>
 
+                {formation.type_formation && (
+                  <div className="flex items-start gap-3">
+                    <svg
+                      className="w-5 h-5 text-secondary mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17.25S6.5 28 12 28s10-4.745 10-10.75C22 10.998 17.5 6.253 12 6.253z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-text">Type</p>
+                      <Badge variant="info" size="small">
+                        {formation.type_formation}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
                 {formation.responsable_id && (
                   <div className="flex items-start gap-3">
                     <svg
@@ -269,7 +383,7 @@ export default function FormationDetailPage() {
                       <p className="text-sm font-medium text-text">
                         Référence
                       </p>
-                      <p className="text-sm text-subtext font-mono">
+                      <p className="text-sm text-subtext font-mono text-xs">
                         {formation.id}
                       </p>
                     </div>
@@ -373,6 +487,8 @@ function formatDate(dateString) {
   });
 }
 
-function formatDuration(hours) {
-  return `${hours} h`;
+function formatDuration(days) {
+  if (!days) return 'N/A';
+  if (days === 1) return '1 jour';
+  return `${days} jours`;
 }

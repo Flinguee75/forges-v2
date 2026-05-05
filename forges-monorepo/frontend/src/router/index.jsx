@@ -51,6 +51,8 @@ const VouchersPage = lazy(() => import('../pages/organisation/VouchersPage'));
 const InscriptionsPage = lazy(() => import('../pages/organisation/InscriptionsPage'));
 const PaiementsOrganisationPage = lazy(() => import('../pages/organisation/PaiementsOrganisationPage'));
 const ProfilOrganisationPage = lazy(() => import('../pages/organisation/ProfilOrganisationPage'));
+const GestionEmployesPage = lazy(() => import('../pages/organisation/GestionEmployesPage'));
+const GestionApprenantsB2B = lazy(() => import('../pages/organisation/GestionApprenantsB2B'));
 
 const PartenaireDashboard = lazy(() => import('../pages/partenaire/PartenaireDashboard'));
 const MesFormations = lazy(() => import('../pages/partenaire/MesFormations'));
@@ -377,6 +379,14 @@ const router = createBrowserRouter([
       {
         path: 'profil',
         element: withSuspense(<ProfilOrganisationPage />),
+      },
+      {
+        path: 'employes',
+        element: withSuspense(<GestionEmployesPage />),
+      },
+      {
+        path: 'b2b-apprenants',
+        element: withSuspense(<GestionApprenantsB2B />),
       },
     ],
   },

@@ -62,8 +62,9 @@ function getActionLabel(formation, context) {
   return 'Explorer la formation';
 }
 
-function formatDuration(hours) {
-  return `${Number(hours || 0)} h`;
+function formatDuration(days) {
+  if (days === 1) return '1 jour';
+  return `${Number(days || 0)} jours`;
 }
 
 export default function FormationMarketplaceCard({ formation, to, context = 'public' }) {
@@ -106,6 +107,17 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
         className="inline-flex items-center rounded-full bg-[#6C3483]/10 px-3 py-1 text-xs font-semibold text-[#6C3483]"
       >
         Premium
+      </span>
+    );
+  }
+
+  if (formationData.certification_delivree) {
+    badges.push(
+      <span
+        key="certification"
+        className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800"
+      >
+        🏆 Certifiante
       </span>
     );
   }
@@ -161,6 +173,15 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
           <p className="mt-4 line-clamp-2 text-[0.96rem] leading-6 text-slate-600">
             {formationData.description}
           </p>
+
+          {/* Afficher les prérequis si présents */}
+          {formationData.prerequis && (
+            <p className="mt-3 text-[0.85rem] text-slate-500 italic">
+              📋 Prérequis: {formationData.prerequis.length > 50 
+                ? formationData.prerequis.substring(0, 50) + '...' 
+                : formationData.prerequis}
+            </p>
+          )}
 
           <div className="mt-5 flex items-center gap-3 text-[0.95rem] text-slate-500">
             <span>{formatDuration(formationData.duree)}</span>

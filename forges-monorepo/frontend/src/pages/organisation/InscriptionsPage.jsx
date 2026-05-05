@@ -188,16 +188,11 @@ export default function InscriptionsPage() {
               >
                 <option value="">Tous</option>
                 <option value="EN_ATTENTE">En attente</option>
-                <option value="EN_ATTENTE_VERIFICATION">En attente de vérification</option>
-                <option value="RETENU">Retenu</option>
-                <option value="PAYE_DIRECTEMENT">Payé directement</option>
-                <option value="PAYE">Payé</option>
+                <option value="EN_ATTENTE_VERIFICATION">En vérification</option>
+                <option value="PAYE_DIRECTEMENT">Payé</option>
+                <option value="PAYE">Payé (confirmé)</option>
                 <option value="CONFIRME">Confirmé</option>
                 <option value="REJETE">Rejeté</option>
-                <option value="REFUSE">Refusé</option>
-                <option value="GRIS">Liste grise</option>
-                <option value="EXCEPTION">Exception</option>
-                <option value="ARCHIVE">Archivé</option>
                 <option value="ANNULE">Annulé</option>
               </select>
             </div>

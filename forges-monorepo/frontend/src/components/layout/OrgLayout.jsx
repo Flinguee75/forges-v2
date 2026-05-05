@@ -25,6 +25,7 @@ export default function OrgLayout() {
     { name: 'Tableau de bord', href: '/organisation/dashboard', icon: 'chartBar' },
     { name: 'Abonnement', href: '/organisation/abonnement', icon: 'creditCard' },
     { name: 'Abonnement B2B', href: '/organisation/b2b', icon: 'folder' },
+    { name: 'Employés', href: '/organisation/employes', icon: 'users' },
     { name: 'Vouchers', href: '/organisation/vouchers', icon: 'ticket' },
     { name: 'Devis', href: '/organisation/devis', icon: 'document' },
     { name: 'Inscriptions', href: '/organisation/inscriptions', icon: 'clipboardList' },
