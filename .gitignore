@@ -70,3 +70,7 @@ get-role-ids.js
 # ─── Référence locale uniquement ──────────────────────────────────────────────
 old_infra/
 infra/env/.env.*.deploy
+
+# ─── Fichiers sensibles de test ──────────────────────────────────────────────
+*.postman_environment.json
+**/tests/tokens.env
