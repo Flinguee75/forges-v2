@@ -843,15 +843,6 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'comptes',
-        element: withSuspense(
-          <PlaceholderPage
-            title="Comptes backoffice"
-            description="Page placeholder pour valider la navigation et le shell backoffice."
-          />
-        ),
-      },
-      {
         path: 'config',
         element: (
           <RoleGuard allowedRoles={['ADMIN']}>

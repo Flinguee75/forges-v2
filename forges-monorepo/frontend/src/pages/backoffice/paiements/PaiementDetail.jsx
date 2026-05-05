@@ -313,7 +313,7 @@ export default function PaiementDetail() {
               </div>
               {paiement.tentatives >= 3 && (
                 <p className="mt-2 text-xs text-warning">
-                  Maximum de tentatives atteint (RM-08). Aucun nouveau paiement
+                  Maximum de tentatives atteint. Aucun nouveau paiement
                   ne peut être initié pour ce dossier.
                 </p>
               )}

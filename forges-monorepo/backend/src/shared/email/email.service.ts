@@ -9,6 +9,16 @@ interface EmailOptions {
   html?: string;
 }
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
+interface EmailWithAttachmentOptions extends EmailOptions {
+  attachment?: EmailAttachment;
+}
+
 type Langue = 'FR' | 'EN' | 'ES' | 'PT';
 
 export class EmailService {
@@ -179,7 +189,8 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<void> {
     try {
-      const fromAddress = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
+      const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
+      const fromAddress = `"FORGES AGGREGATEUR" <${fromEmail}>`;
 
       await this.transporter.sendMail({
         from: fromAddress,
@@ -193,6 +204,22 @@ export class EmailService {
       // Les callers peuvent logger via AuditLogger pour suivi.
       console.error('Email send error (non-bloquant):', (error as Error).message);
     }
+  }
+
+  async sendEmailWithAttachment(options: EmailWithAttachmentOptions): Promise<void> {
+    const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
+    const fromAddress = `"FORGES AGGREGATEUR" <${fromEmail}>`;
+
+    await this.transporter.sendMail({
+      from: fromAddress,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+      attachments: options.attachment
+        ? [{ filename: options.attachment.filename, content: options.attachment.content, contentType: options.attachment.contentType }]
+        : [],
+    });
   }
 
   async sendWelcomeEmail(email: string, nom: string): Promise<void> {

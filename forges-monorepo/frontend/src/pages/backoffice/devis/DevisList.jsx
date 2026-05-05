@@ -52,7 +52,7 @@ export default function DevisList() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">Gestion des devis</p>
             <h2 className="mt-3 text-2xl font-semibold text-primary">Liste des devis</h2>
-            <p className="mt-2 text-subtext">Devis SUR_DEVIS B2B institutionnels (RM-149 à RM-151).</p>
+            <p className="mt-2 text-subtext">Devis institutionnels établis pour les organisations et contrats B2B.</p>
           </div>
           <Button data-testid="btn-nouveau-devis" onClick={() => navigate('/backoffice/devis/new')}>
             Nouveau devis

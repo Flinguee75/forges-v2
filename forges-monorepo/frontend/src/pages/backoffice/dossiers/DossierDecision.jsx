@@ -46,7 +46,7 @@ export default function DossierDecision() {
     setConfirmAction({
       title: 'Confirmer la décision RETENU ?',
       message:
-        'L\'étudiant sera notifié et aura 72h pour effectuer le paiement. Cette décision est irréversible (RM-05).',
+        'L\'étudiant sera notifié et aura 72h pour effectuer le paiement. Cette décision est irréversible.',
       action: async () => {
         await execute(() => inscriptionsApi.retenir(id), {
           onSuccess: () => {
@@ -93,7 +93,7 @@ export default function DossierDecision() {
       title: `Confirmer la décision ${decision} pour ce dossier EXCEPTION ?`,
       message:
         decision === 'RETENU'
-          ? 'L\'étudiant sera retenu malgré le dépassement de capacité. Cette décision est irréversible (RM-05).'
+          ? 'L\'étudiant sera retenu malgré le dépassement de capacité. Cette décision est irréversible.'
           : 'L\'étudiant sera refusé et notifié du motif.',
       action: async () => {
         const payload =
@@ -250,7 +250,7 @@ export default function DossierDecision() {
               <div className="mb-4 rounded-lg border-l-4 border-warning bg-warning/10 p-4">
                 <p className="text-sm font-medium text-warning">
                   <span className="mr-2">⚠</span>
-                  Ce dossier a déjà été RETENU et ne peut plus être refusé (RM-05).
+                  Ce dossier a déjà été retenu et ne peut plus être refusé.
                   L'étudiant dispose de 72h pour effectuer son paiement.
                 </p>
               </div>
@@ -323,8 +323,7 @@ export default function DossierDecision() {
 
             {canRefuser && (
               <p className="mt-3 text-xs text-subtext">
-                Note: Une fois un dossier RETENU, il ne pourra plus être refusé
-                (RM-05).
+                Note: Une fois un dossier retenu, il ne pourra plus être refusé.
               </p>
             )}
           </Card>

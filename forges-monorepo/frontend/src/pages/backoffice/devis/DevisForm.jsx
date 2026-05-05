@@ -61,8 +61,8 @@ export default function DevisForm() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="rounded-lg bg-white p-6 shadow">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">Nouveau devis</p>
-        <h2 className="mt-3 text-2xl font-semibold text-primary">Création d'un devis SUR_DEVIS</h2>
-        <p className="mt-2 text-subtext">Le montant total est calculé automatiquement par le backend (RM-150).</p>
+        <h2 className="mt-3 text-2xl font-semibold text-primary">Création d'un devis</h2>
+        <p className="mt-2 text-subtext">Le montant total est calculé automatiquement à partir du tarif unitaire et du nombre de places.</p>
       </div>
 
       <Card>

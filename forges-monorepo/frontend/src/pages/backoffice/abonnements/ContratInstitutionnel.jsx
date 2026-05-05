@@ -55,7 +55,7 @@ export default function ContratInstitutionnel() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="rounded-lg bg-white p-6 shadow">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
-          UCS03.1
+          Contrats institutionnels
         </p>
         <h1 className="mt-3 text-2xl font-semibold text-primary">
           Contrat institutionnel

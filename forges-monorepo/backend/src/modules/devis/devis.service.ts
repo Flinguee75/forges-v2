@@ -3,6 +3,7 @@ import { DevisRepository } from './devis.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { CreerDevisDto } from './dto/devis.dto';
+import { genererPdfDevis } from './devis-pdf.service';
 
 export class DevisService {
   constructor(
@@ -57,11 +58,38 @@ export class DevisService {
     });
 
     const langue = organisation.langue_preferee || 'FR';
-    await this.emailService.sendEmail({
+
+    let pdfBuffer: Buffer | undefined;
+    try {
+      const session = dto.session_id
+        ? await this.prisma.session.findUnique({ where: { id: dto.session_id } })
+        : undefined;
+      pdfBuffer = await genererPdfDevis({ devis, organisation, formation, session });
+    } catch (pdfError: any) {
+      await this.audit.warning('DEVIS_PDF_ECHEC', {
+        devis_id: devis.id,
+        numero_devis,
+        error: pdfError?.message || 'UNKNOWN',
+      });
+    }
+
+    await this.emailService.sendEmailWithAttachment({
       to: organisation.email,
-      subject: langue === 'EN' ? 'Your quote from FORGES' : 'Votre devis FORGES',
+      subject: langue === 'EN'
+        ? `Your quote ${numero_devis} from FORGES`
+        : `Votre devis ${numero_devis} — FORGES AGGREGATEUR`,
       html: this.buildEmailDevis(devis, organisation, formation, langue),
-    }).catch(() => undefined);
+      attachment: pdfBuffer
+        ? { filename: `${numero_devis}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }
+        : undefined,
+    }).catch(async (emailError: any) => {
+      await this.audit.warning('DEVIS_EMAIL_ECHEC', {
+        devis_id: devis.id,
+        numero_devis,
+        to: organisation.email,
+        error: emailError?.message || 'UNKNOWN',
+      });
+    });
 
     return devis;
   }
