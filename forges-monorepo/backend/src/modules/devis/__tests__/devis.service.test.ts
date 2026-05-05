@@ -16,7 +16,7 @@ const mockPrisma = {
 };
 
 const mockAudit = { info: jest.fn(), error: jest.fn() };
-const mockEmail = { sendEmail: jest.fn() };
+const mockEmail = { sendEmail: jest.fn(), sendEmailWithAttachment: jest.fn() };
 
 const orgFixture = {
   id: 'org-01',
@@ -43,6 +43,7 @@ function makeService() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockEmail.sendEmail.mockResolvedValue(undefined);
+  mockEmail.sendEmailWithAttachment.mockResolvedValue(undefined);
   mockAudit.info.mockResolvedValue(undefined);
 });
 
