@@ -276,4 +276,63 @@ export class PaiementController {
       return res.redirect(302, `${frontendUrl}/paiement/echec?error=redirect_error`);
     }
   }
+
+  // POST /webhooks/fineo — Callback FineoPay (PUBLIC, double vérification côté FineoPay)
+  async traiterCallbackFineo(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { reference, amount, status, clientAccountNumber, timestamp, syncRef } = req.body;
+
+      if (!reference || !status) {
+        return res.status(400).json({ statusCode: 400, error: 'FINEO_CB_CHAMPS_MANQUANTS' });
+      }
+
+      await this.paiementService.traiterCallbackFineo({
+        reference,
+        amount,
+        status,
+        clientAccountNumber,
+        timestamp,
+        syncRef,
+      });
+
+      return res.status(200).json({ statusCode: 200, received: true });
+    } catch (error: any) {
+      if (error.message === 'FINEO_CB_VERIFICATION_ECHEC') {
+        return res.status(502).json({ statusCode: 502, error: 'FINEO_CB_VERIFICATION_ECHEC' });
+      }
+      if (error.message === 'PAIEMENT_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'PAIEMENT_NOT_FOUND' });
+      }
+      if (error.message === 'MONTANT_MISMATCH') {
+        return res.status(422).json({ statusCode: 422, error: 'MONTANT_MISMATCH' });
+      }
+      next(error);
+    }
+  }
+
+  // POST /api/paiements/fineo/initier — Initier un paiement FineoPay (APPRENANT)
+  async initierPaiementFineo(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { dossier_id } = req.body;
+      if (!dossier_id) {
+        return res.status(400).json({ statusCode: 400, error: 'VALIDATION_ERROR', message: 'dossier_id requis' });
+      }
+      const result = await this.paiementService.initierPaiementFineo(dossier_id, req.user!.userId);
+      return res.status(201).json({ statusCode: 201, data: result });
+    } catch (error: any) {
+      if (error.message === 'DOSSIER_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DOSSIER_NOT_FOUND' });
+      }
+      if (error.message === 'FORBIDDEN') {
+        return res.status(403).json({ statusCode: 403, error: 'FORBIDDEN' });
+      }
+      if (error.message === 'PAIEMENT_DEJA_VALIDE') {
+        return res.status(409).json({ statusCode: 409, error: 'PAIEMENT_DEJA_VALIDE' });
+      }
+      if (error.message === 'DOSSIER_STATUT_INVALIDE') {
+        return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE' });
+      }
+      next(error);
+    }
+  }
 }

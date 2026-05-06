@@ -71,6 +71,16 @@ router.get('/admin/paiements/stats', authenticate, authorize('ADMIN', 'AGENT'), 
   paiementController.getPaiementsStats(req, res, next);
 });
 
+// POST /api/paiements/fineo/initier — Initier un paiement FineoPay (APPRENANT) — top 1
+router.post('/paiements/fineo/initier', authenticate, authorize('APPRENANT'), (req, res, next) => {
+  paiementController.initierPaiementFineo(req, res, next);
+});
+
+// POST /webhooks/fineo — Callback FineoPay (PUBLIC, double vérification)
+router.post('/webhooks/fineo', (req, res, next) => {
+  paiementController.traiterCallbackFineo(req, res, next);
+});
+
 // POST /api/paiements/webhook — Webhook confirmation paiement legacy (PUBLIC avec signature)
 router.post('/paiements/webhook', (req, res, next) => {
   paiementController.handleWebhook(req, res, next);

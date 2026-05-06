@@ -7,6 +7,8 @@ import { PrismaClient } from '@prisma/client';
 import { InitierPaiementDto, InitierPaiementNgserDto } from './dto/paiement.dto';
 import { PaiementNgserService } from './paiement-ngser.service';
 import { IpnNgserService } from './ipn-ngser.service';
+import { PaiementFineoService } from './paiement-fineo.service';
+import { IpnFineoService, FineoCbPayload } from './ipn-fineo.service';
 import { CommissionService } from './commission.service';
 import { getDelaiPaiementH } from '../../config/env.config';
 
@@ -15,7 +17,9 @@ const TIMEOUT_API_S = 30;      // RM-09
 
 export class PaiementService {
   private ipnNgserService: IpnNgserService;
+  private ipnFineoService: IpnFineoService;
   private commissionService: CommissionService;
+  private paiementFineoService: PaiementFineoService;
 
   constructor(
     private readonly paiementRepo: PaiementRepository,
@@ -28,10 +32,21 @@ export class PaiementService {
   ) {
     this.commissionService = new CommissionService(prisma, audit);
     this.ipnNgserService = new IpnNgserService(prisma, audit, this.commissionService);
+    this.paiementFineoService = new PaiementFineoService(prisma, voucherRepo, audit);
+    this.ipnFineoService = new IpnFineoService(prisma, audit, this.commissionService);
   }
 
   async initierPaiementNgser(dto: InitierPaiementNgserDto, apprenantId: string) {
     return this.paiementNgserService.initierPaiement(dto, apprenantId);
+  }
+
+  // FineoPay — top 1
+  async initierPaiementFineo(dossierId: string, apprenantId: string) {
+    return this.paiementFineoService.initierPaiement(dossierId, apprenantId);
+  }
+
+  async traiterCallbackFineo(payload: FineoCbPayload) {
+    return this.ipnFineoService.traiterCallback(payload);
   }
 
   async initierPaiement(dto: InitierPaiementDto, apprenantId: string) {
