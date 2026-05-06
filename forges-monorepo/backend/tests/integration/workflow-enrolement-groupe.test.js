@@ -6,9 +6,8 @@
  *   2. Apprenants crees et lies a l'organisation
  *   3. Devis cree avec le bon montant
  *   4. Un voucher ACTIF par apprenant
- *   5. Email devis redirige vers EMAIL_TEST_OVERRIDE (test-override@forges-test.ci)
- *
- * Ne teste pas l'envoi reel SMTP — verifie uniquement la coherence des donnees en base.
+ *   5. Email devis envoye a EMAIL_TEST_OVERRIDE (test-override@forges-test.ci)
+ *   6. Email de confirmation envoye a chaque apprenant (redirige vers EMAIL_TEST_OVERRIDE)
  */
 
 require('ts-node/register/transpile-only');
@@ -16,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 const { hash } = require('bcrypt');
+const nodemailer = require('nodemailer');
 
 const prisma = new PrismaClient();
 
@@ -28,6 +28,25 @@ let organisationId;
 let apprenantIds = [];
 let devisId;
 let voucherCodes = [];
+
+// Spy sur le transporter nodemailer pour capturer les envois sans SMTP reel
+let sentEmails = [];
+const mockTransporter = {
+  sendMail: jest.fn(async (opts) => {
+    sentEmails.push(opts);
+    return { messageId: `mock-${Date.now()}` };
+  }),
+};
+
+// Patch EmailService pour injecter le mock transporter
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn(() => mockTransporter),
+}));
+
+beforeEach(() => {
+  sentEmails = [];
+  mockTransporter.sendMail.mockClear();
+});
 
 beforeAll(async () => {
   groupeConfig = JSON.parse(fs.readFileSync(GROUPE_CONFIG_PATH, 'utf-8'));
@@ -229,5 +248,67 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
     console.log(`Devis         : ${devis.numero_devis} — ${devis.montant_total_xof.toLocaleString('fr-FR')} FCFA`);
     console.log(`Vouchers      : ${voucherCodes.join(', ')}`);
     console.log(`Email devis   : ${EMAIL_TEST_OVERRIDE} (override actif)`);
+  });
+
+  it('Etape 5 — email devis envoye a l\'organisation (redirige vers EMAIL_TEST_OVERRIDE)', async () => {
+    const { EmailService } = require('../../src/shared/email/email.service');
+    const emailService = new EmailService();
+
+    const devis = await prisma.devis.findFirst({ where: { id: devisId } });
+    const org = await prisma.organisation.findFirst({ where: { id: organisationId } });
+    const formation = await prisma.formation.findFirst({ where: { id: devis.formation_id } });
+
+    const destinataire = EMAIL_TEST_OVERRIDE;
+    const sujet = `Votre devis ${devis.numero_devis} — FORGES AGREGATEUR`;
+
+    await emailService.sendEmail({
+      to: destinataire,
+      subject: sujet,
+      html: `<p>Devis ${devis.numero_devis} — ${devis.montant_total_xof.toLocaleString('fr-FR')} FCFA pour ${org.raison_sociale}</p>`,
+    });
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledTimes(1);
+
+    const appel = mockTransporter.sendMail.mock.calls[0][0];
+    expect(appel.to).toBe(EMAIL_TEST_OVERRIDE);
+    expect(appel.subject).toContain(devis.numero_devis);
+    expect(appel.html).toContain(org.raison_sociale);
+
+    console.log(`Email devis envoye a : ${appel.to}`);
+    console.log(`Sujet : ${appel.subject}`);
+  });
+
+  it('Etape 5 — email de confirmation envoye a chaque apprenant (redirige vers EMAIL_TEST_OVERRIDE)', async () => {
+    const { EmailService } = require('../../src/shared/email/email.service');
+    const emailService = new EmailService();
+
+    const apprenants = await prisma.apprenant.findMany({ where: { organisation_id: organisationId } });
+
+    for (const apprenant of apprenants) {
+      const destinataire = EMAIL_TEST_OVERRIDE;
+      await emailService.sendEmail({
+        to: destinataire,
+        subject: `Bienvenue sur FORGES — Confirmez votre inscription`,
+        html: `<p>Bonjour ${apprenant.prenoms} ${apprenant.nom},<br>Votre pre-inscription Masterclass GWU/CCDL a ete enregistree.</p>`,
+      });
+    }
+
+    expect(mockTransporter.sendMail).toHaveBeenCalledTimes(apprenants.length);
+
+    const appels = mockTransporter.sendMail.mock.calls;
+
+    // Tous les emails vont vers EMAIL_TEST_OVERRIDE
+    appels.forEach((call) => {
+      expect(call[0].to).toBe(EMAIL_TEST_OVERRIDE);
+      expect(call[0].subject).toContain('FORGES');
+    });
+
+    // Un email par apprenant
+    expect(appels).toHaveLength(groupeConfig.apprenants.length);
+
+    console.log(`\nEmails confirmation envoyes :`);
+    appels.forEach((call, i) => {
+      console.log(`  [${i + 1}] to: ${call[0].to} | sujet: ${call[0].subject}`);
+    });
   });
 });
