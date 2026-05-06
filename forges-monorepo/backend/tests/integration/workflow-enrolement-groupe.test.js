@@ -283,13 +283,19 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
     const emailService = new EmailService();
 
     const apprenants = await prisma.apprenant.findMany({ where: { organisation_id: organisationId } });
+    const org = await prisma.organisation.findFirst({ where: { id: organisationId } });
 
     for (const apprenant of apprenants) {
       const destinataire = EMAIL_TEST_OVERRIDE;
-      await emailService.sendEmail({
+      const appConfig = groupeConfig.apprenants.find(a => a.email === apprenant.email);
+
+      await emailService.sendEnrolementConfirmationApprenant({
         to: destinataire,
-        subject: `Bienvenue sur FORGES — Confirmez votre inscription`,
-        html: `<p>Bonjour ${apprenant.prenoms} ${apprenant.nom},<br>Votre pre-inscription Masterclass GWU/CCDL a ete enregistree.</p>`,
+        prenoms: apprenant.prenoms,
+        nom: apprenant.nom,
+        fonction: appConfig?.fonction,
+        organisation: org.raison_sociale,
+        formation: 'Masterclass GWU/CCDL',
       });
     }
 
@@ -301,6 +307,10 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
     appels.forEach((call) => {
       expect(call[0].to).toBe(EMAIL_TEST_OVERRIDE);
       expect(call[0].subject).toContain('FORGES');
+      expect(call[0].html).toContain('ANSSI CI');
+      expect(call[0].html).toContain('GWU/CCDL');
+      // Pas de code acces dans l'email apprenant
+      expect(call[0].html).not.toContain('code acces');
     });
 
     // Un email par apprenant

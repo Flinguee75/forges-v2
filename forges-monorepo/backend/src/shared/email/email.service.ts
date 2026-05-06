@@ -977,17 +977,16 @@ export class EmailService {
     fonction?: string;
     organisation: string;
     formation: string;
-    voucherCode: string;
-    dateExpiration: Date;
   }): Promise<void> {
-    const { to, prenoms, nom, fonction, organisation, formation, voucherCode, dateExpiration } = options;
-    const dateExp = dateExpiration.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const { to, prenoms, nom, fonction, organisation, formation } = options;
     const nomComplet = `${prenoms} ${nom}`;
-    const fonctionLine = fonction ? `<p style="margin:0;color:#666;font-size:13px;">${fonction} — ${organisation}</p>` : `<p style="margin:0;color:#666;font-size:13px;">${organisation}</p>`;
+    const fonctionLine = fonction
+      ? `<p style="margin:0;color:#666;font-size:13px;">${fonction} — ${organisation}</p>`
+      : `<p style="margin:0;color:#666;font-size:13px;">${organisation}</p>`;
 
     await this.sendEmail({
       to,
-      subject: `Votre inscription Masterclass GWU/CCDL — FORGES`,
+      subject: `Votre pré-inscription Masterclass GWU/CCDL confirmée — FORGES`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;">
           <div style="background:#1a1a2e;padding:24px 32px;border-radius:8px 8px 0 0;">
@@ -1005,19 +1004,19 @@ export class EmailService {
             </p>
 
             <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0;">
-              <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;">Votre code d'accès</p>
-              <p style="margin:0;font-size:22px;font-weight:700;letter-spacing:3px;color:#1a1a2e;font-family:monospace;">${voucherCode}</p>
-              <p style="margin:8px 0 0;font-size:12px;color:#999;">Valable jusqu'au ${dateExp} — usage unique</p>
+              <p style="margin:0 0 4px;font-size:13px;color:#555;">
+                Votre participation est prise en charge par <strong>${organisation}</strong>.
+                Vous recevrez prochainement les informations de connexion à la plateforme FORGES
+                pour accéder à votre espace apprenant.
+              </p>
             </div>
 
             <p style="font-size:14px;color:#555;">
-              Ce code vous permettra de finaliser votre inscription et de régler votre participation
-              directement sur la plateforme FORGES. Conservez-le précieusement.
+              Pour toute question concernant cette masterclass, n'hésitez pas à contacter notre équipe.
             </p>
 
             <div style="border-top:1px solid #e2e8f0;margin-top:32px;padding-top:20px;">
               <p style="font-size:13px;color:#888;margin:0;">
-                Pour toute question, contactez notre équipe :<br>
                 <a href="mailto:contact@forges-group.com" style="color:#1a1a2e;font-weight:600;">contact@forges-group.com</a>
               </p>
             </div>
