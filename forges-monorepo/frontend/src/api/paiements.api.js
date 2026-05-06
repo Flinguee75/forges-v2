@@ -42,6 +42,10 @@ export const paiementsApi = {
     return apiClient.post('/paiements/initier', data);
   },
 
+  initierFineo: (dossier_id) => {
+    return apiClient.post('/paiements/fineo/initier', { dossier_id });
+  },
+
   /**
    * Récupère le détail d'un paiement
    * GET /api/paiements (filtré côté client car le backend runtime n'expose pas de détail dédié)

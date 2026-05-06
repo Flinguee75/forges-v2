@@ -1,12 +1,21 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 
+export interface FineoInputField {
+  key: string;
+  type: 'text' | 'email' | 'number' | 'tel' | 'list';
+  label: string;
+  required?: boolean;
+  options?: { label: string; amount?: number }[];
+}
+
 export interface FineoCheckoutRequest {
   title: string;
   amount: number;
   callbackUrl: string;
   syncRef: string;
   description?: string;
+  inputs?: FineoInputField[];
 }
 
 export interface FineoCheckoutResponse {
@@ -92,6 +101,7 @@ export class FineoClient {
           callbackUrl: request.callbackUrl,
           syncRef: request.syncRef,
           ...(request.description ? { description: request.description } : {}),
+          ...(request.inputs?.length ? { inputs: request.inputs } : {}),
         }
       );
 

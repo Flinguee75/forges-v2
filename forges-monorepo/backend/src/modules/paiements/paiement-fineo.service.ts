@@ -58,11 +58,14 @@ export class PaiementFineoService {
 
     const fineoClient = this.getFineoClient();
     const checkout = await fineoClient.createCheckoutLink({
-      title: `Formation : ${dossier.formation.intitule}`,
+      title: `Inscription — ${dossier.formation.intitule}`,
       amount: montantFinal,
       callbackUrl,
       syncRef,
-      description: `Ref dossier ${dossierId}`,
+      inputs: [
+        { key: 'apprenant_nom', type: 'text', label: 'Votre nom complet', required: false },
+        { key: 'apprenant_email', type: 'email', label: 'Votre email', required: false },
+      ],
     });
 
     const paiement = await this.prisma.paiement.create({

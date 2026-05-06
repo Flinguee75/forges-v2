@@ -10,9 +10,9 @@ export default function PaiementInitiation() {
   const navigate = useNavigate();
   const [state, setState] = useState({
     status: 'loading',
-    message: 'Initialisation du paiement sécurisé NGSER...',
+    message: 'Initialisation du paiement securise...',
     paymentUrl: '',
-    orderNgser: '',
+    reference: '',
   });
 
   useEffect(() => {
@@ -20,39 +20,51 @@ export default function PaiementInitiation() {
 
     async function initierPaiement() {
       try {
-        const response = await paiementsApi.initierNgser({ dossier_id: dossierId });
+        // FineoPay top 1
+        const response = await paiementsApi.initierFineo(dossierId);
         const data = response?.data || response;
 
         if (!isMounted) return;
 
         setState({
           status: 'ready',
-          message: 'Session NGSER créée. Vous allez être redirigé vers la page de paiement.',
-          paymentUrl: data.payment_url,
-          orderNgser: data.order_ngser,
+          message: 'Redirection vers la page de paiement securisee...',
+          paymentUrl: data.checkout_link,
+          reference: data.sync_ref,
         });
 
-        window.location.assign(data.payment_url);
-      } catch (error) {
-        if (!isMounted) return;
+        window.location.assign(data.checkout_link);
+      } catch (errFineo) {
+        // Fallback NGSER top 2
+        try {
+          const response = await paiementsApi.initierNgser({ dossier_id: dossierId });
+          const data = response?.data || response;
 
-        setState({
-          status: 'error',
-          message:
-            error?.message ||
-            error?.error ||
-            "Impossible d'initialiser le paiement NGSER.",
-          paymentUrl: '',
-          orderNgser: '',
-        });
+          if (!isMounted) return;
+
+          setState({
+            status: 'ready',
+            message: 'Redirection vers la page de paiement securisee...',
+            paymentUrl: data.payment_url,
+            reference: data.order_ngser,
+          });
+
+          window.location.assign(data.payment_url);
+        } catch (error) {
+          if (!isMounted) return;
+          setState({
+            status: 'error',
+            message: error?.message || error?.error || "Impossible d'initialiser le paiement.",
+            paymentUrl: '',
+            reference: '',
+          });
+        }
       }
     }
 
     initierPaiement();
 
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [dossierId]);
 
   return (
@@ -61,7 +73,7 @@ export default function PaiementInitiation() {
         <div>
           <h1 className="text-2xl font-semibold text-primary">Paiement sécurisé</h1>
           <p className="mt-2 text-sm text-subtext">
-            FORGES calcule le montant côté serveur avant de créer la session NGSER.
+            FORGES calcule le montant cote serveur. Vous allez etre redirige vers la page de paiement securisee.
           </p>
         </div>
 
@@ -75,14 +87,14 @@ export default function PaiementInitiation() {
           {state.message}
         </p>
 
-        {state.orderNgser && (
-          <p className="text-sm text-subtext">Commande NGSER : {state.orderNgser}</p>
+        {state.reference && (
+          <p className="text-sm text-subtext">Reference : {state.reference}</p>
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
           {state.paymentUrl && (
             <Button variant="primary" onClick={() => window.location.assign(state.paymentUrl)}>
-              Continuer vers NGSER
+              Continuer vers le paiement
             </Button>
           )}
           <Button variant="outline" onClick={() => navigate('/apprenant/paiements')}>
