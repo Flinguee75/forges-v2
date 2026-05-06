@@ -4,6 +4,7 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { CreerDevisDto } from './dto/devis.dto';
 import { genererPdfDevis } from './devis-pdf.service';
+import { genererDocxDevis } from './devis-docx.service';
 
 export class DevisService {
   constructor(
@@ -118,6 +119,13 @@ export class DevisService {
     const devis = await this.devisRepository.findById(id);
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
     return devis;
+  }
+
+  async telechargerDocxDevis(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    const devis = await this.devisRepository.findById(id);
+    if (!devis) throw new Error('DEVIS_NOT_FOUND');
+    const buffer = genererDocxDevis(devis as any);
+    return { buffer, filename: `${devis.numero_devis}.docx` };
   }
 
   async payerDevis(id: string, agentId: string, notes_admin?: string) {

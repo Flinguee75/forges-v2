@@ -35,6 +35,11 @@ router.patch('/admin/devis/:id/payer', authenticate, authorize('ADMIN', 'AGENT')
   devisController.payerDevis(req, res, next);
 });
 
+// GET /api/admin/devis/:id/docx — Télécharger DOCX (ADMIN, AGENT)
+router.get('/admin/devis/:id/docx', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  devisController.telechargerDocx(req, res, next);
+});
+
 // PATCH /api/admin/devis/:id/annuler — Annuler (ADMIN uniquement — RM-151)
 router.patch('/admin/devis/:id/annuler', authenticate, authorize('ADMIN'), (req, res, next) => {
   devisController.annulerDevis(req, res, next);

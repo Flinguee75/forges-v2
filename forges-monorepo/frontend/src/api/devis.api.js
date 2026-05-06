@@ -48,6 +48,18 @@ export const devisApi = {
     return unwrapPayload(response);
   },
 
+  telechargerDocx: async (id) => {
+    const response = await apiClient.get(`/admin/devis/${id}/docx`, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data ?? response]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `devis-${id}.docx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
   getMesDevis: async () => {
     const response = await apiClient.get('/organisation/devis');
     const payload = unwrapPayload(response);

@@ -33,6 +33,18 @@ export default function DevisDetail() {
   const [devis, setDevis] = useState(null);
   const [notesAdmin, setNotesAdmin] = useState('');
   const [confirmAction, setConfirmAction] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleTelechargerDocx = async () => {
+    setIsDownloading(true);
+    try {
+      await devisApi.telechargerDocx(id);
+    } catch {
+      showToast('Erreur lors du telechargement du document.', 'error');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   useEffect(() => {
     execute(() => devisApi.getById(id), {
@@ -226,7 +238,15 @@ export default function DevisDetail() {
         </Card>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          loading={isDownloading}
+          onClick={handleTelechargerDocx}
+          data-testid="btn-telecharger-docx"
+        >
+          Telecharger le document Word
+        </Button>
         <Button variant="outline" onClick={() => navigate('/backoffice/devis')}>
           Retour à la liste
         </Button>

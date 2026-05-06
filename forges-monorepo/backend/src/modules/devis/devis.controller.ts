@@ -92,6 +92,21 @@ export class DevisController {
     }
   }
 
+  // GET /api/admin/devis/:id/docx — Télécharger le DOCX (ADMIN, AGENT)
+  async telechargerDocx(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { buffer, filename } = await this.devisService.telechargerDocxDevis(req.params.id);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(buffer);
+    } catch (error: any) {
+      if (error.message === 'DEVIS_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND', message: 'Devis introuvable' });
+      }
+      next(error);
+    }
+  }
+
   // GET /api/organisation/devis — ORGANISATION (lecture seule)
   async listerDevisOrganisation(req: Request, res: Response, next: NextFunction) {
     try {
