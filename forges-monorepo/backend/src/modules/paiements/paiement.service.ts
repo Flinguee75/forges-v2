@@ -78,7 +78,7 @@ export class PaiementService {
       await this.paiementRepo.incrementerTentatives(paiementExistant.id);
 
       // Appel agrégateur externe
-      const paymentUrl = await this.appelAgregateur(dto, paiementExistant.montant_final);
+      const paymentUrl = await this.appelAgregateur(dto, paiementExistant.montant_final, apprenantId);
       return { paiement_id: paiementExistant.id, payment_url: paymentUrl };
     }
 
@@ -109,7 +109,7 @@ export class PaiementService {
       apprenant_id: apprenantId
     });
 
-    const paymentUrl = await this.appelAgregateur(dto, montantFinal);
+    const paymentUrl = await this.appelAgregateur(dto, montantFinal, apprenantId);
     return { paiement_id: paiement.id, payment_url: paymentUrl };
   }
 
@@ -142,11 +142,23 @@ export class PaiementService {
     return montant;
   }
 
-  // RM-09 : appel agrégateur avec timeout 30s
-  private async appelAgregateur(dto: InitierPaiementDto, montant: number): Promise<string> {
-    // Intégration MTN/Orange Money — URL de paiement retournée par l'agrégateur
-    // En production : appel API avec timeout 30s
-    return `https://pay.aggregateur.ci/checkout?ref=${dto.dossier_id}&amount=${montant}&method=${dto.methode}`;
+  // RM-09 : Fineo top 1, NGSER en backup
+  private async appelAgregateur(dto: InitierPaiementDto, montant: number, apprenantId: string): Promise<string> {
+    try {
+      const result = await this.paiementFineoService.initierPaiement(dto.dossier_id, apprenantId);
+      return result.checkout_link;
+    } catch (errFineo: any) {
+      await this.audit.warning('FINEO_FALLBACK_NGSER', {
+        dossier_id: dto.dossier_id,
+        raison: errFineo.message,
+      });
+
+      const ngserDto: InitierPaiementNgserDto = {
+        dossier_id: dto.dossier_id,
+      };
+      const result = await this.paiementNgserService.initierPaiement(ngserDto, apprenantId);
+      return result.payment_url;
+    }
   }
 
   // Webhook — confirmation paiement (RM-09)
