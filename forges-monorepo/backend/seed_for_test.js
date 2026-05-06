@@ -13,7 +13,7 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: (process.env.DATABASE_URL || '').includes('connection_limit') ? process.env.DATABASE_URL : `${process.env.DATABASE_URL}?connection_limit=5` } } });
 const args = process.argv.slice(2);
 const RESET = args.includes('--reset');
 const CHECK = args.includes('--check');
@@ -186,6 +186,7 @@ async function reset() {
   await prisma.voucherApporteur.deleteMany();
   await prisma.apporteur.deleteMany();
   await prisma.paiement.deleteMany();
+  await prisma.devis.deleteMany();
   await prisma.dossier.deleteMany();
   await prisma.accesFormationDemande.deleteMany();
   await prisma.voucherOrganisation.deleteMany();

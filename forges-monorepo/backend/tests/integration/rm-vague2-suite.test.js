@@ -134,24 +134,13 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
   // ============================================================
   // Vague 2B — RM-85 / RM-86 : Schedulers Organisation
   // ============================================================
-  test('RM-85 — Scheduler envoie alertes expiration Organisation (J-30 et J-7)', async () => {
-    const orgJ30 = await createOrganisationAccount('rm85-j30');
+  test('RM-85 — Scheduler envoie alertes expiration Organisation (J-7 et J-2)', async () => {
     const orgJ7 = await createOrganisationAccount('rm85-j7');
+    const orgJ2 = await createOrganisationAccount('rm85-j2');
 
-    const dateJ30 = new Date(Date.now() + 30 * 24 * 3600 * 1000 + 12 * 3600 * 1000);
     const dateJ7 = new Date(Date.now() + 7 * 24 * 3600 * 1000 + 12 * 3600 * 1000);
+    const dateJ2 = new Date(Date.now() + 2 * 24 * 3600 * 1000 + 12 * 3600 * 1000);
 
-    await prisma.abonnementOrganisation.create({
-      data: {
-        organisation_id: orgJ30.id,
-        offre: 'PRO',
-        montant_annuel: 150000,
-        statut: 'ACTIF',
-        date_debut: new Date(),
-        date_fin: dateJ30,
-        renouvellement_auto: true,
-      },
-    });
     await prisma.abonnementOrganisation.create({
       data: {
         organisation_id: orgJ7.id,
@@ -163,10 +152,21 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
         renouvellement_auto: true,
       },
     });
+    await prisma.abonnementOrganisation.create({
+      data: {
+        organisation_id: orgJ2.id,
+        offre: 'PRO',
+        montant_annuel: 150000,
+        statut: 'ACTIF',
+        date_debut: new Date(),
+        date_fin: dateJ2,
+        renouvellement_auto: true,
+      },
+    });
 
     const result = await orgService.envoyerAlertesExpiration();
-    expect(result.alertes_j30).toBeGreaterThanOrEqual(1);
     expect(result.alertes_j7).toBeGreaterThanOrEqual(1);
+    expect(result.alertes_j2).toBeGreaterThanOrEqual(1);
   });
 
   // ============================================================

@@ -1,7 +1,5 @@
 const crypto = require('crypto');
-const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
 const request = require('supertest');
 const { hash } = require('bcrypt');
 
@@ -9,32 +7,14 @@ require('ts-node/register/transpile-only');
 const { prisma } = require('../../src/shared/prisma/prisma.client');
 
 const backendRoot = path.resolve(__dirname, '..', '..');
+// Restrict connection pool so all test suites share a single connection.
 if (process.env.DATABASE_URL) {
   const databaseUrl = new URL(process.env.DATABASE_URL);
   databaseUrl.searchParams.set('connection_limit', '1');
   process.env.DATABASE_URL = databaseUrl.toString();
 }
-const seedRunToken = process.env.FORGES_E2E_SEED_TOKEN || `${process.pid}-${Date.now()}`;
-process.env.FORGES_E2E_SEED_TOKEN = seedRunToken;
-const seedSentinel = path.join(backendRoot, `.jest-e2e-seeded-${seedRunToken}`);
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
 const PASSWORD = 'Test@FORGES2026!';
-
-if (!fs.existsSync(seedSentinel)) {
-  execFileSync(
-    process.execPath,
-    ['-r', 'ts-node/register/transpile-only', path.join(backendRoot, 'prisma', 'seed.e2e.ts')],
-    {
-      cwd: backendRoot,
-      env: {
-        ...process.env,
-        NODE_ENV: 'test',
-      },
-      stdio: 'inherit',
-    }
-  );
-  fs.writeFileSync(seedSentinel, new Date().toISOString(), 'utf8');
-}
 
 const app = require('../../src/app').default;
 const API_URL = app;

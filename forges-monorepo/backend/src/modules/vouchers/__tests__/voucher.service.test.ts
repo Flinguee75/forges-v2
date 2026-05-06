@@ -106,7 +106,7 @@ describe('VoucherService', () => {
   });
 
   it('calcule une réduction promotionnelle pour un voucher montant', async () => {
-    (mockPrisma.voucherApporteur.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.voucherOrganisation.findUnique as jest.Mock).mockResolvedValue({
       id: 'voucher-03',
       formation_id: 'formation-01',
       statut: 'ACTIF',

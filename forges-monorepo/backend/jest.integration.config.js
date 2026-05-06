@@ -10,6 +10,7 @@ module.exports = {
   moduleNameMapper: {
     '^uuid$': '<rootDir>/src/__tests__/mocks/uuid.integration.ts'
   },
+  globalSetup: '<rootDir>/tests/integration/globalSetup.js',
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   collectCoverage: false,
   testTimeout: 30000

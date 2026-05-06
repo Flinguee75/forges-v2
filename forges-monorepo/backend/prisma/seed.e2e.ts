@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcrypt';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL?.includes('connection_limit') ? process.env.DATABASE_URL : `${process.env.DATABASE_URL}?connection_limit=5` } } });
 
 const PASSWORD = 'Test@FORGES2026!';
 
