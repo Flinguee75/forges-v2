@@ -969,6 +969,153 @@ export class EmailService {
       ]),
     });
   }
+
+  async sendEnrolementConfirmationApprenant(options: {
+    to: string;
+    prenoms: string;
+    nom: string;
+    fonction?: string;
+    organisation: string;
+    formation: string;
+    voucherCode: string;
+    dateExpiration: Date;
+  }): Promise<void> {
+    const { to, prenoms, nom, fonction, organisation, formation, voucherCode, dateExpiration } = options;
+    const dateExp = dateExpiration.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const nomComplet = `${prenoms} ${nom}`;
+    const fonctionLine = fonction ? `<p style="margin:0;color:#666;font-size:13px;">${fonction} — ${organisation}</p>` : `<p style="margin:0;color:#666;font-size:13px;">${organisation}</p>`;
+
+    await this.sendEmail({
+      to,
+      subject: `Votre inscription Masterclass GWU/CCDL — FORGES`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;">
+          <div style="background:#1a1a2e;padding:24px 32px;border-radius:8px 8px 0 0;">
+            <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700;letter-spacing:1px;">FORGES AGRÉGATEUR</h1>
+            <p style="color:#a0a8c0;margin:4px 0 0;font-size:13px;">Plateforme de formations certifiantes</p>
+          </div>
+
+          <div style="background:#f8f9fb;padding:32px;border-radius:0 0 8px 8px;">
+            <p style="font-size:15px;color:#333;margin-top:0;">Bonjour <strong>${nomComplet}</strong>,</p>
+            ${fonctionLine}
+            <br>
+            <p style="font-size:15px;color:#333;">
+              Votre pré-inscription à la <strong>${formation}</strong> a bien été enregistrée.
+              Nous sommes ravis de vous compter parmi les participants de cette masterclass.
+            </p>
+
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0;">
+              <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;">Votre code d'accès</p>
+              <p style="margin:0;font-size:22px;font-weight:700;letter-spacing:3px;color:#1a1a2e;font-family:monospace;">${voucherCode}</p>
+              <p style="margin:8px 0 0;font-size:12px;color:#999;">Valable jusqu'au ${dateExp} — usage unique</p>
+            </div>
+
+            <p style="font-size:14px;color:#555;">
+              Ce code vous permettra de finaliser votre inscription et de régler votre participation
+              directement sur la plateforme FORGES. Conservez-le précieusement.
+            </p>
+
+            <div style="border-top:1px solid #e2e8f0;margin-top:32px;padding-top:20px;">
+              <p style="font-size:13px;color:#888;margin:0;">
+                Pour toute question, contactez notre équipe :<br>
+                <a href="mailto:contact@forges-group.com" style="color:#1a1a2e;font-weight:600;">contact@forges-group.com</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      `,
+    });
+  }
+
+  async sendEnrolementDevisOrganisation(options: {
+    to: string;
+    contactReferent: string;
+    organisation: string;
+    formation: string;
+    numeroDevis: string;
+    nbPlaces: number;
+    tarifUnitaire: number;
+    montantTotal: number;
+    notesAdmin?: string;
+    pdfBuffer?: Buffer;
+    pdfFilename?: string;
+  }): Promise<void> {
+    const {
+      to, contactReferent, organisation, formation,
+      numeroDevis, nbPlaces, tarifUnitaire, montantTotal,
+      notesAdmin, pdfBuffer, pdfFilename,
+    } = options;
+
+    const tarifFormate = tarifUnitaire.toLocaleString('fr-FR');
+    const montantFormate = montantTotal.toLocaleString('fr-FR');
+    const sujet = `Devis ${numeroDevis} — Masterclass GWU/CCDL — FORGES`;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;">
+        <div style="background:#1a1a2e;padding:24px 32px;border-radius:8px 8px 0 0;">
+          <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700;letter-spacing:1px;">FORGES AGRÉGATEUR</h1>
+          <p style="color:#a0a8c0;margin:4px 0 0;font-size:13px;">Devis de formation — réf. ${numeroDevis}</p>
+        </div>
+
+        <div style="background:#f8f9fb;padding:32px;border-radius:0 0 8px 8px;">
+          <p style="font-size:15px;color:#333;margin-top:0;">Bonjour <strong>${contactReferent}</strong>,</p>
+          <p style="font-size:14px;color:#555;">
+            Veuillez trouver ci-joint le devis de participation de <strong>${organisation}</strong>
+            à la <strong>${formation}</strong>.
+          </p>
+
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:24px 0;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr style="background:#f1f5f9;">
+                <td style="padding:12px 16px;color:#666;font-weight:600;">Organisation</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:700;">${organisation}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;color:#666;">Formation</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:600;">${formation}</td>
+              </tr>
+              <tr style="background:#f1f5f9;">
+                <td style="padding:12px 16px;color:#666;">Nombre de places</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:600;">${nbPlaces}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;color:#666;">Tarif unitaire</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:600;">${tarifFormate} FCFA</td>
+              </tr>
+              <tr style="border-top:2px solid #1a1a2e;">
+                <td style="padding:16px;font-weight:700;font-size:15px;">MONTANT TOTAL</td>
+                <td style="padding:16px;text-align:right;font-weight:700;font-size:18px;color:#1a1a2e;">${montantFormate} FCFA</td>
+              </tr>
+            </table>
+          </div>
+
+          ${notesAdmin ? `<p style="font-size:13px;color:#888;font-style:italic;border-left:3px solid #e2e8f0;padding-left:12px;">${notesAdmin}</p>` : ''}
+
+          <p style="font-size:14px;color:#555;">
+            Le devis en PDF est joint à cet email. Pour valider votre participation et procéder au règlement,
+            contactez notre équipe en répondant à ce message.
+          </p>
+
+          <div style="border-top:1px solid #e2e8f0;margin-top:32px;padding-top:20px;">
+            <p style="font-size:13px;color:#888;margin:0;">
+              FORGES AGRÉGATEUR — <a href="mailto:contact@forges-group.com" style="color:#1a1a2e;font-weight:600;">contact@forges-group.com</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (pdfBuffer && pdfFilename) {
+      await this.sendEmailWithAttachment({
+        to,
+        subject: sujet,
+        html,
+        attachment: { filename: pdfFilename, content: pdfBuffer, contentType: 'application/pdf' },
+      });
+    } else {
+      await this.sendEmail({ to, subject: sujet, html });
+    }
+  }
 }
 
 export const emailService = new EmailService();
