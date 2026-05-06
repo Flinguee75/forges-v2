@@ -38,7 +38,7 @@ export default function ApporteursList() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">Apporteurs</p>
             <h2 className="mt-3 text-2xl font-semibold text-primary">Liste des apporteurs</h2>
-            <p className="mt-2 text-subtext">Le runtime apporte maintenant une liste admin exploitable.</p>
+            <p className="mt-2 text-subtext">Gérez les apporteurs et suivez leurs commissions.</p>
           </div>
           <Button onClick={() => navigate('/backoffice/apporteurs/new')}>Créer un apporteur</Button>
         </div>

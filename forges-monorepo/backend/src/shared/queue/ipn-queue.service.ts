@@ -1,13 +1,13 @@
 import { AuditLogger } from '../audit/audit.logger';
 
-interface QueueItem {
+export interface QueueItem {
   provider: string;
   payload: any;
   received_at: Date;
   headers: any;
 }
 
-type QueueProcessor = (item: QueueItem) => Promise<void>;
+export type QueueProcessor = (item: QueueItem) => Promise<void>;
 
 /**
  * File d'attente simple en mémoire pour le traitement asynchrone des IPN.

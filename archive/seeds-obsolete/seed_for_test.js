@@ -79,6 +79,18 @@ const IDS = {
 
   // FormationPartenaire
   fp_part_01:    'fpa-part-00001-0000-0000-000000000001',
+
+  // Devis
+  devis_app_01:  'dvs-app-000001-0000-0000-000000000001',
+  devis_app_02:  'dvs-app-000002-0000-0000-000000000002',
+  devis_org_01:  'dvs-org-000001-0000-0000-000000000001',
+  devis_org_02:  'dvs-org-000002-0000-0000-000000000002',
+
+  // Paiements additionnels
+  paiement_app_01:  'pay-app-000001-0000-0000-000000000001',
+  paiement_app_02:  'pay-app-000002-0000-0000-000000000002',
+  paiement_org_01:  'pay-org-000001-0000-0000-000000000001',
+  paiement_org_02:  'pay-org-000002-0000-0000-000000000002',
 };
 
 // ── Helpers date ──────────────────────────────────────────────
@@ -114,13 +126,17 @@ async function check() {
       count: await prisma.apporteur.count() },
     { label: 'ContratInstitutionnel', model: 'contratInstitutionnel',
       count: await prisma.contratInstitutionnel.count() },
+    { label: 'Devis', model: 'devis',
+      count: await prisma.devis.count() },
+    { label: 'Paiements', model: 'paiement',
+      count: await prisma.paiement.count() },
   ];
 
   const expected = {
     apprenant: 2, organisation: 1, partenaire: 1,
     formation: 5, session: 4, dossier: 4, voucherOrganisation: 3,
     abonnementRetail: 1, abonnementB2B: 1, apporteur: 1,
-    contratInstitutionnel: 1,
+    contratInstitutionnel: 1, devis: 4, paiement: 5,
   };
 
   let ok = true;
@@ -157,6 +173,7 @@ async function reset() {
   await prisma.commissionApporteur.deleteMany();
   await prisma.voucherApporteur.deleteMany();
   await prisma.apporteur.deleteMany();
+  await prisma.devis.deleteMany();
   await prisma.paiement.deleteMany();
   await prisma.dossier.deleteMany();
   await prisma.accesFormationDemande.deleteMany();
@@ -536,7 +553,7 @@ async function seed() {
   ]});
 
   // ── 9. PAIEMENT pour D-PAYE-01 ───────────────────────────
-  console.log('  9/11 Paiement...');
+  console.log('  9/13 Paiement...');
   await prisma.paiement.create({ data: {
     id: uuidv4(),
     dossier_id: IDS.d_paye_01,
@@ -551,8 +568,151 @@ async function seed() {
     created_at: agoD(90),
   }});
 
+  // ── 10. DEVIS POUR APPRENANTS ────────────────────────────
+  console.log('  10/13 Devis Apprenants...');
+  await prisma.devis.createMany({ skipDuplicates: true, data: [
+    {
+      // DEVIS-APP-01 : apprenant1, F-PREM-01, montant 1 900 000 XOF
+      id: IDS.devis_app_01,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_prem_01,
+      montant_formation_xof: 2000000,
+      montant_reduction_xof: 100000,  // -5% réduction partenaire
+      montant_total_xof: 1900000,
+      type_reduction: 'POURCENTAGE',
+      valeur_reduction: 5,
+      source_financement: 'RETAIL',
+      statut: 'ACCEPTE',
+      date_creation: agoD(7),
+      date_acceptation: agoD(6),
+      date_expiration: inD(23),
+      notes: 'Réduction abonné actif Premium',
+    },
+    {
+      // DEVIS-APP-02 : apprenant2, formation voucher (F-STD-01), montant 80 000 XOF
+      id: IDS.devis_app_02,
+      apprenant_id: IDS.apprenant2,
+      formation_id: IDS.f_std_01,
+      montant_formation_xof: 100000,
+      montant_reduction_xof: 20000,  // VCH-PROMO-01 -20%
+      montant_total_xof: 80000,
+      type_reduction: 'VOUCHER',
+      valeur_reduction: 20,
+      source_financement: 'RETAIL',
+      statut: 'EN_ATTENTE',
+      date_creation: agoD(2),
+      date_expiration: inD(28),
+      notes: 'Voucher promo VCH-PROMO-01 appliqué',
+    },
+  ]});
+
+  // ── 11. DEVIS POUR ORGANISATIONS ─────────────────────────
+  console.log('  11/13 Devis Organisations...');
+  await prisma.devis.createMany({ skipDuplicates: true, data: [
+    {
+      // DEVIS-ORG-01 : TechCorp CI, AbonnementB2B upgrade (Starter → Business)
+      id: IDS.devis_org_01,
+      organisation_id: IDS.org_techcorp,
+      montant_formation_xof: 1200000,  // Business 21-50 apprenants
+      montant_reduction_xof: 100000,   // -8% prorata annuel
+      montant_total_xof: 1100000,
+      type_reduction: 'PRORATA',
+      valeur_reduction: 8,
+      source_financement: 'B2B',
+      statut: 'ACCEPTE',
+      date_creation: agoD(5),
+      date_acceptation: agoD(4),
+      date_expiration: inD(25),
+      notes: 'Upgrade AbonnementB2B Starter → Business (21-50 apprenants)',
+    },
+    {
+      // DEVIS-ORG-02 : TechCorp CI, ContratInstitutionnel (Ministère)
+      id: IDS.devis_org_02,
+      organisation_id: IDS.org_techcorp,
+      montant_formation_xof: 5000000,  // Fee institutionnel sur 250 certifiés
+      montant_reduction_xof: 0,
+      montant_total_xof: 5000000,
+      type_reduction: null,
+      valeur_reduction: null,
+      source_financement: 'INSTITUTIONNEL',
+      statut: 'EN_ATTENTE',
+      date_creation: agoD(3),
+      date_expiration: inD(27),
+      notes: 'Contrat Ministère Numérique CI — 250 certifiés × 20 000 XOF/certifié',
+    },
+  ]});
+
+  // ── 12. PAIEMENTS POUR APPRENANTS ET ORGANISATIONS ────────
+  console.log('  12/13 Paiements Apprenants & Organisations...');
+  await prisma.paiement.createMany({ skipDuplicates: true, data: [
+    {
+      // PAIEMENT-APP-01 : apprenant1, devis DEVIS-APP-01, formation Premium, 1 900 000 XOF
+      id: IDS.paiement_app_01,
+      devis_id: IDS.devis_app_01,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_prem_01,
+      montant_catalogue: 2000000,
+      montant_final: 1900000,
+      montant_reduction: 100000,
+      methode: 'MOBILE_MONEY',
+      statut: 'CONFIRME',
+      transaction_id: 'TXN-TEST-APP-001',
+      commission_partenaire_pct: 30,
+      montant_reverse_partenaire: 1330000,  // (2000000 - 100000) × (1 - 30/100)
+      confirmed_at: agoD(6),
+      created_at: agoD(7),
+    },
+    {
+      // PAIEMENT-APP-02 : apprenant2, devis DEVIS-APP-02, formation standard avec voucher, 80 000 XOF
+      id: IDS.paiement_app_02,
+      devis_id: IDS.devis_app_02,
+      apprenant_id: IDS.apprenant2,
+      formation_id: IDS.f_std_01,
+      montant_catalogue: 100000,
+      montant_final: 80000,
+      montant_reduction: 20000,
+      methode: 'WAVE',
+      statut: 'EN_ATTENTE',
+      transaction_id: 'TXN-TEST-APP-002-PENDING',
+      commission_partenaire_pct: null,
+      montant_reverse_partenaire: null,
+      created_at: agoD(2),
+    },
+    {
+      // PAIEMENT-ORG-01 : TechCorp CI, devis DEVIS-ORG-01, upgrade B2B, 1 100 000 XOF
+      id: IDS.paiement_org_01,
+      devis_id: IDS.devis_org_01,
+      organisation_id: IDS.org_techcorp,
+      montant_catalogue: 1200000,
+      montant_final: 1100000,
+      montant_reduction: 100000,
+      methode: 'VIREMENT_BANCAIRE',
+      statut: 'CONFIRME',
+      transaction_id: 'TXN-TEST-ORG-001',
+      commission_partenaire_pct: null,
+      montant_reverse_partenaire: null,
+      confirmed_at: agoD(4),
+      created_at: agoD(5),
+    },
+    {
+      // PAIEMENT-ORG-02 : TechCorp CI, devis DEVIS-ORG-02, contrat Ministère, 5 000 000 XOF
+      id: IDS.paiement_org_02,
+      devis_id: IDS.devis_org_02,
+      organisation_id: IDS.org_techcorp,
+      montant_catalogue: 5000000,
+      montant_final: 5000000,
+      montant_reduction: 0,
+      methode: 'CHEQUE',
+      statut: 'EN_ATTENTE',
+      transaction_id: 'TXN-TEST-ORG-002-CHQ',
+      commission_partenaire_pct: null,
+      montant_reverse_partenaire: null,
+      created_at: agoD(3),
+    },
+  ]});
+
   // ── 10. APPORTEUR + VOUCHERAPPORTEUR ──────────────────────
-  console.log('  10/11 Apporteur TRAORE Mamadou...');
+  console.log('  13/13 Apporteur TRAORE Mamadou...');
   await prisma.apporteur.create({ data: {
     id: IDS.apporteur,
     nom: 'TRAORE',
@@ -599,7 +759,7 @@ async function seed() {
   ]});
 
   // ── 11. CONTRAT INSTITUTIONNEL ────────────────────────────
-  console.log('  11/11 ContratInstitutionnel...');
+  console.log('  11/13 ContratInstitutionnel...');
   await prisma.contratInstitutionnel.create({ data: {
     id: IDS.contrat_inst,
     numero_contrat: 'INST-2026-001',
@@ -643,6 +803,15 @@ async function seed() {
   console.log('    ABO-RET-01 (Essentiel actif)  ABO-B2B-01 (Starter 5/20)');
   console.log('    APT-01 (taux 5%, cumul 4500 XOF < seuil 5000)');
   console.log('    INST-2026-001 (Ministère Numérique CI, fee 20 000 XOF/certifié)\n');
+  console.log('  ✨ Nouveaux Devis & Paiements :');
+  console.log('    DEVIS-APP-01 (KOUASSI, F-PREM-01, 1 900 000 XOF, ACCEPTE)');
+  console.log('    DEVIS-APP-02 (DIALLO, F-STD-01 + VCH, 80 000 XOF, EN_ATTENTE)');
+  console.log('    DEVIS-ORG-01 (TechCorp, B2B Upgrade, 1 100 000 XOF, ACCEPTE)');
+  console.log('    DEVIS-ORG-02 (TechCorp, Ministère Contrat, 5 000 000 XOF, EN_ATTENTE)');
+  console.log('    PAIEMENT-APP-01 (1 900 000 XOF, CONFIRME, commission 30%)');
+  console.log('    PAIEMENT-APP-02 (80 000 XOF, EN_ATTENTE)');
+  console.log('    PAIEMENT-ORG-01 (1 100 000 XOF, CONFIRME)');
+  console.log('    PAIEMENT-ORG-02 (5 000 000 XOF, EN_ATTENTE, CHEQUE)\n');
 }
 
 // ── MAIN ──────────────────────────────────────────────────────

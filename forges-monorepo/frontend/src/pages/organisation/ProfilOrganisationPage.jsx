@@ -24,7 +24,7 @@ export default function ProfilOrganisationPage() {
     langue_preferee: 'FR',
   });
 
-  const { execute, isLoading } = useApi();
+  const { execute, isLoading, error } = useApi();
   const { showToast } = useToast();
 
   const loadProfil = async () => {
@@ -116,7 +116,16 @@ export default function ProfilOrganisationPage() {
   }
 
   if (!profil) {
-    return null;
+    return (
+      <div className="mx-auto max-w-4xl">
+        <div className="rounded-lg border border-danger bg-danger/5 p-6">
+          <p className="font-semibold text-danger">Impossible de charger le profil</p>
+          <p className="mt-1 text-sm text-subtext">
+            {error || 'Une erreur est survenue. Veuillez recharger la page.'}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

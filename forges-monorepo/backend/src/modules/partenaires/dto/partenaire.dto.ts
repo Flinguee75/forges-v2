@@ -30,6 +30,8 @@ export const SoumettreFormationSchema = z.object({
   // RM-129 : prix coûtant soumis par le partenaire
   prix_coutant_propose: z.number().int().min(1, 'Prix coûtant obligatoire en XOF'),
   commentaire_positionnement: z.string().optional(), // RM-127 : suggestion sans valeur contractuelle
+  // URL du contenu LMS (formations à la demande uniquement) — chiffrée côté backend
+  url_contenu: z.string().url().optional(),
 });
 
 // UCS18 — DTO validation par Responsable

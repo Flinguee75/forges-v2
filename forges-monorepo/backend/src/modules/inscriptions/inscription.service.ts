@@ -1,4 +1,5 @@
 import { DossierRepository } from './dossier.repository';
+import { getDelaiPaiementMs } from '../../config/env.config';
 import { SessionRepository } from '../sessions/session.repository';
 import { FormationRepository } from '../formations/formation.repository';
 import { VoucherValidationService } from '../vouchers/voucher-validation.service';
@@ -254,6 +255,9 @@ export class InscriptionService {
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
 
     // RM-05 : RETENU irréversible — vérifier statut actuel
+    if (dossier.statut === 'RETENU') {
+      return { success: true, message: 'Dossier déjà retenu.' };
+    }
     if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
       throw new Error('DOSSIER_ALREADY_PROCESSED');
     }
@@ -270,12 +274,12 @@ export class InscriptionService {
     const updated = await this.dossierRepo.updateStatut(dossierId, 'RETENU');
 
     // RM-07 : Déclencher délai 72h pour paiement
-    await this.dossierRepo.setDelaiPaiement(dossierId, new Date(Date.now() + 72 * 3600 * 1000));
+    await this.dossierRepo.setDelaiPaiement(dossierId, new Date(Date.now() + getDelaiPaiementMs()));
 
     await this.audit.info('DOSSIER_RETENU', {
       dossier_id: dossierId,
       responsable_id: responsableId,
-      delai_expiration: new Date(Date.now() + 72 * 3600 * 1000)
+      delai_expiration: new Date(Date.now() + getDelaiPaiementMs())
     });
 
     // Notifier l'apprenant du statut RETENU (RM-100)
@@ -284,7 +288,7 @@ export class InscriptionService {
     });
 
     if (apprenant) {
-      const delaiExpiration = new Date(Date.now() + 72 * 3600 * 1000);
+      const delaiExpiration = new Date(Date.now() + getDelaiPaiementMs());
       try {
         await this.email.sendDossierRetenu(
           apprenant.email,
@@ -320,6 +324,9 @@ export class InscriptionService {
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
 
     // Vérifier statut actuel
+    if (dossier.statut === 'REJETE') {
+      return { success: true, message: 'Dossier déjà rejeté.' };
+    }
     if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
       throw new Error('DOSSIER_ALREADY_PROCESSED');
     }
@@ -340,6 +347,34 @@ export class InscriptionService {
         motif_refus
       }
     });
+
+    if (dossier.voucher_organisation_id) {
+      await this.prisma.voucherOrganisation.update({
+        where: { id: dossier.voucher_organisation_id },
+        data: {
+          quota_utilise: { decrement: 1 },
+          statut: 'ACTIF',
+        },
+      });
+    }
+
+    if (dossier.voucher_code) {
+      const voucherPromo = await this.prisma.voucherApporteur.findFirst({
+        where: {
+          code: dossier.voucher_code,
+          type: 'PROMOTIONNEL',
+        },
+      });
+      if (voucherPromo) {
+        await this.prisma.voucherApporteur.update({
+          where: { id: voucherPromo.id },
+          data: {
+            quota_utilise: { decrement: 1 },
+            statut: voucherPromo.quota_max && voucherPromo.quota_utilise <= 1 ? 'ACTIF' : voucherPromo.statut,
+          },
+        });
+      }
+    }
 
     await this.audit.info('DOSSIER_REJETE', {
       dossier_id: dossierId,
@@ -386,21 +421,31 @@ export class InscriptionService {
     });
   }
 
-  async getDossiersBackoffice() {
-    const dossiers = await this.prisma.dossier.findMany({
-      where: {
+  async getDossiersBackoffice(filters: { statut?: string; search?: string } = {}) {
+    const where: any = {};
+
+    if (filters.statut) {
+      where.statut = filters.statut;
+    }
+
+    if (filters.search) {
+      where.apprenant = {
         OR: [
-          { statut: 'EN_ATTENTE_VERIFICATION' },
-          { statut: { in: ['GRIS', 'EXCEPTION'] } },
-          { type_fenetre: { in: ['GRIS', 'EXCEPTION'] } },
+          { nom: { contains: filters.search, mode: 'insensitive' } },
+          { prenoms: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
         ],
-      },
+      };
+    }
+
+    const dossiers = await this.prisma.dossier.findMany({
+      where,
       include: {
         apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
-        formation: { select: { id: true, intitule: true, type_formation: true, cout_catalogue: true } },
+        formation: { select: { id: true, intitule: true, type_formation: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
       },
-      orderBy: { created_at: 'asc' }
+      orderBy: { created_at: 'desc' },
     });
 
     const priority = (dossier: any) => {
@@ -410,11 +455,7 @@ export class InscriptionService {
       return 2;
     };
 
-    return dossiers.sort((a, b) => {
-      const byPriority = priority(a) - priority(b);
-      if (byPriority !== 0) return byPriority;
-      return a.created_at.getTime() - b.created_at.getTime();
-    });
+    return dossiers.sort((a, b) => priority(a) - priority(b));
   }
 
   async getDossiersBySession(sessionId: string) {

@@ -8,7 +8,7 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { IpnQueueService } from '../../shared/queue/ipn-queue.service';
+import { IpnQueueRedisService } from '../../shared/queue/ipn-queue-redis.service';
 
 const router = Router();
 
@@ -32,7 +32,7 @@ const paiementService = new PaiementService(
 );
 
 // Queue IPN
-const ipnQueue = new IpnQueueService(auditLogger);
+const ipnQueue = new IpnQueueRedisService(auditLogger);
 
 // Définir le processor de la queue IPN
 ipnQueue.setProcessor(async (item) => {
@@ -66,6 +66,11 @@ router.get('/backoffice/paiements', authenticate, authorize('ADMIN', 'AGENT'), (
   paiementController.getPaiements(req, res, next);
 });
 
+// GET /api/admin/paiements/stats — Statistiques paiement temps réel (Phase 2 prod v4.9)
+router.get('/admin/paiements/stats', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  paiementController.getPaiementsStats(req, res, next);
+});
+
 // POST /api/paiements/webhook — Webhook confirmation paiement legacy (PUBLIC avec signature)
 router.post('/paiements/webhook', (req, res, next) => {
   paiementController.handleWebhook(req, res, next);
@@ -79,6 +84,16 @@ router.post('/webhooks/paiement', (req, res, next) => {
 // POST /api/paiements/webhook — Alias legacy pour IPN NGSER
 router.post('/api/paiements/webhook', (req, res, next) => {
   paiementController.traiterIpnNgser(req, res, next);
+});
+
+// GET /api/paiements/retour — Payment Data Transfer NGSER (redirection post-paiement, PUBLIC)
+router.get('/paiements/retour', (req, res, next) => {
+  paiementController.retourPaiementNgser(req, res, next);
+});
+
+// POST /api/admin/scheduler/reconciliation-ngser — Déclencher réconciliation manuelle (ADMIN) - Phase 1 v4.9
+router.post('/admin/scheduler/reconciliation-ngser', authenticate, authorize('ADMIN'), (req, res, next) => {
+  paiementController.runReconciliationScheduler(req, res, next);
 });
 
 export default router;

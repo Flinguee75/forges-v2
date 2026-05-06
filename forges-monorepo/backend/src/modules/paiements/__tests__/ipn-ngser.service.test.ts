@@ -8,6 +8,11 @@ const audit = new AuditLogger(prisma);
 const commissionService = new CommissionService(prisma, audit);
 const service = new IpnNgserService(prisma, audit, commissionService);
 
+// montant_initie en centimes dans les fixtures = 150000 centimes = 1500 XOF
+// NGSER envoie le montant en XOF → les IPN de test doivent utiliser amount: 1500
+const MONTANT_INITIE_CENTIMES = 150000;
+const MONTANT_XOF = Math.round(MONTANT_INITIE_CENTIMES / 100); // 1500
+
 const TEST_IDS = {
   apprenant: 'test-apprenant',
   formation: 'test-formation',
@@ -147,9 +152,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-001-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -160,7 +165,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement.order_ngser!,
         transaction_id: 'TXN-DOUBLE-' + Date.now(),
         status: 'SUCCESS',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       // Premier appel
@@ -205,9 +210,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier1.id,
           order_ngser: 'FRG-2026-002-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -218,9 +223,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier2.id,
           order_ngser: 'FRG-2026-003-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -232,7 +237,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement1.order_ngser!,
         transaction_id: txnId,
         status: 'SUCCESS',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       await service.traiterIpn(ipn);
@@ -270,9 +275,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-004-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -309,9 +314,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-005-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -322,7 +327,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement.order_ngser!,
         transaction_id: 'TXN-OK-' + Date.now(),
         status: 'SUCCESS',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       const result = await service.traiterIpn(ipn);
@@ -354,9 +359,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-006-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -367,7 +372,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement.order_ngser!,
         transaction_id: 'TXN-SUCCESS-' + Date.now(),
         status: 'SUCCESS',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       const result = await service.traiterIpn(ipn);
@@ -405,9 +410,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-007-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -418,7 +423,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement.order_ngser!,
         transaction_id: 'TXN-FAIL-' + Date.now(),
         status: 'FAIL',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       const result = await service.traiterIpn(ipn);
@@ -447,9 +452,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-008-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -460,7 +465,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement.order_ngser!,
         transaction_id: 'TXN-PENDING-' + Date.now(),
         status: 'PENDING',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       const result = await service.traiterIpn(ipn);
@@ -489,9 +494,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-009-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -502,7 +507,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement.order_ngser!,
         transaction_id: 'TXN-UNKNOWN-' + Date.now(),
         status: 'WEIRD_CODE',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       const result = await service.traiterIpn(ipn);
@@ -533,9 +538,9 @@ describe('IpnNgserService — RM-158/160', () => {
         data: {
           dossier_id: dossier.id,
           order_ngser: 'FRG-2026-010-' + Math.random().toString(36).substring(7).toUpperCase(),
-          montant_catalogue: 150000,
-          montant_final: 150000,
-          montant_initie: 150000,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
           methode: 'MOBILE_MONEY',
           statut: 'PENDING',
           provider: 'NGSER',
@@ -546,7 +551,7 @@ describe('IpnNgserService — RM-158/160', () => {
         order_ngser: paiement.order_ngser!,
         transaction_id: 'TXN-COMMISSION-' + Date.now(),
         status: 'SUCCESS',
-        amount: 150000,
+        amount: MONTANT_XOF,
       };
 
       await service.traiterIpn(ipn);
@@ -569,6 +574,135 @@ describe('IpnNgserService — RM-158/160', () => {
       await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: paiement.id } });
       await prisma.paiement.delete({ where: { id: paiement.id } });
       await prisma.dossier.delete({ where: { id: dossier.id } });
+    });
+  });
+
+  describe('NGSER real IPN format (order_id, status_id, transaction_amount)', () => {
+    async function createDossierAndPaiement(suffix: string) {
+      const dossier = await prisma.dossier.create({
+        data: {
+          id: `D-TEST-NGSER-${suffix}-` + Date.now(),
+          apprenant_id: TEST_IDS.apprenant,
+          session_id: TEST_IDS.session,
+          formation_id: TEST_IDS.formation,
+          source_financement: 'RETAIL',
+          statut: 'EN_ATTENTE_PAIEMENT',
+        },
+      });
+      const paiement = await prisma.paiement.create({
+        data: {
+          dossier_id: dossier.id,
+          order_ngser: 'FRG-2026-NGSER-' + Math.random().toString(36).substring(7).toUpperCase(),
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
+          methode: 'MOBILE_MONEY',
+          statut: 'PENDING',
+          provider: 'NGSER',
+        },
+      });
+      return { dossier, paiement };
+    }
+
+    it('order_id résout le paiement (champ réel NGSER)', async () => {
+      const { dossier, paiement } = await createDossierAndPaiement('ORDERID');
+
+      const ipn = {
+        order_id: paiement.order_ngser!,
+        transaction_id: 'TXN-ORDERID-' + Date.now(),
+        status_id: 1,
+        transaction_amount: MONTANT_XOF,
+      };
+
+      const result = await service.traiterIpn(ipn);
+      expect(result.paiement_statut).toBe('CONFIRME');
+
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: paiement.id } });
+      await prisma.paiement.delete({ where: { id: paiement.id } });
+      await prisma.dossier.delete({ where: { id: dossier.id } });
+    });
+
+    it('status_id=1 confirme le paiement', async () => {
+      const { dossier, paiement } = await createDossierAndPaiement('STATUSID1');
+
+      const ipn = {
+        order_id: paiement.order_ngser!,
+        transaction_id: 'TXN-STATUS1-' + Date.now(),
+        status_id: 1,
+        transaction_amount: MONTANT_XOF,
+      };
+
+      const result = await service.traiterIpn(ipn);
+      expect(result.paiement_statut).toBe('CONFIRME');
+      expect(result.dossier_statut).toBe('PAYE');
+
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: paiement.id } });
+      await prisma.paiement.delete({ where: { id: paiement.id } });
+      await prisma.dossier.delete({ where: { id: dossier.id } });
+    });
+
+    it('status_id=0 échoue le paiement', async () => {
+      const { dossier, paiement } = await createDossierAndPaiement('STATUSID0');
+
+      const ipn = {
+        order_id: paiement.order_ngser!,
+        transaction_id: 'TXN-STATUS0-' + Date.now(),
+        status_id: 0,
+        transaction_amount: MONTANT_XOF,
+      };
+
+      const result = await service.traiterIpn(ipn);
+      expect(result.paiement_statut).toBe('ECHOUE');
+      expect(result.dossier_statut).toBe('ANNULE');
+
+      await prisma.paiement.delete({ where: { id: paiement.id } });
+      await prisma.dossier.delete({ where: { id: dossier.id } });
+    });
+
+    it('status_id=2 (montant insuffisant) échoue le paiement', async () => {
+      const { dossier, paiement } = await createDossierAndPaiement('STATUSID2');
+
+      const ipn = {
+        order_id: paiement.order_ngser!,
+        transaction_id: 'TXN-STATUS2-' + Date.now(),
+        status_id: 2,
+        transaction_amount: MONTANT_XOF,
+      };
+
+      const result = await service.traiterIpn(ipn);
+      expect(result.paiement_statut).toBe('ECHOUE');
+
+      await prisma.paiement.delete({ where: { id: paiement.id } });
+      await prisma.dossier.delete({ where: { id: dossier.id } });
+    });
+
+    it('transaction_amount utilisé comme montant primaire', async () => {
+      const { dossier, paiement } = await createDossierAndPaiement('TXNAMOUNT');
+
+      const ipn = {
+        order_id: paiement.order_ngser!,
+        transaction_id: 'TXN-TXNAMOUNT-' + Date.now(),
+        status_id: 1,
+        transaction_amount: MONTANT_XOF,
+        // amount absent: transaction_amount doit être utilisé
+      };
+
+      const result = await service.traiterIpn(ipn);
+      expect(result.paiement_statut).toBe('CONFIRME');
+
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: paiement.id } });
+      await prisma.paiement.delete({ where: { id: paiement.id } });
+      await prisma.dossier.delete({ where: { id: dossier.id } });
+    });
+
+    it('IPN sans order_id ni order_ngser lève IPN_ORDER_MANQUANT', async () => {
+      const ipn = {
+        transaction_id: 'TXN-NOORDER-' + Date.now(),
+        status_id: 1,
+        transaction_amount: MONTANT_XOF,
+      };
+
+      await expect(service.traiterIpn(ipn)).rejects.toThrow('IPN_ORDER_MANQUANT');
     });
   });
 });

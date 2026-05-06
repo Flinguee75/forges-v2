@@ -186,7 +186,8 @@ describe('OrgDashboard - Tests', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Essai gratuit - 4 jours restants', { selector: 'h2' })).toBeInTheDocument();
+      expect(screen.getAllByText('Essai gratuit').length).toBeGreaterThan(0);
+      expect(screen.getByText(/4 jours? restants/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Souscrire maintenant' })).toBeInTheDocument();
     });
   });

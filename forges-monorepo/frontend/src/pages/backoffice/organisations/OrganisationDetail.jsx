@@ -4,6 +4,7 @@ import { organisationsApi } from '../../../api/organisations.api';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import Input from '../../../components/ui/Input';
 import Spinner from '../../../components/feedback/Spinner';
 
 const formatDate = (value) => {
@@ -58,8 +59,12 @@ export default function OrganisationDetail() {
   const [membres, setMembres] = useState([]);
   const [abonnement, setAbonnement] = useState(null);
   const [vouchers, setVouchers] = useState([]);
+  const [orgConfig, setOrgConfig] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [configForm, setConfigForm] = useState({ commission_forges_pct: '', seuil_reversement_xof: '' });
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [configSaved, setConfigSaved] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -69,11 +74,12 @@ export default function OrganisationDetail() {
       setError(null);
 
       try {
-        const [organisationResponse, membresResponse, abonnementResponse, vouchersResponse] = await Promise.all([
+        const [organisationResponse, membresResponse, abonnementResponse, vouchersResponse, configResponse] = await Promise.all([
           organisationsApi.getById(id),
           organisationsApi.getMembres(id).catch(() => ({ data: [] })),
           organisationsApi.getAbonnement(id).catch(() => ({ data: null })),
           organisationsApi.getVouchers(id).catch(() => ({ data: [] })),
+          organisationsApi.getConfig(id).catch(() => ({ data: null })),
         ]);
 
         if (ignore) return;
@@ -81,6 +87,12 @@ export default function OrganisationDetail() {
         setMembres(membresResponse?.data || []);
         setAbonnement(abonnementResponse?.data || null);
         setVouchers(vouchersResponse?.data || []);
+        const cfg = configResponse?.data || null;
+        setOrgConfig(cfg);
+        setConfigForm({
+          commission_forges_pct: cfg?.commission_forges_pct != null ? String(cfg.commission_forges_pct) : '',
+          seuil_reversement_xof: cfg?.seuil_reversement_xof != null ? String(cfg.seuil_reversement_xof) : '',
+        });
       } catch (err) {
         if (!ignore) {
           setError(err?.message || "Impossible de charger le détail de l'organisation.");
@@ -118,6 +130,24 @@ export default function OrganisationDetail() {
 
   const organisationName = organisation.nom_organisation || organisation.raison_sociale || 'N/A';
   const activeVouchers = vouchers.filter((voucher) => voucher.statut === 'ACTIF').length;
+
+  const handleSaveConfig = async (e) => {
+    e.preventDefault();
+    setIsSavingConfig(true);
+    setConfigSaved(false);
+    try {
+      const payload = {
+        commission_forges_pct: configForm.commission_forges_pct === '' ? null : Number(configForm.commission_forges_pct),
+        seuil_reversement_xof: configForm.seuil_reversement_xof === '' ? null : Number(configForm.seuil_reversement_xof),
+      };
+      const res = await organisationsApi.updateConfig(id, payload);
+      const cfg = res?.data || null;
+      setOrgConfig(cfg);
+      setConfigSaved(true);
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -241,6 +271,53 @@ export default function OrganisationDetail() {
             ))}
           </div>
         )}
+      </Card>
+
+      <Card title="Parametres specifiques">
+        <p className="mb-4 text-sm text-subtext">
+          Les valeurs renseignees ici surchargent les parametres globaux pour cette organisation uniquement. Laisser vide pour appliquer la valeur globale.
+        </p>
+        {orgConfig && (
+          <div className="mb-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-border bg-gray-50 p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-subtext">Commission effective</p>
+              <p className="mt-1 text-lg font-semibold text-primary">{orgConfig.effective_commission_forges_pct ?? 'N/A'}%</p>
+            </div>
+            <div className="rounded-lg border border-border bg-gray-50 p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-subtext">Seuil reversement effectif</p>
+              <p className="mt-1 text-lg font-semibold text-primary">{orgConfig.effective_seuil_reversement_xof != null ? `${Number(orgConfig.effective_seuil_reversement_xof).toLocaleString('fr-FR')} XOF` : 'N/A'}</p>
+            </div>
+          </div>
+        )}
+        <form onSubmit={handleSaveConfig} className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              type="number"
+              label="Commission FORGES (%) — surcharge"
+              placeholder="Laisser vide pour utiliser la valeur globale"
+              value={configForm.commission_forges_pct}
+              onChange={(e) => setConfigForm((f) => ({ ...f, commission_forges_pct: e.target.value }))}
+              min="0"
+              max="100"
+            />
+            <Input
+              type="number"
+              label="Seuil reversement (XOF) — surcharge"
+              placeholder="Laisser vide pour utiliser la valeur globale"
+              value={configForm.seuil_reversement_xof}
+              onChange={(e) => setConfigForm((f) => ({ ...f, seuil_reversement_xof: e.target.value }))}
+              min="0"
+            />
+          </div>
+          {configSaved && (
+            <p className="text-sm text-success">Parametres enregistres.</p>
+          )}
+          <div className="flex justify-end">
+            <Button type="submit" loading={isSavingConfig}>
+              Enregistrer
+            </Button>
+          </div>
+        </form>
       </Card>
     </div>
   );

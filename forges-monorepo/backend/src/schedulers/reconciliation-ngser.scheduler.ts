@@ -119,6 +119,7 @@ export class ReconciliationNgserScheduler {
   /**
    * Réconcilie un paiement individuel
    * @param order_ngser - Numéro de commande NGSER
+   * Public pour permettre déclenchement manuel via endpoint admin
    */
   async reconcilierPaiement(order_ngser: string): Promise<ReconciliationResult> {
     try {
@@ -149,12 +150,21 @@ export class ReconciliationNgserScheduler {
   private async reconcilierMock(order_ngser: string): Promise<ReconciliationResult> {
     console.log(`[ReconciliationNgserScheduler] Mode MOCK - Réconciliation ${order_ngser}`);
 
-    // Simule un IPN SUCCESS
+    const paiement = await this.prisma.paiement.findUnique({
+      where: { order_ngser },
+      select: { montant_initie: true },
+    });
+
+    if (!paiement?.montant_initie) {
+      throw new Error('PAIEMENT_NOT_FOUND_OR_NO_MONTANT');
+    }
+
+    // Le contrat opérationnel attend le montant en XOF, donc conversion depuis les centimes stockés.
     const ipnMock = {
       order_ngser: order_ngser,
       transaction_id: `TXN-RECON-MOCK-${Date.now()}`,
       status: 'SUCCESS',
-      amount: 150000, // Mock - montant sera validé par IPN service
+      amount: Math.round(paiement.montant_initie / 100),
     };
 
     const result = await this.ipnService.traiterIpn(ipnMock);
@@ -189,7 +199,7 @@ export class ReconciliationNgserScheduler {
       order_ngser: order_ngser,
       transaction_id: ngserStatus.transaction_id || `RECON-${order_ngser}`,
       status: ngserStatus.status,
-      amount: ngserStatus.amount ?? paiement?.montant_initie ?? 0,
+      amount: ngserStatus.amount ?? Math.round((paiement?.montant_initie ?? 0) / 100),
       code_ngser: ngserStatus.code,
       wallet_ngser: ngserStatus.wallet,
     });
@@ -214,3 +224,8 @@ export class ReconciliationNgserScheduler {
     await this.reconcilierPaiementsPending();
   }
 }
+
+/**
+ * Instance unique du scheduler (singleton)
+ */
+export const reconciliationNgserScheduler = new ReconciliationNgserScheduler();

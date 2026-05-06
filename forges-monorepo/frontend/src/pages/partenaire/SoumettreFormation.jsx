@@ -30,6 +30,7 @@ const initialFormState = {
   certification: '',
   contact_formateur: '',
   prix_coutant: '',
+  url_contenu: '',
 };
 
 export default function SoumettreFormation() {
@@ -99,6 +100,7 @@ export default function SoumettreFormation() {
     contact_formateur: formData.contact_formateur || null,
     sous_domaine: formData.sous_domaine || null,
     prerequis: formData.prerequis || null,
+    url_contenu: formData.url_contenu || null,
   });
 
   const handleSave = async (brouillon = false) => {
@@ -278,6 +280,22 @@ export default function SoumettreFormation() {
           </div>
         </div>
       </Card>
+
+      {formData.mode_formation === 'A_LA_DEMANDE' && (
+        <Card title={copy.section6}>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.contentUrl}</label>
+            <input
+              type="url"
+              value={formData.url_contenu}
+              onChange={(e) => setField('url_contenu', e.target.value)}
+              placeholder="https://lms.forges.com/formations/..."
+              className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2"
+            />
+            <p className="mt-1 text-xs text-[var(--color-subtext)]">{copy.contentUrlHint}</p>
+          </div>
+        </Card>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
         <Button variant="secondary" onClick={() => navigate('/partenaire/formations')} disabled={isLoading}>

@@ -83,9 +83,9 @@ describe('FormationsALaDemande', () => {
     await waitFor(() => {
       expect(screen.getByText('Formation à la demande')).toBeInTheDocument();
       expect(screen.getByText('Accès suspendu')).toBeInTheDocument();
-      expect(screen.getByText(/Progression:\s*45%/)).toBeInTheDocument();
-      expect(screen.getAllByText(/Expiration:/).length).toBeGreaterThan(1);
-      expect(screen.getAllByText('Voir le détail').length).toBeGreaterThan(0);
+      expect(screen.getByText('45%')).toBeInTheDocument();
+      expect(screen.getAllByText('Expiration').length).toBeGreaterThan(1);
+      expect(screen.getAllByText('Voir le detail').length).toBeGreaterThan(0);
     });
   });
 });

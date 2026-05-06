@@ -89,4 +89,12 @@ export const organisationsApi = {
   getVouchers: async (id) => {
     return apiClient.get(`/backoffice/organisations/${id}/vouchers`);
   },
+
+  getConfig: async (id) => {
+    return apiClient.get(`/admin/organisations/${id}/config`);
+  },
+
+  updateConfig: async (id, data) => {
+    return apiClient.patch(`/admin/organisations/${id}/config`, data);
+  },
 };

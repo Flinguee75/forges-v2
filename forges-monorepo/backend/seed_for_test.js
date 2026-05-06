@@ -33,9 +33,11 @@ const IDS = {
   // Apprenants
   apprenant1:    'apr-00001-00000-0000-0000-000000000001',
   apprenant2:    'apr-00002-00000-0000-0000-000000000002',
+  apprenant3:    'apr-00003-00000-0000-0000-000000000003',  // Pour UCS12 (sans abonnement)
 
-  // Organisation
+  // Organisations
   org_techcorp:  'org-techcorp-000-0000-0000-000000000001',
+  org_test_02:   'org-test-02-00-0000-0000-000000000002',    // Pour UCS13 (sans B2B)
 
   // Partenaire
   partenaire:    'prt-instittech-000-0000-000000000001',
@@ -55,12 +57,15 @@ const IDS = {
   s_prem_01:     'ses-prem-00001-0000-0000-000000000002',
   s_closed_01:   'ses-clos-00001-0000-0000-000000000003',
   s_future_01:   'ses-fut-000001-0000-0000-000000000004',
+  s_open_02:     'ses-open-00002-0000-0000-000000000005',  // Pour UCS07 (apprenant3)
 
   // Dossiers
   d_attente_01:  'dos-att-000001-0000-0000-000000000001',
   d_retenu_01:   'dos-ret-000001-0000-0000-000000000002',
   d_paye_01:     'dos-pay-000001-0000-0000-000000000003',
   d_retenu_exp:  'dos-exp-000001-0000-0000-000000000004',
+  d_rejeter_01:  'dos-rej-000001-0000-0000-000000000005',  // D2: UCS08 Rejeter
+  d_webhook_01:  'dos-wbk-000001-0000-0000-000000000006',  // D3: UCS09 Webhook (RETENU pour apprenant1)
 
   // Vouchers
   vch_org_01:    'vch-org-000001-0000-0000-000000000001',
@@ -80,6 +85,25 @@ const IDS = {
 
   // FormationPartenaire
   fp_part_01:    'fpa-part-00001-0000-0000-000000000001',
+  fp_part_02:    'fpa-part-00002-0000-0000-000000000002',  // D7: 2nd formation for UCS18 Rejeter test
+
+  // Conversation & Message (D6: UCS15)
+  conv_01:       'conv-test-00001-0000-0000-000000000001',
+  msg_01:        'msg-test-0000001-0000-0000-000000000001',
+
+  // Devis Apprenants et Organisations
+  devis_app_01:  'dvs-app-000001-0000-0000-000000000001',  // KOUASSI, F-PREM-01
+  devis_app_02:  'dvs-app-000002-0000-0000-000000000002',  // DIALLO, F-STD-01 + voucher
+  devis_org_01:  'dvs-org-000001-0000-0000-000000000001',  // TechCorp, B2B upgrade
+  devis_org_02:  'dvs-org-000002-0000-0000-000000000002',  // TechCorp, contrat institutionnel
+
+  // Paiements additionnels Apprenants
+  paiement_app_01:  'pay-app-000001-0000-0000-000000000001',
+  paiement_app_02:  'pay-app-000002-0000-0000-000000000002',
+
+  // Paiements additionnels Organisations
+  paiement_org_01:  'pay-org-000001-0000-0000-000000000001',
+  paiement_org_02:  'pay-org-000002-0000-0000-000000000002',
 };
 
 // ── Helpers date ──────────────────────────────────────────────
@@ -115,13 +139,15 @@ async function check() {
       count: await prisma.apporteur.count() },
     { label: 'ContratInstitutionnel', model: 'contratInstitutionnel',
       count: await prisma.contratInstitutionnel.count() },
+    { label: 'Devis', model: 'devis',
+      count: await prisma.devis.count() },
   ];
 
   const expected = {
     apprenant: 2, organisation: 1, partenaire: 1,
     formation: 5, session: 4, dossier: 6, voucherOrganisation: 3,
     abonnementRetail: 1, abonnementB2B: 1, apporteur: 1,
-    contratInstitutionnel: 1,
+    contratInstitutionnel: 1, devis: 4,
   };
 
   let ok = true;
@@ -156,6 +182,7 @@ async function reset() {
   console.log('🗑️  Suppression des données de test...');
   // Ordre inverse des dépendances
   await prisma.commissionApporteur.deleteMany();
+  await prisma.commissionPartenaire.deleteMany();
   await prisma.voucherApporteur.deleteMany();
   await prisma.apporteur.deleteMany();
   await prisma.paiement.deleteMany();
@@ -198,6 +225,145 @@ async function seed() {
       role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
       consentement_timestamp: agoD(5), consentement_version_cgu: 'v1.0',
     },
+    {
+      id: IDS.apprenant3, nom: 'TOURE', prenoms: 'Awa',
+      email: 'apprenant3@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Education',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'SN',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(3), consentement_version_cgu: 'v1.0',
+    },
+    // ✨ Nouveaux comptes E2E pour tests paiement NGSER (Phase 1.4)
+    {
+      id: uuidv4(), nom: 'IDEMPOTENCE', prenoms: 'Test 1',
+      email: 'apprenant-idempotence-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'IDEMPOTENCE', prenoms: 'Test 2',
+      email: 'apprenant-idempotence-2@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'MISMATCH', prenoms: 'Test 1',
+      email: 'apprenant-mismatch-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'MISMATCH', prenoms: 'Test 2',
+      email: 'apprenant-mismatch-2@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'MISMATCH', prenoms: 'Test 3',
+      email: 'apprenant-mismatch-3@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 1',
+      email: 'apprenant-recon-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 2',
+      email: 'apprenant-recon-2@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 3',
+      email: 'apprenant-recon-3@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'RECONCILIATION', prenoms: 'Test 4',
+      email: 'apprenant-recon-4@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'NGSER', prenoms: 'Test 1',
+      email: 'apprenant-ngser-1@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    // Comptes dedies aux tests flux paiement abonnement NGSER
+    {
+      id: uuidv4(), nom: 'ABO', prenoms: 'NGSER Success',
+      email: 'apprenant-abo-ngser-ok@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: uuidv4(), nom: 'ABO', prenoms: 'NGSER Fail',
+      email: 'apprenant-abo-ngser-ko@forges.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Test',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'APPRENANT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(1), consentement_version_cgu: 'v1.0',
+    },
+    // Comptes backoffice pour Newman/validation
+    {
+      id: IDS.admin, nom: 'Admin', prenoms: 'FORGES Test',
+      email: 'admin@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'ADMIN', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: IDS.responsable, nom: 'Responsable', prenoms: 'FORGES Test',
+      email: 'responsable@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'RESPONSABLE', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: IDS.superviseur, nom: 'Superviseur', prenoms: 'FORGES Test',
+      email: 'superviseur@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'SUPERVISEUR', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
+    {
+      id: IDS.agent, nom: 'Agent', prenoms: 'FORGES Test',
+      email: 'agent@forges-test.ci', password_hash: PWD_HASH,
+      type_apprenant: 'PROFESSIONNEL', secteur_activite: 'Administration',
+      langue_preferee: 'FR', pays_residence: 'CI', pays_nationalite: 'CI',
+      role: 'AGENT', statut: 'ACTIF', consentement_rgpd: true,
+      consentement_timestamp: agoD(30), consentement_version_cgu: 'v1.0',
+    },
   ]});
 
   // ── 2. ORGANISATION ─────────────────────────────────────────
@@ -218,6 +384,22 @@ async function seed() {
     date_fin_essai: agoD(1),
   }});
 
+  // Organisation 2 pour UCS13 (sans B2B)
+  await prisma.organisation.create({ data: {
+    id: IDS.org_test_02,
+    raison_sociale: 'Test Organisation 2',
+    type: 'ENTREPRISE',
+    sous_types: [],
+    identifiant_legal: 'CI-RCCM-TEST-2026-002',
+    contact_referent: 'Gestionnaire Test',
+    email: 'org2@forges-test.ci',
+    password_hash: PWD_HASH,
+    pays: 'CI',
+    langue_preferee: 'FR',
+    statut: 'ACTIF',
+    date_fin_essai: agoD(1),
+  }});
+
   // ── 3. ABONNEMENTS ───────────────────────────────────────────
   console.log('  3/11 Abonnements...');
 
@@ -227,6 +409,7 @@ async function seed() {
     statut: 'ACTIF',
     offre: 'PRO',
     montant_annuel: 150000,
+    perimetre_fonctionnel: ['TDB', 'VOUCHERS', 'EXPORT_PDF'],
     date_debut: agoD(30),
     date_fin: inD(335),
     renouvellement_auto: true,
@@ -276,12 +459,25 @@ async function seed() {
       id: IDS.f_std_01,
       intitule: '[F-STD-01] Gestion de Projet IT',
       description_courte: 'Certification gestion de projet — méthodes agiles et classiques.',
-      description_longue: '<p>Formation complète en gestion de projet IT.</p>',
+      description_longue: `<p><strong>Gestion de Projet IT - Certification PMP/PRINCE2</strong></p>
+        <p>Apprenez à piloter des projets IT complexes du démarrage à la clôture. Cette formation couvre les meilleures pratiques en gestion de projet avec une approche pratique et immédiatement applicable.</p>
+        <p><strong>Durée :</strong> 30 jours en formation intensive</p>
+        <p><strong>Format :</strong> Classes virtuelles interactives + travaux pratiques</p>`,
       type_formation: 'STANDARD',
       mode_formation: 'AVEC_SESSION',
       statut: 'ACTIVE',
       cout_catalogue: 100000,
       duree_jours: 30,
+      duree_acces_jours: 365,
+      prerequis: 'Expérience en IT d\'au moins 2 ans, connaissances des méthodologies Agile',
+      objectifs_pedagogiques: [
+        'Maîtriser les phases du projet IT',
+        'Utiliser les outils de gestion de projet (Jira, Azure DevOps)',
+        'Gérer les risques et les ressources',
+        'Assurer la qualité et les délais',
+      ],
+      certification_delivree: true,
+      public_cible: 'Chefs de projet, coordinateurs IT',
       inclus_abonnement: true,
       pilier_abonnement: 'RETAIL',
       langues_disponibles: ['FR'],
@@ -291,14 +487,29 @@ async function seed() {
       id: IDS.f_prem_01,
       intitule: '[F-PREM-01] Cybersécurité Avancée GWU',
       description_courte: 'Certification Premium GWU — Cybersécurité niveau expert.',
-      description_longue: '<p>Formation Premium GWU/CCDL en cybersécurité.</p>',
+      description_longue: `<p><strong>Formation Premium en Cybersécurité Avancée</strong></p>
+        <p>Cette formation intensive de 60 jours vous prépare à maîtriser les aspects avancés de la cybersécurité d'entreprise. Vous apprendrez à sécuriser des infrastructures complexes, à implémenter des politiques de sécurité robustes, et à gérer les incidents de cybersécurité.</p>
+        <p><strong>Public cible :</strong> Professionnels IT, administrateurs systèmes, architectes sécurité</p>
+        <p><strong>Modalités :</strong> Sessions en ligne et présentiel, travaux pratiques quotidiens, études de cas réelles</p>
+        <p><strong>Certification :</strong> Certification reconnue GWU/CCDL en cybersécurité niveau expert</p>`,
       type_formation: 'PREMIUM',
       mode_formation: 'AVEC_SESSION',
       statut: 'ACTIVE',
-      cout_catalogue: 2000000,
+      cout_catalogue: 200000000,
       duree_jours: 60,
+      duree_acces_jours: 365,
       inclus_abonnement: false,
       pilier_abonnement: null,
+      prerequis: 'Maîtrise de la programmation Python, connaissances Linux avancées, expérience en administration systèmes (minimum 2 ans)',
+      objectifs_pedagogiques: [
+        'Sécuriser une infrastructure cloud (AWS, Azure, GCP)',
+        'Implémenter une politique de sécurité conforme RGPD et ISO 27001',
+        'Gérer les risques cybernétiques et les plans de continuité',
+        'Auditer une architecture réseau et identifier les vulnérabilités',
+        'Répondre aux incidents de sécurité et gérer les crises',
+      ],
+      certification_delivree: true,
+      public_cible: 'Administrateurs, architectes, responsables sécurité',
       langues_disponibles: ['FR', 'EN'],
       responsable_id: IDS.responsable,
       partenaire_id: IDS.partenaire,
@@ -307,7 +518,10 @@ async function seed() {
       id: IDS.f_dem_01,
       intitule: '[F-DEM-01] Introduction à l\'IA',
       description_courte: 'Formation à la demande — IA et Machine Learning.',
-      description_longue: '<p>Accès 365 jours — vidéos + exercices.</p>',
+      description_longue: `<p><strong>Introduction à l'Intelligence Artificielle et Machine Learning</strong></p>
+        <p>Découvrez les fondamentaux de l'IA et du Machine Learning. Cette formation offre accès à 365 jours de contenu vidéo, d'exercices pratiques et de projets réels.</p>
+        <p><strong>Accès illimité :</strong> Accédez au contenu pendant 365 jours depuis votre compte personnel</p>
+        <p><strong>Contenu :</strong> Vidéos HD, notebooks interactifs, exercices, et mini-projets</p>`,
       type_formation: 'STANDARD',
       mode_formation: 'A_LA_DEMANDE',
       statut: 'ACTIVE',
@@ -316,6 +530,15 @@ async function seed() {
       duree_acces_jours: 365,
       inclus_abonnement: true,
       pilier_abonnement: 'RETAIL',
+      prerequis: 'Notions basiques en mathématiques et programmation Python',
+      objectifs_pedagogiques: [
+        'Comprendre les concepts fondamentaux de l\'IA',
+        'Implémenter des algorithmes de Machine Learning',
+        'Utiliser TensorFlow et scikit-learn',
+        'Résoudre des problèmes de classification et régression',
+      ],
+      certification_delivree: true,
+      public_cible: 'Développeurs, data analysts, étudiants',
       langues_disponibles: ['FR'],
       responsable_id: IDS.responsable,
     },
@@ -323,12 +546,24 @@ async function seed() {
       id: IDS.f_part_01,
       intitule: '[F-PART-01] DevSecOps CI/CD',
       description_courte: 'Formation partenaire en attente de validation.',
-      description_longue: '<p>DevSecOps avec pipelines CI/CD.</p>',
-      type_formation: 'STANDARD', // temporaire, sera assigné par FORGES lors UCS18 (RM-127)
+      description_longue: `<p><strong>DevSecOps et Pipelines CI/CD</strong></p>
+        <p>Formation spécialisée en intégration sécurisée et déploiement continu. Apprenez à mettre en place des pipelines DevSecOps automatisés et sécurisés.</p>
+        <p><strong>Plateforme :</strong> GitLab CI/CD, Jenkins, GitHub Actions</p>
+        <p><strong>Sécurité :</strong> SAST, DAST, scanning de dépendances, gestion des secrets</p>`,
+      type_formation: 'STANDARD',
       mode_formation: 'AVEC_SESSION',
       statut: 'EN_ATTENTE_VALIDATION',
-      cout_catalogue: 100000, // obligatoire dans schéma
+      cout_catalogue: 100000,
       duree_jours: 30,
+      prerequis: 'Expérience Docker et Kubernetes, connaissances Git avancées',
+      objectifs_pedagogiques: [
+        'Construire des pipelines CI/CD sécurisés',
+        'Implémenter les scanners de sécurité',
+        'Déployer des applications en production',
+        'Monitorer et logging des applications',
+      ],
+      certification_delivree: false,
+      public_cible: 'Ingénieurs DevOps, architectes',
       inclus_abonnement: false,
       langues_disponibles: ['FR'],
       responsable_id: IDS.responsable,
@@ -338,13 +573,17 @@ async function seed() {
       id: IDS.f_arch_01,
       intitule: '[F-ARCH-01] Formation Archivée',
       description_courte: 'Formation archivée pour test RM-13.',
-      description_longue: '<p>Archivée — irréversible (RM-13).</p>',
+      description_longue: '<p><strong>Formation Archivée</strong></p><p>Cette formation a été archivée et n\'est plus disponible pour les nouvelles inscriptions.</p>',
       type_formation: 'STANDARD',
       mode_formation: 'AVEC_SESSION',
       statut: 'ARCHIVEE',
       cout_catalogue: 50000,
       duree_jours: 10,
       inclus_abonnement: false,
+      prerequis: '',
+      objectifs_pedagogiques: [],
+      certification_delivree: false,
+      public_cible: '',
       langues_disponibles: ['FR'],
       responsable_id: IDS.responsable,
     },
@@ -357,7 +596,7 @@ async function seed() {
       formation_id: IDS.f_part_01,
       partenaire_id: IDS.partenaire,
       responsable_validateur_id: IDS.responsable,
-      statut_validation: 'EN_ATTENTE',
+      statut_validation: 'EN_ATTENTE_VALIDATION',  // D7: Changed from EN_ATTENTE
       date_soumission: agoD(2),
       prix_coutant_soumis: 80000,
       prix_coutant_valide: null,
@@ -372,6 +611,17 @@ async function seed() {
       date_validation: agoD(25),
       prix_coutant_soumis: 1400000,
       prix_coutant_valide: 1400000,
+    },
+    {
+      // D7: UCS18 Rejeter — 2nd formation for reject test
+      id: IDS.fp_part_02,
+      formation_id: IDS.f_arch_01,
+      partenaire_id: IDS.partenaire,
+      responsable_validateur_id: IDS.responsable,
+      statut_validation: 'EN_ATTENTE_VALIDATION',
+      date_soumission: agoD(1),
+      prix_coutant_soumis: 150000,
+      prix_coutant_valide: null,
     },
   ]});
 
@@ -430,31 +680,22 @@ async function seed() {
       places_restantes: 10,
       statut: 'PLANIFIEE',
     },
+    {
+      // S-OPEN-02 : ouverte — pour UCS07 avec apprenant3
+      id: IDS.s_open_02,
+      formation_id: IDS.f_std_01,
+      date_ouverture: agoD(2),
+      date_cloture: inD(12),
+      date_debut: inD(18),
+      date_fin: inD(48),
+      capacite: 8,
+      nb_inscrits: 0,
+      places_restantes: 8,
+      statut: 'INSCRIPTIONS_OUVERTES',
+    },
   ]});
 
-  // ── 6. ABONNEMENT RETAIL apprenant1 ───────────────────────
-  console.log('  6/11 AbonnementRetail...');
-  await prisma.abonnementRetail.create({ data: {
-    id: IDS.abo_ret_01,
-    apprenant_id: IDS.apprenant1,
-    offre: 'ESSENTIEL',
-    statut: 'ACTIF',
-    montant_mensuel: 15000,
-    methode_paiement: 'MOBILE_MONEY',
-    date_debut: agoD(15),
-    date_fin: inD(15),
-    renouvellement_auto: true,
-    nb_formations_actives: 1,
-    consentement_auto: true,
-    consentement_timestamp: agoD(15),
-    prorata_premier_mois: 15000,
-  }});
-
-  // Mettre à jour apprenant1 avec son abonnement
-  await prisma.apprenant.update({
-    where: { id: IDS.apprenant1 },
-    data: { abonnement_retail: { connect: { id: IDS.abo_ret_01 } } },
-  });
+  // ── 6. ABONNEMENT RETAIL — REMOVED (D4: Subscribe test creates it) ───
 
   // ── 7. VOUCHER ORGANISATIONS ──────────────────────────
   console.log('  7/11 VoucherOrganisations...');
@@ -550,10 +791,33 @@ async function seed() {
       created_at: agoH(74),
       updated_at: agoH(74),
     },
+    {
+      // D2: UCS08 Rejeter — EN_ATTENTE_VERIFICATION fresh dossier for reject test
+      id: IDS.d_rejeter_01,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      created_at: agoH(1),
+      updated_at: agoH(1),
+    },
+    {
+      // D3: UCS09 Webhook — RETENU dossier for apprenant1 (not apprenant2)
+      id: IDS.d_webhook_01,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_prem_01,
+      statut: 'RETENU',
+      source_financement: 'RETAIL',
+      expires_at: inH(60),
+      created_at: agoH(8),
+      updated_at: agoH(8),
+    },
   ]});
 
   // ── 9. PAIEMENT pour D-PAYE-01 ───────────────────────────
-  console.log('  9/11 Paiement...');
+  console.log('  9/13 Paiement...');
   await prisma.paiement.create({ data: {
     id: uuidv4(),
     dossier_id: IDS.d_paye_01,
@@ -568,8 +832,136 @@ async function seed() {
     created_at: agoD(90),
   }});
 
+  // ── 10. DEVIS POUR APPRENANTS ────────────────────────────
+  console.log('  10/13 Devis Apprenants...');
+  await prisma.devis.createMany({ skipDuplicates: true, data: [
+    {
+      id: IDS.devis_app_01,
+      numero_devis: 'DVS-APP-2026-001',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_prem_01,
+      nb_places: 1,
+      tarif_unitaire_xof: 2000000,
+      montant_total_xof: 2000000,
+      statut: 'PAYE',
+      notes_admin: 'Réduction abonné actif Premium (-5%)',
+      created_by: IDS.responsable,
+      paid_at: agoD(6),
+      created_at: agoD(7),
+    },
+    {
+      id: IDS.devis_app_02,
+      numero_devis: 'DVS-APP-2026-002',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      nb_places: 1,
+      tarif_unitaire_xof: 100000,
+      montant_total_xof: 100000,
+      statut: 'CREE',
+      notes_admin: 'Voucher promo VCH-PROMO-01 appliqué (-20%)',
+      created_by: IDS.responsable,
+      created_at: agoD(2),
+    },
+  ]});
+
+  // ── 11. DEVIS POUR ORGANISATIONS ─────────────────────────
+  console.log('  11/13 Devis Organisations...');
+  await prisma.devis.createMany({ skipDuplicates: true, data: [
+    {
+      id: IDS.devis_org_01,
+      numero_devis: 'DVS-ORG-2026-001',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_std_01,
+      session_id: null,
+      nb_places: 50,  // Business palier : 21-50 apprenants
+      tarif_unitaire_xof: 24000,  // 1 200 000 / 50
+      montant_total_xof: 1200000,
+      statut: 'PAYE',
+      notes_admin: 'Upgrade AbonnementB2B Starter → Business',
+      created_by: IDS.responsable,
+      paid_at: agoD(4),
+      created_at: agoD(5),
+    },
+    {
+      id: IDS.devis_org_02,
+      numero_devis: 'DVS-ORG-2026-002',
+      organisation_id: IDS.org_techcorp,
+      formation_id: IDS.f_std_01,
+      session_id: null,
+      nb_places: 250,  // Contrat Ministère : 250 certifiés
+      tarif_unitaire_xof: 20000,  // Fee par certifié
+      montant_total_xof: 5000000,
+      statut: 'CREE',
+      notes_admin: 'Contrat Ministère Numérique CI',
+      created_by: IDS.responsable,
+      created_at: agoD(3),
+    },
+  ]});
+
+  // ── 12. PAIEMENTS POUR APPRENANTS ET ORGANISATIONS ────────
+  console.log('  12/13 Paiements Apprenants & Organisations...');
+  
+  // Note: Les paiements doivent être liés à des dossiers existants
+  // Créer des dossiers additionnels pour les paiements de devis apprenants
+  const dossierPaiementApp1 = uuidv4();
+  const dossierPaiementApp2 = uuidv4();
+  
+  await prisma.dossier.createMany({ data: [
+    {
+      id: dossierPaiementApp1,
+      apprenant_id: IDS.apprenant1,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_prem_01,
+      statut: 'PAYE',
+      source_financement: 'RETAIL',
+      created_at: agoD(7),
+      updated_at: agoD(6),
+    },
+    {
+      id: dossierPaiementApp2,
+      apprenant_id: IDS.apprenant2,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      created_at: agoD(2),
+      updated_at: agoD(2),
+    },
+  ]});
+
+  // Paiements pour apprenants
+  await prisma.paiement.createMany({ skipDuplicates: true, data: [
+    {
+      id: IDS.paiement_app_01,
+      dossier_id: dossierPaiementApp1,
+      montant_catalogue: 2000000,
+      montant_final: 1900000,
+      reduction_appliquee: 100000,
+      methode: 'MOBILE_MONEY',
+      statut: 'CONFIRME',
+      transaction_id: 'TXN-TEST-APP-001',
+      commission_partenaire_pct: 30,
+      montant_reverse_partenaire: 1330000,
+      confirmed_at: agoD(6),
+      created_at: agoD(7),
+    },
+    {
+      id: IDS.paiement_app_02,
+      dossier_id: dossierPaiementApp2,
+      montant_catalogue: 100000,
+      montant_final: 80000,
+      reduction_appliquee: 20000,
+      methode: 'WAVE',
+      statut: 'EN_ATTENTE',
+      transaction_id: 'TXN-TEST-APP-002-PENDING',
+      created_at: agoD(2),
+    },
+  ]});
+
   // ── 10. APPORTEUR + VOUCHERAPPORTEUR ──────────────────────
-  console.log('  10/11 Apporteur TRAORE Mamadou...');
+  console.log('  13/13 Apporteur TRAORE Mamadou...');
   await prisma.apporteur.create({ data: {
     id: IDS.apporteur,
     nom: 'TRAORE Mamadou', // combiné car pas de champ prenoms
@@ -599,8 +991,10 @@ async function seed() {
   // Créer des dossiers et paiements fictifs pour les commissions
   const dossierComm1Id = uuidv4();
   const dossierComm2Id = uuidv4();
+  const dossierComm3Id = uuidv4();  // D9: Third dossier for extra commission
   const paiement1Id = uuidv4();
   const paiement2Id = uuidv4();
+  const paiement3Id = uuidv4();  // D9: Third paiement for extra commission
   
   // Dossiers fictifs pour les commissions
   await prisma.dossier.createMany({ data: [
@@ -623,6 +1017,17 @@ async function seed() {
       source_financement: 'RETAIL',
       created_at: agoD(15),
       updated_at: agoD(15),
+    },
+    {
+      // D9: Extra dossier for 3rd commission (to exceed 5000 threshold)
+      id: dossierComm3Id,
+      apprenant_id: IDS.apprenant2,
+      formation_id: IDS.f_std_01,
+      session_id: IDS.s_open_01,
+      statut: 'PAYE',
+      source_financement: 'RETAIL',
+      created_at: agoD(10),
+      updated_at: agoD(10),
     },
   ]});
   
@@ -652,9 +1057,24 @@ async function seed() {
       confirmed_at: agoD(15),
       created_at: agoD(15),
     },
+    {
+      // D9: Extra paiement for 3rd commission (500 XOF commission)
+      id: paiement3Id,
+      dossier_id: dossierComm3Id,
+      montant_catalogue: 10000,
+      montant_final: 10000,
+      methode: 'MOBILE_MONEY',
+      statut: 'CONFIRME',
+      transaction_id: 'TXN-COMM-3',
+      code_apporteur_id: IDS.vch_apt_01,
+      confirmed_at: agoD(10),
+      created_at: agoD(10),
+    },
   ]});
 
-  // CommissionsApporteur EN_ATTENTE (cumul 4500 XOF < seuil 5000 — pour test RM-147)
+  // CommissionsApporteur VALIDEE (cumul 5500 XOF > seuil 5000 — pour test RM-147)
+  // Change: VALIDEE not EN_ATTENTE (getCumulDu only counts VALIDEE)
+  // Change: Add 500 XOF more to exceed 5000 threshold (via paiement3Id)
   const moisCourant = new Date().toISOString().slice(0, 7); // AAAA-MM
   await prisma.commissionApporteur.createMany({ data: [
     {
@@ -666,10 +1086,9 @@ async function seed() {
       montant_commission_xof: 2000,
       date_generation: agoD(20), 
       mois_facturation: moisCourant,
-      statut: 'EN_ATTENTE', 
+      statut: 'VALIDEE',  // CHANGED: was EN_ATTENTE
       created_at: agoD(20),
     },
-    // Deux autres commissions en attente — cumul total 4500 XOF (< 5000 seuil)
     {
       id: uuidv4(), 
       apporteur_id: IDS.apporteur,
@@ -679,13 +1098,31 @@ async function seed() {
       montant_commission_xof: 2500,
       date_generation: agoD(15), 
       mois_facturation: moisCourant,
-      statut: 'EN_ATTENTE', 
+      statut: 'VALIDEE',  // CHANGED: was EN_ATTENTE
       created_at: agoD(15),
     },
-  ]});
+    {
+      // D9: Extra commission (paiement3) to exceed 5000 threshold
+      id: uuidv4(),
+      apporteur_id: IDS.apporteur,
+      paiement_id: paiement3Id,
+      montant_base_xof: 10000,
+      taux_commission_pct: 5,
+      montant_commission_xof: 500,
+      date_generation: agoD(10),
+      mois_facturation: moisCourant,
+      statut: 'VALIDEE',
+      created_at: agoD(10),
+    },
+  ] });
+
+  // ── 10b. CONVERSATION (D6: UCS15 Répondre/Historique) ──────
+  // NOTE: D6 needs ConversationBot seed — deferred pending schema validation
+  // For now, UCS15 pre-request will need to capture conversation_id dynamically
+  console.log('  10b/13 Conversation & Message... (deferred)');
 
   // ── 11. CONTRAT INSTITUTIONNEL ────────────────────────────
-  console.log('  11/11 ContratInstitutionnel...');
+  console.log('  11/13 ContratInstitutionnel...');
   await prisma.contratInstitutionnel.create({ data: {
     id: IDS.contrat_inst,
     numero_contrat: 'INST-2026-001',
@@ -713,13 +1150,26 @@ async function seed() {
     progression: 0,
   }});
 
-  console.log('\n✅ Seed v4.8 terminé\n');
+  console.log('\n✅ Seed v4.8 + Phase 1.4 E2E Tests terminé\n');
   console.log('  Comptes créés :');
   console.log('    apprenant1@forges-test.ci     — APPRENANT (KOUASSI Jean-Baptiste)');
   console.log('    apprenant2@forges-test.ci     — APPRENANT (DIALLO Fatima)');
   console.log('    org@forges-test.ci            — ORGANISATION (TechCorp CI)');
   console.log('    partenaire@forges-test.ci     — PARTENAIRE (Institut Tech Test CI)');
   console.log('    apporteur@forges-test.ci      — APPORTEUR (TRAORE Mamadou)');
+  console.log('\n  ✨ Nouveaux Devis & Paiements Apprenants :');
+  console.log('    DVS-APP-2026-001 (KOUASSI, F-PREM-01, 2 000 000 XOF, PAYE)');
+  console.log('    DVS-APP-2026-002 (DIALLO, F-STD-01, 100 000 XOF, CREE)');
+  console.log('    PAIEMENT-APP-01 (2 000 000 XOF, CONFIRME, commission 30%)');
+  console.log('    PAIEMENT-APP-02 (100 000 XOF, EN_ATTENTE)');
+  console.log('\n  ✨ Nouveaux Devis Organisations :');
+  console.log('    DVS-ORG-2026-001 (TechCorp, B2B Upgrade, 1 200 000 XOF, PAYE)');
+  console.log('    DVS-ORG-2026-002 (TechCorp, Ministère Contrat, 5 000 000 XOF, CREE)');
+  console.log('\n  ✨ Comptes E2E Tests Paiement NGSER (Phase 1.4):');
+  console.log('    apprenant-idempotence-[1-2]@forges.ci  — Tests idempotence IPN');
+  console.log('    apprenant-mismatch-[1-3]@forges.ci     — Tests montant mismatch');
+  console.log('    apprenant-recon-[1-4]@forges.ci        — Tests réconciliation');
+  console.log('    apprenant-ngser-1@forges.ci            — Test initiation NGSER');
   console.log('  Mot de passe : Test@FORGES2026!\n');
   console.log('  Données de référence :');
   console.log('    F-STD-01  F-PREM-01  F-DEM-01  F-PART-01  F-ARCH-01');

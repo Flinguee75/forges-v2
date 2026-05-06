@@ -21,6 +21,7 @@ export class AbonnementController {
         return res.status(400).json({ statusCode: 400, error: 'OFFRE_INVALIDE' });
       }
       const result = await this.retailService.souscrire(req.user!.userId, offre, req.user!.langue || 'FR');
+      // result contient { abonnement, montant_premier_mois, payment_url, order_ngser }
       res.status(201).json({ statusCode: 201, data: result });
     } catch (error: any) {
       if (error.message === 'ABONNEMENT_DEJA_ACTIF') {
@@ -84,7 +85,10 @@ export class AbonnementController {
   async getMonAbonnementRetail(req: Request, res: Response, next: NextFunction) {
     try {
       const abonnement = await this.retailService.getAbonnementActif(req.user!.userId);
-      res.status(200).json({ statusCode: 200, data: abonnement || null });
+      if (!abonnement) {
+        return res.status(404).json({ statusCode: 404, error: 'NOT_FOUND', message: 'Pas d\'abonnement retail actif' });
+      }
+      res.status(200).json({ statusCode: 200, data: abonnement });
     } catch (error: any) {
       next(error);
     }
@@ -116,7 +120,10 @@ export class AbonnementController {
     try {
       const { offre } = req.body;
       const result = await this.orgService.souscrire(req.user!.userId, offre);
-      res.status(201).json({ statusCode: 201, data: result });
+      res.status(201).json({
+        statusCode: 201,
+        data: { ...result.abonnement, payment_url: result.payment_url, order_ngser: result.order_ngser },
+      });
     } catch (error: any) {
       if (error.message === 'ABONNEMENT_ORG_DEJA_ACTIF') {
         return res.status(409).json({ statusCode: 409, error: 'ABONNEMENT_ORG_DEJA_ACTIF' });
@@ -141,7 +148,10 @@ export class AbonnementController {
     try {
       const { palier } = req.body;
       const result = await this.b2bService.souscrire(req.user!.userId, palier);
-      res.status(201).json({ statusCode: 201, data: result });
+      res.status(201).json({
+        statusCode: 201,
+        data: { ...result.abonnement, payment_url: result.payment_url, order_ngser: result.order_ngser },
+      });
     } catch (error: any) {
       if (error.message === 'PALIER_INVALIDE') {
         return res.status(400).json({

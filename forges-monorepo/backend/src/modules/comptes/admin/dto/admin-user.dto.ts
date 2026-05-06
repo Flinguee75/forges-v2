@@ -16,7 +16,7 @@ export const InvitePartenaireDto = z.object({
   email: z.string().email().transform(e => e.toLowerCase()),
   raison_sociale: z.string().min(2),
   type: z.enum(['UNIVERSITE', 'ENTREPRISE_FORMATION', 'ONG', 'INSTITUTION', 'AUTRE']),
-  commission_forges_pct: z.number().min(0).max(100).default(20),
+  commission_forges_pct: z.number().min(0).max(100).default(30),
 });
 
 // RM-141 : création Apporteur

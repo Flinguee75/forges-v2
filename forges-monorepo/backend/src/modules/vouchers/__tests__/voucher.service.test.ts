@@ -31,6 +31,9 @@ describe('VoucherService', () => {
       voucherApporteur: {
         findUnique: jest.fn(),
       },
+      voucherOrganisation: {
+        findUnique: jest.fn(),
+      },
       apporteur: {
         findUnique: jest.fn(),
         findFirst: jest.fn(),

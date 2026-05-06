@@ -167,10 +167,10 @@ export default function ReversementsApporteurs() {
             </h2>
             <p className="mt-2 text-subtext">
               {isAgentMode
-                ? 'Consultez les reversements apporteurs validés en attente de paiement et déclenchez la validation depuis le runtime.'
+                ? 'Consultez les reversements apporteurs validés en attente de paiement et déclenchez leur traitement.'
                 : isAdminMode
-                  ? 'Consultez le résumé mensuel consolidé depuis le runtime. Le détail individuel reste figé volontairement.'
-                  : 'Consultez le résumé mensuel superviseur. Le détail individuel reste figé volontairement.'}
+                  ? 'Consultez le résumé mensuel consolidé des commissions apporteurs.'
+                  : 'Consultez le résumé mensuel des commissions apporteurs.'}
             </p>
           </div>
 

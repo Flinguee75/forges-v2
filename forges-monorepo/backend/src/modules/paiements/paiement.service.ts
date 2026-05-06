@@ -8,9 +8,9 @@ import { InitierPaiementDto, InitierPaiementNgserDto } from './dto/paiement.dto'
 import { PaiementNgserService } from './paiement-ngser.service';
 import { IpnNgserService } from './ipn-ngser.service';
 import { CommissionService } from './commission.service';
+import { getDelaiPaiementH } from '../../config/env.config';
 
 const MAX_TENTATIVES = 3;      // RM-08
-const DELAI_PAIEMENT_H = 72;  // RM-07
 const TIMEOUT_API_S = 30;      // RM-09
 
 export class PaiementService {
@@ -77,7 +77,7 @@ export class PaiementService {
     const reduction = dossier.formation.cout_catalogue - montantFinal;
 
     // Création paiement
-    const expires_at = new Date(Date.now() + DELAI_PAIEMENT_H * 3600 * 1000); // RM-07
+    const expires_at = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000); // RM-07
     const paiement = await this.paiementRepo.create({
       dossier_id: dto.dossier_id,
       montant_catalogue: dossier.formation.cout_catalogue,
@@ -149,6 +149,17 @@ export class PaiementService {
     if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
 
     if (webhookData.statut === 'SUCCESS') {
+      // ✅ RM-160: Valider que montant IPN == montant initié (idempotence strict)
+      if (webhookData.montant !== paiement.montant_final) {
+        await this.audit.warning('PAIEMENT_MONTANT_MISMATCH', {
+          paiement_id: paiement.id,
+          montant_attendu: paiement.montant_final,
+          montant_recu: webhookData.montant,
+          dossier_id: webhookData.dossier_id
+        });
+        return { message: 'MONTANT_INVALIDE', statut: 'REJECTED' };
+      }
+
       // Confirmer le paiement
       await this.paiementRepo.confirmer(paiement.id, webhookData.transaction_id);
 
@@ -196,8 +207,19 @@ export class PaiementService {
       }
 
     } else {
+      // ✅ RM-160: Quand IPN FAILED, annuler le dossier
       await this.paiementRepo.echouer(paiement.id);
-      await this.audit.warning('PAIEMENT_ECHOUE', { paiement_id: paiement.id });
+      
+      // Passer le dossier en ANNULE
+      await this.prisma.dossier.update({
+        where: { id: webhookData.dossier_id },
+        data: { statut: 'ANNULE' }
+      });
+      
+      await this.audit.warning('PAIEMENT_ECHOUE', { 
+        paiement_id: paiement.id,
+        dossier_id: webhookData.dossier_id 
+      });
     }
 
     return { statut: webhookData.statut };
@@ -337,6 +359,57 @@ export class PaiementService {
     });
   }
 
+  async getPaiementsStats(period = '24h') {
+    const hoursByPeriod: Record<string, number> = {
+      '1h': 1,
+      '24h': 24,
+      '7d': 24 * 7,
+      '30d': 24 * 30,
+    };
+    const hours = hoursByPeriod[period] ?? 24;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const pendingThreshold = new Date(Date.now() - 30 * 60 * 1000);
+
+    const paiements = await this.prisma.paiement.findMany({
+      where: { created_at: { gte: since } },
+      select: {
+        statut: true,
+        created_at: true,
+        confirmed_at: true,
+        provider: true,
+      },
+    });
+
+    const total = paiements.length;
+    const success = paiements.filter((paiement) => paiement.statut === 'CONFIRME').length;
+    const fail = paiements.filter((paiement) => ['ECHOUE', 'ECHEC', 'ANNULE'].includes(paiement.statut)).length;
+    const pending = paiements.filter((paiement) => ['PENDING', 'EN_ATTENTE'].includes(paiement.statut)).length;
+    const confirmedDurations = paiements
+      .filter((paiement) => paiement.confirmed_at)
+      .map((paiement) => (paiement.confirmed_at!.getTime() - paiement.created_at.getTime()) / 1000);
+
+    const pendingOver30min = await this.prisma.paiement.count({
+      where: {
+        statut: 'PENDING',
+        provider: 'NGSER',
+        created_at: { lt: pendingThreshold },
+      },
+    });
+
+    return {
+      period,
+      total,
+      success,
+      fail,
+      pending,
+      success_rate: total > 0 ? Number(((success / total) * 100).toFixed(2)) : 0,
+      avg_confirmation_time_seconds: confirmedDurations.length > 0
+        ? Number((confirmedDurations.reduce((sum, value) => sum + value, 0) / confirmedDurations.length).toFixed(2))
+        : 0,
+      pending_over_30min: pendingOver30min,
+    };
+  }
+
   // GET /api/paiements — Liste paiements apprenant (Sprint 1 Semaine 2)
   async getPaiementsByApprenant(apprenantId: string) {
     return this.paiementRepo.findByApprenant(apprenantId);
@@ -345,5 +418,28 @@ export class PaiementService {
   // Traiter IPN NGSER (RM-158/160)
   async traiterIpnNgser(payload: any) {
     return this.ipnNgserService.traiterIpn(payload);
+  }
+
+  // Déclencher réconciliation manuelle NGSER (Phase 1 v4.9)
+  async reconcilierPaiementsPendingNgser() {
+    const { reconciliationNgserScheduler } = await import('../../schedulers/reconciliation-ngser.scheduler');
+    const delaiMinutes = Number(process.env.NGSER_RECONCILIATION_PENDING_MINUTES) || 0;
+    const paiements = await reconciliationNgserScheduler.getPaiementsPendingEligibles(delaiMinutes);
+
+    const results = [];
+    for (const paiement of paiements) {
+      try {
+        const result = await reconciliationNgserScheduler.reconcilierPaiement(paiement.order_ngser!);
+        results.push({ order_ngser: paiement.order_ngser, ...result });
+      } catch (error: any) {
+        results.push({ order_ngser: paiement.order_ngser, error: error.message });
+      }
+    }
+
+    return {
+      nb_paiements_trouves: paiements.length,
+      nb_paiements_traites: results.length,
+      results,
+    };
   }
 }

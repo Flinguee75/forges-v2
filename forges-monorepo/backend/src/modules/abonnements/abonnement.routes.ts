@@ -67,6 +67,11 @@ router.delete('/retail', authenticate, authorize('APPRENANT'), (req, res, next) 
   abonnementController.resilierRetail(req, res, next);
 });
 
+// Alias pour Newman UCS12
+router.delete('/retail/cancel', authenticate, authorize('APPRENANT'), (req, res, next) => {
+  abonnementController.resilierRetail(req, res, next);
+});
+
 // ============================================
 // ROUTES ORGANISATION
 // ============================================

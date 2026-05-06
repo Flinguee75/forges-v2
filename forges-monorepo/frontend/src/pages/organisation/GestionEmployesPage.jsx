@@ -20,6 +20,7 @@ export default function GestionEmployesPage() {
   const [membres, setMembres] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [formData, setFormData] = useState({
     email: '',
     nom: '',
@@ -62,14 +63,15 @@ export default function GestionEmployesPage() {
     );
   };
 
-  const handleDelete = async (membreId) => {
-    if (!confirm('Voulez-vous vraiment supprimer cet employé ?')) return;
+  const handleDeleteConfirm = async () => {
+    if (!confirmDeleteId) return;
 
     await execute(
-      () => organisationApi.deleteMembre(membreId),
+      () => organisationApi.deleteMembre(confirmDeleteId),
       {
         onSuccess: () => {
           showToast('Employé supprimé avec succès', 'success');
+          setConfirmDeleteId(null);
           loadMembres(meta.page);
         },
       }
@@ -77,7 +79,6 @@ export default function GestionEmployesPage() {
   };
 
   const getStatutDossierBadge = (membre) => {
-    // Si l'employé a des dossiers, on affiche le statut du plus récent
     if (!membre.dossiers || membre.dossiers.length === 0) {
       return <span className="text-xs text-subtext">Aucun dossier</span>;
     }
@@ -85,11 +86,13 @@ export default function GestionEmployesPage() {
     const dernierDossier = membre.dossiers[0];
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
+      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
       RETENU: { variant: 'success', label: 'Retenu' },
+      PAYE_DIRECTEMENT: { variant: 'success', label: 'Payé' },
+      PAYE: { variant: 'success', label: 'Payé' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
+      REJETE: { variant: 'danger', label: 'Rejeté' },
       REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Liste grise' },
-      EXCEPTION: { variant: 'warning', label: 'Exception' },
       ARCHIVE: { variant: 'gray', label: 'Archivé' },
       ANNULE: { variant: 'danger', label: 'Annulé' },
     };
@@ -135,7 +138,7 @@ export default function GestionEmployesPage() {
         <Button
           variant="danger"
           size="small"
-          onClick={() => handleDelete(membre.id)}
+          onClick={() => setConfirmDeleteId(membre.id)}
         >
           Supprimer
         </Button>
@@ -191,6 +194,24 @@ export default function GestionEmployesPage() {
           </div>
         )}
       </Card>
+
+      <Modal
+        isOpen={Boolean(confirmDeleteId)}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Confirmer la suppression"
+      >
+        <p className="text-sm text-text">
+          Voulez-vous vraiment supprimer cet employé ? Cette action retirera son accès aux formations financées par l'organisation.
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
+            Annuler
+          </Button>
+          <Button variant="danger" onClick={handleDeleteConfirm} loading={isLoading}>
+            Supprimer
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}

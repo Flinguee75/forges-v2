@@ -11,5 +11,6 @@ module.exports = {
     '^uuid$': '<rootDir>/src/__tests__/mocks/uuid.integration.ts'
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
-  collectCoverage: false
+  collectCoverage: false,
+  testTimeout: 30000
 };

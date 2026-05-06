@@ -70,6 +70,7 @@ export class AbonnementRetailRepository {
     montant_premier_mois: number;
     consentement_auto: boolean;
     consentement_timestamp: Date;
+    order_ngser?: string;
   }) {
     return this.prisma.abonnementRetail.create({
       data: {
@@ -80,10 +81,37 @@ export class AbonnementRetailRepository {
         montant_premier_mois: data.montant_premier_mois,
         consentement_auto: data.consentement_auto,
         consentement_timestamp: data.consentement_timestamp,
+        // RM-70/RM-106 : la souscription Retail est effective immédiatement.
+        // On conserve order_ngser pour tracer la session de paiement, mais le statut métier reste ACTIF.
         statut: 'ACTIF',
         suspension_count: 0,
+        order_ngser: data.order_ngser ?? null,
         apprenant: { connect: { id: data.apprenant_id } }
       }
+    });
+  }
+
+  async findByOrderNgser(order_ngser: string) {
+    return this.prisma.abonnementRetail.findUnique({
+      where: { order_ngser },
+      include: { apprenant: true },
+    });
+  }
+
+  async activerApresPaiement(id: string, transaction_id: string) {
+    return this.prisma.abonnementRetail.update({
+      where: { id },
+      data: {
+        statut: 'ACTIF',
+        transaction_id_ngser: transaction_id,
+      },
+    });
+  }
+
+  async annulerApresEchecPaiement(id: string) {
+    return this.prisma.abonnementRetail.update({
+      where: { id },
+      data: { statut: 'ANNULE' },
     });
   }
 

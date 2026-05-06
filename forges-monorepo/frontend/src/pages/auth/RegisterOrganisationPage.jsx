@@ -335,7 +335,7 @@ export default function RegisterOrganisationPage() {
               )}
 
               {/* Info validation */}
-              <div className="p-4 border border-warning bg-yellow-50 rounded-lg">
+              <div className="p-4 border border-warning bg-warning/5 rounded-lg">
                 <p className="text-sm text-warning">
                   <strong>Important :</strong> Votre compte sera créé avec le
                   statut "En attente" et devra être validé par un administrateur

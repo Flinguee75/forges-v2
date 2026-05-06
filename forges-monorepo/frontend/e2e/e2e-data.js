@@ -59,6 +59,60 @@ export const E2E_ACCOUNTS = {
     email: 'apprenant-retail-e2e@forges.ci',
     password: 'Test@FORGES2026!',
   },
+  // Comptes dedies aux tests du flux paiement abonnement NGSER
+  apprenantAboNgserOk: {
+    email: 'apprenant-abo-ngser-ok@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantAboNgserKo: {
+    email: 'apprenant-abo-ngser-ko@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  // Nouveaux comptes pour tests paiement NGSER
+  apprenantIdempotence1: {
+    email: 'apprenant-idempotence-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantIdempotence2: {
+    email: 'apprenant-idempotence-2@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantMismatch1: {
+    email: 'apprenant-mismatch-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantMismatch2: {
+    email: 'apprenant-mismatch-2@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantMismatch3: {
+    email: 'apprenant-mismatch-3@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon1: {
+    email: 'apprenant-recon-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon2: {
+    email: 'apprenant-recon-2@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon3: {
+    email: 'apprenant-recon-3@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon4: {
+    email: 'apprenant-recon-4@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantRecon5: {
+    email: 'apprenant-recon-5@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantNgser1: {
+    email: 'apprenant-ngser-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
 };
 
 export const E2E_SCENARIO = {
@@ -71,6 +125,10 @@ export const E2E_SCENARIO = {
   premiumB2bFormationId: 'F-E2E-PREM-B2B-01',
   premiumB2bSessionId: 'S-E2E-PREM-B2B-OPEN-01',
   partenaireSessionId: 'S-E2E-PART-OPEN-01',
+  ngserReconciliationSessionId: 'S-E2E-NGSER-RECON-01',
+  ngserReconciliationIsolationSessionId: 'S-E2E-NGSER-RECON-02',
+  ngserReconciliationFreshSessionId: 'S-E2E-NGSER-RECON-03',
+  ngserReconciliationSoloSessionId: 'S-E2E-NGSER-RECON-04',
   demandeFormationId: 'F-E2E-DEMANDE-01',
   partenaireFormationId: 'F-E2E-PART-01',
   formationPartenaireMetaId: 'FP-E2E-01',
@@ -81,6 +139,7 @@ export const E2E_SCENARIO = {
   sessionArchivableId: 'S-E2E-ARCHIVABLE-01',
   dossierEnAttenteId: 'D-E2E-EN-ATTENTE-01',
   dossierRetenuId: 'D-E2E-RETENU-01',
+  dossierRetenuUiId: 'D-E2E-RETENU-UI-01',
   dossierPayeId: 'D-E2E-PAYE-01',
   dossierAnnuleId: 'D-E2E-ANNULE-01',
   dossierExpireId: 'D-E2E-EXPIRE-01',

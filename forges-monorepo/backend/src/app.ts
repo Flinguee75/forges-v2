@@ -20,6 +20,7 @@ import { CommissionAgregateurScheduler } from './schedulers/commission-agregateu
 import { AlerteValidationScheduler } from './schedulers/alerte-validation.scheduler';
 import { ReversementAbonnementScheduler } from './schedulers/reversement-abonnement.scheduler';
 import { AlerteB2BScheduler } from './schedulers/alerte-b2b.scheduler';
+import { ReconciliationNgserScheduler } from './schedulers/reconciliation-ngser.scheduler';
 
 // Initialiser les schedulers
 const dossierExpirationScheduler = new DossierExpirationScheduler();
@@ -28,6 +29,7 @@ const commissionAgregateurScheduler = new CommissionAgregateurScheduler();
 const alerteValidationScheduler = new AlerteValidationScheduler();
 const reversementAbonnementScheduler = new ReversementAbonnementScheduler();
 const alerteB2BScheduler = new AlerteB2BScheduler();
+const reconciliationNgserScheduler = new ReconciliationNgserScheduler();
 
 // Démarrer les schedulers uniquement en production/development (pas en test)
 if (process.env.NODE_ENV !== 'test') {
@@ -37,6 +39,8 @@ if (process.env.NODE_ENV !== 'test') {
   alerteValidationScheduler.start();
   reversementAbonnementScheduler.start();
   alerteB2BScheduler.start();
+  reconciliationNgserScheduler.start();
+  console.log('[Schedulers] ✅ Réconciliation NGSER démarrée');
   console.log('[Schedulers] ✅ Tous les schedulers démarrés');
 }
 
@@ -48,6 +52,7 @@ export const schedulers = {
   alerteValidation: alerteValidationScheduler,
   reversementAbonnement: reversementAbonnementScheduler,
   alerteB2B: alerteB2BScheduler,
+  reconciliationNgser: reconciliationNgserScheduler,
 };
 
 // =====================================================
@@ -135,6 +140,8 @@ import agentRoutes from './modules/agent/agent.routes';
 import sessionBackofficeRoutes from './modules/sessions/session.routes';
 import paiementRoutes from './modules/paiements/paiement.routes'; // ✅ SPRINT 1 SEMAINE 2
 import voucherRoutes from './modules/vouchers/voucher.routes'; // ✅ SPRINT 1 SEMAINE 2
+import devisRoutes from './modules/devis/devis.routes'; // RM-149 à RM-151
+import proxyAccesRoutes from './modules/acces/proxy-acces.routes'; // RM-152 à RM-154
 import abonnementAliasRoutes from './modules/abonnements/abonnement-alias.routes';
 import backofficeRoutes from './modules/dashboard/backoffice.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
@@ -156,7 +163,13 @@ app.use('/api/espace-organisation', espaceOrganisationRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/partenaires', partenaireRoutes);
 app.use('/api/apporteurs', apporteurRoutes); // ✅ CORRIGÉ: singular → plural
+app.use('/api', devisRoutes); // RM-149 à RM-151: devis SUR_DEVIS — monté avant /api/admin pour éviter le authorize('ADMIN') global
+app.use('/api/formations-demande', proxyAccesRoutes); // RM-152 à RM-154: proxy AES formations à la demande
 app.use('/api/admin', adminRoutes); // ✅ NOUVEAU: création admin utilisateurs / partenaires / apporteurs
+app.use('/api/admin', backofficeRoutes); // Alias pour config
+app.use('/api/admin', responsableRoutes); // Alias pour formations attente
+app.use('/api/organisation', espaceOrganisationRoutes); // Alias pour Postman
+app.use('/api/apprenant', espaceApprenantRoutes); // Alias pour Postman
 app.use('/api', inscriptionRoutes); // ✅ NOUVEAU: endpoints inscriptions/dossiers/sessions
 app.use('/api', paiementRoutes); // ✅ SPRINT 1 SEMAINE 2: POST/GET paiements, webhook, backoffice paiements
 app.use('/', paiementRoutes); // ✅ v4.9: IPN NGSER canonical /webhooks/paiement

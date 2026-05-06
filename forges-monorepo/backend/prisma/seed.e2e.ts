@@ -20,6 +20,18 @@ const IDS = {
   apprenantRetail: 'app-e2e-retail-01',
   apprenantGris: 'app-e2e-gris-01',
   apprenantException: 'app-e2e-exception-01',
+  // Nouveaux comptes pour tests paiement NGSER (Phase 1 v4.9)
+  apprenantIdempotence1: 'app-e2e-idempotence-1',
+  apprenantIdempotence2: 'app-e2e-idempotence-2',
+  apprenantMismatch1: 'app-e2e-mismatch-1',
+  apprenantMismatch2: 'app-e2e-mismatch-2',
+  apprenantMismatch3: 'app-e2e-mismatch-3',
+  apprenantRecon1: 'app-e2e-recon-1',
+  apprenantRecon2: 'app-e2e-recon-2',
+  apprenantRecon3: 'app-e2e-recon-3',
+  apprenantRecon4: 'app-e2e-recon-4',
+  apprenantRecon5: 'app-e2e-recon-5',
+  apprenantNgser1: 'app-e2e-ngser-1',
   organisation: 'org-e2e-01',
   partenaire: 'part-e2e-01',
   partenaireInvite: 'part-e2e-invite-01',
@@ -35,6 +47,10 @@ const IDS = {
   sessionPremiumB2b: 'S-E2E-PREM-B2B-OPEN-01',
   sessionPartenaire: 'S-E2E-PART-OPEN-01',
   sessionDossier: 'S-E2E-DOSSIER-OPEN-01',
+  sessionNgserReconciliation: 'S-E2E-NGSER-RECON-01',
+  sessionNgserReconciliationIsolation: 'S-E2E-NGSER-RECON-02',
+  sessionNgserReconciliationFresh: 'S-E2E-NGSER-RECON-03',
+  sessionNgserReconciliationSolo: 'S-E2E-NGSER-RECON-04',
   sessionPlanifiee: 'S-E2E-PLANIFIEE-01',
   sessionAVenir: 'S-E2E-A-VENIR-01',
   sessionOuverte: 'S-E2E-OUVERTE-01',
@@ -43,6 +59,8 @@ const IDS = {
   sessionArchivable: 'S-E2E-ARCHIVABLE-01',
   dossierEnAttente: 'D-E2E-EN-ATTENTE-01',
   dossierRetenu: 'D-E2E-RETENU-01',
+  dossierRetenuUi: 'D-E2E-RETENU-UI-01',
+  dossierRetenuRecon: 'D-E2E-RETENU-RECON-01',
   dossierPaye: 'D-E2E-PAYE-01',
   dossierAnnule: 'D-E2E-ANNULE-01',
   dossierExpire: 'D-E2E-EXPIRE-01',
@@ -72,6 +90,18 @@ const EMAILS = {
   apprenantRetail: 'apprenant-retail-e2e@forges.ci',
   apprenantGris: 'apprenant-gris-e2e@forges.ci',
   apprenantException: 'apprenant-exception-e2e@forges.ci',
+  // Nouveaux comptes pour tests paiement NGSER
+  apprenantIdempotence1: 'apprenant-idempotence-1@forges.ci',
+  apprenantIdempotence2: 'apprenant-idempotence-2@forges.ci',
+  apprenantMismatch1: 'apprenant-mismatch-1@forges.ci',
+  apprenantMismatch2: 'apprenant-mismatch-2@forges.ci',
+  apprenantMismatch3: 'apprenant-mismatch-3@forges.ci',
+  apprenantRecon1: 'apprenant-recon-1@forges.ci',
+  apprenantRecon2: 'apprenant-recon-2@forges.ci',
+  apprenantRecon3: 'apprenant-recon-3@forges.ci',
+  apprenantRecon4: 'apprenant-recon-4@forges.ci',
+  apprenantRecon5: 'apprenant-recon-5@forges.ci',
+  apprenantNgser1: 'apprenant-ngser-1@forges.ci',
   organisation: 'org@forges.ci',
   partenaire: 'partenaire-e2e@forges.ci',
   partenaireInvite: 'partenaire-invite-e2e@forges.ci',
@@ -111,6 +141,17 @@ async function cleanupScenarioData() {
     IDS.apprenantRetail,
     IDS.apprenantGris,
     IDS.apprenantException,
+    IDS.apprenantIdempotence1,
+    IDS.apprenantIdempotence2,
+    IDS.apprenantMismatch1,
+    IDS.apprenantMismatch2,
+    IDS.apprenantMismatch3,
+    IDS.apprenantRecon1,
+    IDS.apprenantRecon2,
+    IDS.apprenantRecon3,
+    IDS.apprenantRecon4,
+    IDS.apprenantRecon5,
+    IDS.apprenantNgser1,
     IDS.apporteur,
   ];
   const formationIds = [
@@ -133,6 +174,8 @@ async function cleanupScenarioData() {
     IDS.sessionEnCours,
     IDS.sessionCloturee,
     IDS.sessionArchivable,
+    IDS.sessionNgserReconciliationFresh,
+    IDS.sessionNgserReconciliationSolo,
   ];
   const commissionDossierIds = Array.from({ length: 3 }, (_, index) => `D-E2E-COMM-${index + 1}`);
   const commissionPaiementIds = Array.from({ length: 3 }, (_, index) => `P-E2E-COMM-${index + 1}`);
@@ -308,11 +351,27 @@ async function createApprenant(
     consentement_version_cgu: '1.0',
     ...extra,
   };
-  return prisma.apprenant.upsert({
+  const existingById = await prisma.apprenant.findUnique({
     where: { id },
-    update: data,
-    create: data,
+    select: { id: true },
   });
+  if (existingById) {
+    return prisma.apprenant.update({
+      where: { id: existingById.id },
+      data,
+    });
+  }
+  const existingByEmail = await prisma.apprenant.findFirst({
+    where: { email },
+    select: { id: true },
+  });
+  if (existingByEmail) {
+    return prisma.apprenant.update({
+      where: { id: existingByEmail.id },
+      data,
+    });
+  }
+  return prisma.apprenant.create({ data });
 }
 
 async function createFormation(data: {
@@ -399,6 +458,18 @@ async function main() {
     statut: 'INACTIF',
   });
   await createApprenant(IDS.apprenantRetail, EMAILS.apprenantRetail, passwordHash);
+  // Nouveaux comptes pour tests paiement NGSER v4.9 (Phase 1)
+  await createApprenant(IDS.apprenantIdempotence1, EMAILS.apprenantIdempotence1, passwordHash);
+  await createApprenant(IDS.apprenantIdempotence2, EMAILS.apprenantIdempotence2, passwordHash);
+  await createApprenant(IDS.apprenantMismatch1, EMAILS.apprenantMismatch1, passwordHash);
+  await createApprenant(IDS.apprenantMismatch2, EMAILS.apprenantMismatch2, passwordHash);
+  await createApprenant(IDS.apprenantMismatch3, EMAILS.apprenantMismatch3, passwordHash);
+  await createApprenant(IDS.apprenantRecon1, EMAILS.apprenantRecon1, passwordHash);
+  await createApprenant(IDS.apprenantRecon2, EMAILS.apprenantRecon2, passwordHash);
+  await createApprenant(IDS.apprenantRecon3, EMAILS.apprenantRecon3, passwordHash);
+  await createApprenant(IDS.apprenantRecon4, EMAILS.apprenantRecon4, passwordHash);
+  await createApprenant(IDS.apprenantRecon5, EMAILS.apprenantRecon5, passwordHash);
+  await createApprenant(IDS.apprenantNgser1, EMAILS.apprenantNgser1, passwordHash);
 
   await prisma.organisation.create({
     data: {
@@ -586,6 +657,10 @@ async function main() {
   await createSession(IDS.sessionPremiumB2b, IDS.formationPremiumB2b, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionPartenaire, IDS.formationPartenaire, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionDossier, IDS.formationPremiumRetail, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliation, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationIsolation, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationFresh, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationSolo, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionPlanifiee, IDS.formationStandard, 'PLANIFIEE', {
     date_ouverture: daysFromNow(-1),
     date_cloture: daysFromNow(5),
@@ -636,6 +711,17 @@ async function main() {
   await prisma.dossier.create({
     data: {
       id: IDS.dossierRetenu,
+      apprenant_id: IDS.apprenantDossier,
+      formation_id: IDS.formationPremiumRetail,
+      session_id: IDS.sessionPremiumRetail,
+      statut: 'RETENU',
+      source_financement: 'RETAIL',
+      expires_at: daysFromNow(3),
+    },
+  });
+  await prisma.dossier.create({
+    data: {
+      id: IDS.dossierRetenuUi,
       apprenant_id: IDS.apprenantDossier,
       formation_id: IDS.formationPremiumRetail,
       session_id: IDS.sessionPremiumRetail,
@@ -766,7 +852,7 @@ async function main() {
       apprenant_id: IDS.apprenantDossier,
       formation_id: IDS.formationDemande,
       source_financement: 'ABONNEMENT',
-      statut: 'EXPIRE',
+      statut: 'ACTIF',
       date_activation: daysFromNow(-370),
       date_expiration: daysFromNow(-5),
       progression: 100,
@@ -815,6 +901,10 @@ async function main() {
         created_at: previousMonth,
       },
     });
+    const paiementComm = await prisma.paiement.findUnique({ where: { id: paiementId } });
+    if (!paiementComm) {
+      continue;
+    }
     await prisma.commissionApporteur.create({
       data: {
         id: `C-E2E-COMM-${index}`,

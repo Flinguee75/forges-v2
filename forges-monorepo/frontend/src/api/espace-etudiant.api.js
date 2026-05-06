@@ -61,6 +61,10 @@ function serializeApprenantProfileUpdate(data = {}) {
     nom: data.nom,
     prenoms: data.prenom || data.prenoms,
     pays_residence: data.pays_residence,
+    pays_nationalite: data.pays_nationalite,
+    langue_preferee: data.langue_preferee,
+    secteur_activite: data.secteur_activite,
+    niveau_etude: data.niveau_etude,
   });
 }
 

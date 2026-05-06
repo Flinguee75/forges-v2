@@ -1,6 +1,9 @@
+import { randomBytes } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
+
+const NGSER_MOCK_BASE_URL = 'https://mock-ngser.forges.ci/pay';
 
 // RM-107 : grille tarifaire AbonnementOrganisation
 export const TARIFS_ORG = {
@@ -16,13 +19,13 @@ export class AbonnementOrganisationService {
     private readonly email: EmailService
   ) {}
 
-  // GET Mon abonnement organisation actif
+  // GET Mon abonnement organisation actif ou en attente de paiement
   async getAbonnementActif(organisation_id: string) {
     const abo = await this.prisma.abonnementOrganisation.findFirst({
       where: {
         organisation_id,
-        statut: 'ACTIF'
-      }
+        statut: { in: ['ACTIF', 'EN_ATTENTE_PAIEMENT'] },
+      },
     });
 
     if (!abo) {
@@ -45,17 +48,28 @@ export class AbonnementOrganisationService {
     };
   }
 
-  // UCS03 → Souscrire AbonnementOrganisation
+  // UCS03 → Souscrire AbonnementOrganisation avec paiement NGSER
   async souscrire(organisation_id: string, offre_org: 'BASIQUE' | 'PRO' | 'ENTERPRISE') {
-    // RM-84 : unicité — un seul AbonnementOrganisation actif
+    // RM-84 : unicité — un seul AbonnementOrganisation actif ou en attente
     const existant = await this.prisma.abonnementOrganisation.findFirst({
-      where: { organisation_id, statut: 'ACTIF' }
+      where: { organisation_id, statut: { in: ['ACTIF', 'EN_ATTENTE_PAIEMENT'] } },
     });
-    if (existant) throw new Error('ABONNEMENT_ORG_DEJA_ACTIF');
+
+    if (existant) {
+      if (existant.statut === 'ACTIF') throw new Error('ABONNEMENT_ORG_DEJA_ACTIF');
+      // Idempotence : reémettre une session NGSER si le paiement est en attente
+      const session = await this.creerSessionNgser(existant.id, existant.montant_annuel);
+      return {
+        abonnement: existant,
+        payment_url: session.payment_url,
+        order_ngser: existant.order_ngser,
+      };
+    }
 
     const offre = offre_org;
     const montant = TARIFS_ORG[offre];
-    const date_fin = new Date(Date.now() + 365 * 24 * 3600 * 1000); // annuel
+    const date_fin = new Date(Date.now() + 365 * 24 * 3600 * 1000);
+    const orderNgser = this.generateOrderNgser();
 
     const abo = await this.prisma.abonnementOrganisation.create({
       data: {
@@ -66,20 +80,68 @@ export class AbonnementOrganisationService {
         date_fin,
         statut: 'ACTIF',
         renouvellement_auto: true,
-      }
+        order_ngser: orderNgser,
+      },
     });
 
-    // Lier à l'Organisation
     await this.prisma.organisation.update({
       where: { id: organisation_id },
-      data: { abonnement_org_id: abo.id }
+      data: { abonnement_org_id: abo.id },
     });
 
-    await this.audit.info('ABONNEMENT_ORG_SOUSCRIT', { organisation_id, offre, montant });
-    return abo;
+    const session = await this.creerSessionNgser(abo.id, montant);
+
+    await this.audit.info('ABONNEMENT_ORG_EN_ATTENTE_PAIEMENT', {
+      organisation_id,
+      offre,
+      montant,
+      order_ngser: orderNgser,
+    });
+
+    return {
+      abonnement: abo,
+      payment_url: session.payment_url,
+      order_ngser: orderNgser,
+    };
   }
 
-  // Scheduler alertes J-30 et J-7 (RM-109 / RM-82)
+  private generateOrderNgser(date = new Date()): string {
+    const year = date.getUTCFullYear();
+    const start = Date.UTC(year, 0, 0);
+    const dayOfYear = Math.floor((date.getTime() - start) / 86400000)
+      .toString()
+      .padStart(3, '0');
+    const suffix = randomBytes(3).toString('hex').toUpperCase();
+    return `ABO-ORG-${year}-${dayOfYear}-${suffix}`;
+  }
+
+  private async creerSessionNgser(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
+    const isMock = process.env.NGSER_MOCK_MODE !== 'false';
+    const abo = await this.prisma.abonnementOrganisation.findUnique({ where: { id: abonnement_id } });
+    const order = abo?.order_ngser ?? this.generateOrderNgser();
+
+    if (isMock) {
+      return { payment_url: `${NGSER_MOCK_BASE_URL}?order=${order}` };
+    }
+
+    const { NgserClient } = await import('../../paiements/ngser.client');
+    const ngserClient = new NgserClient(this.audit);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const notificationUrl = process.env.NGSER_NOTIFICATION_URL || 'http://localhost:3000/webhooks/paiement';
+    const returnUrl = `${frontendUrl}/organisation/abonnement/callback`;
+
+    const session = await ngserClient.createSession({
+      order,
+      amount: montantXof,
+      currency: 'XOF',
+      notification_url: notificationUrl,
+      return_url: returnUrl,
+    });
+
+    return { payment_url: session.payment_url };
+  }
+
+  // Scheduler alertes J-30 et J-7
   async envoyerAlertesExpiration() {
     const now = new Date();
     const j30 = new Date(now.getTime() + 30 * 24 * 3600 * 1000);

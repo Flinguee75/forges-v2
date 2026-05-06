@@ -64,10 +64,23 @@ model Organisation {
   apporteur          Apporteur?               @relation(fields: [apporteur_id], references: [id])
   apprenants         Apprenant[]
   feedbacks          FeedbackFormation[]
+  devis              Devis[]
   created_at         DateTime                 @default(now())
   date_fin_essai     DateTime?
 
+  config             OrganisationConfig?
+
   @@unique([identifiant_legal, type])
+}
+
+model OrganisationConfig {
+  id                    String       @id @default(uuid())
+  organisation_id       String       @unique
+  organisation          Organisation @relation(fields: [organisation_id], references: [id])
+  commission_forges_pct Int?
+  seuil_reversement_xof Int?
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
 }
 
 model Formation {
@@ -84,6 +97,7 @@ model Formation {
   inclus_abonnement       Boolean                @default(false)
   pilier_abonnement       String?
   duree_acces_jours       Int                    @default(365)
+  url_externe_chiffree    String?
   prix_coutant            Int?
   prerequis               String?
   objectifs_pedagogiques  String[]
@@ -99,6 +113,7 @@ model Formation {
   feedbacks               FeedbackFormation[]
   langues_disponibles     String[]
   acces_demande           AccesFormationDemande[]
+  devis                   Devis[]
   created_at              DateTime               @default(now())
 }
 
@@ -137,6 +152,7 @@ model Session {
   created_at       DateTime  @default(now())
   formation        Formation @relation(fields: [formation_id], references: [id])
   dossiers         Dossier[]
+  devis            Devis[]
 }
 
 model Dossier {
@@ -208,6 +224,10 @@ model Devis {
   cancelled_at       DateTime?
   created_by         String
   created_at         DateTime    @default(now())
+
+  organisation       Organisation @relation(fields: [organisation_id], references: [id])
+  formation          Formation    @relation(fields: [formation_id], references: [id])
+  session            Session?     @relation(fields: [session_id], references: [id])
 
   @@index([organisation_id])
   @@index([formation_id])
@@ -366,7 +386,7 @@ model AbonnementRetail {
   id                     String    @id @default(uuid())
   apprenant_id           String    @unique
   offre                  String
-  statut                 String    @default("ACTIF")
+  statut                 String    @default("EN_ATTENTE_PAIEMENT")
   montant_mensuel        Int
   methode_paiement       String?
   date_debut             DateTime
@@ -382,6 +402,8 @@ model AbonnementRetail {
   prorata_premier_mois   Int?
   suspension_count       Int       @default(0)
   last_suspension_at     DateTime?
+  order_ngser            String?   @unique
+  transaction_id_ngser   String?   @unique
   apprenant              Apprenant @relation(fields: [apprenant_id], references: [id])
 }
 
@@ -397,11 +419,13 @@ model AbonnementB2B {
   premium_inclus_par_an     Int?
   premium_consommes         Int            @default(0)
   date_renouvellement       DateTime?
-  statut                    String         @default("ACTIF")
+  statut                    String         @default("EN_ATTENTE_PAIEMENT")
   compteur_premium_used     Int            @default(0)
   compteur_premium_reset_at DateTime?
   descente_planifiee        Boolean        @default(false)
   palier_descente_cible     String?
+  order_ngser               String?        @unique
+  transaction_id_ngser      String?        @unique
   organisation              Organisation   @relation("OrganisationAbonnementsB2B", fields: [organisation_id], references: [id])
   organisations_courantes   Organisation[] @relation("OrganisationAbonnementB2BCourant")
 }
@@ -410,12 +434,14 @@ model AbonnementOrganisation {
   id                      String         @id @default(uuid())
   organisation_id         String         @unique
   offre                   String
-  statut                  String         @default("ACTIF")
+  statut                  String         @default("EN_ATTENTE_PAIEMENT")
   montant_annuel          Int
   perimetre_fonctionnel   String[]
   date_debut              DateTime
   date_fin                DateTime
   renouvellement_auto     Boolean        @default(true)
+  order_ngser             String?        @unique
+  transaction_id_ngser    String?        @unique
   organisation            Organisation   @relation("OrganisationAbonnementsOrg", fields: [organisation_id], references: [id])
   organisations_courantes Organisation[] @relation("OrganisationAbonnementOrgCourant")
 }

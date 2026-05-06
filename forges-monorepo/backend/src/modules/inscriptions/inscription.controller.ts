@@ -20,7 +20,7 @@ export class InscriptionController {
       };
 
       const dossier = await this.inscriptionService.inscrire(params);
-      res.status(201).json({ success: true, dossier });
+      res.status(201).json({ statusCode: 201, success: true, dossier });
     } catch (error: any) {
       if (error.message === 'SESSION_COMPLETE') return res.status(400).json({ statusCode: 400, error: 'SESSION_COMPLETE', message: 'Cette session est complète.' });
       if (error.message === 'ALREADY_ENROLLED') return res.status(409).json({ statusCode: 409, error: 'ALREADY_ENROLLED', message: 'Vous êtes déjà inscrit à cette session (RM-01).' });
@@ -47,7 +47,7 @@ export class InscriptionController {
       };
 
       const dossier = await this.inscriptionService.inscrire(params);
-      res.status(201).json({ success: true, dossier });
+      res.status(201).json({ statusCode: 201, success: true, dossier });
     } catch (error: any) {
       if (error.message === 'SESSION_COMPLETE') return res.status(400).json({ error: 'SESSION_COMPLETE', message: 'Cette session est complète.' });
       if (error.message === 'ALREADY_ENROLLED') return res.status(409).json({ error: 'ALREADY_ENROLLED', message: 'Vous êtes déjà inscrit à cette session (RM-01).' });
@@ -95,8 +95,9 @@ export class InscriptionController {
 
   async getBackofficeDossiers(req: Request, res: Response, next: NextFunction) {
     try {
-      const dossiers = await this.inscriptionService.getDossiersBackoffice();
-      res.status(200).json({ statusCode: 200, data: dossiers });
+      const { statut, search } = req.query as { statut?: string; search?: string };
+      const dossiers = await this.inscriptionService.getDossiersBackoffice({ statut, search });
+      res.status(200).json({ statusCode: 200, data: dossiers, meta: { total: dossiers.length } });
     } catch (error: any) {
       next(error);
     }

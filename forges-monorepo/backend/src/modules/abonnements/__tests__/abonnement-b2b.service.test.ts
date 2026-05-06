@@ -16,9 +16,19 @@ describe('AbonnementB2BService', () => {
     service = new AbonnementB2BService(prisma, mockAudit, mockEmail);
   });
 
-  it('souscrit un abonnement B2B et lie l organisation', async () => {
-    prisma.abonnementB2B.create.mockResolvedValue({ id: 'abo-b2b-01' });
-    prisma.organisation.update.mockResolvedValue({ id: 'org-01' });
+  // ─── souscrire ─────────────────────────────────────────────────────
+
+  it('crée un abonnement B2B EN_ATTENTE_PAIEMENT et retourne une payment_url', async () => {
+    const created = {
+      id: 'abo-b2b-01',
+      palier: 'BUSINESS',
+      statut: 'EN_ATTENTE_PAIEMENT',
+      prix_annuel: 500000,
+      order_ngser: 'ABO-B2B-TEST-001',
+    };
+    prisma.abonnementB2B.findFirst.mockResolvedValue(null);
+    prisma.abonnementB2B.create.mockResolvedValue(created as any);
+    prisma.abonnementB2B.findUnique.mockResolvedValue(created as any);
     mockAudit.info.mockResolvedValue(undefined);
 
     const result = await service.souscrire('org-01', 'BUSINESS');
@@ -29,16 +39,54 @@ describe('AbonnementB2BService', () => {
         palier: 'BUSINESS',
         nb_max: 50,
         prix_annuel: 500000,
-        statut: 'ACTIF',
+        statut: 'EN_ATTENTE_PAIEMENT',
+        order_ngser: expect.stringMatching(/^ABO-B2B-/),
       }),
     });
-    expect(prisma.organisation.update).toHaveBeenCalledWith({
-      where: { id: 'org-01' },
-      data: { abonnement_b2b_id: 'abo-b2b-01' },
-    });
-    expect(mockAudit.info).toHaveBeenCalledWith('ABONNEMENT_B2B_SOUSCRIT', { organisation_id: 'org-01', palier: 'BUSINESS' });
-    expect(result).toEqual({ id: 'abo-b2b-01' });
+    // organisation.update N'est PAS appelé ici — c'est fait dans l'IPN handler au SUCCESS
+    expect(prisma.organisation.update).not.toHaveBeenCalled();
+    expect(mockAudit.info).toHaveBeenCalledWith(
+      'ABONNEMENT_B2B_EN_ATTENTE_PAIEMENT',
+      expect.objectContaining({ organisation_id: 'org-01', palier: 'BUSINESS' })
+    );
+    expect(result.payment_url).toBeDefined();
+    expect(result.order_ngser).toBeDefined();
+    expect(result.abonnement).toEqual(created);
   });
+
+  it('rejette si un abonnement ACTIF existe déjà', async () => {
+    prisma.abonnementB2B.findFirst.mockResolvedValue({
+      id: 'abo-b2b-01',
+      statut: 'ACTIF',
+    } as any);
+
+    await expect(service.souscrire('org-01', 'BUSINESS')).rejects.toThrow('ABONNEMENT_B2B_DEJA_ACTIF');
+  });
+
+  it('réémet une session NGSER si abonnement EN_ATTENTE_PAIEMENT (idempotence)', async () => {
+    const existing = {
+      id: 'abo-b2b-01',
+      statut: 'EN_ATTENTE_PAIEMENT',
+      prix_annuel: 500000,
+      order_ngser: 'ABO-B2B-2026-001-EXISTING',
+    };
+    prisma.abonnementB2B.findFirst.mockResolvedValue(existing as any);
+    prisma.abonnementB2B.findUnique.mockResolvedValue(existing as any);
+
+    const result = await service.souscrire('org-01', 'BUSINESS');
+
+    expect(result.abonnement).toEqual(existing);
+    expect(result.payment_url).toContain('ABO-B2B-2026-001-EXISTING');
+    expect(prisma.abonnementB2B.create).not.toHaveBeenCalled();
+  });
+
+  it('rejette le palier SUR_DEVIS (hors ligne)', async () => {
+    prisma.abonnementB2B.findFirst.mockResolvedValue(null);
+
+    await expect(service.souscrire('org-01', 'SUR_DEVIS')).rejects.toThrow('PALIER_SUR_DEVIS_HORS_LIGNE');
+  });
+
+  // ─── monterPalier ──────────────────────────────────────────────────
 
   it('rejette une montée de palier si aucun abonnement actif', async () => {
     prisma.abonnementB2B.findFirst.mockResolvedValue(null);
@@ -80,6 +128,8 @@ describe('AbonnementB2BService', () => {
     expect(result.montant_prorata).toBeGreaterThan(0);
   });
 
+  // ─── envoyerAlertesExpiration ───────────────────────────────────────
+
   it('envoie les alertes d expiration J-45 et J-15', async () => {
     prisma.abonnementB2B.findMany
       .mockResolvedValueOnce([
@@ -102,6 +152,7 @@ describe('AbonnementB2BService', () => {
       { id: 'abo-b2b-02', organisation_id: 'org-02', organisation: { email: 'org2@test.ci' } },
     ] as any);
     prisma.abonnementB2B.update.mockResolvedValue({} as any);
+    prisma.accesFormationDemande.updateMany.mockResolvedValue({} as any);
 
     await expect(service.suspendreB2BExpires()).resolves.toBe(2);
     expect(prisma.abonnementB2B.update).toHaveBeenCalledTimes(2);

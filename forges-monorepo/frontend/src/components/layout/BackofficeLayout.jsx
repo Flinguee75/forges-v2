@@ -44,6 +44,7 @@ export default function BackofficeLayout() {
         { name: 'Dossiers', href: '/backoffice/dossiers', icon: 'clipboardList', roles: ['ADMIN', 'SUPERVISEUR'] },
         { name: 'Paiements', href: '/backoffice/paiements', icon: 'cash', roles: ['ADMIN', 'AGENT'] },
         { name: 'Vouchers', href: '/backoffice/vouchers', icon: 'ticket', roles: ['ADMIN', 'AGENT'] },
+        { name: 'Devis', href: '/backoffice/devis', icon: 'document', roles: ['ADMIN', 'AGENT'] },
       ],
     },
     {
@@ -85,7 +86,6 @@ export default function BackofficeLayout() {
     {
       title: 'Administration',
       items: [
-        { name: 'Comptes', href: '/backoffice/comptes', icon: 'users', roles: ['ADMIN'] },
         { name: 'Configuration', href: '/backoffice/config', icon: 'cog', roles: ['ADMIN'] },
       ],
     },

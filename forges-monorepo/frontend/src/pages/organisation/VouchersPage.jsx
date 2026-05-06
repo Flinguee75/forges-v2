@@ -7,6 +7,7 @@ import Table from '../../components/ui/Table';
 import Spinner from '../../components/feedback/Spinner';
 import Pagination from '../../components/ui/Pagination';
 import ProgressBar from '../../components/ui/ProgressBar';
+import EmptyState from '../../components/feedback/EmptyState';
 
 /**
  * VouchersPage - Liste des vouchers de l'organisation
@@ -165,7 +166,14 @@ export default function VouchersPage() {
           </div>
         </div>
 
-        <Table columns={columns} data={vouchers} />
+        {vouchers.length === 0 && !isLoading ? (
+          <EmptyState
+            title="Aucun voucher"
+            message="Votre organisation n'a pas encore de vouchers actifs. Contactez FORGES pour en obtenir."
+          />
+        ) : (
+          <Table columns={columns} data={vouchers} />
+        )}
 
         {meta.totalPages > 1 && (
           <div className="mt-4">

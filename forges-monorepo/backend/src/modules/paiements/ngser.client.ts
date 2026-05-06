@@ -1,11 +1,13 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { AuditLogger } from '../../shared/audit/audit.logger';
+import { ngserCircuitBreaker } from '../../shared/circuit-breaker/circuit-breaker.service';
 
 export interface NgserSessionRequest {
   order: string;
   amount: number;
   currency: string;
   notification_url: string;
+  return_url?: string; // URL de redirection post-paiement (Payment Data Transfer)
   customer_email?: string;
   customer_phone?: string;
 }
@@ -109,6 +111,7 @@ export class NgserClient {
         transaction_amount: request.amount,
         currency: request.currency.toLowerCase(),
         notification_url: request.notification_url,
+        return_url: request.return_url,
         customer_email: request.customer_email,
         customer_phone: request.customer_phone,
       };
@@ -144,36 +147,50 @@ export class NgserClient {
 
   /**
    * Réconciliation : vérifier le statut d'un paiement NGSER
-   * Endpoint décrit par l'addendum v4.9: POST /v3/check-status
+   * Endpoint doc NGSER: POST /check_payment_status/{order}
+   * Auth: Authorization: Token <auth_token>
    */
   async getStatus(request: NgserStatusRequest): Promise<NgserStatusResponse> {
     try {
-      const payload = {
-        name: this.name,
-        authentication_token: this.authenticationToken,
-        auth_token: this.authToken,
-        operation_token: this.operationTokenPaiement,
-        order: request.order,
-      };
-
       await this.audit.info('NGSER_GET_STATUS_REQUEST', {
         order: request.order,
       });
 
-      const response = await this.postWithRetry<NgserStatusResponse>(
-        '/v3/check-status',
-        payload,
-        'GET_STATUS',
-        request.order
+      const response = await this.client.post<any>(
+        `/check_payment_status/${request.order}`,
+        {},
+        {
+          headers: {
+            Authorization: `Token ${this.authToken}`,
+          },
+        }
       );
+
+      const raw = response.data;
+      const data = raw.data || raw;
+
+      // Normaliser : transaction_amount est une string XOF ("500.00")
+      const amount = data.transaction_amount
+        ? parseFloat(data.transaction_amount)
+        : undefined;
+
+      const normalized: NgserStatusResponse = {
+        order: data.order_id || request.order,
+        status: raw.status || 'UNKNOWN',
+        code: raw.code,
+        transaction_id: data.transaction_id,
+        amount,
+        wallet: data.wallet,
+        payment_date: data.payment_date,
+      };
 
       await this.audit.info('NGSER_GET_STATUS_SUCCESS', {
         order: request.order,
-        status: response.data.status,
-        code: response.data.code,
+        status: normalized.status,
+        code: normalized.code,
       });
 
-      return response.data;
+      return normalized;
     } catch (error: any) {
       await this.handleNgserError(error, 'GET_STATUS', request.order);
       throw error;
@@ -184,6 +201,14 @@ export class NgserClient {
    * Gestion centralisée des erreurs NGSER
    */
   private async postWithRetry<T>(url: string, payload: object, operation: string, order: string) {
+    if (!ngserCircuitBreaker.canExecute()) {
+      await this.audit.error('NGSER_CIRCUIT_OPEN', {
+        operation,
+        order,
+      });
+      throw new Error('NGSER_CIRCUIT_OPEN');
+    }
+
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
@@ -197,11 +222,14 @@ export class NgserClient {
           });
         }
 
-        return await this.client.post<T>(url, payload);
+        const response = await this.client.post<T>(url, payload);
+        ngserCircuitBreaker.recordSuccess();
+        return response;
       } catch (error) {
         lastError = error;
 
         if (!this.shouldRetry(error) || attempt === this.maxRetries) {
+          ngserCircuitBreaker.recordFailure();
           throw error;
         }
 

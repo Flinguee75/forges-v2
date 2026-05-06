@@ -174,7 +174,7 @@ export default function ReversementsPartenaires() {
       {/* RM-130: Note importante */}
       <div className="mb-6 rounded-lg border-2 border-warning bg-warning/10 p-4">
         <p className="text-sm font-semibold text-warning">
-          ⚠️ Règle RM-130: Affichage montants nets uniquement
+          Montants nets uniquement
         </p>
         <p className="mt-1 text-sm text-subtext">
           Les montants affichés sont les prix coûtants nets à reverser aux partenaires.

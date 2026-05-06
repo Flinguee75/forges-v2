@@ -11,6 +11,7 @@ import EmptyState from '../../components/feedback/EmptyState';
 import {
   formatDate,
   formatFcfa,
+  formatXof,
   isFutureDate,
   previewRetailUpgrade,
 } from '../../utils/retailBilling';
@@ -165,8 +166,8 @@ export default function MonAbonnement() {
 
     setPendingAction({
       type: 'suspend',
-      title: 'Confirmer la suspension de l’abonnement',
-      description: 'La suspension bloque l’accès Retail jusqu’à la prochaine fenêtre autorisée.',
+      title: "Confirmer la suspension de l'abonnement",
+      description: "La suspension bloque l'accès Retail jusqu'à la prochaine fenêtre autorisée.",
     });
   };
 
@@ -223,38 +224,73 @@ export default function MonAbonnement() {
 
   if (isEmpty) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-lg bg-white p-6 shadow-sm border border-border">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-secondary">
+      <div className="mx-auto max-w-3xl space-y-8">
+
+        {/* Hero no-subscription */}
+        <div className="rounded-2xl bg-gradient-to-r from-primary to-secondary p-8 text-white text-center shadow-lg">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/70">
             Abonnement Retail
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-text">
-            Aucun abonnement Retail
+          <h1 className="mt-3 text-3xl font-bold">
+            Passez à la vitesse supérieure
           </h1>
-          <p className="mt-2 text-sm text-subtext">
-            Souscrivez à une offre Retail pour activer vos avantages et l’accès aux formations incluses.
+          <p className="mt-3 mx-auto max-w-lg text-sm text-white/85">
+            Sans abonnement, vous payez chaque session à l'unité.
+            Avec un abonnement, les formations incluses sont comprises dans votre mensualité — aucun frais supplémentaire.
           </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link to="/apprenant/abonnement/souscrire">
+              <Button variant="primary" className="bg-white text-primary hover:bg-white/90">
+                Voir les offres
+              </Button>
+            </Link>
+            <Link to="/apprenant/catalogue">
+              <Button variant="outline" className="border-white/50 text-white hover:bg-white/10">
+                Continuer sans abonnement
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <EmptyState
-          title="Vous n’avez pas encore d’abonnement"
-          message="Choisissez Essentiel ou Premium pour démarrer votre abonnement Retail."
-          action={(
-            <Link to="/apprenant/abonnement/souscrire">
-              <Button variant="primary">Choisir une offre</Button>
-            </Link>
-          )}
-        />
+        {/* Comparaison rapide */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-border p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">Essentiel</span>
+              <span className="text-xl font-bold text-text">15 000 FCFA<span className="text-sm font-normal text-subtext">/mois</span></span>
+            </div>
+            <p className="text-sm text-subtext">
+              Toutes les formations standard du catalogue comprises. Payez la mensualité, accédez librement.
+            </p>
+            {formationsIncluses.length > 0 && (
+              <p className="mt-3 text-sm font-medium text-success">
+                {formationsIncluses.length} formation{formationsIncluses.length > 1 ? 's' : ''} incluse{formationsIncluses.length > 1 ? 's' : ''} disponible{formationsIncluses.length > 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">Premium</span>
+              <span className="text-xl font-bold text-text">25 000 FCFA<span className="text-sm font-normal text-subtext">/mois</span></span>
+            </div>
+            <p className="text-sm text-subtext">
+              Tout Essentiel, plus les formations Premium exclusives et la réduction -15% sur toutes les sessions.
+            </p>
+          </div>
+        </div>
 
         {formationsIncluses.length > 0 && (
-          <Card title="Formations incluses dans le catalogue Retail">
+          <Card title="Aperçu des formations incluses">
+            <p className="mb-4 text-sm text-subtext">
+              Ces formations sont comprises dans votre mensualité dès la souscription Essentiel ou Premium.
+            </p>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {formationsIncluses.slice(0, 6).map((formation) => (
                 <div key={formation.id} className="rounded-lg border border-border p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-text">{getFormationLabel(formation)}</p>
-                      <p className="mt-1 text-sm text-subtext">{getFormationDescription(formation)}</p>
+                      <p className="mt-1 text-sm text-subtext line-clamp-2">{getFormationDescription(formation)}</p>
                     </div>
                     <Badge variant="success" size="small">Inclus</Badge>
                   </div>
@@ -319,7 +355,7 @@ export default function MonAbonnement() {
         <Card className="border-l-4 border-success">
           <div className="text-sm text-subtext">Montant mensuel</div>
           <div className="mt-2 text-2xl font-semibold text-text">
-            {formatFcfa(abonnement.montant_mensuel)}
+            {formatXof(abonnement.montant_mensuel)}
           </div>
         </Card>
         <Card className="border-l-4 border-warning">
@@ -329,6 +365,20 @@ export default function MonAbonnement() {
           </div>
         </Card>
       </div>
+
+      {abonnement.offre === 'ESSENTIEL' && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-text">Passez à Premium</p>
+            <p className="mt-1 text-sm text-subtext">
+              Débloquez les formations Premium exclusives et la réduction -15% sur toutes les sessions.
+            </p>
+          </div>
+          <Button variant="primary" onClick={() => openAction('upgrade')}>
+            Passer à Premium — 25 000 FCFA/mois
+          </Button>
+        </div>
+      )}
 
       <Card title="Actions abonnement" bodyClassName="space-y-4">
         <div className="flex flex-wrap gap-3">

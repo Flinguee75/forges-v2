@@ -226,7 +226,7 @@ export default function SessionForm() {
           />
 
           <div className="rounded-lg border border-border bg-gray-50 p-4 text-sm text-subtext">
-            Le backend valide la chronologie et le chevauchement des sessions. Les transitions automatiques restent gérées côté runtime.
+            Les dates sont validées automatiquement. Les sessions ne peuvent pas se chevaucher sur la même formation.
           </div>
 
           <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">

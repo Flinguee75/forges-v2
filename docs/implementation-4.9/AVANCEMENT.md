@@ -94,8 +94,8 @@ Décision Go/No-Go Production avec validation finale de tous les critères
 - ✅ **7/7 risques P0 maîtrisés (100%)**
 
 #### Bugs Corrigés
-- ✅ **BUG-J7-001:** Ajout `NGSER_AUTHENTICATION_TOKEN` dans `.env.example`
-- ✅ Fix tests IPN (clés étrangères)
+- ✅ **BUG-J7-001:** Correction `.env.example` + fixtures FK des tests IPN
+- ✅ Cleanup tests IPN: commissions supprimées avant paiements/dossiers
 
 ### Tests Exécutés J7
 
@@ -109,19 +109,19 @@ Décision Go/No-Go Production avec validation finale de tous les critères
 
 ### Décision Finale
 
-**DÉCISION: ✅ GO PRODUCTION LIMITÉE**
+**DÉCISION: ⚠️ GO STAGING UNIQUEMENT**
 
 **Justification:**
 - Tous les critères bloquants validés (100%)
 - Tous les risques P0 maîtrisés (7/7)
 - Tests backend 100% PASS (478/478)
 - Rollback documenté et disponible
-- Infrastructure prête pour mode réel
+- Infrastructure prête pour le gate staging réel
 
 **Conditions:**
-1. Tester API NGSER sandbox avant production finale
-2. Déploiement progressif (staging → prod limitée → prod complète)
-3. Monitoring renforcé première semaine
+1. Tester API NGSER sandbox réelle en staging public
+2. Valider redirection checkout et IPN réel
+3. Autoriser la production limitée uniquement après PASS complet J8
 
 ### Rapport
 - 📄 `docs/implementation-4.9/rapport-final-go-nogo-v49.md`

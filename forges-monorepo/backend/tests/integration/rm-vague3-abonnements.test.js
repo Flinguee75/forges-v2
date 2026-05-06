@@ -37,19 +37,19 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     const account = await createApprenantAccount('rm79');
     const headers = await auth(account);
 
-    await request(API_URL).post('/api/abonnements/retail').set(headers).send({ offre: 'ESSENTIEL' }).expect(201);
+    const created = await request(API_URL).post('/api/abonnements/retail').set(headers).send({ offre: 'ESSENTIEL' }).expect(201);
 
     const upgrade = await request(API_URL).put('/api/abonnements/retail/upgrade').set(headers).send({});
     expect(upgrade.status).toBe(200);
     expect(upgrade.body.data.effectif).toBe('immediat');
     expect(upgrade.body.data.montant_prorata).toBeGreaterThanOrEqual(0);
 
-    const afterUpgrade = await prisma.abonnementRetail.findUnique({ where: { apprenant_id: account.id } });
+    const afterUpgrade = await prisma.abonnementRetail.findUnique({ where: { id: created.body.data.abonnement.id } });
     expect(afterUpgrade.offre).toBe('PREMIUM');
 
     const downgrade = await request(API_URL).put('/api/abonnements/retail/downgrade').set(headers).send({});
     expect(downgrade.status).toBe(200);
-    const afterDowngrade = await prisma.abonnementRetail.findUnique({ where: { apprenant_id: account.id } });
+    const afterDowngrade = await prisma.abonnementRetail.findUnique({ where: { id: created.body.data.abonnement.id } });
     expect(afterDowngrade.offre).toBe('PREMIUM');
     expect(afterDowngrade.downgrade_planifie).toBe('ESSENTIEL');
 
@@ -71,12 +71,12 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(suspendedAccess.statut).toBe('SUSPENDU');
 
     await prisma.abonnementRetail.update({
-      where: { apprenant_id: account.id },
+      where: { id: created.body.data.abonnement.id },
       data: { statut: 'ACTIF' },
     });
     const resilier = await request(API_URL).delete('/api/abonnements/retail').set(headers).send({});
     expect(resilier.status).toBe(200);
-    const afterResiliation = await prisma.abonnementRetail.findUnique({ where: { apprenant_id: account.id } });
+    const afterResiliation = await prisma.abonnementRetail.findUnique({ where: { id: created.body.data.abonnement.id } });
     expect(afterResiliation.statut).toBe('EN_RESILIATION');
   });
 

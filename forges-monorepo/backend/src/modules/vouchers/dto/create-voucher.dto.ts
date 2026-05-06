@@ -8,9 +8,8 @@ const baseVoucherSchema = z.object({
   date_expiration: z.coerce.date(),
 });
 
-export const CreateVoucherSchema = baseVoucherSchema.extend({
-  organisation_id: z.string().min(1),
-});
+// organisation_id comes from JWT token (req.user.userId), not from body
+export const CreateVoucherSchema = baseVoucherSchema;
 
 export const CreateVoucherPromotionnelSchema = baseVoucherSchema;
 

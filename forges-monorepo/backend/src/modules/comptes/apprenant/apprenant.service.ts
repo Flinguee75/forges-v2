@@ -57,6 +57,7 @@ export class ApprenantService {
       pays_residence: dto.pays_residence,
       pays_nationalite: dto.pays_nationalite,
       langue_preferee: dto.langue_preferee,
+      organisation_id: dto.organisation_id,
       consentement_rgpd: true,
       consentement_timestamp: new Date(),
       consentement_version_cgu: VERSION_CGU,

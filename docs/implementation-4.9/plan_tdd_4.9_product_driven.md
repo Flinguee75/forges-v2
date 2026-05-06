@@ -1,6 +1,3 @@
-Voici la version compacte du document, orientée exécution/pilotage. Source utilisée :
-
-````markdown
 # Plan TDD FORGES v4.9 — Version Compacte
 
 ## Objectif
@@ -441,8 +438,3 @@ Le risque principal n’est pas d’“oublier une fonctionnalité”.
 Le vrai risque est de livrer une intégration paiement qui semble marcher en happy path, mais qui casse en production sur les cas réels : IPN dupliqué, paiement PENDING, montant incohérent, rollback impossible ou secret exposé.
 
 La priorité doit donc rester : **paiement fiable > frontend complet > confort utilisateur**.
-
-```
-
-Le compactage garde l’essentiel, mais il enlève beaucoup de code détaillé. Est-ce que tu veux une version encore plus courte en **1 page “plan d’exécution pour devs”**, ou une version **livrable client/PO plus propre** ?
-```

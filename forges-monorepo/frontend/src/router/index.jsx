@@ -40,6 +40,7 @@ const MesPaiementsPage = lazy(() => import('../pages/etudiant/MesPaiementsPage')
 const PaiementDetailEtudiant = lazy(() => import('../pages/etudiant/PaiementDetail'));
 const PaiementInitiation = lazy(() => import('../pages/apprenant/PaiementInitiation'));
 const PaiementCallback = lazy(() => import('../pages/apprenant/PaiementCallback'));
+const AbonnementCallback = lazy(() => import('../pages/apprenant/AbonnementCallback'));
 const MesAttestationsPage = lazy(() => import('../pages/etudiant/MesAttestationsPage'));
 const MonProfilPage = lazy(() => import('../pages/etudiant/MonProfilPage'));
 
@@ -50,12 +51,17 @@ const VouchersPage = lazy(() => import('../pages/organisation/VouchersPage'));
 const InscriptionsPage = lazy(() => import('../pages/organisation/InscriptionsPage'));
 const PaiementsOrganisationPage = lazy(() => import('../pages/organisation/PaiementsOrganisationPage'));
 const ProfilOrganisationPage = lazy(() => import('../pages/organisation/ProfilOrganisationPage'));
+const GestionEmployesPage = lazy(() => import('../pages/organisation/GestionEmployesPage'));
+const GestionApprenantsB2B = lazy(() => import('../pages/organisation/GestionApprenantsB2B'));
+const AbonnementOrgCallback = lazy(() => import('../pages/organisation/AbonnementOrgCallback'));
+const AbonnementB2BCallback = lazy(() => import('../pages/organisation/AbonnementB2BCallback'));
 
 const PartenaireDashboard = lazy(() => import('../pages/partenaire/PartenaireDashboard'));
 const MesFormations = lazy(() => import('../pages/partenaire/MesFormations'));
 const SoumettreFormation = lazy(() => import('../pages/partenaire/SoumettreFormation'));
 const PartenaireFormationDetail = lazy(() => import('../pages/partenaire/FormationDetail'));
 const MesReversements = lazy(() => import('../pages/partenaire/MesReversements'));
+const ExportCSVPartenaire = lazy(() => import('../pages/partenaire/ExportCSV'));
 const ProfilPartenairePage = lazy(() => import('../pages/partenaire/ProfilPartenaire'));
 
 const ApporteurDashboard = lazy(() => import('../pages/apporteur/ApporteurDashboard'));
@@ -99,6 +105,11 @@ const ApprenantsList = lazy(() => import('../pages/backoffice/apprenants/Apprena
 const ApprenantDetail = lazy(() => import('../pages/backoffice/apprenants/ApprenantDetail'));
 const OrganisationsList = lazy(() => import('../pages/backoffice/organisations/OrganisationsList'));
 const OrganisationDetail = lazy(() => import('../pages/backoffice/organisations/OrganisationDetail'));
+
+const DevisList = lazy(() => import('../pages/backoffice/devis/DevisList'));
+const DevisForm = lazy(() => import('../pages/backoffice/devis/DevisForm'));
+const DevisDetail = lazy(() => import('../pages/backoffice/devis/DevisDetail'));
+const DevisPage = lazy(() => import('../pages/organisation/DevisPage'));
 
 const PlaceholderPage = lazy(() => import('../pages/PlaceholderPage'));
 const ComponentsDemo = lazy(() => import('../pages/ComponentsDemo'));
@@ -260,6 +271,10 @@ const router = createBrowserRouter([
         element: withSuspense(<SouscrireAbonnement />),
       },
       {
+        path: 'abonnement/callback',
+        element: withSuspense(<AbonnementCallback />),
+      },
+      {
         path: 'formations-a-la-demande',
         element: withSuspense(<FormationsALaDemande />),
       },
@@ -344,8 +359,16 @@ const router = createBrowserRouter([
         element: withSuspense(<MonAbonnementOrg />),
       },
       {
+        path: 'abonnement/callback',
+        element: withSuspense(<AbonnementOrgCallback />),
+      },
+      {
         path: 'b2b',
         element: withSuspense(<AbonnementB2B />),
+      },
+      {
+        path: 'b2b/callback',
+        element: withSuspense(<AbonnementB2BCallback />),
       },
       {
         path: 'vouchers',
@@ -360,8 +383,20 @@ const router = createBrowserRouter([
         element: withSuspense(<PaiementsOrganisationPage />),
       },
       {
+        path: 'devis',
+        element: withSuspense(<DevisPage />),
+      },
+      {
         path: 'profil',
         element: withSuspense(<ProfilOrganisationPage />),
+      },
+      {
+        path: 'employes',
+        element: withSuspense(<GestionEmployesPage />),
+      },
+      {
+        path: 'b2b-apprenants',
+        element: withSuspense(<GestionApprenantsB2B />),
       },
     ],
   },
@@ -402,6 +437,10 @@ const router = createBrowserRouter([
       {
         path: 'reversements',
         element: withSuspense(<MesReversements />),
+      },
+      {
+        path: 'export-csv',
+        element: withSuspense(<ExportCSVPartenaire />),
       },
       {
         path: 'profil',
@@ -616,6 +655,30 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'devis',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
+            {withSuspense(<DevisList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'devis/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<DevisForm />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'devis/:id',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
+            {withSuspense(<DevisDetail />)}
+          </RoleGuard>
+        ),
+      },
+      {
         path: 'abonnements',
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR', 'AGENT']}>
@@ -777,15 +840,6 @@ const router = createBrowserRouter([
           <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR', 'AGENT']}>
             {withSuspense(<ReversementsApporteurs />)}
           </RoleGuard>
-        ),
-      },
-      {
-        path: 'comptes',
-        element: withSuspense(
-          <PlaceholderPage
-            title="Comptes backoffice"
-            description="Page placeholder pour valider la navigation et le shell backoffice."
-          />
         ),
       },
       {

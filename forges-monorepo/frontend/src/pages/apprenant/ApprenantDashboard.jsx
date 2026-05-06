@@ -11,7 +11,7 @@ import EmptyState from '../../components/feedback/EmptyState';
 import BotWidget from '../../components/bot/BotWidget';
 
 function formatMoney(amount) {
-  return `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
+  return `${Math.round(Number(amount || 0)).toLocaleString('fr-FR')} FCFA`;
 }
 
 function formatDate(dateValue) {
@@ -19,10 +19,30 @@ function formatDate(dateValue) {
   return new Date(dateValue).toLocaleDateString('fr-FR');
 }
 
+const DOSSIER_STATUT_LABEL = {
+  EN_ATTENTE: 'En attente',
+  EN_ATTENTE_VERIFICATION: 'Verification',
+  RETENU: 'Retenu',
+  PAYE_DIRECTEMENT: 'Paye',
+  PAYE: 'Paye',
+  ANNULE: 'Annule',
+  EXPIRE: 'Expire',
+};
+
+const DOSSIER_STATUT_VARIANT = {
+  EN_ATTENTE: 'warning',
+  EN_ATTENTE_VERIFICATION: 'warning',
+  RETENU: 'info',
+  PAYE_DIRECTEMENT: 'success',
+  PAYE: 'success',
+  ANNULE: 'danger',
+  EXPIRE: 'danger',
+};
+
 export default function ApprenantDashboard() {
   const [formations, setFormations] = useState([]);
-  const [accesDemandes, setAccesDemandes] = useState([]);
   const [abonnement, setAbonnement] = useState(null);
+  const [dossiers, setDossiers] = useState([]);
   const [loadError, setLoadError] = useState('');
   const [hasLoaded, setHasLoaded] = useState(false);
   const { execute, isLoading, reset } = useApi();
@@ -32,13 +52,10 @@ export default function ApprenantDashboard() {
     setHasLoaded(false);
 
     try {
-      const [formationsResult, accesResult, abonnementResult] = await Promise.all([
+      const [formationsResult, abonnementResult, dossiersResult] = await Promise.all([
         execute(() => formationsApi.getCatalogue({ page: 1, limit: 6 }), {
           showErrorToast: false,
         }),
-        execute(() => apprenantApi.getMesFormationsDemande(), {
-          showErrorToast: false,
-        }).catch(() => []),
         execute(() => apprenantApi.getMonAbonnementRetail(), {
           showErrorToast: false,
         }).catch((error) => {
@@ -48,11 +65,14 @@ export default function ApprenantDashboard() {
           }
           return null;
         }),
+        execute(() => apprenantApi.getMesDossiers(), {
+          showErrorToast: false,
+        }).catch(() => []),
       ]);
 
       setFormations(formationsResult?.data || []);
-      setAccesDemandes(Array.isArray(accesResult) ? accesResult : accesResult?.data || []);
       setAbonnement(abonnementResult);
+      setDossiers(Array.isArray(dossiersResult) ? dossiersResult : dossiersResult?.data || []);
       setHasLoaded(true);
     } catch (error) {
       setLoadError(error?.message || 'Impossible de charger le tableau de bord.');
@@ -65,10 +85,14 @@ export default function ApprenantDashboard() {
   }, []);
 
   const stats = useMemo(() => ({
-    inclus: formations.filter((formation) => formation.inclus_abonnement).length,
-    premium: formations.filter((formation) => formation.type_formation === 'PREMIUM').length,
-    accesActifs: accesDemandes.filter((acces) => acces.statut === 'ACTIF').length,
-  }), [accesDemandes, formations]);
+    total: formations.length,
+    inclus: formations.filter((f) => f.inclus_abonnement).length,
+    premium: formations.filter((f) => f.type_formation === 'PREMIUM').length,
+    dossiersActifs: dossiers.filter((d) =>
+      ['EN_ATTENTE', 'EN_ATTENTE_VERIFICATION', 'RETENU'].includes(d.statut)
+    ).length,
+    dossiersTotal: dossiers.length,
+  }), [formations, dossiers]);
 
   if (!hasLoaded && isLoading) {
     return (
@@ -86,7 +110,7 @@ export default function ApprenantDashboard() {
         message={loadError}
         action={(
           <Button variant="outline" onClick={loadDashboard}>
-            Réessayer
+            Reessayer
           </Button>
         )}
       />
@@ -95,128 +119,205 @@ export default function ApprenantDashboard() {
 
   return (
     <>
-      <div className="mx-auto max-w-6xl space-y-6">
-      <div className="rounded-2xl bg-gradient-to-r from-primary to-secondary p-6 text-white shadow-lg">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/80">
-          Espace apprenant
-        </p>
-        <h1 className="mt-3 text-3xl font-bold">
-          Suivi de votre abonnement et de vos accès
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm text-white/85">
-          Le tableau de bord met en avant les formations incluses, les formations Premium et les accès à la demande.
-        </p>
-      </div>
+      <div className="mx-auto max-w-7xl space-y-8">
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <p className="text-sm text-subtext">Formations incluses</p>
-          <p className="mt-2 text-3xl font-bold text-text">{stats.inclus}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-subtext">Formations Premium</p>
-          <p className="mt-2 text-3xl font-bold text-text">{stats.premium}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-subtext">Accès actifs</p>
-          <p className="mt-2 text-3xl font-bold text-text">{stats.accesActifs}</p>
-        </Card>
-      </div>
+        {/* En-tete */}
+        <div>
+          <h1 className="text-3xl font-bold text-text">Tableau de bord</h1>
+          <p className="mt-2 text-base text-subtext">Formations, abonnement et dossiers en un coup d&apos;oeil.</p>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Link to="/apprenant/abonnement">
-          <Card className="h-full hover:border-primary transition-colors">
-            <p className="text-sm text-subtext">Mon abonnement</p>
-            <h2 className="mt-2 text-xl font-semibold text-text">Gérer votre offre Retail</h2>
-            <p className="mt-2 text-sm text-subtext">
-              {abonnement ? `Offre ${abonnement.offre} - ${formatMoney(abonnement.montant_mensuel)}` : 'Aucun abonnement actif'}
-            </p>
-          </Card>
-        </Link>
-        <Link to="/apprenant/abonnement/souscrire">
-          <Card className="h-full hover:border-primary transition-colors">
-            <p className="text-sm text-subtext">Souscrire</p>
-            <h2 className="mt-2 text-xl font-semibold text-text">Comparer Essentiel et Premium</h2>
-            <p className="mt-2 text-sm text-subtext">
-              Visualisez les formations incluses et le premier prélèvement prorata.
-            </p>
-          </Card>
-        </Link>
-        <Link to="/apprenant/formations-a-la-demande">
-          <Card className="h-full hover:border-primary transition-colors">
-            <p className="text-sm text-subtext">Formations à la demande</p>
-            <h2 className="mt-2 text-xl font-semibold text-text">Accéder à vos parcours actifs</h2>
-            <p className="mt-2 text-sm text-subtext">
-              {stats.accesActifs} accès en cours de suivi.
-            </p>
-          </Card>
-        </Link>
-      </div>
+        {/* 3 blocs principaux */}
+        <div className="grid gap-6 md:grid-cols-3">
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card title="Formations en vedette">
-          {formations.length === 0 ? (
-            <EmptyState
-              title="Catalogue vide"
-              message="Aucune formation n&apos;a été chargée pour le moment."
-            />
-          ) : (
-            <div className="space-y-3">
-              {formations.slice(0, 4).map((formation) => (
-                <div key={formation.id} className="rounded-lg border border-border p-4">
-                  <div className="flex flex-wrap gap-2">
-                    {formation.inclus_abonnement && <Badge variant="success" size="small">Inclus</Badge>}
-                    {formation.type_formation === 'PREMIUM' && <Badge variant="info" size="small">Premium</Badge>}
-                  </div>
-                  <p className="mt-3 font-semibold text-text">{formation.titre}</p>
-                  <p className="mt-1 text-sm text-subtext">{formation.description}</p>
-                  <p className="mt-2 text-sm text-subtext">
-                    {Math.round(Number(formation.tarif || 0) / 100).toLocaleString('fr-FR')} FCFA - {formation.duree} h
-                  </p>
-                </div>
-              ))}
+          {/* Formations */}
+          <Card className="flex flex-col gap-6 p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wider text-subtext">Formations</p>
+                <p className="mt-2 text-5xl font-bold text-text">{stats.total}</p>
+                <p className="mt-1 text-sm text-subtext">dans le catalogue</p>
+              </div>
+              <div className="flex flex-col gap-2 text-right">
+                {stats.inclus > 0 && (
+                  <span className="inline-block rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success">
+                    {stats.inclus} incluses
+                  </span>
+                )}
+                {stats.premium > 0 && (
+                  <span className="inline-block rounded-full bg-info/10 px-3 py-1 text-sm font-medium text-info">
+                    {stats.premium} Premium
+                  </span>
+                )}
+              </div>
             </div>
-          )}
-        </Card>
+            <Link to="/apprenant/catalogue" className="mt-auto">
+              <Button variant="outline" className="w-full">
+                Parcourir le catalogue
+              </Button>
+            </Link>
+          </Card>
 
-        <Card title="Mes accès à la demande">
-          {accesDemandes.length === 0 ? (
-            <EmptyState
-              title="Aucun accès"
-              message="Vos formations à la demande apparaîtront ici dès qu&apos;un accès sera créé."
-              action={(
-                <Link to="/apprenant/formations-a-la-demande">
-                  <Button variant="outline" size="small">Voir les accès</Button>
-                </Link>
-              )}
-            />
-          ) : (
-            <div className="space-y-3">
-              {accesDemandes.slice(0, 3).map((acces) => (
-                <Link key={acces.id} to={`/apprenant/formations-a-la-demande/${acces.id}`} className="block">
-                  <div className="rounded-lg border border-border p-4 hover:border-primary transition-colors">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant={acces.statut === 'ACTIF' ? 'success' : acces.statut === 'SUSPENDU' ? 'warning' : 'danger'}
-                        size="small"
-                      >
-                        {acces.statut}
-                      </Badge>
-                      {acces.source_financement && (
-                        <Badge variant="info" size="small">{acces.source_financement}</Badge>
-                      )}
-                    </div>
-                    <p className="mt-3 font-semibold text-text">{acces.formation?.titre || 'Formation'}</p>
+          {/* Abonnement */}
+          <Card className="flex flex-col gap-6 p-6">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-subtext">Abonnement</p>
+              {abonnement ? (
+                <>
+                  <div className="mt-2 flex items-center gap-3">
+                    <p className="text-4xl font-bold text-text">{abonnement.offre}</p>
+                    <Badge
+                      variant={abonnement.statut === 'ACTIF' ? 'success' : 'warning'}
+                    >
+                      {abonnement.statut === 'ACTIF' ? 'Actif' : abonnement.statut}
+                    </Badge>
+                  </div>
+                  {abonnement.montant_mensuel && (
                     <p className="mt-1 text-sm text-subtext">
-                      Expire le {formatDate(acces.date_expiration)} - progression {acces.progression || 0}%
+                      {formatMoney(abonnement.montant_mensuel)} / mois
                     </p>
-                  </div>
-                </Link>
-              ))}
+                  )}
+                  {abonnement.date_fin && (
+                    <p className="mt-1 text-sm text-subtext">
+                      Renouvellement le {formatDate(abonnement.date_fin)}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-2xl font-semibold text-subtext">Aucun abonnement</p>
+                  <p className="mt-1 text-sm text-subtext">
+                    Acces illimite aux formations incluses avec Essentiel ou Premium.
+                  </p>
+                </>
+              )}
             </div>
-          )}
-        </Card>
-      </div>
+            <Link to={abonnement ? '/apprenant/abonnement' : '/apprenant/abonnement/souscrire'} className="mt-auto">
+              <Button
+                variant={abonnement ? 'outline' : 'primary'}
+                className="w-full"
+              >
+                {abonnement ? 'Gerer mon abonnement' : 'Souscrire'}
+              </Button>
+            </Link>
+          </Card>
+
+          {/* Dossiers */}
+          <Card className="flex flex-col gap-6 p-6">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-subtext">Dossiers</p>
+              <p className="mt-2 text-5xl font-bold text-text">{stats.dossiersTotal}</p>
+              <p className="mt-1 text-sm text-subtext">
+                {stats.dossiersActifs > 0
+                  ? `${stats.dossiersActifs} en attente de traitement`
+                  : 'Aucun dossier en attente'}
+              </p>
+            </div>
+            {stats.dossiersActifs > 0 && (
+              <div className="rounded-lg border border-warning bg-warning/5 px-4 py-3 text-sm text-warning font-medium">
+                {stats.dossiersActifs} dossier{stats.dossiersActifs > 1 ? 's' : ''} necessitent votre attention
+              </div>
+            )}
+            <Link to="/apprenant/dossiers" className="mt-auto">
+              <Button variant="outline" className="w-full">
+                Voir mes dossiers
+              </Button>
+            </Link>
+          </Card>
+        </div>
+
+        {/* Contenu principal : formations + dossiers cote a cote */}
+        <div className="grid gap-8 xl:grid-cols-2">
+
+          {/* Formations en vedette */}
+          <Card title="Formations disponibles">
+            {formations.length === 0 ? (
+              <EmptyState
+                title="Catalogue vide"
+                message="Aucune formation disponible pour le moment."
+                action={(
+                  <Link to="/apprenant/catalogue">
+                    <Button variant="outline">Voir le catalogue</Button>
+                  </Link>
+                )}
+              />
+            ) : (
+              <div className="space-y-3">
+                {formations.slice(0, 4).map((formation) => (
+                  <Link key={formation.id} to={`/apprenant/inscrire/${formation.id}`} className="block">
+                    <div className="flex items-start justify-between rounded-xl border border-border p-4 hover:border-primary transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-text">{formation.titre}</p>
+                        <p className="mt-1 text-sm text-subtext">
+                          {Math.round(Number(formation.tarif || 0) / 100).toLocaleString('fr-FR')} FCFA &middot; {formation.duree} h
+                        </p>
+                      </div>
+                      <div className="ml-4 flex flex-shrink-0 flex-col items-end gap-1">
+                        {formation.inclus_abonnement && (
+                          <Badge variant="success" size="small">Inclus</Badge>
+                        )}
+                        {formation.type_formation === 'PREMIUM' && (
+                          <Badge variant="info" size="small">Premium</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+                <Link to="/apprenant/catalogue" className="block pt-2">
+                  <Button variant="ghost" className="w-full text-primary">
+                    Voir tout le catalogue
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </Card>
+
+          {/* Dossiers recents */}
+          <Card title="Dossiers recents">
+            {dossiers.length === 0 ? (
+              <EmptyState
+                title="Aucun dossier"
+                message="Vos inscriptions aux sessions apparaitront ici."
+                action={(
+                  <Link to="/apprenant/catalogue">
+                    <Button variant="outline">Trouver une formation</Button>
+                  </Link>
+                )}
+              />
+            ) : (
+              <div className="space-y-3">
+                {dossiers.slice(0, 4).map((dossier) => (
+                  <div
+                    key={dossier.id}
+                    className="flex items-start justify-between rounded-xl border border-border p-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-text">
+                        {dossier.session?.formation?.titre || dossier.session?.titre || 'Formation'}
+                      </p>
+                      <p className="mt-1 text-sm text-subtext">
+                        {dossier.session?.date_debut ? `Debut le ${formatDate(dossier.session.date_debut)}` : '-'}
+                      </p>
+                    </div>
+                    <div className="ml-4 flex-shrink-0">
+                      <Badge
+                        variant={DOSSIER_STATUT_VARIANT[dossier.statut] || 'default'}
+                      >
+                        {DOSSIER_STATUT_LABEL[dossier.statut] || dossier.statut}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                <Link to="/apprenant/dossiers" className="block pt-2">
+                  <Button variant="ghost" className="w-full text-primary">
+                    Voir tous mes dossiers
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </Card>
+        </div>
+
       </div>
       <BotWidget />
     </>

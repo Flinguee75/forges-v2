@@ -24,6 +24,7 @@ export class ApprenantRepository {
     pays_residence: string;
     pays_nationalite: string;
     langue_preferee: string;
+    organisation_id?: string;
     consentement_rgpd: boolean;
     consentement_timestamp: Date;
     consentement_version_cgu: string;

@@ -87,7 +87,7 @@ export default function ConfigAdmin() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
-          UCS13
+          Configuration
         </p>
         <h1 className="mt-3 text-2xl font-semibold text-primary">
           Configuration globale
@@ -178,9 +178,9 @@ export default function ConfigAdmin() {
         </form>
       </Card>
 
-      <Card title="Rappel runtime" bodyClassName="space-y-4">
+      <Card title="Note" bodyClassName="space-y-4">
         <p className="text-sm text-subtext">
-          Le backend runtime n'expose que les valeurs globales ci-dessus. Les sections de tarification détaillée ne sont pas montées côté API.
+          Seules les valeurs globales ci-dessus sont modifiables depuis cette interface. La tarification détaillée est gérée directement en base.
         </p>
       </Card>
     </div>

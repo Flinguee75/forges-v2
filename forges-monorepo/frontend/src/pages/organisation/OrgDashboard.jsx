@@ -147,16 +147,21 @@ export default function OrgDashboard() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-secondary">
-                    Priorite essai
+                    Essai gratuit
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold text-text">
-                    Essai gratuit - {trialDaysRemaining ?? '-'} jour{trialDaysRemaining === 1 ? '' : 's'} restants
+                    {trialDaysRemaining ?? '-'} jour{trialDaysRemaining === 1 ? '' : 's'} restants
                   </h2>
                   <p className="mt-2 text-sm text-subtext">
-                    Votre organisation est en periode d essai, avec acces complet aux fonctions principales.
+                    Souscrivez avant la fin de l&apos;essai pour conserver l&apos;accès à toutes les sections B2B.
                   </p>
                 </div>
-                <Badge variant={orgStatusMeta.variant} size="small">{orgStatusMeta.label}</Badge>
+                <div className="flex flex-col items-end gap-3">
+                  <Badge variant={orgStatusMeta.variant} size="small">{orgStatusMeta.label}</Badge>
+                  <Link to="/organisation/abonnement/souscrire">
+                    <Button variant="primary" size="small">Souscrire maintenant</Button>
+                  </Link>
+                </div>
               </div>
             </Card>
           )}
@@ -169,7 +174,7 @@ export default function OrgDashboard() {
                     Offre bienvenue
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-text">
-                    -20% sur la conversion pendant la fenetre J+25
+                    -20% sur la conversion pendant la fenêtre J+25
                   </h2>
                   <p className="mt-2 text-sm text-subtext">
                     {orgSubscription?.welcome_offer_expires_at
@@ -197,27 +202,6 @@ export default function OrgDashboard() {
           </p>
         </div>
       </div>
-
-      {orgSubscription?.statut === 'ESSAI' && (
-        <Card className="mb-6 border-l-4 border-success">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-success">
-                Souscription recommandee
-              </p>
-              <h3 className="mt-2 text-xl font-semibold text-text">
-                Activez votre abonnement organisation avant la fin de l essai
-              </h3>
-              <p className="mt-2 text-sm text-subtext">
-                Choisissez une offre et gardez l acces a toutes les sections B2B.
-              </p>
-            </div>
-            <Link to="/organisation/abonnement/souscrire">
-              <Button variant="primary">Souscrire maintenant</Button>
-            </Link>
-          </div>
-        </Card>
-      )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
         <Card className="border-l-4 border-primary">
@@ -401,7 +385,7 @@ export default function OrgDashboard() {
               <div>
                 <h3 className="font-semibold text-primary">B2B</h3>
                 <p className="mt-1 text-sm text-subtext">
-                  Suivez le palier et les suggestions de montee.
+                  Suivez le palier et les suggestions de montée.
                 </p>
               </div>
             </div>

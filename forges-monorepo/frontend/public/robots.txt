@@ -1,0 +1,19 @@
+# Robots.txt pour FORGES
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /*.js$
+Disallow: /*.css$
+Disallow: /private/
+
+# Sitemaps
+Sitemap: https://forges.com/sitemap.xml
+
+# Délai de crawl
+Crawl-delay: 1
+
+# Règles spécifiques pour Googlebot
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0

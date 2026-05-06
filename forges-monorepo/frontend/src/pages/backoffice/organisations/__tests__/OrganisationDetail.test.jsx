@@ -10,6 +10,7 @@ vi.mock('../../../../api/organisations.api', () => ({
     getMembres: vi.fn(),
     getAbonnement: vi.fn(),
     getVouchers: vi.fn(),
+    getConfig: vi.fn(),
   },
 }));
 
@@ -71,6 +72,14 @@ describe('OrganisationDetail', () => {
           formation: { intitule: 'Management' },
         },
       ],
+    });
+    organisationsApi.getConfig.mockResolvedValue({
+      data: {
+        commission_forges_pct: 15,
+        seuil_reversement_xof: 25000,
+        effective_commission_forges_pct: 15,
+        effective_seuil_reversement_xof: 25000,
+      },
     });
 
     renderDetail();

@@ -2,13 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { PaiementService } from './paiement.service';
 import { InitierPaiementNgserSchema, InitierPaiementSchema, WebhookPaiementSchema } from './dto/paiement.dto';
 import { createHmac } from 'crypto';
-import { IpnQueueService } from '../../shared/queue/ipn-queue.service';
+import { QueueItem } from '../../shared/queue/ipn-queue.service';
 import { masquerSecrets } from '../../shared/utils/masque-secrets.util';
+
+interface IpnQueuePort {
+  enqueue(item: QueueItem): Promise<void>;
+}
 
 export class PaiementController {
   constructor(
     private readonly paiementService: PaiementService,
-    private readonly ipnQueue?: IpnQueueService
+    private readonly ipnQueue?: IpnQueuePort
   ) {}
 
   // POST /api/paiements/initier — initiation backend-only NGSER mock (RM-157)
@@ -123,6 +127,17 @@ export class PaiementController {
     } catch (error) { next(error); }
   }
 
+  // GET /api/admin/paiements/stats — ADMIN/AGENT
+  async getPaiementsStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const period = typeof req.query.period === 'string' ? req.query.period : '24h';
+      const stats = await this.paiementService.getPaiementsStats(period);
+      res.status(200).json({ statusCode: 200, data: stats });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // POST /api/backoffice/reversements/partenaires — AGENT (RM-139)
   async effectuerReversements(req: Request, res: Response, next: NextFunction) {
     try {
@@ -139,39 +154,58 @@ export class PaiementController {
     } catch (error) { next(error); }
   }
 
+  // POST /api/admin/scheduler/reconciliation-ngser — ADMIN (Phase 1 v4.9)
+  async runReconciliationScheduler(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.paiementService.reconcilierPaiementsPendingNgser();
+      res.status(200).json({
+        statusCode: 200,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // POST /webhooks/paiement — IPN NGSER (RM-158/160)
   async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
     try {
-      // Vérification signature HMAC
+      // La doc NGSER ne décrit pas de mécanisme de signature pour l'IPN.
+      // On vérifie la signature seulement si elle est présente (intégrations internes).
       const signature = req.headers['x-webhook-signature'];
-      const payload = JSON.stringify(req.body);
-      const expectedSig = createHmac('sha256', process.env.WEBHOOK_SECRET || 'dev-secret')
-        .update(payload)
-        .digest('hex');
-
-      if (!signature || signature !== expectedSig) {
-        return res.status(401).json({
-          statusCode: 401,
-          error: 'INVALID_SIGNATURE',
-          message: 'Signature webhook invalide',
-        });
+      if (signature) {
+        const payload = JSON.stringify(req.body);
+        const expectedSig = createHmac('sha256', process.env.WEBHOOK_SECRET || 'dev-secret')
+          .update(payload)
+          .digest('hex');
+        if (signature !== expectedSig) {
+          return res.status(401).json({
+            statusCode: 401,
+            error: 'INVALID_SIGNATURE',
+            message: 'Signature webhook invalide',
+          });
+        }
       }
 
       // Masquer les secrets avant d'enqueuer
       const payloadMasque = masquerSecrets(req.body);
       const headersMasques = masquerSecrets(req.headers);
 
-      // Enqueuer pour traitement asynchrone
+      // Enqueuer pour traitement asynchrone, fallback synchrone si Redis indisponible
+      // Les erreurs métier du fallback ne doivent pas affecter accepted:true (RM-158)
       if (this.ipnQueue) {
-        await this.ipnQueue.enqueue({
-          provider: 'NGSER',
-          payload: req.body, // payload original non masqué pour traitement
-          received_at: new Date(),
-          headers: headersMasques,
-        });
+        try {
+          await this.ipnQueue.enqueue({
+            provider: 'NGSER',
+            payload: req.body,
+            received_at: new Date(),
+            headers: headersMasques,
+          });
+        } catch {
+          void this.paiementService.traiterIpnNgser(req.body).catch(() => undefined);
+        }
       } else {
-        // Fallback synchrone si pas de queue (ne devrait pas arriver)
-        await this.paiementService.traiterIpnNgser(req.body);
+        void this.paiementService.traiterIpnNgser(req.body).catch(() => undefined);
       }
 
       // Réponse HTTP 200 immédiate (RM-158)
@@ -185,6 +219,61 @@ export class PaiementController {
         statusCode: 200,
         data: { accepted: false, error: error.message },
       });
+    }
+  }
+
+  // GET /api/paiements/retour — Payment Data Transfer NGSER (redirection post-paiement)
+  async retourPaiementNgser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        order_id,
+        status_id,
+        transaction_id,
+        transaction_amount,
+        paid_transaction_amount,
+        currency,
+        paid_currency,
+        wallet,
+        wallet_alias,
+        phone_number,
+      } = req.query as Record<string, string>;
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const statutInt = parseInt(status_id || '0', 10);
+      const succes = statutInt === 1;
+
+      // Si l'IPN n'est pas encore arrivé, on traite le retour comme fallback
+      if (order_id) {
+        const ipnPayload = {
+          order_id,
+          status_id: statutInt,
+          transaction_id: transaction_id || `PDT-${order_id}`,
+          transaction_amount: transaction_amount ? parseFloat(transaction_amount) : undefined,
+          paid_transaction_amount: paid_transaction_amount ? parseFloat(paid_transaction_amount) : undefined,
+          currency,
+          paid_currency,
+          wallet,
+          wallet_alias,
+          phone_number,
+        };
+
+        void this.paiementService.traiterIpnNgser(ipnPayload).catch(() => undefined);
+      }
+
+      // Rediriger vers la page frontend appropriée
+      const params = new URLSearchParams({
+        order_id: order_id || '',
+        status: succes ? 'success' : 'fail',
+        status_id: status_id || '0',
+        ...(transaction_id ? { transaction_id } : {}),
+      });
+
+      const redirectUrl = `${frontendUrl}/apprenant/paiements/callback?${params}`;
+
+      return res.redirect(302, redirectUrl);
+    } catch (error: any) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(302, `${frontendUrl}/paiement/echec?error=redirect_error`);
     }
   }
 }

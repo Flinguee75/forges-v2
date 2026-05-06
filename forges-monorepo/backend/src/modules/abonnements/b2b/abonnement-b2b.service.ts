@@ -1,6 +1,9 @@
+import { randomBytes } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
+
+const NGSER_MOCK_BASE_URL = 'https://mock-ngser.forges.ci/pay';
 
 // Paliers B2B
 export const PALIERS_B2B = {
@@ -58,7 +61,7 @@ export class AbonnementB2BService {
     };
   }
 
-  // UCS03.2 — Souscrire AbonnementB2B
+  // UCS03.2 — Souscrire AbonnementB2B avec paiement NGSER
   async souscrire(organisation_id: string, palier: keyof typeof PALIERS_B2B) {
     const normalizedPalier = this.normaliserPalier(palier);
     const config = PALIERS_B2B[normalizedPalier];
@@ -67,12 +70,28 @@ export class AbonnementB2BService {
       throw new Error('PALIER_INVALIDE');
     }
 
+    // Palier SUR_DEVIS : pas de paiement en ligne
+    if (normalizedPalier === 'SUR_DEVIS') {
+      throw new Error('PALIER_SUR_DEVIS_HORS_LIGNE');
+    }
+
     const existant = await this.prisma.abonnementB2B.findFirst({
-      where: { organisation_id, statut: 'ACTIF' },
+      where: { organisation_id, statut: { in: ['ACTIF', 'EN_ATTENTE_PAIEMENT'] } },
     });
-    if (existant) throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
+
+    if (existant) {
+      if (existant.statut === 'ACTIF') throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
+      // Idempotence : réémettre une session NGSER si paiement en attente
+      const session = await this.creerSessionNgser(existant.id, existant.prix_annuel);
+      return {
+        abonnement: existant,
+        payment_url: session.payment_url,
+        order_ngser: existant.order_ngser,
+      };
+    }
 
     const date_fin = new Date(Date.now() + 365 * 24 * 3600 * 1000);
+    const orderNgser = this.generateOrderNgser();
 
     const abo = await this.prisma.abonnementB2B.create({
       data: {
@@ -86,16 +105,65 @@ export class AbonnementB2BService {
         date_debut: new Date(),
         date_fin,
         statut: 'ACTIF',
-      }
+        order_ngser: orderNgser,
+      },
     });
 
     await this.prisma.organisation.update({
       where: { id: organisation_id },
-      data: { abonnement_b2b_id: abo.id }
+      data: { abonnement_b2b_id: abo.id },
     });
 
-    await this.audit.info('ABONNEMENT_B2B_SOUSCRIT', { organisation_id, palier: normalizedPalier });
-    return abo;
+    const session = await this.creerSessionNgser(abo.id, config.prix_annuel);
+
+    await this.audit.info('ABONNEMENT_B2B_EN_ATTENTE_PAIEMENT', {
+      organisation_id,
+      palier: normalizedPalier,
+      prix_annuel: config.prix_annuel,
+      order_ngser: orderNgser,
+    });
+
+    return {
+      abonnement: abo,
+      payment_url: session.payment_url,
+      order_ngser: orderNgser,
+    };
+  }
+
+  private generateOrderNgser(date = new Date()): string {
+    const year = date.getUTCFullYear();
+    const start = Date.UTC(year, 0, 0);
+    const dayOfYear = Math.floor((date.getTime() - start) / 86400000)
+      .toString()
+      .padStart(3, '0');
+    const suffix = randomBytes(3).toString('hex').toUpperCase();
+    return `ABO-B2B-${year}-${dayOfYear}-${suffix}`;
+  }
+
+  private async creerSessionNgser(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
+    const isMock = process.env.NGSER_MOCK_MODE !== 'false';
+    const abo = await this.prisma.abonnementB2B.findUnique({ where: { id: abonnement_id } });
+    const order = abo?.order_ngser ?? this.generateOrderNgser();
+
+    if (isMock) {
+      return { payment_url: `${NGSER_MOCK_BASE_URL}?order=${order}` };
+    }
+
+    const { NgserClient } = await import('../../paiements/ngser.client');
+    const ngserClient = new NgserClient(this.audit);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const notificationUrl = process.env.NGSER_NOTIFICATION_URL || 'http://localhost:3000/webhooks/paiement';
+    const returnUrl = `${frontendUrl}/organisation/b2b/callback`;
+
+    const session = await ngserClient.createSession({
+      order,
+      amount: montantXof,
+      currency: 'XOF',
+      notification_url: notificationUrl,
+      return_url: returnUrl,
+    });
+
+    return { payment_url: session.payment_url };
   }
 
   // UCS12.1 — Montée en palier prorata (RM-68)

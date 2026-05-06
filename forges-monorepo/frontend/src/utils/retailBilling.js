@@ -33,6 +33,12 @@ export function formatFcfa(amount) {
   return `${value.toLocaleString('fr-FR')} FCFA`;
 }
 
+// Pour les montants déjà en XOF (retournés directement par l'API, ex: montant_mensuel)
+export function formatXof(amount) {
+  const value = Math.round(Number(amount || 0));
+  return `${value.toLocaleString('fr-FR')} FCFA`;
+}
+
 export function formatDate(date) {
   if (!date) {
     return '-';

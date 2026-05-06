@@ -7,6 +7,8 @@ import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
 import { SoumettreFormationDto, AutoInscriptionPartenaireDto } from './dto/partenaire.dto';
 import { UpdateProfilPartenaireDto } from './dto/profil.dto';
+import { getCommissionForgesDefaut } from '../../config/env.config';
+import { chiffrerUrl } from '../../shared/crypto/crypto.service';
 
 export class PartenaireService {
   constructor(
@@ -27,7 +29,7 @@ export class PartenaireService {
       type: dto.type,
       pays: dto.pays,
       email_principal: dto.email_principal,
-      commission_forges_pct: 20, // défaut, modifiable Admin
+      commission_forges_pct: getCommissionForgesDefaut(),
       mode_inscription: 'AUTO_INSCRIPTION',
       statut: 'EN_ATTENTE_VERIFICATION',
     });
@@ -81,6 +83,8 @@ export class PartenaireService {
 
     // RM-127 : type_formation/pilier_abonnement ABSENTS du DTO partenaire
     // Création formation sans type_formation (null)
+    const urlExterneChiffree = dto.url_contenu ? chiffrerUrl(dto.url_contenu) : undefined;
+
     const formation = await this.prisma.formation.create({
       data: {
         intitule: dto.intitule,
@@ -100,6 +104,7 @@ export class PartenaireService {
         partenaire_id,
         statut: 'EN_ATTENTE_VALIDATION',
         inclus_abonnement: false,
+        url_externe_chiffree: urlExterneChiffree,
       }
     });
 
@@ -443,7 +448,7 @@ export class PartenaireService {
   // GET /api/agent/reversements/partenaires — AGENT (RM-138, RM-132)
   async getReversementsEnAttente(agentId: string) {
     // RM-138 : seuil minimum 50 000 XOF (stocké en centimes)
-    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || '5000000'); // 50 000 XOF = 5 000 000 centimes
+    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || '50000');
 
     // 1. Commissions retail (CommissionPartenaire)
     const commissionsRetail = await this.prisma.commissionPartenaire.groupBy({

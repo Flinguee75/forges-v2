@@ -14,14 +14,15 @@ test('UCS13: Admin consulte et met à jour la configuration globale', async ({ p
   expect(dataOf(config).seuil_reversement_apporteur_xof).toBeGreaterThanOrEqual(0);
 
   const update = await putJson(request, '/backoffice/config', {
-    DEFAULT_COMMISSION_FORGES_PCT: 20,
-    DEFAULT_COMMISSION_APPORTEUR_PCT: 5,
+    COMMISSION_FORGES_DEFAULT_PCT: 30,
+    COMMISSION_APPORTEUR_DEFAULT_PCT: 5,
     SEUIL_REVERSEMENT_PARTENAIRE_XOF: 50000,
     SEUIL_REVERSEMENT_APPORTEUR_XOF: 5000,
     VALIDATION_PARTENAIRE_DELAI_JOURS: 5,
   }, headers);
 
   expect(update.ok).toBeTruthy();
+  expect(dataOf(update.payload).default_commission_forges_pct).toBe(30);
   expect(dataOf(update.payload).default_commission_apporteur_pct).toBe(5);
 });
 

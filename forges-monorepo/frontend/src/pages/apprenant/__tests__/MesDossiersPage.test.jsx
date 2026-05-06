@@ -49,7 +49,7 @@ describe('MesDossiersPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Formation test')).toBeInTheDocument();
-      expect(screen.getByText('Retenu')).toBeInTheDocument();
+      expect(screen.getAllByText('Retenu').length).toBeGreaterThan(1);
       expect(screen.getByText(/Paiement direct/)).toBeInTheDocument();
     });
 

@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { getSeuilReversementApporteur } from '../../config/env.config';
 
-// RM-147 : seuil minimum reversement (défaut 5 000 XOF, configurable Admin)
-export const SEUIL_REVERSEMENT_DEFAUT = 5000;
+// RM-147 : seuil minimum reversement — lu depuis SEUIL_REVERSEMENT_APPORTEUR_XOF (defaut 5 000 XOF)
+export const SEUIL_REVERSEMENT_DEFAUT = getSeuilReversementApporteur();
 
 export class ApporteurRepository {
   constructor(private readonly prisma: PrismaClient) {}
