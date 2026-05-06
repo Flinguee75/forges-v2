@@ -78,15 +78,10 @@ export class AbonnementOrganisationService {
         montant_annuel: montant,
         date_debut: new Date(),
         date_fin,
-        statut: 'ACTIF',
+        statut: 'EN_ATTENTE_PAIEMENT',
         renouvellement_auto: true,
         order_ngser: orderNgser,
       },
-    });
-
-    await this.prisma.organisation.update({
-      where: { id: organisation_id },
-      data: { abonnement_org_id: abo.id },
     });
 
     const session = await this.creerSessionNgser(abo.id, montant);
@@ -141,28 +136,28 @@ export class AbonnementOrganisationService {
     return { payment_url: session.payment_url };
   }
 
-  // Scheduler alertes J-30 et J-7
+  // Scheduler alertes J-7 et J-2 (RM-82)
   async envoyerAlertesExpiration() {
     const now = new Date();
-    const j30 = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
     const j7 = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+    const j2 = new Date(now.getTime() + 2 * 24 * 3600 * 1000);
 
-    const [abosJ30, abosJ7] = await Promise.all([
+    const [abosJ7, abosJ2] = await Promise.all([
       this.prisma.abonnementOrganisation.findMany({
-        where: { statut: 'ACTIF', date_fin: { gte: j30, lte: new Date(j30.getTime() + 24 * 3600 * 1000) } },
+        where: { statut: 'ACTIF', date_fin: { gte: j7, lte: new Date(j7.getTime() + 24 * 3600 * 1000) } },
         include: { organisation: true }
       }),
       this.prisma.abonnementOrganisation.findMany({
-        where: { statut: 'ACTIF', date_fin: { gte: j7, lte: new Date(j7.getTime() + 24 * 3600 * 1000) } },
+        where: { statut: 'ACTIF', date_fin: { gte: j2, lte: new Date(j2.getTime() + 24 * 3600 * 1000) } },
         include: { organisation: true }
       })
     ]);
 
-    for (const abo of [...abosJ30, ...abosJ7]) {
+    for (const abo of [...abosJ7, ...abosJ2]) {
       await this.email.sendAlerteExpirationOrg(abo.organisation.email, abo.date_fin, abo.organisation.langue_preferee);
     }
 
-    return { alertes_j30: abosJ30.length, alertes_j7: abosJ7.length };
+    return { alertes_j7: abosJ7.length, alertes_j2: abosJ2.length };
   }
 
   // UCS09.1 — Renouvellement automatique Organisation (RM-109)

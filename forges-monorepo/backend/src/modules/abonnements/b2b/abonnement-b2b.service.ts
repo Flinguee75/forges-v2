@@ -104,14 +104,9 @@ export class AbonnementB2BService {
         premium_consommes: 0,
         date_debut: new Date(),
         date_fin,
-        statut: 'ACTIF',
+        statut: 'EN_ATTENTE_PAIEMENT',
         order_ngser: orderNgser,
       },
-    });
-
-    await this.prisma.organisation.update({
-      where: { id: organisation_id },
-      data: { abonnement_b2b_id: abo.id },
     });
 
     const session = await this.creerSessionNgser(abo.id, config.prix_annuel);
