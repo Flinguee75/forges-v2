@@ -22,16 +22,20 @@ export function genererDocxDevis(devis: {
   nb_places: number;
   tarif_unitaire_xof: number;
   montant_total_xof: number;
-  organisation: { raison_sociale: string; email: string; adresse?: string | null; pays?: string | null; id_legal?: string | null } | null;
+  organisation: {
+    raison_sociale: string;
+    email: string;
+    adresse?: string | null;
+    pays?: string | null;
+    identifiant_legal?: string | null;
+    contact_referent?: string | null;
+  } | null;
   formation: { intitule: string } | null;
   session: { date_debut?: Date | null; date_fin?: Date | null } | null;
 }): Buffer {
   const content = fs.readFileSync(TEMPLATE_PATH, 'binary');
   const zip = new PizZip(content);
   const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-
-  const annee = new Date(devis.created_at).getFullYear();
-  const numero = devis.numero_devis.split('-').pop() ?? '001';
 
   const sessionLabel = devis.session?.date_debut
     ? `${formatDate(devis.session.date_debut)} - ${formatDate(devis.session.date_fin)}`
@@ -47,17 +51,22 @@ export function genererDocxDevis(devis: {
     email_organisation: devis.organisation?.email ?? '',
     adresse_organisation: devis.organisation?.adresse ?? '',
     pays_organisation: devis.organisation?.pays ?? "Cote d'Ivoire",
-    id_legal: (devis.organisation as any)?.id_legal ?? 'A completer',
+    id_legal: devis.organisation?.identifiant_legal ?? 'A completer',
+    contact_referent: devis.organisation?.contact_referent ?? '',
+    // Ligne 1 : la formation
     intitule: devis.formation?.intitule ?? '',
     session: sessionLabel,
-    // Ligne 1 : la formation du devis
     quantite: String(devis.nb_places),
     tarif_unitaire: formatMontant(devis.tarif_unitaire_xof),
     total_ligne: formatMontant(totalLigne),
-    // Lignes 2 et 3 : vides (le devis n'a qu'une formation)
+    // Lignes 2 et 3 : vides
+    intitule2: '',
+    session2: '',
     quantite2: '',
     tarif_unitaire2: '',
     total_ligne2: '',
+    intitule3: '',
+    session3: '',
     quantite3: '',
     tarif_unitaire3: '',
     total_ligne3: '',
