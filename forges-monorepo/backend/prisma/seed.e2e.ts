@@ -865,9 +865,21 @@ async function main() {
       apprenant_id: IDS.apprenantPremiumRetail,
       offre: 'PREMIUM',
       statut: 'ACTIF',
-      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1), // Début mois dernier
-      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1), // Fin mois prochain
-      montant_mensuel: 2500000, // 25 000 XOF en centimes
+      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      montant_mensuel: 2500000,
+    },
+  });
+
+  // Abonnement Retail Basique pour app-e2e-retail-01 (test RM-140 Premium ABONNEMENT)
+  await prisma.abonnementRetail.create({
+    data: {
+      apprenant_id: IDS.apprenantRetail,
+      offre: 'PREMIUM',
+      statut: 'ACTIF',
+      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      montant_mensuel: 2500000,
     },
   });
 

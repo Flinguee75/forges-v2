@@ -39,3 +39,36 @@ test('UCS07 RM-140: Premium B2B ne passe pas par la vérification Responsable', 
   expect(result.ok).toBeTruthy();
   expect(result.payload?.dossier?.statut).toBe('PAYE_DIRECTEMENT');
 });
+
+test('UCS07 RM-140: Standard B2B passe en paiement direct', async ({ request }) => {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantPremiumB2b);
+  const result = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
+    source_financement: 'B2B',
+  }, headers);
+
+  expect(result.ok).toBeTruthy();
+  expect(result.payload?.dossier?.statut).toBe('PAYE_DIRECTEMENT');
+  expect(result.payload?.dossier?.source_financement).toBe('B2B');
+});
+
+test('UCS07 RM-140: Standard Voucher passe en paiement direct', async ({ request }) => {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantNgser1);
+  const result = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
+    source_financement: 'RETAIL',
+    voucher_code: E2E_SCENARIO.voucherCode,
+  }, headers);
+
+  expect(result.ok).toBeTruthy();
+  const statut = result.payload?.dossier?.statut;
+  expect(['PAYE_DIRECTEMENT', 'PAYE']).toContain(statut);
+});
+
+test('UCS07 RM-140: Premium Abonnement ne passe pas par la verification Responsable', async ({ request }) => {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRetail);
+  const result = await postJson(request, `/sessions/${E2E_SCENARIO.premiumRetailSessionId}/inscrire`, {
+    source_financement: 'ABONNEMENT',
+  }, headers);
+
+  expect(result.ok).toBeTruthy();
+  expect(result.payload?.dossier?.statut).toBe('PAYE_DIRECTEMENT');
+});
