@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
 import { EmailService } from '../../src/shared/email/email.service';
-import { genererDocxDevis } from '../../src/modules/devis/devis-docx.service';
+import { genererPdfDevis } from '../../src/modules/devis/devis-pdf.service';
 
 const LOGO_PATH = path.join(__dirname, '../../../frontend/src/assets/logo_forges.png');
 
@@ -85,38 +85,34 @@ async function main() {
     organisation: { ...devis.organisation, contact_referent: 'Elie Konan' },
   };
 
-  let docxBuffer: Buffer | undefined;
+  let pdfBuffer: Buffer | undefined;
   try {
-    docxBuffer = genererDocxDevis({
-      numero_devis: devis.numero_devis,
-      created_at: devis.created_at,
-      nb_places: devis.nb_places,
-      tarif_unitaire_xof: devis.tarif_unitaire_xof,
-      montant_total_xof: devis.montant_total_xof,
-      organisation: devis.organisation,
+    pdfBuffer = await genererPdfDevis({
+      devis,
+      organisation: devisAffichage.organisation,
       formation: devisAffichage.formation,
       session: devis.session,
     });
-    console.log(`Facture DOCX generee : ${docxBuffer.length} octets`);
+    console.log(`Facture PDF generee : ${pdfBuffer.length} octets`);
   } catch (err: any) {
-    console.warn(`DOCX non genere (non bloquant): ${err.message}`);
+    console.warn(`PDF non genere (non bloquant): ${err.message}`);
   }
 
   const sujet = `Votre facture ${devis.numero_devis} — FORGES AGREGATEUR`;
   const html = buildEmailHtml(devisAffichage);
 
-  if (docxBuffer) {
+  if (pdfBuffer) {
     await emailService.sendEmailWithAttachment({
       to: DESTINATAIRE,
       subject: sujet,
       html,
       attachment: {
-        filename: `${devis.numero_devis}.docx`,
-        content: docxBuffer,
-        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        filename: `${devis.numero_devis}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
       },
     });
-    console.log(`Email avec facture DOCX envoye a ${DESTINATAIRE}`);
+    console.log(`Email avec facture PDF envoye a ${DESTINATAIRE}`);
   } else {
     await emailService.sendEmail({ to: DESTINATAIRE, subject: sujet, html });
     console.log(`Email (sans facture) envoye a ${DESTINATAIRE}`);
