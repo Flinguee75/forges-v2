@@ -80,4 +80,9 @@ export const apprenantsApi = {
   getAbonnement: async (id) => {
     return apiClient.get(`/backoffice/apprenants/${id}/abonnement`);
   },
+
+  // Rattacher un apprenant existant à une organisation (ADMIN)
+  lierOrganisation: async (id, organisation_id) => {
+    return apiClient.patch(`/backoffice/apprenants/${id}/lier-organisation`, { organisation_id });
+  },
 };
