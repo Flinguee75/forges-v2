@@ -52,7 +52,7 @@ print(base64.b64encode(buf.getvalue()).decode(), end='')
 
 const logoBase64 = getLogoBase64Sync();
 
-const DESTINATAIRE = process.env.EMAIL_TEST_OVERRIDE || 'apprenant2@org-test.ci';
+const DESTINATAIRE = process.env.EMAIL_TEST_OVERRIDE || 'test-override@forges-test.ci';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: (process.env.DATABASE_URL || '') + (process.env.DATABASE_URL?.includes('connection_limit') ? '' : '?connection_limit=3') } },
@@ -78,10 +78,11 @@ async function main() {
 
   const emailService = new EmailService();
 
-  // Nom de formation reel pour l'affichage email
+  // Contenu email adapte au destinataire reel
   const devisAffichage = {
     ...devis,
     formation: { ...devis.formation, intitule: 'Masterclass GWU/CCDL' },
+    organisation: { ...devis.organisation, contact_referent: 'Elie Konan' },
   };
 
   let docxBuffer: Buffer | undefined;
