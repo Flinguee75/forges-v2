@@ -92,6 +92,21 @@ export class DevisController {
     }
   }
 
+  // GET /api/admin/devis/:id/pdf — Télécharger le PDF de la facture (ADMIN, AGENT)
+  async telechargerPdf(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { buffer, filename } = await this.devisService.telechargerPdfDevis(req.params.id);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(buffer);
+    } catch (error: any) {
+      if (error.message === 'DEVIS_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND', message: 'Devis introuvable' });
+      }
+      next(error);
+    }
+  }
+
   // GET /api/admin/devis/:id/docx — Télécharger le DOCX (ADMIN, AGENT)
   async telechargerDocx(req: Request, res: Response, next: NextFunction) {
     try {

@@ -35,6 +35,11 @@ router.patch('/admin/devis/:id/payer', authenticate, authorize('ADMIN', 'AGENT')
   devisController.payerDevis(req, res, next);
 });
 
+// GET /api/admin/devis/:id/pdf — Télécharger PDF facture (ADMIN, AGENT)
+router.get('/admin/devis/:id/pdf', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  devisController.telechargerPdf(req, res, next);
+});
+
 // GET /api/admin/devis/:id/docx — Télécharger DOCX (ADMIN, AGENT)
 router.get('/admin/devis/:id/docx', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
   devisController.telechargerDocx(req, res, next);

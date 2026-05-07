@@ -129,6 +129,23 @@ export class DevisService {
     return { buffer, filename: `${devis.numero_devis}.docx` };
   }
 
+  async telechargerPdfDevis(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    const devis = await this.devisRepository.findById(id);
+    if (!devis) throw new Error('DEVIS_NOT_FOUND');
+
+    const [organisation, formation, session] = await Promise.all([
+      this.prisma.organisation.findUnique({ where: { id: devis.organisation_id } }),
+      this.prisma.formation.findUnique({ where: { id: devis.formation_id } }),
+      devis.session_id ? this.prisma.session.findUnique({ where: { id: devis.session_id } }) : Promise.resolve(undefined),
+    ]);
+
+    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    if (!formation) throw new Error('FORMATION_NOT_FOUND');
+
+    const buffer = await genererPdfDevis({ devis, organisation, formation, session });
+    return { buffer, filename: `${devis.numero_devis}.pdf` };
+  }
+
   async payerDevis(id: string, agentId: string, notes_admin?: string) {
     const devis = await this.devisRepository.findById(id);
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
