@@ -107,15 +107,20 @@ Audit complet de la couverture E2E et tests unitaires sur le workflow de paiemen
 
 ## Lacunes restantes (P2 — non traitées)
 
-### 1. Newman : 3 endpoints v4.9 absents
+### 1. Newman v4.9 — TRAITE
 **Fichier** : `backend/tests/forges-v4.8-complete.postman_collection.json`
 
-A ajouter dans section UCS09 :
-- `POST /api/paiements/fineo/initier` → assert 201 + `payment_url` + `order_fineo`
-- `POST /webhooks/paiement` (IPN NGSER) → assert 200 + `accepted: true`
-- `POST /admin/scheduler/reconciliation-ngser` → assert 200 + `reconcilies` count
+3 endpoints ajoutés dans section UCS09 :
+- `POST /api/paiements/fineo/initier` → 4 assertions (201, payment_url, order_fineo FRG-YYYY-)
+- `POST /webhooks/paiement` (IPN NGSER, via {{base_url_root}}) → 3 assertions (200, accepted: true)
+- `POST /api/admin/scheduler/reconciliation-ngser` → 3 assertions (200, reconcilies count)
 
-Objectif : passer de 53 à 56 requêtes, ~168 assertions.
+Résultat : **56 requêtes, 171 assertions** (baseline v4.8 : 53/159).
+
+Variables ajoutées dans `forges-v4.8.postman_environment.json` :
+- `base_url_root` = `http://localhost:3000` (pour l'IPN NGSER hors `/api`)
+- `token_admin` = `` (à renseigner via login admin avant Newman)
+- `dossier_retenu_id` = `D-E2E-RETENU-01` (dossier RETENU du seed)
 
 ### 2. E2E code apporteur (RM-143/144) manquants en E2E
 Seulement tests intégration backend. A créer :  
@@ -143,7 +148,7 @@ Le test log un `console.warn`. A implémenter avant production.
 | RM-157/158/159/160 NGSER | PASS (mode mock) |
 | RM-158 mode NGSER réel | BLOQUÉ (J8 — Docker/DNS staging) |
 | Newman baseline 53 req / 159 assertions | PASS (endpoints v4.8) |
-| Newman endpoints v4.9 | NON COUVERT (P2) |
+| Newman v4.9 — 56 req / 171 assertions | AJOUTÉ (à exécuter) |
 | Smoke staging | NON EXÉCUTÉ (J8 bloqué) |
 
 ---
@@ -159,5 +164,13 @@ Le test log un `console.warn`. A implémenter avant production.
    cd backend && npm run test:integration -- rm-143-validation-code-apporteur
    ```
 3. **Résoudre J8** : débloquer l'environnement Docker/DNS pour staging NGSER réel
-4. **P2 Newman** : ajouter les 3 endpoints v4.9 à la collection Postman
+4. **Newman v4.9** : renseigner `token_admin` dans l'environnement puis exécuter :
+   ```bash
+   cd backend && npm run dev &
+   npx newman run tests/forges-v4.8-complete.postman_collection.json \
+     --environment tests/forges-v4.8.postman_environment.json \
+     --reporters cli,htmlextra \
+     --reporter-htmlextra-export newman-report.html
+   ```
+   Objectif : 56 requêtes, 171 assertions, 0 echec.
 5. **RM-10** : implémenter `PATCH /api/admin/paiements/:id/rembourser`

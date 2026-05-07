@@ -1295,6 +1295,191 @@
               }
             }
           ]
+        },
+        {
+          "name": "APPRENANT - Initier Paiement Fineo (RM-157)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_apprenant}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/paiements/fineo/initier",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "paiements",
+                "fineo",
+                "initier"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dossier_id\": \"{{dossier_retenu_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"RM-157: Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test(\"RM-157: payment_url present\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('payment_url');",
+                  "    pm.expect(jsonData.data.payment_url).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test(\"RM-157: order_fineo present with FRG- prefix\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('order_fineo');",
+                  "    pm.expect(jsonData.data.order_fineo).to.match(/^FRG-\\d{4}-/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Public - IPN NGSER Webhook (RM-158)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url_root}}/webhooks/paiement",
+              "host": [
+                "{{base_url_root}}"
+              ],
+              "path": [
+                "webhooks",
+                "paiement"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": \"TXN-NGSER-{{$randomUUID}}\",\n  \"dossier_id\": \"{{dossier_retenu_id}}\",\n  \"statut\": \"SUCCESS\",\n  \"montant\": 10200000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"RM-158: Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test(\"RM-158: IPN accepted: true\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('accepted');",
+                  "    pm.expect(jsonData.data.accepted).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ADMIN - Scheduler Reconciliation NGSER (RM-159)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/scheduler/reconciliation-ngser",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "scheduler",
+                "reconciliation-ngser"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"RM-159: Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+                  "});",
+                  "",
+                  "pm.test(\"RM-159: reconcilies count present\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('reconcilies');",
+                  "    pm.expect(typeof jsonData.data.reconcilies).to.equal('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
