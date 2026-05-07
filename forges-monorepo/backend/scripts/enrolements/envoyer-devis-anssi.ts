@@ -52,7 +52,7 @@ print(base64.b64encode(buf.getvalue()).decode(), end='')
 
 const logoBase64 = getLogoBase64Sync();
 
-const DESTINATAIRE = process.env.EMAIL_TEST_OVERRIDE || 'test-override@forges-test.ci';
+const DESTINATAIRE = process.env.EMAIL_TEST_OVERRIDE || 'apprenant2@org-test.ci';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: (process.env.DATABASE_URL || '') + (process.env.DATABASE_URL?.includes('connection_limit') ? '' : '?connection_limit=3') } },
