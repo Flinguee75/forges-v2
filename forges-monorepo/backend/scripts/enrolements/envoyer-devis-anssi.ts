@@ -78,6 +78,12 @@ async function main() {
 
   const emailService = new EmailService();
 
+  // Nom de formation reel pour l'affichage email
+  const devisAffichage = {
+    ...devis,
+    formation: { ...devis.formation, intitule: 'Masterclass GWU/CCDL' },
+  };
+
   let docxBuffer: Buffer | undefined;
   try {
     docxBuffer = genererDocxDevis({
@@ -87,21 +93,15 @@ async function main() {
       tarif_unitaire_xof: devis.tarif_unitaire_xof,
       montant_total_xof: devis.montant_total_xof,
       organisation: devis.organisation,
-      formation: devis.formation,
+      formation: devisAffichage.formation,
       session: devis.session,
     });
-    console.log(`Devis DOCX genere : ${docxBuffer.length} octets`);
+    console.log(`Facture DOCX generee : ${docxBuffer.length} octets`);
   } catch (err: any) {
     console.warn(`DOCX non genere (non bloquant): ${err.message}`);
   }
 
-  // Nom de formation reel pour l'affichage email
-  const devisAffichage = {
-    ...devis,
-    formation: { ...devis.formation, intitule: 'Masterclass GWU/CCDL' },
-  };
-
-  const sujet = `Votre devis ${devis.numero_devis} — FORGES AGREGATEUR`;
+  const sujet = `Votre facture ${devis.numero_devis} — FORGES AGREGATEUR`;
   const html = buildEmailHtml(devisAffichage);
 
   if (docxBuffer) {
@@ -115,10 +115,10 @@ async function main() {
         contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       },
     });
-    console.log(`Email avec devis DOCX envoye a ${DESTINATAIRE}`);
+    console.log(`Email avec facture DOCX envoye a ${DESTINATAIRE}`);
   } else {
     await emailService.sendEmail({ to: DESTINATAIRE, subject: sujet, html });
-    console.log(`Email (sans devis) envoye a ${DESTINATAIRE}`);
+    console.log(`Email (sans facture) envoye a ${DESTINATAIRE}`);
   }
 }
 
@@ -153,7 +153,7 @@ function buildEmailHtml(devis: any): string {
                 </td>
                 <td align="right" valign="middle">
                   <div style="background:${OR};color:${BLEU};padding:8px 16px;border-radius:6px;font-weight:700;font-size:12px;text-align:center;letter-spacing:0.5px;">
-                    DEVIS<br>
+                    FACTURE<br>
                     <span style="font-size:10px;font-weight:400;">${devis.numero_devis}</span>
                   </div>
                 </td>
@@ -173,8 +173,8 @@ function buildEmailHtml(devis: any): string {
               Bonjour <strong>${org.contact_referent || org.raison_sociale}</strong>,
             </p>
             <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
-              Veuillez trouver ci-joint le devis <strong style="color:${BLEU};">${devis.numero_devis}</strong>
-              etabli pour <strong>${org.raison_sociale}</strong> concernant la formation
+              Veuillez trouver ci-jointe la facture <strong style="color:${BLEU};">${devis.numero_devis}</strong>
+              etablie pour <strong>${org.raison_sociale}</strong> concernant la formation
               <strong>${formation.intitule}</strong>.
             </p>
 
@@ -203,7 +203,7 @@ function buildEmailHtml(devis: any): string {
             ` : ''}
 
             <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
-              Le devis detaille est joint a cet email au format Word.<br>
+              La facture est jointe a cet email au format PDF.<br>
               Apres validation, notre equipe vous communiquera les acces a la plateforme FORGES.
             </p>
 
