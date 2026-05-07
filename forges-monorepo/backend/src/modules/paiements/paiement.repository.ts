@@ -57,6 +57,14 @@ export class PaiementRepository {
     });
   }
 
+  async rembourser(id: string) {
+    return this.prisma.paiement.update({
+      where: { id },
+      data: { statut: 'REMBOURSE' },
+      include: { dossier: { select: { id: true } } },
+    });
+  }
+
   async findPaiementsExpires() {
     // RM-07 : paiements EN_ATTENTE depuis > PAIEMENT_EXPIRATION_HEURES
     const limite = new Date(Date.now() - getDelaiPaiementMs());

@@ -469,4 +469,27 @@ export class PaiementService {
       results,
     };
   }
+
+  // RM-10 : remboursement manuel par admin
+  async rembourserPaiement(paiementId: string, motif: string, adminId: string) {
+    const paiement = await this.paiementRepo.findById(paiementId);
+    if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
+    if (paiement.statut !== 'CONFIRME') throw new Error('PAIEMENT_NON_REMBOURSABLE');
+
+    await this.paiementRepo.rembourser(paiementId);
+
+    await this.prisma.dossier.update({
+      where: { id: paiement.dossier_id },
+      data: { statut: 'ANNULE' },
+    });
+
+    await this.audit.info('PAIEMENT_REMBOURSE', {
+      paiement_id: paiementId,
+      dossier_id: paiement.dossier_id,
+      admin_id: adminId,
+      motif,
+    });
+
+    return { statut: 'REMBOURSE', motif };
+  }
 }

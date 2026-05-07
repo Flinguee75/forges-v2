@@ -106,4 +106,9 @@ router.post('/admin/scheduler/reconciliation-ngser', authenticate, authorize('AD
   paiementController.runReconciliationScheduler(req, res, next);
 });
 
+// PATCH /api/admin/paiements/:id/rembourser — Remboursement manuel (ADMIN) - RM-10
+router.patch('/admin/paiements/:id/rembourser', authenticate, authorize('ADMIN'), (req, res, next) => {
+  paiementController.rembourserPaiement(req, res, next);
+});
+
 export default router;

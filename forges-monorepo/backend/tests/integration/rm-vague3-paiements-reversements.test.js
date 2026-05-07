@@ -97,18 +97,10 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
       .set(adminHeaders)
       .send({ motif: 'Test remboursement manuel RM-10' });
 
-    // RM-10 : le remboursement manuel admin doit exister (endpoint opérationnel)
-    // 404 = endpoint non implémenté (à corriger avant prod), 200/201 = ok
-    expect([200, 201, 404]).toContain(res.status);
-    if (res.status === 200 || res.status === 201) {
-      expect(res.body.statut).toBe('REMBOURSE');
-      expect(res.body.motif).toBe('Test remboursement manuel RM-10');
-    }
-    if (res.status === 404) {
-      // Signale que l'endpoint /admin/paiements/:id/rembourser n'est pas encore implémenté
-      // Ce cas doit être traité avant la mise en production (RM-10)
-      console.warn('RM-10 ATTENTION: endpoint rembourser non implémenté (404)');
-    }
+    // RM-10 : remboursement manuel admin — endpoint opérationnel
+    expect(res.status).toBe(200);
+    expect(res.body.data.statut).toBe('REMBOURSE');
+    expect(res.body.data.motif).toBe('Test remboursement manuel RM-10');
   });
 
   // ===== COMMISSIONS PARTENAIRES =====

@@ -68,25 +68,31 @@ export class PaiementFineoService {
       ],
     });
 
-    const paiement = await this.prisma.paiement.create({
-      data: {
-        dossier_id: dossierId,
-        montant_catalogue: dossier.formation.cout_catalogue,
-        montant_final: montantFinal,
-        reduction_appliquee: dossier.formation.cout_catalogue - montantFinal,
-        methode: 'MOBILE_MONEY',
-        statut: 'PENDING',
-        tentatives: 0,
-        expires_at: expiresAt,
-        provider: FINEO_PROVIDER,
-        order_ngser: syncRef,
-        montant_initie: montantFinal,
-        ngser_payload_last: {
-          checkout_link: checkout.checkoutLink,
-          return_url: returnUrl,
-        },
+    const fineoData = {
+      provider: FINEO_PROVIDER,
+      order_ngser: syncRef,
+      montant_initie: montantFinal,
+      expires_at: expiresAt,
+      ngser_payload_last: {
+        checkout_link: checkout.checkoutLink,
+        return_url: returnUrl,
       },
-    });
+    };
+
+    const paiement = paiementExistant
+      ? await this.prisma.paiement.update({ where: { id: paiementExistant.id }, data: fineoData })
+      : await this.prisma.paiement.create({
+          data: {
+            dossier_id: dossierId,
+            montant_catalogue: dossier.formation.cout_catalogue,
+            montant_final: montantFinal,
+            reduction_appliquee: dossier.formation.cout_catalogue - montantFinal,
+            methode: 'MOBILE_MONEY',
+            statut: 'PENDING',
+            tentatives: 0,
+            ...fineoData,
+          },
+        });
 
     await this.audit.info('PAIEMENT_FINEO_INITIE', {
       paiement_id: paiement.id,
