@@ -40,6 +40,9 @@ export class EmailService {
         user: smtpUser,
         pass: smtpPass,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
   }
 

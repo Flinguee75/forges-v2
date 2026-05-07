@@ -3,7 +3,7 @@ import * as path from 'path';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 
-const TEMPLATE_PATH = path.join(__dirname, '../../../../templates/devis-template.docx');
+const TEMPLATE_PATH = path.join(__dirname, '../../../templates/devis-template.docx');
 
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return 'A planifier';

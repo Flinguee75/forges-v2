@@ -8,9 +8,9 @@ dotenv.config();
 
 import { PrismaClient } from '@prisma/client';
 import { EmailService } from '../../src/shared/email/email.service';
-import { genererPdfDevis } from '../../src/modules/devis/devis-pdf.service';
+import { genererDocxDevis } from '../../src/modules/devis/devis-docx.service';
 
-const DESTINATAIRE = 'test-override@forges-test.ci';
+const DESTINATAIRE = process.env.EMAIL_TEST_OVERRIDE || 'test-override@forges-test.ci';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: (process.env.DATABASE_URL || '') + (process.env.DATABASE_URL?.includes('connection_limit') ? '' : '?connection_limit=3') } },
@@ -36,37 +36,41 @@ async function main() {
 
   const emailService = new EmailService();
 
-  let pdfBuffer: Buffer | undefined;
+  let docxBuffer: Buffer | undefined;
   try {
-    pdfBuffer = await genererPdfDevis({
-      devis,
+    docxBuffer = genererDocxDevis({
+      numero_devis: devis.numero_devis,
+      created_at: devis.created_at,
+      nb_places: devis.nb_places,
+      tarif_unitaire_xof: devis.tarif_unitaire_xof,
+      montant_total_xof: devis.montant_total_xof,
       organisation: devis.organisation,
       formation: devis.formation,
-      session: devis.session || undefined,
+      session: devis.session,
     });
-    console.log(`PDF genere : ${pdfBuffer.length} octets`);
+    console.log(`Devis DOCX genere : ${docxBuffer.length} octets`);
   } catch (err: any) {
-    console.warn(`PDF non genere (non bloquant): ${err.message}`);
+    console.warn(`DOCX non genere (non bloquant): ${err.message}`);
   }
 
   const sujet = `Votre devis ${devis.numero_devis} — FORGES AGREGATEUR`;
   const html = buildEmailHtml(devis);
 
-  if (pdfBuffer) {
+  if (docxBuffer) {
     await emailService.sendEmailWithAttachment({
       to: DESTINATAIRE,
       subject: sujet,
       html,
       attachment: {
-        filename: `${devis.numero_devis}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf',
+        filename: `${devis.numero_devis}.docx`,
+        content: docxBuffer,
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       },
     });
-    console.log(`Email avec PDF envoye a ${DESTINATAIRE}`);
+    console.log(`Email avec devis DOCX envoye a ${DESTINATAIRE}`);
   } else {
     await emailService.sendEmail({ to: DESTINATAIRE, subject: sujet, html });
-    console.log(`Email (sans PDF) envoye a ${DESTINATAIRE}`);
+    console.log(`Email (sans devis) envoye a ${DESTINATAIRE}`);
   }
 }
 
