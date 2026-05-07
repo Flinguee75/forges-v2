@@ -45,6 +45,16 @@ router.patch('/admin/devis/:id/annuler', authenticate, authorize('ADMIN'), (req,
   devisController.annulerDevis(req, res, next);
 });
 
+// POST /api/admin/devis/:id/generer-vouchers — Générer N vouchers EN_ATTENTE (ADMIN) — RM-152
+router.post('/admin/devis/:id/generer-vouchers', authenticate, authorize('ADMIN'), (req, res, next) => {
+  devisController.genererVouchers(req, res, next);
+});
+
+// GET /api/admin/devis/:id/vouchers — Lister les vouchers d'un devis (ADMIN, AGENT) — RM-152
+router.get('/admin/devis/:id/vouchers', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  devisController.listerVouchersDevis(req, res, next);
+});
+
 // GET /api/organisation/devis — Lecture seule organisation
 router.get('/organisation/devis', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   devisController.listerDevisOrganisation(req, res, next);

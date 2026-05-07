@@ -107,6 +107,41 @@ export class DevisController {
     }
   }
 
+  // POST /api/admin/devis/:id/generer-vouchers — ADMIN (RM-152)
+  async genererVouchers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.devisService.genererVouchersDevis(req.params.id, req.user!.userId);
+      return res.status(201).json({ statusCode: 201, data: result });
+    } catch (error: any) {
+      if (error.message === 'DEVIS_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND', message: 'Devis introuvable' });
+      }
+      if (error.message === 'DEVIS_ANNULE') {
+        return res.status(409).json({ statusCode: 409, error: 'DEVIS_ANNULE', message: 'Impossible de générer des vouchers pour un devis annulé' });
+      }
+      if (error.message === 'DEVIS_DEJA_PAYE') {
+        return res.status(409).json({ statusCode: 409, error: 'DEVIS_DEJA_PAYE', message: 'Le devis est déjà payé, les vouchers sont actifs' });
+      }
+      if (error.message === 'VOUCHERS_DEJA_GENERES') {
+        return res.status(409).json({ statusCode: 409, error: 'VOUCHERS_DEJA_GENERES', message: 'Les vouchers ont déjà été générés pour ce devis' });
+      }
+      next(error);
+    }
+  }
+
+  // GET /api/admin/devis/:id/vouchers — ADMIN, AGENT (RM-152)
+  async listerVouchersDevis(req: Request, res: Response, next: NextFunction) {
+    try {
+      const vouchers = await this.devisService.listerVouchersDevis(req.params.id);
+      return res.status(200).json({ statusCode: 200, data: vouchers });
+    } catch (error: any) {
+      if (error.message === 'DEVIS_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND', message: 'Devis introuvable' });
+      }
+      next(error);
+    }
+  }
+
   // GET /api/organisation/devis — ORGANISATION (lecture seule)
   async listerDevisOrganisation(req: Request, res: Response, next: NextFunction) {
     try {
