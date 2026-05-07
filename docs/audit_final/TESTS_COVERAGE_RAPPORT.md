@@ -122,12 +122,14 @@ Variables ajoutées dans `forges-v4.8.postman_environment.json` :
 - `token_admin` = `` (à renseigner via login admin avant Newman)
 - `dossier_retenu_id` = `D-E2E-RETENU-01` (dossier RETENU du seed)
 
-### 2. E2E code apporteur (RM-143/144) manquants en E2E
-Seulement tests intégration backend. A créer :  
-**Nouveau fichier** : `frontend/e2e/ucs09-paiement-code-apporteur.spec.js`
-- Code inexistant → 422 `CODE_APPORTEUR_INVALIDE`
-- Apporteur suspendu → 422 `CODE_APPORTEUR_INACTIF`
-- Code + voucher → 422 `VOUCHER_CUMUL_INTERDIT`
+### 2. E2E code apporteur (RM-143/144) — TRAITE
+**Fichier créé** : `frontend/e2e/ucs09-paiement-code-apporteur.spec.js`
+- Code inexistant → assert 422 `CODE_APPORTEUR_INVALIDE`
+- Apporteur suspendu (`APT-E2E-SUSP-001`) → assert 422 `CODE_APPORTEUR_INACTIF`
+- Code + voucher → assert 422 `VOUCHER_CUMUL_INTERDIT`
+
+Seed mis à jour : ajout apporteur SUSPENDU (`apt-e2e-susp-01`, code `APT-E2E-SUSP-001`) + cleanup.
+Compte utilisé : `apprenantMismatch3` (réutilisable car les 3 tests retournent 422 sans dossier créé).
 
 ### 3. RM-10 remboursement manuel admin
 L'endpoint `PATCH /api/admin/paiements/:id/rembourser` retourne 404 (non implémenté).  
@@ -149,6 +151,7 @@ Le test log un `console.warn`. A implémenter avant production.
 | RM-158 mode NGSER réel | BLOQUÉ (J8 — Docker/DNS staging) |
 | Newman baseline 53 req / 159 assertions | PASS (endpoints v4.8) |
 | Newman v4.9 — 56 req / 171 assertions | AJOUTÉ (à exécuter) |
+| RM-143/144 E2E code apporteur | AJOUTÉ (après cette session) |
 | Smoke staging | NON EXÉCUTÉ (J8 bloqué) |
 
 ---
