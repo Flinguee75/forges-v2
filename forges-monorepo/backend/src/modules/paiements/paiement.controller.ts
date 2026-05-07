@@ -167,6 +167,30 @@ export class PaiementController {
     }
   }
 
+  // PATCH /api/admin/paiements/:id/rembourser — ADMIN (RM-10)
+  async rembourserPaiement(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { motif } = req.body;
+      if (!motif) {
+        res.status(400).json({ statusCode: 400, error: 'MOTIF_REQUIS' });
+        return;
+      }
+      const result = await this.paiementService.rembourserPaiement(id, motif, req.user!.userId);
+      res.status(200).json({ statusCode: 200, data: result });
+    } catch (error: any) {
+      if (error.message === 'PAIEMENT_NOT_FOUND') {
+        res.status(404).json({ statusCode: 404, error: 'PAIEMENT_NOT_FOUND' });
+        return;
+      }
+      if (error.message === 'PAIEMENT_NON_REMBOURSABLE') {
+        res.status(422).json({ statusCode: 422, error: 'PAIEMENT_NON_REMBOURSABLE' });
+        return;
+      }
+      next(error);
+    }
+  }
+
   // POST /webhooks/paiement — IPN NGSER (RM-158/160)
   async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
     try {

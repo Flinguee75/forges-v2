@@ -103,6 +103,7 @@ const ApporteurDetail = lazy(() => import('../pages/backoffice/apporteurs/Apport
 const ReversementsApporteurs = lazy(() => import('../pages/backoffice/apporteurs/ReversementsApporteurs'));
 const ApprenantsList = lazy(() => import('../pages/backoffice/apprenants/ApprenantsList'));
 const ApprenantDetail = lazy(() => import('../pages/backoffice/apprenants/ApprenantDetail'));
+const ApprenantCreate = lazy(() => import('../pages/backoffice/apprenants/ApprenantCreate'));
 const OrganisationsList = lazy(() => import('../pages/backoffice/organisations/OrganisationsList'));
 const OrganisationDetail = lazy(() => import('../pages/backoffice/organisations/OrganisationDetail'));
 
@@ -777,6 +778,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
             {withSuspense(<ApprenantsList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'apprenants/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<ApprenantCreate />)}
           </RoleGuard>
         ),
       },

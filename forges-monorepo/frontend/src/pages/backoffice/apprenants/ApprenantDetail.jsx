@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apprenantsApi } from '../../../api/apprenants.api';
+import { organisationsApi } from '../../../api/organisations.api';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
@@ -47,6 +48,11 @@ export default function ApprenantDetail() {
   const [abonnement, setAbonnement] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [organisations, setOrganisations] = useState([]);
+  const [selectedOrgId, setSelectedOrgId] = useState('');
+  const [isLiingOrg, setIsLiingOrg] = useState(false);
+  const [lierOrgError, setLierOrgError] = useState(null);
+  const [lierOrgSuccess, setLierOrgSuccess] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -81,6 +87,34 @@ export default function ApprenantDetail() {
       ignore = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    organisationsApi.getAll({ limit: 100 })
+      .then(res => {
+        const items = res?.data?.data || res?.data || [];
+        setOrganisations(Array.isArray(items) ? items : []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleLierOrganisation = async () => {
+    if (!selectedOrgId) return;
+    setIsLiingOrg(true);
+    setLierOrgError(null);
+    setLierOrgSuccess(false);
+    try {
+      const updated = await apprenantsApi.lierOrganisation(id, selectedOrgId);
+      setApprenant(prev => ({ ...prev, organisation_id: (updated?.data ?? updated).organisation_id }));
+      setLierOrgSuccess(true);
+    } catch (err) {
+      const code = err?.response?.data?.error;
+      if (code === 'ORGANISATION_NOT_FOUND') setLierOrgError('Organisation introuvable.');
+      else if (code === 'APPRENANT_NOT_FOUND') setLierOrgError('Apprenant introuvable.');
+      else setLierOrgError('Erreur lors du rattachement.');
+    } finally {
+      setIsLiingOrg(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -203,6 +237,44 @@ export default function ApprenantDetail() {
               );
             })}
           </div>
+        )}
+      </Card>
+
+      <Card>
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">
+          Rattacher a une organisation
+        </h3>
+        {apprenant.organisation_id && (
+          <p className="mb-3 text-sm text-subtext" data-testid="current-org-id">
+            Organisation actuelle : <span className="font-mono text-text">{apprenant.organisation_id}</span>
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <select
+            value={selectedOrgId}
+            onChange={(e) => { setSelectedOrgId(e.target.value); setLierOrgSuccess(false); setLierOrgError(null); }}
+            className="rounded-lg border border-border bg-white px-4 py-2 text-sm focus:border-primary focus:outline-none"
+            data-testid="select-lier-organisation"
+          >
+            <option value="">Choisir une organisation</option>
+            {organisations.map(org => (
+              <option key={org.id} value={org.id}>{org.raison_sociale}</option>
+            ))}
+          </select>
+          <Button
+            disabled={!selectedOrgId || isLiingOrg}
+            loading={isLiingOrg}
+            onClick={handleLierOrganisation}
+            data-testid="btn-lier-organisation"
+          >
+            Rattacher
+          </Button>
+        </div>
+        {lierOrgError && (
+          <p className="mt-2 text-sm text-danger" data-testid="lier-org-error">{lierOrgError}</p>
+        )}
+        {lierOrgSuccess && (
+          <p className="mt-2 text-sm text-success" data-testid="lier-org-success">Rattachement effectue avec succes.</p>
         )}
       </Card>
     </div>

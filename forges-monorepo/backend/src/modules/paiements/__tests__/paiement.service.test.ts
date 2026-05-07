@@ -73,7 +73,19 @@ describe('PaiementService', () => {
       session: { update: jest.fn() },
       abonnementRetail: { findFirst: jest.fn() },
       apporteur: { findFirst: jest.fn() },
-      paiement: { findMany: jest.fn() },
+      paiement: {
+        findMany: jest.fn(),
+        // PaiementFineoService et PaiementNgserService (appelés via appelAgregateur) utilisent
+        // directement prisma.paiement plutôt que le repository — ces mocks les couvrent.
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          id: 'p-ngser-mock',
+          order_ngser: 'FRG-2026-001-MOCK',
+          montant_initie: 100000,
+          ngser_payload_last: { payment_url: 'https://mock-ngser.forges.ci/pay?order=FRG-2026-001-MOCK' },
+        }),
+      },
     };
 
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;

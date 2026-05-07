@@ -1,0 +1,41 @@
+{
+  "organisation": {
+    "raison_sociale": "ANSSI CI",
+    "type": "GOUVERNEMENT",
+    "email": "apprenant1@org-test.ci",
+    "contact_referent": "DIALLO ALY",
+    "pays": "CI",
+    "identifiant_legal": "ANSSI-CI-GOV"
+  },
+  "masterclass": {
+    "formation_id": null,
+    "tarif_unitaire_xof": 2000000,
+    "notes_admin": "Masterclass GWU/CCDL - Enrolement ANSSI CI - 04/05/2026"
+  },
+  "apprenants": [
+    {
+      "nom": "SAMASSI",
+      "prenoms": "Aly",
+      "email": "apprenant1@org-test.ci",
+      "fonction": "Directeur",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    },
+    {
+      "nom": "KONAN",
+      "prenoms": "Kouame Wilfried",
+      "email": "apprenant2@org-test.ci",
+      "fonction": "Directeur General Adjoint",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    },
+    {
+      "nom": "JARVIS",
+      "prenoms": "Bintou",
+      "email": "apprenant3@org-test.ci",
+      "fonction": "Directrice du Pole Support et Gestion",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    }
+  ]
+}

@@ -65,6 +65,32 @@ export const devisApi = {
     const payload = unwrapPayload(response);
     return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
   },
+
+  // RM-152 : générer N vouchers EN_ATTENTE depuis un devis (ADMIN)
+  genererVouchers: async (id) => {
+    const response = await apiClient.post(`/admin/devis/${id}/generer-vouchers`, {});
+    return unwrapPayload(response);
+  },
+
+  // RM-152 : lister les vouchers d'un devis (ADMIN, AGENT)
+  listerVouchers: async (id) => {
+    const response = await apiClient.get(`/admin/devis/${id}/vouchers`);
+    const payload = unwrapPayload(response);
+    return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+  },
+
+  // Télécharger la facture PDF
+  telechargerPdf: async (id, numeroDevis) => {
+    const response = await apiClient.get(`/admin/devis/${id}/pdf`, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data ?? response], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${numeroDevis || `devis-${id}`}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 export default devisApi;

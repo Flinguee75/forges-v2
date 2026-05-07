@@ -37,6 +37,7 @@ const IDS = {
   partenaireInvite: 'part-e2e-invite-01',
   partenairePending: 'part-e2e-pending-01',
   apporteur: 'apt-e2e-rm145-01',
+  apporteurSuspendu: 'apt-e2e-susp-01',
   formationStandard: 'F-E2E-STD-01',
   formationPremiumRetail: 'F-E2E-PREM-RETAIL-01',
   formationPremiumB2b: 'F-E2E-PREM-B2B-01',
@@ -107,12 +108,14 @@ const EMAILS = {
   partenaireInvite: 'partenaire-invite-e2e@forges.ci',
   partenairePending: 'partenaire-pending-e2e@forges.ci',
   apporteur: 'apporteur-e2e@forges.ci',
+  apporteurSuspendu: 'apporteur-susp-e2e@forges.ci',
 };
 
 const CODES = {
   voucher: 'ORG-E2E-VOUCHER-01',
   expiredVoucher: 'ORG-E2E-VOUCHER-EXPIRE',
   apporteur: 'APT-E2E-RM145-001',
+  apporteurSuspendu: 'APT-E2E-SUSP-001',
 };
 
 function daysFromNow(days: number) {
@@ -319,7 +322,7 @@ async function cleanupScenarioData() {
     where: { OR: [{ id: { in: apprenantIds } }, { id: { startsWith: 'app-rm' } }, { email: { contains: 'e2e-ucs' } }] },
   });
   await prisma.organisation.deleteMany({ where: { OR: [{ id: IDS.organisation }, { email: { contains: 'e2e-ucs' } }] } });
-  await prisma.apporteur.deleteMany({ where: { OR: [{ id: IDS.apporteur }, { email: { contains: 'e2e-ucs' } }] } });
+  await prisma.apporteur.deleteMany({ where: { OR: [{ id: { in: [IDS.apporteur, IDS.apporteurSuspendu] } }, { email: { contains: 'e2e-ucs' } }] } });
   await prisma.partenaire.deleteMany({
     where: { OR: [{ id: { in: partenaireIds } }, { email_principal: { contains: 'e2e-ucs' } }] },
   });
@@ -586,6 +589,21 @@ async function main() {
     },
   });
   await createApprenant(IDS.apporteur, EMAILS.apporteur, passwordHash, 'APPORTEUR');
+
+  await prisma.apporteur.create({
+    data: {
+      id: IDS.apporteurSuspendu,
+      nom: 'Apporteur Suspendu E2E RM143',
+      type: 'INDIVIDU',
+      email: EMAILS.apporteurSuspendu,
+      password_hash: passwordHash,
+      telephone: '+2250102030406',
+      pays: 'CI',
+      code_apporteur: CODES.apporteurSuspendu,
+      taux_commission_pct: 5,
+      statut: 'SUSPENDU',
+    },
+  });
 
   await createFormation({
     id: IDS.formationStandard,
@@ -865,9 +883,21 @@ async function main() {
       apprenant_id: IDS.apprenantPremiumRetail,
       offre: 'PREMIUM',
       statut: 'ACTIF',
-      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1), // Début mois dernier
-      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1), // Fin mois prochain
-      montant_mensuel: 2500000, // 25 000 XOF en centimes
+      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      montant_mensuel: 2500000,
+    },
+  });
+
+  // Abonnement Retail Basique pour app-e2e-retail-01 (test RM-140 Premium ABONNEMENT)
+  await prisma.abonnementRetail.create({
+    data: {
+      apprenant_id: IDS.apprenantRetail,
+      offre: 'PREMIUM',
+      statut: 'ACTIF',
+      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      montant_mensuel: 2500000,
     },
   });
 

@@ -97,13 +97,10 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
       .set(adminHeaders)
       .send({ motif: 'Test remboursement manuel RM-10' });
 
-    // Vérifier que le remboursement est possible (endpoint existe)
-    expect([200, 201, 404, 400]).toContain(res.status);
-    
-    if (res.status === 200 || res.status === 201) {
-      expect(res.body.statut).toBe('REMBOURSE');
-      expect(res.body.motif).toBe('Test remboursement manuel RM-10');
-    }
+    // RM-10 : remboursement manuel admin — endpoint opérationnel
+    expect(res.status).toBe(200);
+    expect(res.body.data.statut).toBe('REMBOURSE');
+    expect(res.body.data.motif).toBe('Test remboursement manuel RM-10');
   });
 
   // ===== COMMISSIONS PARTENAIRES =====

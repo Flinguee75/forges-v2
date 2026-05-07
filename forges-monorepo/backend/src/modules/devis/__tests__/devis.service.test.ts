@@ -13,6 +13,16 @@ const mockPrisma = {
   organisation: { findUnique: jest.fn() },
   formation: { findUnique: jest.fn() },
   session: { findUnique: jest.fn() },
+  voucherOrganisation: {
+    count: jest.fn(),
+    create: jest.fn(),
+    findMany: jest.fn(),
+    updateMany: jest.fn(),
+  },
+  dossier: {
+    findMany: jest.fn(),
+    update: jest.fn(),
+  },
 };
 
 const mockAudit = { info: jest.fn(), error: jest.fn() };
@@ -45,6 +55,15 @@ beforeEach(() => {
   mockEmail.sendEmail.mockResolvedValue(undefined);
   mockEmail.sendEmailWithAttachment.mockResolvedValue(undefined);
   mockAudit.info.mockResolvedValue(undefined);
+  mockPrisma.voucherOrganisation.count.mockResolvedValue(0);
+  mockPrisma.voucherOrganisation.create.mockImplementation((args: any) => ({
+    id: `v-${Math.random().toString(36).slice(2)}`,
+    ...args.data,
+  }));
+  mockPrisma.voucherOrganisation.findMany.mockResolvedValue([]);
+  mockPrisma.voucherOrganisation.updateMany.mockResolvedValue({ count: 0 });
+  mockPrisma.dossier.findMany.mockResolvedValue([]);
+  mockPrisma.dossier.update.mockResolvedValue({});
 });
 
 describe('DevisService — RM-149 à RM-151', () => {
@@ -214,5 +233,136 @@ describe('DevisService — RM-149 à RM-151', () => {
       const service = makeService();
       await expect(service.annulerDevis('missing', 'admin-01')).rejects.toThrow('DEVIS_NOT_FOUND');
     });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RM-152/153/154 — génération vouchers + cascade paiement
+// ─────────────────────────────────────────────────────────────────────────────
+
+const devisCreeFix = {
+  id: 'devis-anssi',
+  numero_devis: 'FORGES-DEVIS-2026-001',
+  statut: 'CREE',
+  organisation_id: 'org-anssi',
+  formation_id: 'f-cyber',
+  nb_places: 3,
+  montant_total_xof: 6000000,
+};
+
+describe('DevisService — genererVouchersDevis (RM-152)', () => {
+  it('crée nb_places vouchers EN_ATTENTE liés au devis', async () => {
+    mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
+    mockPrisma.voucherOrganisation.count.mockResolvedValue(0);
+
+    const service = makeService();
+    const result = await service.genererVouchersDevis('devis-anssi', 'admin-01');
+
+    expect(result.nb_generes).toBe(3);
+    expect(result.vouchers).toHaveLength(3);
+    expect(mockPrisma.voucherOrganisation.create).toHaveBeenCalledTimes(3);
+    expect(mockPrisma.voucherOrganisation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          devis_id: 'devis-anssi',
+          organisation_id: 'org-anssi',
+          formation_id: 'f-cyber',
+          statut: 'EN_ATTENTE',
+          valeur: 100,
+          type_valeur: 'POURCENTAGE',
+          quota_max: 1,
+        }),
+      })
+    );
+    expect(mockAudit.info).toHaveBeenCalledWith('DEVIS_VOUCHERS_GENERES', expect.objectContaining({ nb_generes: 3 }));
+  });
+
+  it('lève DEVIS_NOT_FOUND si devis inexistant', async () => {
+    mockDevisRepo.findById.mockResolvedValue(null);
+
+    const service = makeService();
+    await expect(service.genererVouchersDevis('missing', 'admin-01')).rejects.toThrow('DEVIS_NOT_FOUND');
+    expect(mockPrisma.voucherOrganisation.create).not.toHaveBeenCalled();
+  });
+
+  it('lève DEVIS_ANNULE si devis annulé', async () => {
+    mockDevisRepo.findById.mockResolvedValue({ ...devisCreeFix, statut: 'ANNULE' });
+
+    const service = makeService();
+    await expect(service.genererVouchersDevis('devis-anssi', 'admin-01')).rejects.toThrow('DEVIS_ANNULE');
+  });
+
+  it('lève DEVIS_DEJA_PAYE si devis déjà payé', async () => {
+    mockDevisRepo.findById.mockResolvedValue({ ...devisCreeFix, statut: 'PAYE' });
+
+    const service = makeService();
+    await expect(service.genererVouchersDevis('devis-anssi', 'admin-01')).rejects.toThrow('DEVIS_DEJA_PAYE');
+  });
+
+  it('lève VOUCHERS_DEJA_GENERES si déjà générés (idempotence)', async () => {
+    mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
+    mockPrisma.voucherOrganisation.count.mockResolvedValue(3);
+
+    const service = makeService();
+    await expect(service.genererVouchersDevis('devis-anssi', 'admin-01')).rejects.toThrow('VOUCHERS_DEJA_GENERES');
+    expect(mockPrisma.voucherOrganisation.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('DevisService — payerDevis cascade vouchers (RM-153/154)', () => {
+  it('RM-153 : active les vouchers EN_ATTENTE liés au devis', async () => {
+    mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
+    mockDevisRepo.payer.mockResolvedValue({ ...devisCreeFix, statut: 'PAYE', paid_at: new Date() });
+    mockPrisma.voucherOrganisation.findMany.mockResolvedValue([
+      { id: 'v-1' },
+      { id: 'v-2' },
+      { id: 'v-3' },
+    ]);
+    mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+    const service = makeService();
+    const result = await service.payerDevis('devis-anssi', 'agent-01');
+
+    expect(mockPrisma.voucherOrganisation.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['v-1', 'v-2', 'v-3'] } },
+      data: { statut: 'ACTIF' },
+    });
+    expect(result.vouchers_actives).toBe(3);
+    expect(mockAudit.info).toHaveBeenCalledWith('DEVIS_VOUCHERS_ACTIVES', expect.objectContaining({ nb_vouchers_actives: 3 }));
+  });
+
+  it('RM-154 : les dossiers liés aux vouchers passent en PAYE automatiquement', async () => {
+    mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
+    mockDevisRepo.payer.mockResolvedValue({ ...devisCreeFix, statut: 'PAYE', paid_at: new Date() });
+    mockPrisma.voucherOrganisation.findMany.mockResolvedValue([{ id: 'v-1' }, { id: 'v-2' }]);
+    mockPrisma.dossier.findMany.mockResolvedValue([{ id: 'd-aly' }, { id: 'd-elie' }]);
+
+    const service = makeService();
+    await service.payerDevis('devis-anssi', 'agent-01');
+
+    expect(mockPrisma.dossier.update).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.dossier.update).toHaveBeenCalledWith({
+      where: { id: 'd-aly' },
+      data: { statut: 'PAYE' },
+    });
+    expect(mockPrisma.dossier.update).toHaveBeenCalledWith({
+      where: { id: 'd-elie' },
+      data: { statut: 'PAYE' },
+    });
+    expect(mockAudit.info).toHaveBeenCalledWith('DOSSIER_PAYE_VIA_DEVIS', expect.objectContaining({ dossier_id: 'd-aly' }));
+  });
+
+  it('sans vouchers liés : devis passe quand même PAYE sans erreur', async () => {
+    mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
+    mockDevisRepo.payer.mockResolvedValue({ ...devisCreeFix, statut: 'PAYE', paid_at: new Date() });
+    mockPrisma.voucherOrganisation.findMany.mockResolvedValue([]);
+
+    const service = makeService();
+    const result = await service.payerDevis('devis-anssi', 'agent-01');
+
+    expect(result.statut).toBe('PAYE');
+    expect(mockPrisma.voucherOrganisation.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.dossier.update).not.toHaveBeenCalled();
+    expect(result.vouchers_actives).toBe(0);
   });
 });

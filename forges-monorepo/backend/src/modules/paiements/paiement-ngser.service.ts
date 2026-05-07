@@ -53,26 +53,32 @@ export class PaiementNgserService {
     const session = await this.createNgserSession(orderNgser, montantFinal);
     const expiresAt = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
 
-    const paiement = await this.prisma.paiement.create({
-      data: {
-        dossier_id: dto.dossier_id,
-        montant_catalogue: dossier.formation.cout_catalogue,
-        montant_final: montantFinal,
-        reduction_appliquee: dossier.formation.cout_catalogue - montantFinal,
-        methode: 'MOBILE_MONEY',
-        statut: 'PENDING',
-        tentatives: 0,
-        expires_at: expiresAt,
-        provider: NGSER_PROVIDER,
-        payment_token_ngser: session.payment_token,
-        order_ngser: orderNgser,
-        montant_initie: montantFinal,
-        ngser_payload_last: {
-          mode: this.isMockMode() ? 'MOCK' : 'REAL',
-          payment_url: session.payment_url,
-        },
+    const ngserData = {
+      provider: NGSER_PROVIDER,
+      payment_token_ngser: session.payment_token,
+      order_ngser: orderNgser,
+      montant_initie: montantFinal,
+      expires_at: expiresAt,
+      ngser_payload_last: {
+        mode: this.isMockMode() ? 'MOCK' : 'REAL',
+        payment_url: session.payment_url,
       },
-    });
+    };
+
+    const paiement = paiementExistant
+      ? await this.prisma.paiement.update({ where: { id: paiementExistant.id }, data: ngserData })
+      : await this.prisma.paiement.create({
+          data: {
+            dossier_id: dto.dossier_id,
+            montant_catalogue: dossier.formation.cout_catalogue,
+            montant_final: montantFinal,
+            reduction_appliquee: dossier.formation.cout_catalogue - montantFinal,
+            methode: 'MOBILE_MONEY',
+            statut: 'PENDING',
+            tentatives: 0,
+            ...ngserData,
+          },
+        });
 
     await this.audit.info('PAIEMENT_NGSER_INITIE', {
       paiement_id: paiement.id,

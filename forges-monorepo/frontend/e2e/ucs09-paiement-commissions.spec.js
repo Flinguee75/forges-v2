@@ -147,3 +147,43 @@ test('UCS09 RM-157 NGSER: Initiation paiement crée order_ngser et payment_url',
 
   console.log(`✅ RM-157 OK: order_ngser=${paiementData.order_ngser}`);
 });
+
+test('UCS09 RM-145 negatif: webhook FAILED ne cree aucune commission', async ({ request }) => {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantIdempotence2);
+
+  const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
+    source_financement: 'RETAIL',
+    code_apporteur: E2E_SCENARIO.apporteurCode,
+  }, headers);
+  expect(inscription.ok).toBeTruthy();
+
+  const dossierId = inscription.payload.dossier.id;
+
+  const paiementResponse = await postJson(request, '/paiements/initier', {
+    dossier_id: dossierId,
+  }, headers);
+  expect(paiementResponse.ok).toBeTruthy();
+
+  const transactionId = `tx-ucs09-failed-${Date.now()}`;
+  const webhookResponse = await postJson(request, '/paiements/webhook', {
+    transaction_id: transactionId,
+    dossier_id: dossierId,
+    statut: 'FAILED',
+    montant: 150000,
+  }, {});
+  expect(webhookResponse.ok).toBeTruthy();
+
+  const dossierApres = await findDossier(request, headers, (item) => item.id === dossierId);
+  expect(dossierApres?.statut).not.toBe('PAYE');
+  if (dossierApres?.paiement?.statut) {
+    expect(['ECHOUE', 'EN_ATTENTE', 'PENDING']).toContain(dossierApres.paiement.statut);
+  }
+
+  const apporteurHeaders = await authHeaders(request, E2E_ACCOUNTS.apporteur);
+  const commissionsResponse = await getJson(request, '/apporteurs/commissions', apporteurHeaders);
+  const commissions = commissionsResponse.data ?? commissionsResponse;
+  const commissionFailed = Array.isArray(commissions)
+    ? commissions.find((c) => c.paiement?.transaction_id === transactionId)
+    : null;
+  expect(commissionFailed).toBeUndefined();
+});

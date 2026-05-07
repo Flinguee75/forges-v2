@@ -147,6 +147,7 @@ export const E2E_SCENARIO = {
   accesExpiredId: 'A-E2E-EXPIRED-01',
   voucherCode: 'ORG-E2E-VOUCHER-01',
   apporteurCode: 'APT-E2E-RM145-001',
+  apporteurSuspCode: 'APT-E2E-SUSP-001',
   organisationId: 'org-e2e-01',
   apporteurId: 'apt-e2e-rm145-01',
 };

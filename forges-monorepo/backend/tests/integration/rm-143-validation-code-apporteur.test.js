@@ -46,3 +46,33 @@ describe('RM-143 — Validation Code Apporteur (Criticité 5)', () => {
     await prisma.apporteur.delete({ where: { id: susp.id } });
   });
 });
+
+describe('RM-144 — Non-cumul code apporteur + voucher (Criticité 5)', () => {
+  test('RM-144.1 — Code apporteur + voucher_code rejeté 422 VOUCHER_CUMUL_INTERDIT', async () => {
+    const headers = await auth(await createApprenantAccount('rm144-1'));
+    const res = await request(API_URL)
+      .post(`/api/sessions/${ids.standardSession}/inscrire`)
+      .set(headers)
+      .send({
+        source_financement: 'RETAIL',
+        code_apporteur: ids.apporteurCode,
+        voucher_code: ids.orgVoucherCode,
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe('VOUCHER_CUMUL_INTERDIT');
+  });
+
+  test('RM-144.2 — Code apporteur seul sans voucher accepté', async () => {
+    const headers = await auth(await createApprenantAccount('rm144-2'));
+    const res = await request(API_URL)
+      .post(`/api/sessions/${ids.standardSession}/inscrire`)
+      .set(headers)
+      .send({
+        source_financement: 'RETAIL',
+        code_apporteur: ids.apporteurCode,
+      });
+
+    expect(res.status).toBe(201);
+  });
+});

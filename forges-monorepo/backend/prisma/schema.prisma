@@ -8,8 +8,8 @@ datasource db {
 }
 
 model Apprenant {
-  id                       String              @id @default(uuid())
-  email                    String              @unique
+  id                       String                  @id @default(uuid())
+  email                    String                  @unique
   password_hash            String
   nom                      String
   prenoms                  String
@@ -18,26 +18,26 @@ model Apprenant {
   niveau_etude             String?
   pays_residence           String
   pays_nationalite         String
-  langue_preferee          String              @default("FR")
-  role                     RoleUtilisateur     @default(APPRENANT)
-  statut                   String              @default("INACTIF")
-  consentement_rgpd        Boolean             @default(false)
+  langue_preferee          String                  @default("FR")
+  role                     RoleUtilisateur         @default(APPRENANT)
+  statut                   String                  @default("INACTIF")
+  consentement_rgpd        Boolean                 @default(false)
   consentement_timestamp   DateTime?
   consentement_version_cgu String?
   token_confirmation       String?
   token_expiration         DateTime?
-  suspension_count         Int                 @default(0)
+  suspension_count         Int                     @default(0)
   last_suspension_at       DateTime?
-  upgrade_refus_count      Int                 @default(0)
+  upgrade_refus_count      Int                     @default(0)
   last_upgrade_refus_at    DateTime?
   organisation_id          String?
-  organisation             Organisation?       @relation(fields: [organisation_id], references: [id])
+  organisation             Organisation?           @relation(fields: [organisation_id], references: [id])
   abonnement_retail        AbonnementRetail?
   dossiers                 Dossier[]
   conversations_bot        ConversationBot[]
   feedbacks                FeedbackFormation[]
   acces_formations         AccesFormationDemande[]
-  created_at               DateTime            @default(now())
+  created_at               DateTime                @default(now())
 }
 
 model Organisation {
@@ -68,7 +68,7 @@ model Organisation {
   created_at         DateTime                 @default(now())
   date_fin_essai     DateTime?
 
-  config             OrganisationConfig?
+  config OrganisationConfig?
 
   @@unique([identifiant_legal, type])
 }
@@ -84,27 +84,27 @@ model OrganisationConfig {
 }
 
 model Formation {
-  id                      String                 @id @default(uuid())
+  id                      String                  @id @default(uuid())
   intitule                String
-  description_courte      String                 @db.VarChar(500)
+  description_courte      String                  @db.VarChar(500)
   description_longue      String?
   duree_jours             Int
   cout_catalogue          Int
   responsable_id          String
   type_formation          String
   mode_formation          String
-  statut                  String                 @default("BROUILLON")
-  inclus_abonnement       Boolean                @default(false)
+  statut                  String                  @default("BROUILLON")
+  inclus_abonnement       Boolean                 @default(false)
   pilier_abonnement       String?
-  duree_acces_jours       Int                    @default(365)
+  duree_acces_jours       Int                     @default(365)
   url_externe_chiffree    String?
   prix_coutant            Int?
   prerequis               String?
   objectifs_pedagogiques  String[]
-  certification_delivree  Boolean                @default(false)
+  certification_delivree  Boolean                 @default(false)
   public_cible            String?
   partenaire_id           String?
-  partenaire              Partenaire?            @relation(fields: [partenaire_id], references: [id])
+  partenaire              Partenaire?             @relation(fields: [partenaire_id], references: [id])
   formation_partenaire    FormationPartenaire?
   sessions                Session[]
   dossiers                Dossier[]
@@ -114,24 +114,24 @@ model Formation {
   langues_disponibles     String[]
   acces_demande           AccesFormationDemande[]
   devis                   Devis[]
-  created_at              DateTime               @default(now())
+  created_at              DateTime                @default(now())
 }
 
 model AccesFormationDemande {
-  id                  String    @id @default(uuid())
-  apprenant_id        String
-  formation_id        String
-  source_financement  String    // ABONNEMENT, RETAIL, B2B, INSTITUTIONNEL
-  statut              String    @default("ACTIF") // ACTIF, SUSPENDU, EXPIRE
-  date_activation     DateTime  @default(now())
-  date_expiration     DateTime
-  progression         Int       @default(0) // 0-100
-  last_access_at      DateTime?
-  created_at          DateTime  @default(now())
-  updated_at          DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  apprenant_id       String
+  formation_id       String
+  source_financement String // ABONNEMENT, RETAIL, B2B, INSTITUTIONNEL
+  statut             String    @default("ACTIF") // ACTIF, SUSPENDU, EXPIRE
+  date_activation    DateTime  @default(now())
+  date_expiration    DateTime
+  progression        Int       @default(0) // 0-100
+  last_access_at     DateTime?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
 
-  apprenant           Apprenant @relation(fields: [apprenant_id], references: [id], onDelete: Cascade)
-  formation           Formation @relation(fields: [formation_id], references: [id], onDelete: Cascade)
+  apprenant Apprenant @relation(fields: [apprenant_id], references: [id], onDelete: Cascade)
+  formation Formation @relation(fields: [formation_id], references: [id], onDelete: Cascade)
 
   @@index([apprenant_id, statut])
   @@index([formation_id])
@@ -156,25 +156,25 @@ model Session {
 }
 
 model Dossier {
-  id                      String                 @id @default(uuid())
+  id                      String               @id @default(uuid())
   apprenant_id            String
   formation_id            String
   session_id              String?
-  statut                  String                 @default("EN_ATTENTE_VERIFICATION")
+  statut                  String               @default("EN_ATTENTE_VERIFICATION")
   source_financement      String
-  type_fenetre            TypeFenetre            @default(NORMAL)
+  type_fenetre            TypeFenetre          @default(NORMAL)
   voucher_code            String?
   code_apporteur          String?
-  montant_remise          Int                    @default(0)
+  montant_remise          Int                  @default(0)
   motif_refus             String?
   expires_at              DateTime?
-  created_at              DateTime               @default(now())
+  created_at              DateTime             @default(now())
   updated_at              DateTime?
   voucher_organisation_id String?
-  apprenant               Apprenant              @relation(fields: [apprenant_id], references: [id])
-  formation               Formation              @relation(fields: [formation_id], references: [id])
-  session                 Session?               @relation(fields: [session_id], references: [id])
-  voucher_organisation    VoucherOrganisation?   @relation(fields: [voucher_organisation_id], references: [id])
+  apprenant               Apprenant            @relation(fields: [apprenant_id], references: [id])
+  formation               Formation            @relation(fields: [formation_id], references: [id])
+  session                 Session?             @relation(fields: [session_id], references: [id])
+  voucher_organisation    VoucherOrganisation? @relation(fields: [voucher_organisation_id], references: [id])
   paiement                Paiement?
 }
 
@@ -225,9 +225,9 @@ model Devis {
   created_by         String
   created_at         DateTime    @default(now())
 
-  organisation       Organisation @relation(fields: [organisation_id], references: [id])
-  formation          Formation    @relation(fields: [formation_id], references: [id])
-  session            Session?     @relation(fields: [session_id], references: [id])
+  organisation Organisation @relation(fields: [organisation_id], references: [id])
+  formation    Formation    @relation(fields: [formation_id], references: [id])
+  session      Session?     @relation(fields: [session_id], references: [id])
 
   @@index([organisation_id])
   @@index([formation_id])
@@ -236,24 +236,24 @@ model Devis {
 }
 
 model Partenaire {
-  id                                String                           @id @default(uuid())
-  raison_sociale                    String
-  type                              String
-  pays                              String
-  email_principal                   String                           @unique
-  password_hash                     String?
-  commission_forges_pct             Float                            @default(30)
-  statut                            String                           @default("EN_ATTENTE_VERIFICATION")
-  mode_inscription                  String
-  token_invitation                  String?
-  token_invitation_expiration       DateTime?
-  responsable_designe_id            String?
-  seuil_reversement_personnalise    Int?
-  formations                        Formation[]
-  formations_partenaires            FormationPartenaire[]
-  commissions_partenaires           CommissionPartenaire[]
+  id                                 String                           @id @default(uuid())
+  raison_sociale                     String
+  type                               String
+  pays                               String
+  email_principal                    String                           @unique
+  password_hash                      String?
+  commission_forges_pct              Float                            @default(30)
+  statut                             String                           @default("EN_ATTENTE_VERIFICATION")
+  mode_inscription                   String
+  token_invitation                   String?
+  token_invitation_expiration        DateTime?
+  responsable_designe_id             String?
+  seuil_reversement_personnalise     Int?
+  formations                         Formation[]
+  formations_partenaires             FormationPartenaire[]
+  commissions_partenaires            CommissionPartenaire[]
   commissions_partenaires_abonnement CommissionPartenaireAbonnement[]
-  created_at                        DateTime                         @default(now())
+  created_at                         DateTime                         @default(now())
 }
 
 model FormationPartenaire {
@@ -345,19 +345,20 @@ model VoucherApporteur {
 }
 
 model VoucherOrganisation {
-  id                        String        @id @default(uuid())
-  code                      String        @unique
+  id                        String    @id @default(uuid())
+  code                      String    @unique
   organisation_id           String
   formation_id              String?
-  type                      String        @default("ORGANISATION")
+  devis_id                  String?
+  type                      String    @default("ORGANISATION")
   valeur                    Int?
   type_valeur               String?
-  quota_max                 Int           @default(1)
-  quota_utilise             Int           @default(0)
+  quota_max                 Int       @default(1)
+  quota_utilise             Int       @default(0)
   date_expiration           DateTime?
-  statut                    String        @default("ACTIF")
-  created_at                DateTime      @default(now())
-  nb_utilisations           Int           @default(0)
+  statut                    String    @default("ACTIF")
+  created_at                DateTime  @default(now())
+  nb_utilisations           Int       @default(0)
   date_derniere_utilisation DateTime?
   dossiers                  Dossier[]
 }
@@ -540,13 +541,13 @@ model CommissionPartenaire {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  level       String   // INFO, WARNING, ERROR
-  action      String   // Action name (e.g. IPN_SUCCESS_TRAITE, COMMISSION_PARTENAIRE_CREEE)
-  metadata    Json?    // Additional data
-  hmac        String?  // HMAC signature for integrity
-  user_id     String?  // Optional user who triggered the action
-  timestamp   DateTime @default(now())
+  id        String   @id @default(uuid())
+  level     String // INFO, WARNING, ERROR
+  action    String // Action name (e.g. IPN_SUCCESS_TRAITE, COMMISSION_PARTENAIRE_CREEE)
+  metadata  Json? // Additional data
+  hmac      String? // HMAC signature for integrity
+  user_id   String? // Optional user who triggered the action
+  timestamp DateTime @default(now())
 
   @@index([action])
   @@index([timestamp])

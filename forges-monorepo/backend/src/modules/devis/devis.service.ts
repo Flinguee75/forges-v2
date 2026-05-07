@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { DevisRepository } from './devis.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
@@ -128,6 +129,23 @@ export class DevisService {
     return { buffer, filename: `${devis.numero_devis}.docx` };
   }
 
+  async telechargerPdfDevis(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    const devis = await this.devisRepository.findById(id);
+    if (!devis) throw new Error('DEVIS_NOT_FOUND');
+
+    const [organisation, formation, session] = await Promise.all([
+      this.prisma.organisation.findUnique({ where: { id: devis.organisation_id } }),
+      this.prisma.formation.findUnique({ where: { id: devis.formation_id } }),
+      devis.session_id ? this.prisma.session.findUnique({ where: { id: devis.session_id } }) : Promise.resolve(undefined),
+    ]);
+
+    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    if (!formation) throw new Error('FORMATION_NOT_FOUND');
+
+    const buffer = await genererPdfDevis({ devis, organisation, formation, session });
+    return { buffer, filename: `${devis.numero_devis}.pdf` };
+  }
+
   async payerDevis(id: string, agentId: string, notes_admin?: string) {
     const devis = await this.devisRepository.findById(id);
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
@@ -143,7 +161,99 @@ export class DevisService {
       agent_id: agentId,
     });
 
-    return updated;
+    // RM-153 : activer les vouchers EN_ATTENTE liés à ce devis
+    const vouchers = await this.prisma.voucherOrganisation.findMany({
+      where: { devis_id: id, statut: 'EN_ATTENTE' },
+      select: { id: true },
+    });
+
+    if (vouchers.length > 0) {
+      const voucherIds = vouchers.map(v => v.id);
+
+      await this.prisma.voucherOrganisation.updateMany({
+        where: { id: { in: voucherIds } },
+        data: { statut: 'ACTIF' },
+      });
+
+      await this.audit.info('DEVIS_VOUCHERS_ACTIVES', {
+        devis_id: id,
+        nb_vouchers_actives: voucherIds.length,
+        agent_id: agentId,
+      });
+
+      // RM-154 : dossiers ayant utilisé un de ces vouchers → PAYE automatiquement
+      const dossiers = await this.prisma.dossier.findMany({
+        where: { voucher_organisation_id: { in: voucherIds } },
+        select: { id: true },
+      });
+
+      for (const dossier of dossiers) {
+        await this.prisma.dossier.update({
+          where: { id: dossier.id },
+          data: { statut: 'PAYE' },
+        });
+
+        await this.audit.info('DOSSIER_PAYE_VIA_DEVIS', {
+          dossier_id: dossier.id,
+          devis_id: id,
+          agent_id: agentId,
+        });
+      }
+    }
+
+    return { ...updated, vouchers_actives: vouchers.length };
+  }
+
+  // RM-152 : générer N vouchers EN_ATTENTE depuis un devis
+  async genererVouchersDevis(devisId: string, adminId: string) {
+    const devis = await this.devisRepository.findById(devisId);
+    if (!devis) throw new Error('DEVIS_NOT_FOUND');
+    if (devis.statut === 'ANNULE') throw new Error('DEVIS_ANNULE');
+    if (devis.statut === 'PAYE') throw new Error('DEVIS_DEJA_PAYE');
+
+    // Idempotence : vérifier si déjà générés
+    const existants = await this.prisma.voucherOrganisation.count({
+      where: { devis_id: devisId },
+    });
+    if (existants > 0) throw new Error('VOUCHERS_DEJA_GENERES');
+
+    const vouchers = [];
+    for (let i = 0; i < devis.nb_places; i++) {
+      const voucher = await this.prisma.voucherOrganisation.create({
+        data: {
+          code: randomUUID(),
+          organisation_id: devis.organisation_id,
+          formation_id: devis.formation_id,
+          devis_id: devisId,
+          type: 'ORGANISATION',
+          valeur: 100,
+          type_valeur: 'POURCENTAGE',
+          quota_max: 1,
+          quota_utilise: 0,
+          statut: 'EN_ATTENTE',
+        },
+      });
+      vouchers.push(voucher);
+    }
+
+    await this.audit.info('DEVIS_VOUCHERS_GENERES', {
+      devis_id: devisId,
+      nb_generes: vouchers.length,
+      admin_id: adminId,
+    });
+
+    return { nb_generes: vouchers.length, vouchers };
+  }
+
+  // RM-152 : lister les vouchers d'un devis
+  async listerVouchersDevis(devisId: string) {
+    const devis = await this.devisRepository.findById(devisId);
+    if (!devis) throw new Error('DEVIS_NOT_FOUND');
+
+    return this.prisma.voucherOrganisation.findMany({
+      where: { devis_id: devisId },
+      orderBy: { created_at: 'asc' },
+    });
   }
 
   async annulerDevis(id: string, adminId: string, notes_admin?: string) {
