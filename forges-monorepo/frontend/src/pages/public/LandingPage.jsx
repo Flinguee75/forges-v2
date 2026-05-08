@@ -4,9 +4,11 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FeatureIcon from '../../components/ui/FeatureIcon';
 import logoForges from '../../assets/logo_forges.png';
+import logoForgesWebp from '../../assets/logo_forges.webp';
 import logoAspire from '../../assets/logo_aspire.png';
 import logoAiCrafters from '../../assets/logo_ai_crafters.png';
 import imageCcdlGw from '../../assets/image_ccdl_gw.png';
+import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
 import StatusBadge from '../../components/ui/StatusBadge';
 
 /**
@@ -88,11 +90,14 @@ export default function LandingPage() {
               <div className="relative">
                 {/* Glow effect */}
                 <div className="absolute inset-0 bg-white/40 rounded-full blur-3xl scale-110" aria-hidden="true"></div>
-                <img
-                  src={logoForges}
-                  alt="FORGES"
-                  className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full object-cover shadow-2xl ring-8 ring-white/20"
-                />
+                <picture>
+                  <source srcSet={logoForgesWebp} type="image/webp" />
+                  <img
+                    src={logoForges}
+                    alt="FORGES"
+                    className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full object-cover shadow-2xl ring-8 ring-white/20"
+                  />
+                </picture>
               </div>
             </div>
 
@@ -178,11 +183,14 @@ export default function LandingPage() {
               <div className="grid md:grid-cols-2">
                 {/* Image GWU/CCDL */}
                 <div className="relative min-h-64 md:min-h-0">
-                  <img
-                    src={imageCcdlGw}
-                    alt="Masterclass GWU CCDL"
-                    className="w-full h-full object-cover"
-                  />
+                  <picture>
+                    <source srcSet={imageCcdlGwWebp} type="image/webp" />
+                    <img
+                      src={imageCcdlGw}
+                      alt="Masterclass GWU CCDL"
+                      className="w-full h-full object-cover"
+                    />
+                  </picture>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
 
