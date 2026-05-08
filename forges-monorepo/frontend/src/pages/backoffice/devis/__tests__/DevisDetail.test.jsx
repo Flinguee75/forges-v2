@@ -231,33 +231,33 @@ describe('DevisDetail — telechargement PDF', () => {
     devisApi.listerVouchers.mockResolvedValue([]);
   });
 
-  it('affiche le bouton telecharger PDF', async () => {
+  it('affiche le bouton telecharger DOCX', async () => {
     renderComponent();
     await waitFor(() => {
-      expect(screen.getByTestId('btn-telecharger-pdf')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-telecharger-docx')).toBeInTheDocument();
     });
   });
 
-  it('appelle telechargerPdf au clic', async () => {
+  it('appelle telechargerDocx au clic', async () => {
     const user = userEvent.setup();
-    devisApi.telechargerPdf.mockResolvedValue();
+    devisApi.telechargerDocx.mockResolvedValue();
     renderComponent();
-    await waitFor(() => screen.getByTestId('btn-telecharger-pdf'));
-    await user.click(screen.getByTestId('btn-telecharger-pdf'));
+    await waitFor(() => screen.getByTestId('btn-telecharger-docx'));
+    await user.click(screen.getByTestId('btn-telecharger-docx'));
     await waitFor(() => {
-      expect(devisApi.telechargerPdf).toHaveBeenCalledWith('devis-uuid-1', 'DEV-2026-001');
+      expect(devisApi.telechargerDocx).toHaveBeenCalledWith('devis-uuid-1');
     });
   });
 
-  it('affiche toast erreur si telechargerPdf echoue', async () => {
+  it('affiche toast erreur si telechargerDocx echoue', async () => {
     const user = userEvent.setup();
-    devisApi.telechargerPdf.mockRejectedValue(new Error('network'));
+    devisApi.telechargerDocx.mockRejectedValue(new Error('network'));
     renderComponent();
-    await waitFor(() => screen.getByTestId('btn-telecharger-pdf'));
-    await user.click(screen.getByTestId('btn-telecharger-pdf'));
+    await waitFor(() => screen.getByTestId('btn-telecharger-docx'));
+    await user.click(screen.getByTestId('btn-telecharger-docx'));
     await waitFor(() => {
       expect(state.showToast).toHaveBeenCalledWith(
-        'Erreur lors du telechargement du PDF.',
+        'Erreur lors du telechargement du document.',
         'error'
       );
     });

@@ -73,16 +73,6 @@ export default function DevisDetail() {
     }
   };
 
-  const handleTelechargerPdf = async () => {
-    setIsDownloading(true);
-    try {
-      await devisApi.telechargerPdf(id, devis?.numero_devis);
-    } catch {
-      showToast('Erreur lors du telechargement du PDF.', 'error');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   const handleGenererVouchers = async () => {
     setIsGeneratingVouchers(true);
@@ -351,18 +341,10 @@ export default function DevisDetail() {
           <Button
             variant="outline"
             loading={isDownloading}
-            onClick={handleTelechargerPdf}
-            data-testid="btn-telecharger-pdf"
-          >
-            Telecharger Word
-          </Button>
-          <Button
-            variant="outline"
-            loading={isDownloading}
             onClick={handleTelechargerDocx}
             data-testid="btn-telecharger-docx"
           >
-            Telecharger DOCX
+            Telecharger Word (.docx)
           </Button>
         </div>
         <Button variant="outline" onClick={() => navigate('/backoffice/devis')}>
