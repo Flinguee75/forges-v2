@@ -12,6 +12,27 @@ export default defineConfig({
     __COMMIT_SHA__: JSON.stringify(commitSha),
   },
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3')) {
+            return 'vendor-charts';
+          }
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/react/')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/qrcode')) {
+            return 'vendor-qrcode';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 500,
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
