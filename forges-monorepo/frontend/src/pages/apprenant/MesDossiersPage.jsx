@@ -181,7 +181,7 @@ export default function MesDossiersPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 items-end">
-                  {dossier.statut === 'RETENU' && (
+                  {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT') && (
                     <Button
                       variant="primary"
                       size="small"

@@ -19,6 +19,20 @@ export default function PaiementInitiation() {
     let isMounted = true;
 
     async function initierPaiement() {
+      const errorMessages = {
+        FORBIDDEN: "Vous n'êtes pas autorisé à payer ce dossier.",
+        DOSSIER_NOT_FOUND: "Dossier introuvable.",
+        DOSSIER_STATUT_INVALIDE: "Ce dossier ne peut pas être payé dans son état actuel.",
+        PAIEMENT_DEJA_VALIDE: "Ce dossier a déjà été payé.",
+        PAYMENT_EXPIRED: "Le délai de paiement de 72h est dépassé.",
+        TOO_MANY_ATTEMPTS: "Trop de tentatives. Contactez le support.",
+      };
+
+      const getErrorMessage = (err) => {
+        const code = err?.response?.data?.error || err?.message || '';
+        return errorMessages[code] || "Impossible d'initialiser le paiement. Veuillez réessayer.";
+      };
+
       try {
         // FineoPay top 1
         const response = await paiementsApi.initierFineo(dossierId);
@@ -34,7 +48,17 @@ export default function PaiementInitiation() {
         });
 
         window.location.assign(data.checkout_link);
-      } catch {
+      } catch (fineoErr) {
+        // Erreurs bloquantes — pas besoin d'essayer NGSER
+        const fineoCode = fineoErr?.response?.data?.error || fineoErr?.message || '';
+        const isBlockingError = ['FORBIDDEN', 'DOSSIER_NOT_FOUND', 'PAIEMENT_DEJA_VALIDE', 'DOSSIER_STATUT_INVALIDE'].includes(fineoCode);
+
+        if (isBlockingError) {
+          if (!isMounted) return;
+          setState({ status: 'error', message: getErrorMessage(fineoErr), paymentUrl: '', reference: '' });
+          return;
+        }
+
         // Fallback NGSER top 2
         try {
           const response = await paiementsApi.initierNgser({ dossier_id: dossierId });
@@ -50,14 +74,9 @@ export default function PaiementInitiation() {
           });
 
           window.location.assign(data.payment_url);
-        } catch (error) {
+        } catch (ngserErr) {
           if (!isMounted) return;
-          setState({
-            status: 'error',
-            message: error?.message || error?.error || "Impossible d'initialiser le paiement.",
-            paymentUrl: '',
-            reference: '',
-          });
+          setState({ status: 'error', message: getErrorMessage(ngserErr), paymentUrl: '', reference: '' });
         }
       }
     }
