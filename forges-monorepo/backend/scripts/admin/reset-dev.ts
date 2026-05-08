@@ -64,6 +64,7 @@ async function truncateTables() {
     'AbonnementOrganisation',
     'Apporteur',
     'Apprenant',
+    'OrganisationConfig',
     'Organisation',
     'Session',
     'Formation',
