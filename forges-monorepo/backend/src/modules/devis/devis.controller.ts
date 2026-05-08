@@ -157,6 +157,22 @@ export class DevisController {
     }
   }
 
+  // POST /api/admin/devis/:id/envoyer-email — ADMIN, AGENT
+  async envoyerEmailDevis(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.devisService.envoyerEmailDevis(req.params.id, req.user!.userId);
+      return res.status(200).json({ statusCode: 200, data: result });
+    } catch (error: any) {
+      if (error.message === 'DEVIS_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND', message: 'Devis introuvable' });
+      }
+      if (error.message === 'ORGANISATION_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'ORGANISATION_NOT_FOUND', message: 'Organisation introuvable' });
+      }
+      next(error);
+    }
+  }
+
   // GET /api/organisation/devis — ORGANISATION (lecture seule)
   async listerDevisOrganisation(req: Request, res: Response, next: NextFunction) {
     try {

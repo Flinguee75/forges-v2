@@ -60,6 +60,11 @@ router.get('/admin/devis/:id/vouchers', authenticate, authorize('ADMIN', 'AGENT'
   devisController.listerVouchersDevis(req, res, next);
 });
 
+// POST /api/admin/devis/:id/envoyer-email — Renvoyer l'email devis (ADMIN, AGENT)
+router.post('/admin/devis/:id/envoyer-email', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  devisController.envoyerEmailDevis(req, res, next);
+});
+
 // GET /api/organisation/devis — Lecture seule organisation
 router.get('/organisation/devis', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   devisController.listerDevisOrganisation(req, res, next);

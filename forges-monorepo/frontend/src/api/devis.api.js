@@ -79,6 +79,11 @@ export const devisApi = {
     return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
   },
 
+  envoyerEmail: async (id) => {
+    const response = await apiClient.post(`/admin/devis/${id}/envoyer-email`, {});
+    return unwrapPayload(response);
+  },
+
   // Télécharger le devis depuis le template officiel
   telechargerPdf: async (id, numeroDevis) => {
     const response = await apiClient.get(`/admin/devis/${id}/pdf`, { responseType: 'blob' });

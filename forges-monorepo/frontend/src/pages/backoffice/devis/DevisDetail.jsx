@@ -43,10 +43,23 @@ export default function DevisDetail() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGeneratingVouchers, setIsGeneratingVouchers] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const loadVouchers = async () => {
     const data = await devisApi.listerVouchers(id);
     setVouchers(data);
+  };
+
+  const handleEnvoyerEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      const result = await devisApi.envoyerEmail(id);
+      showToast(`Email envoyé à ${result?.to || 'l\'organisation'}.`, 'success');
+    } catch {
+      showToast('Erreur lors de l\'envoi de l\'email.', 'error');
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const handleTelechargerDocx = async () => {
@@ -327,14 +340,21 @@ export default function DevisDetail() {
       )}
 
       <div className="flex flex-wrap justify-between gap-3">
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <Button
+            loading={isSendingEmail}
+            onClick={handleEnvoyerEmail}
+            data-testid="btn-envoyer-email"
+          >
+            Envoyer le devis par email
+          </Button>
           <Button
             variant="outline"
             loading={isDownloading}
             onClick={handleTelechargerPdf}
             data-testid="btn-telecharger-pdf"
           >
-            Telecharger la facture PDF
+            Telecharger Word
           </Button>
           <Button
             variant="outline"
@@ -342,7 +362,7 @@ export default function DevisDetail() {
             onClick={handleTelechargerDocx}
             data-testid="btn-telecharger-docx"
           >
-            Telecharger le document Word
+            Telecharger DOCX
           </Button>
         </div>
         <Button variant="outline" onClick={() => navigate('/backoffice/devis')}>

@@ -291,6 +291,65 @@ export class DevisService {
     return this.devisRepository.findAll({ organisation_id: organisationId });
   }
 
+  async envoyerEmailDevis(id: string, adminId: string) {
+    const devis = await this.devisRepository.findById(id);
+    if (!devis) throw new Error('DEVIS_NOT_FOUND');
+
+    const [organisation, formation] = await Promise.all([
+      this.prisma.organisation.findUnique({ where: { id: devis.organisation_id } }),
+      this.prisma.formation.findUnique({ where: { id: devis.formation_id } }),
+    ]);
+
+    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    if (!formation) throw new Error('FORMATION_NOT_FOUND');
+
+    const session = devis.session_id
+      ? await this.prisma.session.findUnique({ where: { id: devis.session_id } })
+      : undefined;
+
+    const langue = organisation.langue_preferee || 'FR';
+
+    let docxBuffer: Buffer | undefined;
+    try {
+      docxBuffer = genererDocxDevis(devis as any);
+    } catch {
+      // envoi sans pièce jointe si génération DOCX échoue
+    }
+
+    const emailSubject = langue === 'EN'
+      ? `Your quote ${devis.numero_devis} from FORGES`
+      : `Votre devis ${devis.numero_devis} — FORGES AGRÉGATEUR`;
+    const emailHtml = this.buildEmailDevis(devis, organisation, formation, session, langue);
+
+    if (docxBuffer) {
+      await this.emailService.sendEmailWithAttachment({
+        to: organisation.email,
+        subject: emailSubject,
+        html: emailHtml,
+        attachment: {
+          filename: `${devis.numero_devis}.docx`,
+          content: docxBuffer,
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      });
+    } else {
+      await this.emailService.sendEmail({
+        to: organisation.email,
+        subject: emailSubject,
+        html: emailHtml,
+      });
+    }
+
+    await this.audit.info('DEVIS_EMAIL_RENVOYE', {
+      devis_id: id,
+      numero_devis: devis.numero_devis,
+      to: organisation.email,
+      admin_id: adminId,
+    });
+
+    return { sent: true, to: organisation.email };
+  }
+
   private formatMontant(montant: number): string {
     return montant.toLocaleString('fr-FR') + ' XOF';
   }
