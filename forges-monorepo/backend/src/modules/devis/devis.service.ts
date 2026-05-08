@@ -4,7 +4,6 @@ import { DevisRepository } from './devis.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { CreerDevisDto } from './dto/devis.dto';
-import { genererPdfDevis } from './devis-pdf.service';
 import { genererDocxDevis } from './devis-docx.service';
 
 export class DevisService {
@@ -65,42 +64,47 @@ export class DevisService {
       ? await this.prisma.session.findUnique({ where: { id: dto.session_id } })
       : undefined;
 
-    let pdfBuffer: Buffer | undefined;
+    let docxBuffer: Buffer | undefined;
     try {
-      pdfBuffer = await genererPdfDevis({ devis, organisation, formation, session });
-    } catch (pdfError: any) {
-      await this.audit.warning('DEVIS_PDF_ECHEC', {
+      docxBuffer = genererDocxDevis(devis as any);
+    } catch (docxError: any) {
+      await this.audit.warning('DEVIS_DOCX_ECHEC', {
         devis_id: devis.id,
         numero_devis,
-        error: pdfError?.message || 'UNKNOWN',
+        error: docxError?.message || 'UNKNOWN',
       });
     }
 
-    await this.emailService.sendEmail({
-      to: organisation.email,
-      subject: langue === 'EN'
-        ? `Your invoice ${numero_devis} from FORGES`
-        : `Votre facture ${numero_devis} — FORGES AGRÉGATEUR`,
-      html: this.buildEmailDevis(devis, organisation, formation, session, langue),
-    }).catch(async (emailError: any) => {
-      await this.audit.warning('DEVIS_EMAIL_ECHEC', {
-        devis_id: devis.id,
-        numero_devis,
-        to: organisation.email,
-        error: emailError?.message || 'UNKNOWN',
-      });
-    });
+    const emailSubject = langue === 'EN'
+      ? `Your quote ${numero_devis} from FORGES`
+      : `Votre devis ${numero_devis} — FORGES AGRÉGATEUR`;
+    const emailHtml = this.buildEmailDevis(devis, organisation, formation, session, langue);
 
-    if (pdfBuffer) {
+    if (docxBuffer) {
       await this.emailService.sendEmailWithAttachment({
         to: organisation.email,
-        subject: langue === 'EN'
-          ? `Your invoice ${numero_devis} from FORGES`
-          : `Votre facture ${numero_devis} — FORGES AGRÉGATEUR`,
-        html: this.buildEmailDevis(devis, organisation, formation, session, langue),
-        attachment: { filename: `${numero_devis}.pdf`, content: pdfBuffer, contentType: 'application/pdf' },
+        subject: emailSubject,
+        html: emailHtml,
+        attachment: {
+          filename: `${numero_devis}.docx`,
+          content: docxBuffer,
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
       }).catch(async (emailError: any) => {
-        await this.audit.warning('DEVIS_PDF_EMAIL_ECHEC', {
+        await this.audit.warning('DEVIS_EMAIL_ECHEC', {
+          devis_id: devis.id,
+          numero_devis,
+          to: organisation.email,
+          error: emailError?.message || 'UNKNOWN',
+        });
+      });
+    } else {
+      await this.emailService.sendEmail({
+        to: organisation.email,
+        subject: emailSubject,
+        html: emailHtml,
+      }).catch(async (emailError: any) => {
+        await this.audit.warning('DEVIS_EMAIL_ECHEC', {
           devis_id: devis.id,
           numero_devis,
           to: organisation.email,
@@ -129,22 +133,6 @@ export class DevisService {
     return { buffer, filename: `${devis.numero_devis}.docx` };
   }
 
-  async telechargerPdfDevis(id: string): Promise<{ buffer: Buffer; filename: string }> {
-    const devis = await this.devisRepository.findById(id);
-    if (!devis) throw new Error('DEVIS_NOT_FOUND');
-
-    const [organisation, formation, session] = await Promise.all([
-      this.prisma.organisation.findUnique({ where: { id: devis.organisation_id } }),
-      this.prisma.formation.findUnique({ where: { id: devis.formation_id } }),
-      devis.session_id ? this.prisma.session.findUnique({ where: { id: devis.session_id } }) : Promise.resolve(undefined),
-    ]);
-
-    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
-    if (!formation) throw new Error('FORMATION_NOT_FOUND');
-
-    const buffer = await genererPdfDevis({ devis, organisation, formation, session });
-    return { buffer, filename: `${devis.numero_devis}.pdf` };
-  }
 
   async payerDevis(id: string, agentId: string, notes_admin?: string) {
     const devis = await this.devisRepository.findById(id);
