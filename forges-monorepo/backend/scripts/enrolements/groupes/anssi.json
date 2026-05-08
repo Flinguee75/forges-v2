@@ -1,39 +1,40 @@
 {
   "organisation": {
-    "raison_sociale": "ANSSI CI",
+    "raison_sociale": "Agence Nationale de la Sécurité des Systèmes d'Information (ANSSI)",
     "type": "GOUVERNEMENT",
-    "email": "apprenant1@org-test.ci",
-    "contact_referent": "DIALLO ALY",
+    "email": "contact@anssi-ci.gouv.ci",
+    "contact_referent": "Direction Générale ANSSI",
     "pays": "CI",
     "identifiant_legal": "ANSSI-CI-GOV"
   },
   "masterclass": {
-    "formation_id": null,
+    "formation_id": "frm-masterclass-gwu-ccdl-2026",
+    "session_id": "ses-anssi-juin-2026",
     "tarif_unitaire_xof": 2000000,
-    "notes_admin": "Masterclass GWU/CCDL - Enrolement ANSSI CI - 04/05/2026"
+    "notes_admin": "Masterclass GWU/CCDL — Cybersécurité & IA — Session 1–11 juin 2026 — Prise en charge ANSSI"
   },
   "apprenants": [
     {
-      "nom": "DIALLO",
+      "nom": "SAMASSI",
       "prenoms": "Aly",
-      "email": "apprenant1@org-test.ci",
-      "fonction": "Directeur",
+      "email": "a.samassi@anssi-ci.gouv.ci",
+      "fonction": "Directeur Général",
       "pays_residence": "CI",
       "pays_nationalite": "CI"
     },
     {
-      "nom": "TRAORE",
-      "prenoms": "Kouame Wilfried",
-      "email": "apprenant2@org-test.ci",
-      "fonction": "Directeur General Adjoint",
+      "nom": "KONAN",
+      "prenoms": "Elie",
+      "email": "e.konan@anssi-ci.gouv.ci",
+      "fonction": "Directeur Général Adjoint",
       "pays_residence": "CI",
       "pays_nationalite": "CI"
     },
     {
-      "nom": "COULIBALY",
+      "nom": "JARVIS",
       "prenoms": "Bintou",
-      "email": "apprenant3@org-test.ci",
-      "fonction": "Directrice du Pole Support et Gestion",
+      "email": "b.jarvis@anssi-ci.gouv.ci",
+      "fonction": "Directrice du Pôle Support et Gestion",
       "pays_residence": "CI",
       "pays_nationalite": "CI"
     }

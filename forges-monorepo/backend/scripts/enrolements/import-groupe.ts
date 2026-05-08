@@ -5,17 +5,28 @@
  *   node -r ts-node/register/transpile-only scripts/enrolements/import-groupe.ts \
  *     --groupe groupes/anssi.json \
  *     --formation <formation_id> \
+ *     [--session <session_id>] \
  *     [--dry-run]
  *
  * Variables d'environnement:
  *   EMAIL_TEST_OVERRIDE  Si defini, tous les emails sont redirigés vers cette adresse.
  *   DRY_RUN=true         Simule sans ecrire en base.
+ *
+ * Ce script est le template generique pour ANSSI, CIPREL et toute autre organisation.
+ * Les seules variables qui changent d'une org a l'autre :
+ *   - Le fichier groupes/<org>.json (nb places, tarif, noms/emails apprenants)
+ *   - L'ID formation (--formation)
+ *   - L'ID session (--session, optionnel)
  */
+
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
+import { EmailService } from '../../src/shared/email/email.service';
 
 const dbUrl = process.env.DATABASE_URL || '';
 const prisma = new PrismaClient({
@@ -25,15 +36,17 @@ const prisma = new PrismaClient({
 const args = process.argv.slice(2);
 const groupeFlag = args.indexOf('--groupe');
 const formationFlag = args.indexOf('--formation');
+const sessionFlag = args.indexOf('--session');
 const dryRun = args.includes('--dry-run') || process.env.DRY_RUN === 'true';
 
 if (groupeFlag === -1) {
-  console.error('Usage: import-groupe.ts --groupe <chemin/vers/groupe.json> [--formation <id>] [--dry-run]');
+  console.error('Usage: import-groupe.ts --groupe <chemin/vers/groupe.json> [--formation <id>] [--session <id>] [--dry-run]');
   process.exit(1);
 }
 
 const groupePath = path.resolve(__dirname, args[groupeFlag + 1]);
 const formationIdArg = formationFlag !== -1 ? args[formationFlag + 1] : null;
+const sessionIdArg = sessionFlag !== -1 ? args[sessionFlag + 1] : null;
 
 const EMAIL_OVERRIDE = process.env.EMAIL_TEST_OVERRIDE || null;
 const TEMP_PASSWORD = process.env.ENROLEMENT_TEMP_PASSWORD || 'Forges@2026!';
@@ -51,6 +64,7 @@ interface GroupeConfig {
   };
   masterclass: {
     formation_id: string | null;
+    session_id?: string | null;
     tarif_unitaire_xof: number;
     notes_admin?: string;
   };
@@ -85,24 +99,30 @@ async function run() {
 
   const config: GroupeConfig = JSON.parse(fs.readFileSync(groupePath, 'utf-8'));
   const formationId = formationIdArg || config.masterclass.formation_id;
+  const sessionId = sessionIdArg || config.masterclass.session_id || null;
 
   if (!formationId) {
     console.error('formation_id requis (--formation <id> ou masterclass.formation_id dans le JSON)');
     process.exit(1);
   }
 
+  const nbPlaces = config.apprenants.length;
+  const montantTotal = config.masterclass.tarif_unitaire_xof * nbPlaces;
+
   console.log(`\n=== Import groupe: ${config.organisation.raison_sociale} ===`);
   console.log(`Mode: ${dryRun ? 'DRY-RUN (aucune ecriture)' : 'PRODUCTION'}`);
   if (EMAIL_OVERRIDE) console.log(`Email override: tous les emails -> ${EMAIL_OVERRIDE}`);
-  console.log(`Apprenants: ${config.apprenants.length}`);
+  console.log(`Formation ID : ${formationId}`);
+  if (sessionId) console.log(`Session ID   : ${sessionId}`);
+  console.log(`Apprenants   : ${nbPlaces}`);
   console.log(`Tarif unitaire: ${config.masterclass.tarif_unitaire_xof.toLocaleString('fr-FR')} FCFA`);
-  console.log(`Montant total: ${(config.masterclass.tarif_unitaire_xof * config.apprenants.length).toLocaleString('fr-FR')} FCFA\n`);
+  console.log(`Montant total : ${montantTotal.toLocaleString('fr-FR')} FCFA\n`);
 
   const passwordHash = await hash(TEMP_PASSWORD, BCRYPT_ROUNDS);
   const orgSlug = slugify(config.organisation.raison_sociale);
 
-  // --- Etape 2: Organisation ---
-  console.log('[1/4] Organisation...');
+  // --- Etape 1: Organisation ---
+  console.log('[1/5] Organisation...');
   let organisationId: string;
 
   if (!dryRun) {
@@ -136,8 +156,8 @@ async function run() {
     console.log(`  -> [DRY] Organisation: ${config.organisation.raison_sociale} (${organisationId})`);
   }
 
-  // --- Etape 3: Apprenants ---
-  console.log('[2/4] Apprenants...');
+  // --- Etape 2: Apprenants ---
+  console.log('[2/5] Apprenants...');
   const apprenantIds: string[] = [];
 
   for (const apprenant of config.apprenants) {
@@ -175,11 +195,9 @@ async function run() {
     }
   }
 
-  // --- Etape 4a: Devis ---
-  console.log('[3/4] Devis...');
+  // --- Etape 3: Devis ---
+  console.log('[3/5] Devis...');
   const annee = new Date().getFullYear();
-  const nbPlaces = config.apprenants.length;
-  const montantTotal = config.masterclass.tarif_unitaire_xof * nbPlaces;
   let devisId: string;
   let numeroDevis: string;
 
@@ -196,6 +214,7 @@ async function run() {
         numero_devis: numeroDevis,
         organisation_id: organisationId,
         formation_id: formationId,
+        session_id: sessionId || null,
         nb_places: nbPlaces,
         tarif_unitaire_xof: config.masterclass.tarif_unitaire_xof,
         montant_total_xof: montantTotal,
@@ -206,16 +225,14 @@ async function run() {
     });
     devisId = devis.id;
     console.log(`  -> Devis cree: ${numeroDevis} — ${montantTotal.toLocaleString('fr-FR')} FCFA (${devisId})`);
-    console.log(`  -> Destinataire email devis: ${resolveEmail(config.organisation.email)}`);
   } else {
     numeroDevis = `FORGES-DEVIS-${annee}-DRY`;
     devisId = 'DRY-DEVIS-001';
     console.log(`  -> [DRY] Devis: ${numeroDevis} — ${montantTotal.toLocaleString('fr-FR')} FCFA`);
-    console.log(`  -> [DRY] Email devis -> ${resolveEmail(config.organisation.email)}`);
   }
 
-  // --- Etape 4b: Vouchers (1 par apprenant) ---
-  console.log('[4/4] Vouchers...');
+  // --- Etape 4: Vouchers nominatifs EN_ATTENTE (1 par apprenant, liés au devis) ---
+  console.log('[4/5] Vouchers nominatifs...');
   const expiration = new Date();
   expiration.setDate(expiration.getDate() + VOUCHER_EXPIRATION_DAYS);
   const voucherCodes: string[] = [];
@@ -231,30 +248,60 @@ async function run() {
           code,
           organisation_id: organisationId,
           formation_id: formationId,
+          devis_id: devisId,
           type: 'ORGANISATION',
           type_valeur: 'POURCENTAGE',
           valeur: 100,
           quota_max: 1,
           quota_utilise: 0,
           date_expiration: expiration,
-          statut: 'ACTIF',
+          // EN_ATTENTE jusqu'a confirmation du paiement ANSSI (RM-41)
+          statut: 'EN_ATTENTE',
         },
       });
-      console.log(`  -> Voucher ${code} pour ${apprenant.nom} ${apprenant.prenoms}`);
-      console.log(`     Email voucher -> ${resolveEmail(apprenant.email)}`);
+      console.log(`  -> Voucher ${code} pour ${apprenant.nom} ${apprenant.prenoms} [EN_ATTENTE]`);
     } else {
-      console.log(`  -> [DRY] Voucher ${code} pour ${apprenant.nom} ${apprenant.prenoms} -> ${resolveEmail(apprenant.email)}`);
+      console.log(`  -> [DRY] Voucher ${code} pour ${apprenant.nom} ${apprenant.prenoms} [EN_ATTENTE]`);
     }
+  }
+
+  // --- Etape 5: Envoi email devis a l'organisation ---
+  console.log('[5/5] Email devis organisation...');
+  const destinataireDevis = resolveEmail(config.organisation.email);
+
+  if (!dryRun) {
+    const emailService = new EmailService();
+
+    let formation: { intitule: string } | null = null;
+    try {
+      formation = await prisma.formation.findUnique({ where: { id: formationId } });
+    } catch { /* ok */ }
+
+    await emailService.sendEnrolementDevisOrganisation({
+      to: destinataireDevis,
+      contactReferent: config.organisation.contact_referent,
+      organisation: config.organisation.raison_sociale,
+      formation: formation?.intitule || 'Masterclass GWU/CCDL — Cybersécurité & IA',
+      numeroDevis,
+      nbPlaces,
+      tarifUnitaire: config.masterclass.tarif_unitaire_xof,
+      montantTotal,
+      notesAdmin: config.masterclass.notes_admin,
+    });
+    console.log(`  -> Email devis envoye a ${destinataireDevis}`);
+  } else {
+    console.log(`  -> [DRY] Email devis -> ${destinataireDevis}`);
   }
 
   // --- Resume ---
   console.log('\n=== Resume ===');
   console.log(`Organisation : ${config.organisation.raison_sociale} (${organisationId})`);
   console.log(`Apprenants   : ${apprenantIds.length} crees/trouves`);
-  console.log(`Devis        : ${numeroDevis} — ${montantTotal.toLocaleString('fr-FR')} FCFA`);
-  console.log(`Vouchers     : ${voucherCodes.join(', ')}`);
-  console.log(`Email devis  : ${resolveEmail(config.organisation.email)}`);
+  console.log(`Devis        : ${numeroDevis} — ${montantTotal.toLocaleString('fr-FR')} FCFA [CREE]`);
+  console.log(`Vouchers     : ${voucherCodes.join(', ')} [EN_ATTENTE]`);
+  console.log(`Email devis  : ${destinataireDevis}`);
   if (dryRun) console.log('\n[DRY-RUN] Aucune donnee ecrite en base.');
+  console.log('\nProchaine etape : confirmer le paiement avec scripts/enrolements/payer-devis.ts');
 
   return { organisationId, apprenantIds, devisId, numeroDevis, voucherCodes, montantTotal };
 }
