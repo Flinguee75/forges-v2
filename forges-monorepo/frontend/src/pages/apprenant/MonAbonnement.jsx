@@ -252,30 +252,35 @@ export default function MonAbonnement() {
           </div>
         </div>
 
-        {/* Comparaison rapide */}
+        {/* Comparaison des offres */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-xl border border-border p-5">
             <div className="mb-3 flex items-center justify-between">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">Essentiel</span>
               <span className="text-xl font-bold text-text">15 000 FCFA<span className="text-sm font-normal text-subtext">/mois</span></span>
             </div>
-            <p className="text-sm text-subtext">
-              Toutes les formations standard du catalogue comprises. Payez la mensualité, accédez librement.
-            </p>
-            {formationsIncluses.length > 0 && (
-              <p className="mt-3 text-sm font-medium text-success">
-                {formationsIncluses.length} formation{formationsIncluses.length > 1 ? 's' : ''} incluse{formationsIncluses.length > 1 ? 's' : ''} disponible{formationsIncluses.length > 1 ? 's' : ''}
-              </p>
-            )}
+            <ul className="space-y-1.5 text-sm text-subtext">
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />Toutes les formations Standard du catalogue incluses</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />Accès illimité pendant la durée de l'abonnement</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />Jusqu'à 3 formations simultanées</li>
+            </ul>
+            {formationsIncluses.length > 0
+              ? <p className="mt-3 text-sm font-medium text-success">{formationsIncluses.length} formation{formationsIncluses.length > 1 ? 's' : ''} incluse{formationsIncluses.length > 1 ? 's' : ''} disponible{formationsIncluses.length > 1 ? 's' : ''}</p>
+              : <p className="mt-3 text-xs font-medium text-warning">Formations Standard bientôt disponibles</p>
+            }
           </div>
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
             <div className="mb-3 flex items-center justify-between">
               <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">Premium</span>
               <span className="text-xl font-bold text-text">25 000 FCFA<span className="text-sm font-normal text-subtext">/mois</span></span>
             </div>
-            <p className="text-sm text-subtext">
-              Tout Essentiel, plus les formations Premium exclusives et la réduction -15% sur toutes les sessions.
-            </p>
+            <ul className="space-y-1.5 text-sm text-subtext">
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />Tout ce qu'inclut l'offre Essentiel</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />Formations Premium exclusives incluses</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />Réduction -15% sur toutes les sessions</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />Accès prioritaire aux nouvelles formations</li>
+            </ul>
+            <p className="mt-3 text-xs font-medium text-warning">Formations Premium bientôt disponibles</p>
           </div>
         </div>
 
