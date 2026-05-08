@@ -85,4 +85,9 @@ export const apprenantsApi = {
   lierOrganisation: async (id, organisation_id) => {
     return apiClient.patch(`/backoffice/apprenants/${id}/lier-organisation`, { organisation_id });
   },
+
+  // Supprimer un apprenant (ADMIN)
+  delete: async (id) => {
+    return apiClient.delete(`/backoffice/apprenants/${id}`);
+  },
 };

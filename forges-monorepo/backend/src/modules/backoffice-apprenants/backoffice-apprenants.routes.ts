@@ -53,10 +53,15 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
           email: true,
           nom: true,
           prenoms: true,
+          telephone: true,
           pays_residence: true,
           pays_nationalite: true,
           statut: true,
+          organisation_id: true,
           created_at: true,
+          organisation: {
+            select: { id: true, raison_sociale: true },
+          },
         },
         orderBy: { created_at: 'desc' },
       }),
@@ -236,6 +241,7 @@ const CreerApprenantAdminSchema = z.object({
   langue_preferee: z.enum(['FR', 'EN', 'ES', 'PT']).default('FR'),
   organisation_id: z.string().uuid().optional(),
   mot_de_passe_temp: z.string().min(8).optional(),
+  telephone: z.string().optional(),
 });
 
 router.post('/', authenticate, authorize('ADMIN'), async (req, res, next) => {
@@ -272,7 +278,7 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res, next) => {
         pays_nationalite: dto.pays_nationalite,
         langue_preferee: dto.langue_preferee,
         organisation_id: dto.organisation_id ?? null,
-        // Compte activé directement par l'admin, pas de token de confirmation
+        telephone: dto.telephone ?? null,
         statut: 'ACTIF',
         consentement_rgpd: true,
         consentement_timestamp: new Date(),
@@ -340,6 +346,35 @@ router.patch('/:id/lier-organisation', authenticate, authorize('ADMIN'), async (
     });
 
     return res.status(200).json({ statusCode: 200, data: updated });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/backoffice/apprenants/:id — Supprimer un apprenant (ADMIN uniquement)
+// ─────────────────────────────────────────────────────────────────────────────
+
+router.delete('/:id', authenticate, authorize('ADMIN'), async (req, res, next) => {
+  try {
+    const apprenant = await prisma.apprenant.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, email: true, nom: true },
+    });
+
+    if (!apprenant) {
+      return res.status(404).json({ statusCode: 404, error: 'NOT_FOUND', message: 'Apprenant non trouvé' });
+    }
+
+    await prisma.apprenant.delete({ where: { id: req.params.id } });
+
+    await auditLogger.info('APPRENANT_SUPPRIME', {
+      apprenant_id: req.params.id,
+      email: apprenant.email,
+      admin_id: (req as any).user.userId,
+    });
+
+    return res.status(200).json({ statusCode: 200, message: 'Apprenant supprimé' });
   } catch (error) {
     next(error);
   }

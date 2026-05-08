@@ -30,6 +30,7 @@ model Apprenant {
   last_suspension_at       DateTime?
   upgrade_refus_count      Int                     @default(0)
   last_upgrade_refus_at    DateTime?
+  telephone                String?
   organisation_id          String?
   organisation             Organisation?           @relation(fields: [organisation_id], references: [id])
   abonnement_retail        AbonnementRetail?

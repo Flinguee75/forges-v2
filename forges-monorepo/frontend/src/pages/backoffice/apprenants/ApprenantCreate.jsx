@@ -25,6 +25,7 @@ export default function ApprenantCreate() {
     pays_nationalite: 'CI',
     langue_preferee: 'FR',
     organisation_id: '',
+    telephone: '',
     mot_de_passe_temp: '',
   });
   const [errors, setErrors] = useState({});
@@ -75,6 +76,7 @@ export default function ApprenantCreate() {
         pays_nationalite: form.pays_nationalite,
         langue_preferee: form.langue_preferee,
         organisation_id: form.organisation_id || undefined,
+        telephone: form.telephone || undefined,
         mot_de_passe_temp: form.mot_de_passe_temp || undefined,
       }),
       {
@@ -129,7 +131,7 @@ export default function ApprenantCreate() {
             <Button onClick={() => navigate(`/backoffice/apprenants/${credentials.id}`)} data-testid="btn-voir-profil">
               Voir le profil
             </Button>
-            <Button variant="outline" onClick={() => { setCredentials(null); setForm({ email: '', nom: '', prenoms: '', type_apprenant: 'PROFESSIONNEL', secteur_activite: '', niveau_etude: '', pays_residence: 'CI', pays_nationalite: 'CI', langue_preferee: 'FR', organisation_id: '', mot_de_passe_temp: '' }); }}>
+            <Button variant="outline" onClick={() => { setCredentials(null); setForm({ email: '', nom: '', prenoms: '', type_apprenant: 'PROFESSIONNEL', secteur_activite: '', niveau_etude: '', pays_residence: 'CI', pays_nationalite: 'CI', langue_preferee: 'FR', organisation_id: '', telephone: '', mot_de_passe_temp: '' }); }}>
               Creer un autre compte
             </Button>
           </div>
@@ -177,6 +179,15 @@ export default function ApprenantCreate() {
             error={errors.email}
             placeholder="nom.prenom@organisation.ci"
             data-testid="input-email"
+          />
+
+          <Input
+            label="Telephone (optionnel)"
+            type="tel"
+            value={form.telephone}
+            onChange={handleChange('telephone')}
+            placeholder="+225 07 00 00 00 00"
+            data-testid="input-telephone"
           />
 
           <div>

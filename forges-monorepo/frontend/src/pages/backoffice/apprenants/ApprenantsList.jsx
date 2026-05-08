@@ -11,31 +11,18 @@ import Spinner from '../../../components/feedback/Spinner';
 import Pagination from '../../../components/ui/Pagination';
 import EmptyState from '../../../components/feedback/EmptyState';
 
-/**
- * ApprenantsList - Liste backoffice des utilisateurs
- * Route: /backoffice/apprenants
- * Accessible à: ADMIN, SUPERVISEUR
- * Référence: CLAUDE.md - Backoffice
- */
 export default function ApprenantsList() {
   const navigate = useNavigate();
   const [apprenants, setApprenants] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
-  const [filters, setFilters] = useState({
-    search: '',
-    statut: '',
-  });
+  const [filters, setFilters] = useState({ search: '', statut: '' });
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const { execute, isLoading } = useApi();
 
   const loadApprenants = async (page = 1) => {
     await execute(
-      () =>
-        apprenantsApi.getAll({
-          page,
-          limit: 20,
-          ...filters,
-        }),
+      () => apprenantsApi.getAll({ page, limit: 20, ...filters }),
       {
         onSuccess: (data) => {
           setApprenants(data.data || []);
@@ -51,59 +38,76 @@ export default function ApprenantsList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  const handleSearchChange = (e) => {
-    setFilters({ ...filters, search: e.target.value });
-  };
-
-  const handleStatutChange = (e) => {
-    setFilters({ ...filters, statut: e.target.value });
-  };
-
   const handleSuspendToggle = async (id, currentlySuspended) => {
     await execute(
       () => apprenantsApi.toggleSuspension(id, !currentlySuspended),
       {
+        onSuccess: () => loadApprenants(meta.page),
+        successMessage: currentlySuspended ? 'Utilisateur active' : 'Utilisateur suspendu',
+      }
+    );
+  };
+
+  const handleDelete = async (id) => {
+    await execute(
+      () => apprenantsApi.delete(id),
+      {
         onSuccess: () => {
+          setConfirmDelete(null);
           loadApprenants(meta.page);
         },
-        successMessage: currentlySuspended ? 'Utilisateur activé' : 'Utilisateur suspendu',
+        successMessage: 'Apprenant supprime',
+        showErrorToast: true,
       }
     );
   };
 
   const getStatutBadge = (apprenant) => {
-    if (apprenant.suspended) {
-      return <Badge variant="danger" size="small">Suspendu</Badge>;
-    }
-    if (apprenant.email_confirme === false) {
-      return <Badge variant="warning" size="small">Email non confirmé</Badge>;
-    }
+    if (apprenant.suspended) return <Badge variant="danger" size="small">Suspendu</Badge>;
+    if (apprenant.email_confirme === false) return <Badge variant="warning" size="small">Email non confirme</Badge>;
     return <Badge variant="success" size="small">Actif</Badge>;
   };
+
+  const shortId = (id) => id ? id.slice(0, 8) + '...' : 'N/A';
 
   const columns = [
     {
       key: 'nom',
       label: 'Nom complet',
       render: (value, apprenant) => {
-        const fullName = `${apprenant.nom || ''} ${apprenant.prenom || ''}`.trim() || 'N/A';
+        const fullName = `${apprenant.nom || ''} ${apprenant.prenoms || ''}`.trim() || 'N/A';
         return (
           <div>
             <p className="font-medium text-primary">{fullName}</p>
             <p className="text-xs text-subtext">{apprenant.email}</p>
+            <p className="text-xs text-subtext font-mono" title={apprenant.id}>
+              ID: {shortId(apprenant.id)}
+            </p>
           </div>
         );
       },
     },
     {
       key: 'telephone',
-      label: 'Téléphone',
-      render: (value) => value || 'N/A',
+      label: 'Telephone',
+      render: (value) => value || <span className="text-subtext text-xs">Non renseigne</span>,
     },
     {
-      key: 'ville',
-      label: 'Ville',
-      render: (value) => value || 'N/A',
+      key: 'organisation',
+      label: 'Organisation',
+      render: (value, apprenant) => {
+        if (apprenant.organisation) {
+          return (
+            <div>
+              <p className="text-sm">{apprenant.organisation.raison_sociale}</p>
+              <p className="text-xs text-subtext font-mono" title={apprenant.organisation.id}>
+                ID: {shortId(apprenant.organisation.id)}
+              </p>
+            </div>
+          );
+        }
+        return <span className="text-subtext text-xs">Independant</span>;
+      },
     },
     {
       key: 'statut',
@@ -126,20 +130,27 @@ export default function ApprenantsList() {
       key: 'actions',
       label: 'Actions',
       render: (value, apprenant) => (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="small"
             onClick={() => navigate(`/backoffice/apprenants/${apprenant.id}`)}
           >
-            Détails
+            Details
           </Button>
           <Button
-            variant={apprenant.suspended ? 'success' : 'danger'}
+            variant={apprenant.suspended ? 'success' : 'warning'}
             size="small"
             onClick={() => handleSuspendToggle(apprenant.id, apprenant.suspended)}
           >
             {apprenant.suspended ? 'Activer' : 'Suspendre'}
+          </Button>
+          <Button
+            variant="danger"
+            size="small"
+            onClick={() => setConfirmDelete(apprenant)}
+          >
+            Supprimer
           </Button>
         </div>
       ),
@@ -156,7 +167,7 @@ export default function ApprenantsList() {
           </p>
         </div>
         <Button onClick={() => navigate('/backoffice/apprenants/new')}>
-          Créer un utilisateur
+          Creer un utilisateur
         </Button>
       </div>
 
@@ -164,20 +175,20 @@ export default function ApprenantsList() {
         <div className="mb-6 grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2">
             <Input
-              placeholder="Rechercher par nom, prénom ou email..."
+              placeholder="Rechercher par nom, prenom ou email..."
               value={filters.search}
-              onChange={handleSearchChange}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             />
           </div>
           <select
             className="rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             value={filters.statut}
-            onChange={handleStatutChange}
+            onChange={(e) => setFilters({ ...filters, statut: e.target.value })}
           >
             <option value="">Tous les statuts</option>
             <option value="actif">Actif</option>
             <option value="suspendu">Suspendu</option>
-            <option value="non_confirme">Email non confirmé</option>
+            <option value="non_confirme">Email non confirme</option>
           </select>
         </div>
 
@@ -187,8 +198,8 @@ export default function ApprenantsList() {
           </div>
         ) : apprenants.length === 0 ? (
           <EmptyState
-            title="Aucun utilisateur trouvé"
-            message="Aucun utilisateur ne correspond aux critères de recherche."
+            title="Aucun utilisateur trouve"
+            message="Aucun utilisateur ne correspond aux criteres de recherche."
           />
         ) : (
           <>
@@ -205,6 +216,31 @@ export default function ApprenantsList() {
           </>
         )}
       </Card>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-primary">Confirmer la suppression</h2>
+            <p className="mt-2 text-sm text-subtext">
+              Supprimer definitivement{' '}
+              <strong>{confirmDelete.nom} {confirmDelete.prenoms}</strong> ({confirmDelete.email}) ?
+              Cette action est irreversible.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <Button
+                variant="danger"
+                onClick={() => handleDelete(confirmDelete.id)}
+                loading={isLoading}
+              >
+                Supprimer
+              </Button>
+              <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+                Annuler
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
