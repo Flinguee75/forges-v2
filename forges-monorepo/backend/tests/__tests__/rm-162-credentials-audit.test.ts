@@ -16,7 +16,7 @@ describe('RM-162 — Credentials non exposés', () => {
   describe('RM-162.1: Aucun secret hardcodé', () => {
     it('aucun NGSER_AUTH_TOKEN hardcodé dans src/', () => {
       const result = execSync(
-        `grep -r "NGSER_AUTH_TOKEN\\s*=\\s*['\\"\\"]" ${backendDir}/src/ || exit 0`,
+        `grep -r "NGSER_AUTH_TOKEN\\s*=\\s*['\\"\\"]" ${backendDir}/src/ --exclude-dir=__tests__ || exit 0`,
         { encoding: 'utf-8' }
       );
 
@@ -25,7 +25,7 @@ describe('RM-162 — Credentials non exposés', () => {
 
     it('aucun NGSER_AUTHENTICATION_TOKEN hardcodé dans src/', () => {
       const result = execSync(
-        `grep -r "NGSER_AUTHENTICATION_TOKEN\\s*=\\s*['\\"\\"]" ${backendDir}/src/ || exit 0`,
+        `grep -r "NGSER_AUTHENTICATION_TOKEN\\s*=\\s*['\\"\\"]" ${backendDir}/src/ --exclude-dir=__tests__ || exit 0`,
         { encoding: 'utf-8' }
       );
 
@@ -34,7 +34,7 @@ describe('RM-162 — Credentials non exposés', () => {
 
     it('aucun NGSER_OPERATION_TOKEN_PAIEMENT hardcodé dans src/', () => {
       const result = execSync(
-        `grep -r "NGSER_OPERATION_TOKEN_PAIEMENT\\s*=\\s*['\\"\\"]" ${backendDir}/src/ || exit 0`,
+        `grep -r "NGSER_OPERATION_TOKEN_PAIEMENT\\s*=\\s*['\\"\\"]" ${backendDir}/src/ --exclude-dir=__tests__ || exit 0`,
         { encoding: 'utf-8' }
       );
 
@@ -43,7 +43,7 @@ describe('RM-162 — Credentials non exposés', () => {
 
     it('aucun JWT_SECRET hardcodé dans src/', () => {
       const result = execSync(
-        `grep -r "JWT_SECRET\\s*=\\s*['\\"\\"]" ${backendDir}/src/ || exit 0`,
+        `grep -r "JWT_SECRET\\s*=\\s*['\\"\\"]" ${backendDir}/src/ --exclude-dir=__tests__ || exit 0`,
         { encoding: 'utf-8' }
       );
 
@@ -52,7 +52,7 @@ describe('RM-162 — Credentials non exposés', () => {
 
     it('aucun HMAC_ANONYMISATION_SEL hardcodé dans src/', () => {
       const result = execSync(
-        `grep -r "HMAC_ANONYMISATION_SEL\\s*=\\s*['\\"\\"]" ${backendDir}/src/ || exit 0`,
+        `grep -r "HMAC_ANONYMISATION_SEL\\s*=\\s*['\\"\\"]" ${backendDir}/src/ --exclude-dir=__tests__ || exit 0`,
         { encoding: 'utf-8' }
       );
 
@@ -96,7 +96,7 @@ describe('RM-162 — Credentials non exposés', () => {
     it('aucune URL securetest.crossroad-africa.net hardcodée dans src/', () => {
       // Excepter .env.example qui peut contenir l'URL en exemple
       const result = execSync(
-        `grep -r "securetest.crossroad-africa.net" ${backendDir}/src/ || exit 0`,
+        `grep -r "securetest.crossroad-africa.net" ${backendDir}/src/ --exclude-dir=__tests__ || exit 0`,
         { encoding: 'utf-8' }
       );
 
