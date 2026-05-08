@@ -11,7 +11,7 @@ import Input from '../../components/ui/Input';
 import Pagination from '../../components/ui/Pagination';
 
 function formatMoney(amount) {
-  return `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
+  return `${Number(amount || 0).toLocaleString('fr-FR')} FCFA`;
 }
 
 function formatDuration(hours) {
@@ -57,8 +57,18 @@ function FormationCard({ formation, index, onAcceder, onInscrire }) {
       onClick={() => isALaDemande ? onAcceder(formation.id) : onInscrire(formation.id)}
       className="group flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white cursor-pointer transition-all duration-200 hover:border-primary hover:shadow-lg"
     >
-      {/* Header gradient */}
-      <div className="relative h-40 overflow-hidden flex-shrink-0" style={{ background: bgGradient }}>
+      {/* Header image ou gradient */}
+      <div className="relative h-40 overflow-hidden flex-shrink-0" style={formation.image_url ? {} : { background: bgGradient }}>
+        {formation.image_url && (
+          <img
+            src={formation.image_url}
+            alt={formation.titre}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        {!formation.image_url && (
+          <div className="absolute inset-0" style={{ background: bgGradient }} />
+        )}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           {/* Pilier badge — mis en avant à gauche */}
           {pilierBadge && (

@@ -25,6 +25,7 @@ export class FormationController {
       duree: formation.duree_jours,
       tarif: formation.cout_catalogue,
       description: formation.description_courte,
+      image_url: formation.image_url || null,
       badge,
       badge_color,
     };

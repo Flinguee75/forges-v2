@@ -92,6 +92,7 @@ export class FormationRepository {
           langues_disponibles: true,
           certification_delivree: true,
           public_cible: true,
+          image_url: true,
           partenaire: {
             select: { raison_sociale: true }
           },
@@ -169,6 +170,7 @@ export class FormationRepository {
     objectifs_pedagogiques: string[];
     prerequis: string;
     url_externe_chiffree?: string;
+    image_url?: string | null;
   }>) {
     return this.prisma.formation.update({ where: { id }, data });
   }

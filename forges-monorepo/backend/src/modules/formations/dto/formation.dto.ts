@@ -22,6 +22,7 @@ export const CreateFormationSchema = z.object({
   duree_acces_jours: z.number().int().min(1).default(365),
   // URL du contenu LMS (formations à la demande uniquement) — chiffrée côté backend
   url_contenu: z.string().url().optional(),
+  image_url: z.string().url().optional(),
 });
 
 // RM-127 : DTO assignation type — Responsable FORGES uniquement
@@ -35,6 +36,7 @@ export const UpdateFormationSchema = CreateFormationSchema.partial().omit({
 }).extend({
   url_contenu: z.string().url().optional(),
   lieu: z.string().optional(),
+  image_url: z.string().url().optional().nullable(),
 });
 
 export type CreateFormationDto = z.infer<typeof CreateFormationSchema>;

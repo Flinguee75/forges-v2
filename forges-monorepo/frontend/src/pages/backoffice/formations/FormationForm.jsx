@@ -24,6 +24,7 @@ const DEFAULT_FORM = {
   prerequis: '',
   duree_acces_jours: 365,
   url_contenu: '',
+  image_url: '',
 };
 
 const SELECT_CLASS = 'w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary';
@@ -65,6 +66,7 @@ function normalizeToForm(formation) {
     prerequis: formation.prerequis || '',
     duree_acces_jours: formation.duree_acces_jours ?? 365,
     url_contenu: formation.url_contenu || '',
+    image_url: formation.image_url || '',
   };
 }
 
@@ -97,6 +99,10 @@ function buildPayload(formData) {
 
   if (formData.url_contenu && formData.url_contenu.trim()) {
     payload.url_contenu = formData.url_contenu.trim();
+  }
+
+  if (formData.image_url && formData.image_url.trim()) {
+    payload.image_url = formData.image_url.trim();
   }
 
   if (formData.type_formation) {
@@ -421,6 +427,28 @@ export default function FormationForm() {
                 <FieldHint>L'URL sera chiffrée (AES-256-GCM) avant stockage.</FieldHint>
               </div>
             )}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-text">Image de couverture (URL)</label>
+              <input
+                type="url"
+                value={formData.image_url}
+                onChange={(event) => handleChange('image_url', event.target.value)}
+                placeholder="https://images.unsplash.com/..."
+                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <FieldHint>URL publique d'une image (jpg, png, webp). Affiché en couverture dans le catalogue.</FieldHint>
+              {formData.image_url && (
+                <div className="mt-3">
+                  <img
+                    src={formData.image_url}
+                    alt="Aperçu couverture"
+                    className="h-32 w-full rounded-lg object-cover border border-border"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                    onLoad={(e) => { e.target.style.display = 'block'; }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 

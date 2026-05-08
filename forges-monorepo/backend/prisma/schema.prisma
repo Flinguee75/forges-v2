@@ -101,6 +101,7 @@ model Formation {
   duree_acces_jours       Int                     @default(365)
   url_externe_chiffree    String?
   prix_coutant            Int?
+  image_url               String?
   prerequis               String?
   objectifs_pedagogiques  String[]
   certification_delivree  Boolean                 @default(false)
