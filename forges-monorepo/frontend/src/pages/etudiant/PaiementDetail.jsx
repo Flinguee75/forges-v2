@@ -74,7 +74,7 @@ export default function PaiementDetail() {
   const formationTitre = formation?.titre || formation?.intitule || 'N/A';
   const montantPaiement =
     paiement?.montant_final ?? paiement?.montant_initie ?? paiement?.montant ?? paiement?.montant_catalogue ?? 0;
-  const methodePaiement = paiement?.methode || paiement?.methode_paiement || paiement?.provider || 'NGSER';
+  const methodePaiement = paiement?.methode || paiement?.methode_paiement || paiement?.provider || 'Mobile Money';
   const confirmedAt = paiement?.confirmed_at || paiement?.date_confirmation;
   const tentatives = paiement?.tentatives ?? paiement?.tentatives_echouees ?? 0;
 
@@ -144,7 +144,7 @@ export default function PaiementDetail() {
             </div>
             {paiement.order_ngser && (
               <div className="flex justify-between">
-                <span className="text-subtext">Commande NGSER</span>
+                <span className="text-subtext">Référence de paiement</span>
                 <span className="font-medium">{paiement.order_ngser}</span>
               </div>
             )}

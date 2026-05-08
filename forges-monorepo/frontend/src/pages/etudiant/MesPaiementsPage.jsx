@@ -3,6 +3,7 @@ import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { etudiantApi } from '../../api/espace-etudiant.api';
 import { paiementsApi } from '../../api/paiements.api';
+import { formatCurrency } from '../../utils/currency';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Table from '../../components/ui/Table';
@@ -47,7 +48,7 @@ export default function MesPaiementsPage() {
       {
         onSuccess: (data) => {
           const paiement = data?.data || data;
-          showToast('Session NGSER créée', 'success');
+          showToast('Redirection vers la plateforme de paiement...', 'success');
           setIsPaiementModalOpen(false);
           setSelectedDossier(null);
           loadDossiersEnAttentePaiement();
@@ -57,6 +58,13 @@ export default function MesPaiementsPage() {
           }
         },
         onError: (error) => {
+          if (error?.statusCode === 409 || error?.error === 'PAIEMENT_DEJA_VALIDE') {
+            showToast('Ce dossier a déjà été payé.', 'info');
+            setIsPaiementModalOpen(false);
+            setSelectedDossier(null);
+            loadDossiersEnAttentePaiement();
+            return;
+          }
           showToast(
             error.message || 'Erreur lors de l\'initialisation du paiement',
             'error'
@@ -115,12 +123,11 @@ export default function MesPaiementsPage() {
         return (
           <div>
             <div className="font-semibold text-primary">
-              {(montant / 100).toLocaleString('fr-FR')} FCFA
+              {formatCurrency(montant)}
             </div>
             {dossier.montant_remise > 0 && (
               <div className="text-xs text-success">
-                Remise: -{(dossier.montant_remise / 100).toLocaleString('fr-FR')}{' '}
-                FCFA
+                Remise: -{formatCurrency(dossier.montant_remise)}
               </div>
             )}
           </div>
@@ -217,37 +224,26 @@ export default function MesPaiementsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-subtext">Prix initial:</span>
-                  <span>
-                    {(getFormationTarif(selectedDossier) / 100).toLocaleString('fr-FR')}{' '}
-                    FCFA
-                  </span>
+                  <span className="text-subtext">Prix:</span>
+                  <span>{formatCurrency(getFormationTarif(selectedDossier))}</span>
                 </div>
                 {selectedDossier.montant_remise > 0 && (
                   <div className="flex justify-between text-success">
                     <span>Remise:</span>
-                    <span>
-                      -{(selectedDossier.montant_remise / 100).toLocaleString('fr-FR')}{' '}
-                      FCFA
-                    </span>
+                    <span>-{formatCurrency(selectedDossier.montant_remise)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-border pt-2 font-semibold text-primary">
                   <span>Montant à payer:</span>
-                  <span>
-                    {(calculateMontantFinal(selectedDossier) / 100).toLocaleString(
-                      'fr-FR'
-                    )}{' '}
-                    FCFA
-                  </span>
+                  <span>{formatCurrency(calculateMontantFinal(selectedDossier))}</span>
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-text">Opérateur de paiement</label>
+              <label className="mb-2 block text-sm font-medium text-text">Moyen de paiement</label>
               <div className="rounded-lg border border-border bg-bg p-3 text-sm text-subtext">
-                Le choix du moyen de paiement est effectué sur la page sécurisée NGSER.
+                Vous serez redirigé vers une page de paiement sécurisée.
               </div>
             </div>
 
