@@ -12,3 +12,15 @@ ALTER TABLE "AbonnementOrganisation"
 
 CREATE UNIQUE INDEX IF NOT EXISTS "AbonnementOrganisation_order_ngser_key"
   ON "AbonnementOrganisation"("order_ngser");
+
+ALTER TABLE "AbonnementB2B"
+  ADD COLUMN IF NOT EXISTS "transaction_id_ngser" TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "AbonnementB2B_transaction_id_ngser_key"
+  ON "AbonnementB2B"("transaction_id_ngser");
+
+ALTER TABLE "AbonnementOrganisation"
+  ADD COLUMN IF NOT EXISTS "transaction_id_ngser" TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "AbonnementOrganisation_transaction_id_ngser_key"
+  ON "AbonnementOrganisation"("transaction_id_ngser");

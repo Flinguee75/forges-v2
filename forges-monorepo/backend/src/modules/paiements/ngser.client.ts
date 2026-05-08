@@ -43,7 +43,7 @@ export class NgserClient {
   private maxRetries: number;
 
   constructor(private readonly audit: AuditLogger) {
-    this.baseUrl = process.env.NGSER_BASE_URL || 'https://securetest.crossroad-africa.net/';
+    this.baseUrl = process.env.NGSER_BASE_URL || '';
     this.name = process.env.NGSER_NAME || 'FORGES';
     this.authenticationToken = process.env.NGSER_AUTHENTICATION_TOKEN || process.env.NGSER_AUTH_TOKEN || '';
     this.authToken = process.env.NGSER_AUTH_TOKEN || this.authenticationToken;
