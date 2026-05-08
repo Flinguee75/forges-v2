@@ -144,6 +144,11 @@ jobs:
           WEBHOOK_SECRET: ci_webhook_secret_not_for_production
           SMTP_HOST: localhost
           FRONTEND_URL: http://localhost:5173
+          FINEO_BUSINESS_CODE: ci_fineo_business_code_not_for_production
+          FINEO_API_KEY: ci_fineo_api_key_not_for_production
+          NGSER_AUTH_TOKEN: ci_ngser_auth_token_not_for_production
+          NGSER_AUTHENTICATION_TOKEN: ci_ngser_auth_token_not_for_production
+          NGSER_OPERATION_TOKEN_PAIEMENT: ci_ngser_operation_token_not_for_production
         run: |
           mkdir -p test-results
           set +e
@@ -275,6 +280,11 @@ jobs:
           WEBHOOK_SECRET: ci_webhook_secret_not_for_production
           SMTP_HOST: localhost
           FRONTEND_URL: http://localhost:5173
+          FINEO_BUSINESS_CODE: ci_fineo_business_code_not_for_production
+          FINEO_API_KEY: ci_fineo_api_key_not_for_production
+          NGSER_AUTH_TOKEN: ci_ngser_auth_token_not_for_production
+          NGSER_AUTHENTICATION_TOKEN: ci_ngser_auth_token_not_for_production
+          NGSER_OPERATION_TOKEN_PAIEMENT: ci_ngser_operation_token_not_for_production
         run: |
           mkdir -p test-results
           set +e

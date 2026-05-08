@@ -21,14 +21,19 @@ export interface IpnFineoResult {
 }
 
 export class IpnFineoService {
-  private readonly fineoClient: FineoClient;
+  private _fineoClient: FineoClient | null = null;
 
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
     private readonly commissionService: CommissionService
-  ) {
-    this.fineoClient = new FineoClient(audit);
+  ) {}
+
+  private get fineoClient(): FineoClient {
+    if (!this._fineoClient) {
+      this._fineoClient = new FineoClient(this.audit);
+    }
+    return this._fineoClient;
   }
 
   async traiterCallback(payload: FineoCbPayload): Promise<IpnFineoResult> {
