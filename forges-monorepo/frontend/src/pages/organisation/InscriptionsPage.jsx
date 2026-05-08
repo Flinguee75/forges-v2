@@ -85,7 +85,7 @@ export default function InscriptionsPage() {
 
   const formatMontant = (montant) => {
     if (!montant) return '0 FCFA';
-    return `${Math.round(Number(montant || 0)).toLocaleString('fr-FR')} FCFA`;
+    return `${Math.round(Number(montant || 0) / 100).toLocaleString('fr-FR')} FCFA`;
   };
 
   const columns = [

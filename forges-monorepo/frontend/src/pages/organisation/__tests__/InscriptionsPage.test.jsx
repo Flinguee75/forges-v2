@@ -29,7 +29,7 @@ const mockInscriptionsData = {
       statut: 'CONFIRME',
       etudiant: { prenom: 'Jean', nom: 'Dupont' },
       session: {
-        formation: { titre: 'Formation JavaScript', tarif: 50000 }, // centimes → 500 FCFA
+        formation: { titre: 'Formation JavaScript', tarif: 5000000 }, // 50 000 FCFA en centimes
         date_debut: '2025-02-01',
       },
       montant_remise: 0,
@@ -40,10 +40,10 @@ const mockInscriptionsData = {
       statut: 'EN_ATTENTE',
       etudiant: { prenom: 'Marie', nom: 'Martin' },
       session: {
-        formation: { titre: 'Formation React', tarif: 60000 },
+        formation: { titre: 'Formation React', tarif: 6000000 },
         date_debut: '2025-02-15',
       },
-      montant_remise: 10000,
+      montant_remise: 1000000,
       created_at: '2025-01-16',
     },
   ],
@@ -137,7 +137,7 @@ describe('InscriptionsPage - Tests', () => {
     );
 
     await waitFor(() => {
-      // tarif 50000 centimes = 50 000 FCFA (InscriptionsPage ne divise pas par 100)
+      // tarif 5 000 000 centimes = 50 000 FCFA
       expect(screen.getAllByText(/50.*000.*FCFA/).length).toBeGreaterThan(0);
     });
   });

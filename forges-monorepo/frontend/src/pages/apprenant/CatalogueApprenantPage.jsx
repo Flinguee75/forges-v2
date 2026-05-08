@@ -11,7 +11,7 @@ import Input from '../../components/ui/Input';
 import Pagination from '../../components/ui/Pagination';
 
 function formatMoney(amount) {
-  return `${Number(amount || 0).toLocaleString('fr-FR')} FCFA`;
+  return `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
 }
 
 function formatDuration(hours) {

@@ -144,7 +144,7 @@ export default function InscriptionSessionPage() {
         </p>
         {formation.tarif && (
           <p className="mt-1 text-sm font-semibold text-primary">
-            {Number(formation.tarif || 0).toLocaleString('fr-FR')} FCFA
+            {Math.round(Number(formation.tarif || 0) / 100).toLocaleString('fr-FR')} FCFA
           </p>
         )}
       </div>
