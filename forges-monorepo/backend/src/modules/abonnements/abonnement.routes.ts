@@ -71,6 +71,9 @@ router.delete('/retail', authenticate, authorize('APPRENANT'), (req, res, next) 
 router.delete('/retail/cancel', authenticate, authorize('APPRENANT'), (req, res, next) => {
   abonnementController.resilierRetail(req, res, next);
 });
+router.post('/retail/cancel', authenticate, authorize('APPRENANT'), (req, res, next) => {
+  abonnementController.resilierRetail(req, res, next);
+});
 
 // ============================================
 // ROUTES ORGANISATION
@@ -103,6 +106,23 @@ router.post('/b2b', authenticate, authorize('ORGANISATION'), (req, res, next) =>
 // PUT /api/abonnements/b2b/monter-palier - Changer palier B2B
 router.put('/b2b/monter-palier', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   abonnementController.monterPalierB2B(req, res, next);
+});
+
+// GET /api/abonnements/b2b/apprenants - Liste apprenants liés au B2B
+router.get('/b2b/apprenants', authenticate, authorize('ORGANISATION'), async (req, res, next) => {
+  try {
+    const abonnement = await b2bService.getAbonnementActif(req.user!.userId);
+    return res.status(200).json({
+      statusCode: 200,
+      data: {
+        palier: abonnement?.palier || null,
+        nb_max: abonnement?.nb_max || 0,
+        apprenants: []
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // ============================================

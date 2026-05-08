@@ -1853,7 +1853,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/abonnements-retail/subscribe",
+              "raw": "{{base_url}}/api/abonnements/retail",
               "host": [
                 "{{base_url}}"
               ],
@@ -1911,7 +1911,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/abonnements-retail/status",
+              "raw": "{{base_url}}/api/abonnements/retail/me",
               "host": [
                 "{{base_url}}"
               ],
@@ -1957,7 +1957,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/abonnements-retail/cancel",
+              "raw": "{{base_url}}/api/abonnements/retail/cancel",
               "host": [
                 "{{base_url}}"
               ],
@@ -2016,7 +2016,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/abonnements-b2b/subscribe",
+              "raw": "{{base_url}}/api/abonnements/b2b",
               "host": [
                 "{{base_url}}"
               ],
@@ -2074,7 +2074,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/abonnements-b2b/status",
+              "raw": "{{base_url}}/api/abonnements/b2b/me",
               "host": [
                 "{{base_url}}"
               ],
@@ -2120,13 +2120,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/abonnements-b2b/apprenants",
+              "raw": "{{base_url}}/api/abonnements/b2b/apprenants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
-                "abonnements-b2b",
+                "abonnements",
+                "b2b",
                 "apprenants"
               ]
             }
