@@ -22,6 +22,13 @@
  *  (les schedulers ne sont pas exposés en HTTP par défaut).
  */
 
+// Bloquer tout envoi SMTP reel — nodemailer mocke avant tout require de EmailService
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn(() => ({
+    sendMail: jest.fn().mockResolvedValue({ messageId: 'mock-test' }),
+  })),
+}));
+
 const { accounts, auth, createApprenantAccount, createOrganisationAccount, ids, prisma, request, API_URL } = require('./helpers');
 
 const { AbonnementB2BService } = require('../../src/modules/abonnements/b2b/abonnement-b2b.service');
