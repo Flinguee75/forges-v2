@@ -123,15 +123,16 @@ export default function SessionsList() {
       label: 'Capacité',
       render: (value, session) => {
         const count = session._count?.dossiers || 0;
+        const restantes = (value || 0) - count;
         const occupancy = value ? Math.round((count / value) * 100) : 0;
 
         return (
           <div>
             <div className="text-sm">
-              {count} / {value}
+              {count} / {value} inscrits
             </div>
             <div className="text-xs text-subtext">
-              {occupancy}% rempli
+              {restantes} place{restantes > 1 ? 's' : ''} restante{restantes > 1 ? 's' : ''} — {occupancy}% rempli
             </div>
           </div>
         );

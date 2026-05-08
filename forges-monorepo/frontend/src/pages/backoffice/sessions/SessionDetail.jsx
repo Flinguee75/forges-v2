@@ -175,7 +175,7 @@ export default function SessionDetail() {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-subtext">Places restantes</p>
-            <p className="mt-1 text-sm text-text">{session.places_restantes ?? session.capacite}</p>
+            <p className="mt-1 text-sm text-text">{session.capacite - (session._count?.dossiers ?? session.nb_inscrits ?? 0)}</p>
           </div>
           {session.lieu && (
             <div className="md:col-span-2">

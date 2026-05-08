@@ -181,7 +181,7 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
         date_fin: new Date('2026-06-11'),
         capacite: 50,
         nb_inscrits: 0,
-        places_restantes: 20,
+        places_restantes: 50,
         lieu: 'AIGF, Anoumabo, Abidjan, Côte d\'Ivoire',
         statut: 'INSCRIPTIONS_OUVERTES',
       },
