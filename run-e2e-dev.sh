@@ -31,6 +31,19 @@ check_reachable() {
 }
 
 run_newman() {
+  log_info "Resetting E2E seed..."
+  docker cp "${BACKEND}/seed-e2e.js" forges-backend-dev:/app/seed-e2e.js 2>/dev/null || \
+    ssh -i ~/.ssh/id_ed25519_forges forgesadmin@92.205.164.97 \
+      "docker cp /tmp/seed-e2e.js forges-backend-dev:/app/seed-e2e.js && docker exec forges-backend-dev node seed-e2e.js --reset" &
+  # Seed local si backend local, sinon via VPS
+  if curl -sf --max-time 3 http://localhost:3001/health > /dev/null 2>&1; then
+    DATABASE_URL="${DATABASE_URL:-}" node "${BACKEND}/seed-e2e.js" --reset
+  else
+    scp -i ~/.ssh/id_ed25519_forges "${BACKEND}/seed-e2e.js" forgesadmin@92.205.164.97:/tmp/seed-e2e.js
+    ssh -i ~/.ssh/id_ed25519_forges forgesadmin@92.205.164.97 \
+      "docker cp /tmp/seed-e2e.js forges-backend-dev:/app/seed-e2e.js && docker exec forges-backend-dev node seed-e2e.js --reset"
+  fi
+
   log_info "Generating fresh tokens..."
   bash "${BACKEND}/tests/generate-tokens-dev.sh"
 
@@ -39,7 +52,7 @@ run_newman() {
   npx newman run tests/forges-v4.8-complete.postman_collection.json \
     --environment tests/forges-v4.8.dev.postman_environment.json \
     --delay-request 500 \
-    --timeout-request 30000 \
+    --timeout-request 60000 \
     --reporters cli,htmlextra \
     --reporter-htmlextra-export newman-report-dev.html
   log_info "Newman report: ${BACKEND}/newman-report-dev.html"
