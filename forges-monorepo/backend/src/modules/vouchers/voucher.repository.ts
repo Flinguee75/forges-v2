@@ -32,12 +32,18 @@ export class VoucherRepository {
     if (type === 'ORGANISATION') {
       return this.prisma.voucherOrganisation.findUnique({ where: { id } });
     }
+    if (type === 'APPORTEUR' || type === 'PROMOTIONNEL') {
+      return this.prisma.voucherApporteur.findUnique({
+        where: { id },
+        include: { formation: { select: { id: true, intitule: true, statut: true } }, apporteur: { select: { id: true, nom: true, email: true, code_apporteur: true, statut: true } } },
+      });
+    }
+    // Type inconnu : cherche dans les deux tables
+    const org = await this.prisma.voucherOrganisation.findUnique({ where: { id } });
+    if (org) return org;
     return this.prisma.voucherApporteur.findUnique({
       where: { id },
-      include: {
-        formation: { select: { id: true, intitule: true, statut: true } },
-        apporteur: { select: { id: true, nom: true, email: true, code_apporteur: true, statut: true } },
-      },
+      include: { formation: { select: { id: true, intitule: true, statut: true } }, apporteur: { select: { id: true, nom: true, email: true, code_apporteur: true, statut: true } } },
     });
   }
 
