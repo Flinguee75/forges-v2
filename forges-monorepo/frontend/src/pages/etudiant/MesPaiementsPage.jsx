@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
-import { useToast } from '../../hooks/useToast';
 import { etudiantApi } from '../../api/espace-etudiant.api';
-import { paiementsApi } from '../../api/paiements.api';
 import { formatCurrency } from '../../utils/currency';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -22,7 +21,7 @@ export default function MesPaiementsPage() {
   const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
 
   const { execute, isLoading } = useApi();
-  const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const loadDossiersEnAttentePaiement = async () => {
     await execute(() => etudiantApi.getMesDossiers({ statut: 'RETENU' }), {
@@ -37,41 +36,11 @@ export default function MesPaiementsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleInitierPaiement = async () => {
+  const handleInitierPaiement = () => {
     if (!selectedDossier) return;
-
-    await execute(
-      () =>
-        paiementsApi.initierNgser({
-          dossier_id: selectedDossier.id,
-        }),
-      {
-        onSuccess: (data) => {
-          const paiement = data?.data || data;
-          showToast('Redirection vers la plateforme de paiement...', 'success');
-          setIsPaiementModalOpen(false);
-          setSelectedDossier(null);
-          loadDossiersEnAttentePaiement();
-
-          if (paiement.payment_url) {
-            window.location.assign(paiement.payment_url);
-          }
-        },
-        onError: (error) => {
-          if (error?.statusCode === 409 || error?.error === 'PAIEMENT_DEJA_VALIDE') {
-            showToast('Ce dossier a déjà été payé.', 'info');
-            setIsPaiementModalOpen(false);
-            setSelectedDossier(null);
-            loadDossiersEnAttentePaiement();
-            return;
-          }
-          showToast(
-            error.message || 'Erreur lors de l\'initialisation du paiement',
-            'error'
-          );
-        },
-      }
-    );
+    setIsPaiementModalOpen(false);
+    setSelectedDossier(null);
+    navigate(`/apprenant/paiements/initier/${selectedDossier.id}`);
   };
 
   const openPaiementModal = (dossier) => {
