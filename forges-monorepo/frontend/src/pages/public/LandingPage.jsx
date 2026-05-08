@@ -11,6 +11,86 @@ import StatusBadge from '../../components/ui/StatusBadge';
  * Référence: CLAUDE.md section 17 - Étape F-5
  * Optimisée pour conversions et SEO
  */
+const CATEGORIES_COLLABORATEURS = [
+  {
+    id: 'academiques',
+    label: 'Partenaires académiques',
+    collaborateurs: [
+      { sigle: 'GWU', nom: 'George Washington University', pays: 'États-Unis', logo: null },
+      { sigle: 'CCDL', nom: 'Centre de Certification Digital de Lomé', pays: 'Togo', logo: null },
+    ],
+  },
+  {
+    id: 'institutions',
+    label: 'Institutions & Organismes',
+    collaborateurs: [
+      { sigle: 'ANSSI', nom: 'Agence Nationale de la Sécurité des Systèmes d\'Information', pays: 'Côte d\'Ivoire', logo: null },
+    ],
+  },
+  {
+    id: 'prives',
+    label: 'Partenaires privés',
+    collaborateurs: [
+      { sigle: 'P1', nom: 'Partenaire Entreprise 1', pays: 'Afrique', logo: null },
+      { sigle: 'P2', nom: 'Partenaire Entreprise 2', pays: 'Afrique', logo: null },
+    ],
+  },
+];
+
+const COULEURS_SIGLE = ['bg-primary', 'bg-secondary', 'bg-success', 'bg-warning', 'bg-apporteur'];
+
+function CollaborateursSection() {
+  const [openCat, setOpenCat] = useState(null);
+
+  const toggleCat = (id) => setOpenCat(openCat === id ? null : id);
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-3">
+      {CATEGORIES_COLLABORATEURS.map((cat, catIdx) => (
+        <div key={cat.id} className="border border-border rounded-lg overflow-hidden">
+          <button
+            onClick={() => toggleCat(cat.id)}
+            className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-bg transition-colors bg-white"
+          >
+            <span className="font-semibold text-primary">
+              {cat.label}
+              <span className="ml-2 text-xs font-normal text-subtext bg-bg px-2 py-0.5 rounded-full">
+                {cat.collaborateurs.length}
+              </span>
+            </span>
+            <svg
+              className={`w-5 h-5 text-secondary transition-transform ${openCat === cat.id ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {openCat === cat.id && (
+            <div className="px-6 py-5 bg-bg border-t border-border">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {cat.collaborateurs.map((c, idx) => (
+                  <div key={c.sigle} className="flex flex-col items-center text-center gap-2">
+                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-sm ${COULEURS_SIGLE[(catIdx * 3 + idx) % COULEURS_SIGLE.length]}`}>
+                      {c.logo
+                        ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain rounded-xl" />
+                        : c.sigle}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-text leading-tight">{c.nom}</p>
+                      <p className="text-xs text-subtext">{c.pays}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -303,6 +383,116 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Formation Vedette — Masterclass GWU/CCDL */}
+      <section className="py-20 bg-gradient-to-br from-primary to-secondary text-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-10">
+              <span className="inline-block bg-white bg-opacity-20 text-white text-xs font-bold uppercase tracking-widest px-4 py-1 rounded-full mb-4">
+                Formation vedette
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-3">
+                Masterclass GWU / CCDL
+              </h2>
+              <p className="text-lg opacity-90">
+                Cybersécurité &amp; Intelligence Artificielle — Certification internationale
+              </p>
+            </div>
+
+            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 md:p-10 border border-white border-opacity-20">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs opacity-70 uppercase tracking-wide">Session</p>
+                      <p className="font-semibold">1 juin — 11 juin 2026</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs opacity-70 uppercase tracking-wide">Format</p>
+                      <p className="font-semibold">Présentiel + distanciel</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs opacity-70 uppercase tracking-wide">Certification</p>
+                      <p className="font-semibold">Double certification GWU + CCDL</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs opacity-70 uppercase tracking-wide">Tarif</p>
+                      <p className="font-semibold text-xl">2 000 000 FCFA</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="opacity-90 leading-relaxed">
+                    Une formation d'excellence co-certifiée par <strong>George Washington University (GWU)</strong> et
+                    le <strong>Centre de Certification Digital de Lomé (CCDL)</strong>. Maîtrisez les outils de
+                    cybersécurité et d'IA appliqués au contexte africain.
+                  </p>
+                  <ul className="space-y-2 text-sm opacity-90">
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      Sécurité des systèmes d'information
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      Intelligence artificielle appliquée
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      Gestion des incidents & réponse aux crises
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      Places limitées — inscription ouverte
+                    </li>
+                  </ul>
+                  <Link to="/catalogue">
+                    <Button variant="white" size="large" className="w-full font-semibold mt-4">
+                      S'inscrire à cette formation
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Nos Collaborateurs */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
+              Nos Collaborateurs
+            </h2>
+            <p className="text-lg text-subtext max-w-2xl mx-auto">
+              FORGES s'appuie sur un réseau de partenaires académiques, institutionnels et privés de premier plan
+            </p>
+          </div>
+
+          <CollaborateursSection />
         </div>
       </section>
 
