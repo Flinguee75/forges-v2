@@ -113,6 +113,24 @@ jobs:
           DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
         run: npx prisma migrate deploy
 
+      - name: Verifier drift schema vs migrations
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+        run: |
+          DRIFT=$(npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url postgresql://forges_test:forges_test_pass@localhost:5432/forges_test \
+            --exit-code 2>&1 || true)
+          if echo "$DRIFT" | grep -qE "^[+-]"; then
+            echo "ERREUR : le schema.prisma contient des champs sans migration correspondante."
+            echo "$DRIFT"
+            echo "Lancez 'npx prisma migrate dev --name <nom>' en local pour creer la migration manquante."
+            exit 1
+          fi
+          echo "Schema en sync avec les migrations."
+
       - name: Exécuter les tests unitaires
         working-directory: forges-monorepo/backend
         env:
@@ -225,6 +243,24 @@ jobs:
         env:
           DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
         run: npx prisma migrate deploy
+
+      - name: Verifier drift schema vs migrations
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+        run: |
+          DRIFT=$(npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url postgresql://forges_test:forges_test_pass@localhost:5432/forges_test \
+            --exit-code 2>&1 || true)
+          if echo "$DRIFT" | grep -qE "^[+-]"; then
+            echo "ERREUR : le schema.prisma contient des champs sans migration correspondante."
+            echo "$DRIFT"
+            echo "Lancez 'npx prisma migrate dev --name <nom>' en local pour creer la migration manquante."
+            exit 1
+          fi
+          echo "Schema en sync avec les migrations."
 
       - name: Exécuter les tests d'intégration
         working-directory: forges-monorepo/backend
