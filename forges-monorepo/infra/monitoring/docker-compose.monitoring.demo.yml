@@ -41,6 +41,8 @@ services:
     restart: unless-stopped
     ports:
       - "3050:3000"
+    env_file:
+      - .env
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-forges2026}
@@ -85,6 +87,22 @@ services:
       retries: 3
     networks:
       - forges-monitoring
+
+  checker:
+    image: alpine/curl:latest
+    container_name: forges-checker-demo
+    restart: unless-stopped
+    volumes:
+      - ./silent-check.sh:/silent-check.sh:ro
+    command: sh /silent-check.sh
+    environment:
+      FORGES_BASE_URL: http://forges-backend-demo:3003
+      CHECK_INTERVAL: "300"
+    depends_on:
+      - loki
+    networks:
+      - forges-monitoring
+      - forges-demo
 
 networks:
   forges-monitoring:

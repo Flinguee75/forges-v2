@@ -83,3 +83,42 @@ groups:
         annotations:
           summary: "Backend DEMO ne produit plus de logs (probablement down)"
           description: "Aucun log du backend DEMO depuis 5 minutes. Le container est probablement crash ou arrete."
+
+      - uid: forges-demo-checker-error
+        title: "DEMO - Silent Check Failed"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({service="checker", environment="demo", level="error"} [10m])'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 0s
+        noDataState: OK
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: demo
+        annotations:
+          summary: "DEMO - Un endpoint critique ne repond pas correctement"
+          description: "Le checker a detecte une anomalie sur /health, /api/catalogue ou /api/auth. Verifier les logs checker dans Grafana."

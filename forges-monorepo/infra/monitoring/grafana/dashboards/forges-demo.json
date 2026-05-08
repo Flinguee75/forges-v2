@@ -131,6 +131,44 @@
         "enableLogDetails": true,
         "sortOrder": "Descending"
       }
+    },
+    {
+      "title": "Silent Checks — Erreurs detectees",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service=\"checker\", environment=\"demo\", level=\"error\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Silent Checks — Historique cycles",
+      "type": "logs",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 40 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service=\"checker\", environment=\"demo\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
     }
   ],
   "schemaVersion": 39,
