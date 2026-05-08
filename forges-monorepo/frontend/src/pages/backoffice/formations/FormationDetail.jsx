@@ -161,6 +161,51 @@ export default function FormationDetail() {
         </div>
       </Card>
 
+      {(formation.objectifs_pedagogiques?.length > 0 || formation.public_cible || formation.prerequis || formation.certification_delivree) && (
+        <Card title="Informations clés">
+          <div className="grid gap-6 md:grid-cols-2">
+            {formation.objectifs_pedagogiques?.length > 0 && (
+              <div className="md:col-span-2">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-subtext">Objectifs pédagogiques</p>
+                <ul className="space-y-1">
+                  {formation.objectifs_pedagogiques.map((obj, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-text">
+                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
+                      {obj}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {formation.public_cible && (
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-subtext">Public cible</p>
+                <p className="text-sm text-text">{formation.public_cible}</p>
+              </div>
+            )}
+            {formation.prerequis ? (
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-subtext">Prérequis</p>
+                <p className="text-sm text-text">{formation.prerequis}</p>
+              </div>
+            ) : (
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-subtext">Prérequis</p>
+                <p className="text-sm text-subtext italic">Aucun prérequis</p>
+              </div>
+            )}
+            {formation.certification_delivree && (
+              <div className="md:col-span-2">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-subtext">Certification</p>
+                <span className="inline-block rounded-md bg-[#148F77]/10 px-3 py-1 text-sm font-medium text-[#148F77]">
+                  Certification délivrée à l'issue de la formation
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
       <Card title="Description">
         <div className="space-y-6 text-sm text-text">
           {(formation.description_courte || formation.description) && (
