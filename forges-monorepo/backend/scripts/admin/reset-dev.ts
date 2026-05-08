@@ -41,22 +41,28 @@ async function truncateTables() {
   console.log('[reset] Suppression des données métier...');
 
   // Ordre: enfants avant parents (FK)
+  // Liste des tables dans l'ordre FK (enfants avant parents)
+  // Découverte via pg_tables sur la DB cible — IF EXISTS pour ignorer les absentes
   const tables = [
     'CommissionApporteur',
     'CommissionPartenaire',
+    'CommissionPartenaireAbonnement',
     'AuditLog',
     'Paiement',
+    'ConversationBot',
+    'EnqueteCatalogue',
     'Dossier',
     'VoucherOrganisation',
     'VoucherApporteur',
     'AccesFormationDemande',
     'FeedbackFormation',
     'FormationPartenaire',
+    'ContratInstitutionnel',
     'devis',
     'AbonnementRetail',
     'AbonnementB2B',
     'AbonnementOrganisation',
-    'OrganisationConfig',
+    'Apporteur',
     'Apprenant',
     'Organisation',
     'Session',
@@ -66,7 +72,15 @@ async function truncateTables() {
 
   for (const table of tables) {
     if (!DRY_RUN) {
-      await prisma.$executeRawUnsafe(`DELETE FROM "${table}"`);
+      try {
+        await prisma.$executeRawUnsafe(`DELETE FROM "${table}"`);
+      } catch (e: any) {
+        if (e.code === 'P2010' && e.meta?.code === '42P01') {
+          console.log(`  -> Ignoré (table absente): ${table}`);
+          continue;
+        }
+        throw e;
+      }
     }
     console.log(`  -> ${DRY_RUN ? '[DRY] ' : ''}Vidé: ${table}`);
   }
