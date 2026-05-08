@@ -17,7 +17,6 @@ import StatusBadge from '../../components/ui/StatusBadge';
 const COLLABORATEURS = [
   { sigle: 'GWU', nom: 'George Washington University', logo: null },
   { sigle: 'CCDL', nom: 'Centre de Certification Digital de Lomé', logo: null },
-  { sigle: 'ANSSI', nom: 'Agence Nationale Sécurité SI', logo: null },
   { sigle: 'ASPIRE', nom: 'Aspire', logo: logoAspire },
   { sigle: 'AIC', nom: 'AI Crafters', logo: logoAiCrafters },
 ];
