@@ -265,11 +265,11 @@ describe('GET /api/admin/devis/:id/pdf — facture PDF', () => {
       .set(adminHeaders);
 
     expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toMatch(/application\/pdf/);
-    expect(res.headers['content-disposition']).toMatch(/\.pdf/);
+    expect(res.headers['content-type']).toMatch(/wordprocessingml/);
+    expect(res.headers['content-disposition']).toMatch(/\.docx/);
   });
 
-  it('AGENT peut télécharger le PDF', async () => {
+  it('AGENT peut telecharger le DOCX', async () => {
     if (!devisId) return;
 
     const res = await request(API_URL)

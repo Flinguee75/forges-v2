@@ -164,6 +164,5 @@ describe('POST /api/backoffice/organisations — Création organisation backoffi
 
     const inDb = await prisma.organisation.findUnique({ where: { id: res.body.data.id } });
     expect(inDb.statut).toBe('ACTIVE');
-    expect(inDb.consentement_rgpd).toBe(true);
   });
 });

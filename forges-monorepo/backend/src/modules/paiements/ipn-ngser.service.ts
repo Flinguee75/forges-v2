@@ -76,7 +76,7 @@ export class IpnNgserService {
       where: { order_ngser: orderNgser },
       include: {
         dossier: {
-          include: { formation: true, apprenant: true },
+          include: { formation: { include: { partenaire: true } }, apprenant: true },
         },
       },
     });

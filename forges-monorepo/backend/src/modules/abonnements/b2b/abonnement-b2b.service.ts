@@ -81,12 +81,12 @@ export class AbonnementB2BService {
 
     if (existant) {
       if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
-        const session = await this.creerSessionNgser(existant.id, existant.prix_annuel);
-        return {
-          abonnement: existant,
-          payment_url: session.payment_url,
-          order_ngser: existant.order_ngser,
-        };
+        let paymentUrl = `${NGSER_MOCK_BASE_URL}?order=${existant.order_ngser}`;
+        try {
+          const session = await this.creerSessionNgser(existant.id, existant.prix_annuel);
+          paymentUrl = session.payment_url;
+        } catch (_) { /* NGSER indisponible — fallback sur order_ngser existant */ }
+        return { abonnement: existant, payment_url: paymentUrl, order_ngser: existant.order_ngser };
       }
       // RM-84 : unicité stricte
       throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');

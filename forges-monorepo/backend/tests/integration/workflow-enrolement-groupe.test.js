@@ -51,28 +51,45 @@ beforeEach(() => {
 beforeAll(async () => {
   groupeConfig = JSON.parse(fs.readFileSync(GROUPE_CONFIG_PATH, 'utf-8'));
 
-  // Nettoyer les donnees de test precedentes
+  // Nettoyer les donnees de test precedentes (par email OU identifiant_legal)
   const existingOrg = await prisma.organisation.findFirst({
-    where: { email: groupeConfig.organisation.email },
+    where: {
+      OR: [
+        { email: groupeConfig.organisation.email },
+        { identifiant_legal: groupeConfig.organisation.identifiant_legal },
+      ],
+    },
   });
 
   if (existingOrg) {
-    await prisma.voucherOrganisation.deleteMany({ where: { organisation_id: existingOrg.id } });
-    await prisma.devis.deleteMany({ where: { organisation_id: existingOrg.id } });
     const apprenants = await prisma.apprenant.findMany({ where: { organisation_id: existingOrg.id } });
-    for (const a of apprenants) {
-      await prisma.apprenant.delete({ where: { id: a.id } });
-    }
-    await prisma.organisation.delete({ where: { id: existingOrg.id } });
+    const apprenantIdsList = apprenants.map(a => a.id);
+    await prisma.dossier.deleteMany({ where: { apprenant_id: { in: apprenantIdsList } } }).catch(() => {});
+    await prisma.voucherOrganisation.deleteMany({ where: { organisation_id: existingOrg.id } }).catch(() => {});
+    await prisma.devis.deleteMany({ where: { organisation_id: existingOrg.id } }).catch(() => {});
+    await prisma.apprenant.deleteMany({ where: { organisation_id: existingOrg.id } }).catch(() => {});
+    await prisma.organisation.delete({ where: { id: existingOrg.id } }).catch(() => {});
   }
 
   // Nettoyer les apprenants existants avec les memes emails
   for (const a of groupeConfig.apprenants) {
     await prisma.apprenant.deleteMany({ where: { email: a.email } }).catch(() => {});
   }
+
+  // Nettoyer les devis orphelins avec le pattern FORGES-DEVIS-YYYY-XXX pour eviter les contraintes unique
+  await prisma.devis.deleteMany({
+    where: { numero_devis: { startsWith: 'FORGES-DEVIS-' }, created_by: 'system-test' },
+  }).catch(() => {});
 });
 
 afterAll(async () => {
+  if (organisationId) {
+    await prisma.dossier.deleteMany({ where: { apprenant_id: { in: apprenantIds } } }).catch(() => {});
+    await prisma.voucherOrganisation.deleteMany({ where: { organisation_id: organisationId } }).catch(() => {});
+    await prisma.devis.deleteMany({ where: { organisation_id: organisationId } }).catch(() => {});
+    await prisma.apprenant.deleteMany({ where: { organisation_id: organisationId } }).catch(() => {});
+    await prisma.organisation.delete({ where: { id: organisationId } }).catch(() => {});
+  }
   await prisma.$disconnect();
 });
 
