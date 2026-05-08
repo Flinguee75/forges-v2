@@ -138,11 +138,15 @@ export default function FormationDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* En-tête */}
             <Card>
-              <div className="mb-3">
-                <Badge variant="success" size="medium">
-                  {formation.statut || 'Publiée'}
-                </Badge>
-              </div>
+              {formation.image_url && (
+                <div className="-mx-6 -mt-6 mb-5 overflow-hidden rounded-t-lg">
+                  <img
+                    src={formation.image_url}
+                    alt={getFormationTitre(formation)}
+                    className="h-56 w-full object-cover"
+                  />
+                </div>
+              )}
               <h1 className="text-3xl font-bold text-primary mb-4">
                 {getFormationTitre(formation)}
               </h1>
@@ -329,49 +333,7 @@ export default function FormationDetailPage() {
                   </div>
                 )}
 
-                {formation.duree_acces_jours && (
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-secondary mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-text">Accès</p>
-                      <p className="text-sm text-subtext">
-                        {formation.duree_acces_jours} jours d'accès
-                      </p>
-                    </div>
-                  </div>
-                )}
 
-                <div className="flex items-start gap-3">
-                  <svg
-                    className="w-5 h-5 text-secondary mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-text">Statut</p>
-                    <p className="text-sm text-subtext">{formation.statut}</p>
-                  </div>
-                </div>
 
                 {formation.mode_formation && (
                   <div className="flex items-start gap-3">
@@ -399,30 +361,6 @@ export default function FormationDetailPage() {
                     <div>
                       <p className="text-sm font-medium text-text">Lieu</p>
                       <p className="text-sm text-subtext">{formation.lieu}</p>
-                    </div>
-                  </div>
-                )}
-
-                {formation.type_formation && (
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-secondary mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17.25S6.5 28 12 28s10-4.745 10-10.75C22 10.998 17.5 6.253 12 6.253z"
-                      />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-text">Type</p>
-                      <Badge variant="info" size="small">
-                        {formation.type_formation}
-                      </Badge>
                     </div>
                   </div>
                 )}
@@ -459,9 +397,6 @@ export default function FormationDetailPage() {
             {sessions.length > 0 && (
               <Card>
                 <div className="text-center">
-                  <p className="text-sm text-subtext mb-4">
-                    {sessions.length} session(s) ouverte(s) aux inscriptions
-                  </p>
                   <Button
                     variant="primary"
                     size="large"
