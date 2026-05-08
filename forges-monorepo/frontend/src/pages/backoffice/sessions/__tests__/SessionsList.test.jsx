@@ -63,7 +63,7 @@ describe('SessionsList', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('Formation 1').length).toBeGreaterThan(0);
-      expect(screen.getByText('7 / 20')).toBeInTheDocument();
+      expect(screen.getByText('7 / 20 inscrits')).toBeInTheDocument();
       expect(screen.getByText('1 session')).toBeInTheDocument();
     });
   });

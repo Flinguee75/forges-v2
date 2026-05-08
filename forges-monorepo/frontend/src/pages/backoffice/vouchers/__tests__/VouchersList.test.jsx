@@ -39,7 +39,7 @@ describe('VouchersList', () => {
     await waitFor(() => {
       expect(screen.getByText('CODE-1')).toBeInTheDocument();
       expect(screen.getByText('Formation 1')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Créer un voucher promo/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Creer un voucher promo/i })).toBeInTheDocument();
     });
   });
 });
