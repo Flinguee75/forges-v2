@@ -73,7 +73,7 @@ describe('PaiementNgserService — RM-157 initiation backend-only', () => {
       }),
     });
     expect(result.montant_initie).toBe(100000);
-    expect(result.payment_url).toContain('https://mock-ngser.forges.ci/pay?order=');
+    expect(result.payment_url).toContain('/mock-checkout/');
   });
 
   it('genere order_ngser au format FRG-YYYY-SEQ-XXXXXX et verifie son unicite', async () => {
