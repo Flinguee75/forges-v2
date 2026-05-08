@@ -103,6 +103,7 @@ router.get('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, 
         pays_nationalite: true,
         langue_preferee: true,
         statut: true,
+        organisation_id: true,
         created_at: true,
       },
     });

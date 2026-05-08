@@ -246,7 +246,9 @@ export default function ApprenantDetail() {
         </h3>
         {apprenant.organisation_id && (
           <p className="mb-3 text-sm text-subtext" data-testid="current-org-id">
-            Organisation actuelle : <span className="font-mono text-text">{apprenant.organisation_id}</span>
+            Organisation actuelle : <span className="font-medium text-text">
+              {organisations.find(o => o.id === apprenant.organisation_id)?.raison_sociale || apprenant.organisation_id}
+            </span>
           </p>
         )}
         <div className="flex flex-wrap gap-3">
