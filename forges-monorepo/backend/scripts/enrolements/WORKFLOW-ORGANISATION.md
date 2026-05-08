@@ -31,7 +31,7 @@ Conçue pour les stratèges de haut niveau, décideurs politiques, responsables 
 | `type_formation` | `SUR_DEVIS` |
 | `mode_formation` | `AVEC_SESSION` |
 | `duree_jours` | 10 |
-| `cout_catalogue` | 2 000 000 XOF |
+| `cout_catalogue` | 3 000 000 XOF |
 | `certification_delivree` | true |
 | `public_cible` | Décideurs, responsables IT, cadres cybersécurité, leaders gouvernance IA |
 | `lieu` | AIGF, Anoumabo, Abidjan, Côte d'Ivoire |
@@ -99,7 +99,7 @@ Dupliquer `groupes/anssi.json` et adapter les champs :
   "masterclass": {
     "formation_id": "frm-masterclass-gwu-ccdl-2026",
     "session_id": "ses-anssi-juin-2026",
-    "tarif_unitaire_xof": 2000000,
+    "tarif_unitaire_xof": 3000000,
     "notes_admin": "Notes internes admin"
   },
   "apprenants": [
@@ -117,7 +117,7 @@ Dupliquer `groupes/anssi.json` et adapter les champs :
 
 **Variables qui changent d'une organisation à l'autre :**
 - `raison_sociale`, `type`, `email`, `contact_referent`
-- `tarif_unitaire_xof` (public : 2 000 000 / privé : selon contrat)
+- `tarif_unitaire_xof` (public : 3 000 000 / privé : selon contrat)
 - La liste `apprenants` (noms, emails, fonctions)
 
 ---

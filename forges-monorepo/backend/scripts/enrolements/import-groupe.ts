@@ -179,7 +179,7 @@ async function run() {
           pays_nationalite: apprenant.pays_nationalite,
           langue_preferee: 'FR',
           password_hash: passwordHash,
-          statut: 'EN_ATTENTE',
+          statut: 'ACTIF',
           consentement_rgpd: true,
           consentement_timestamp: new Date(),
           consentement_version_cgu: '1.0',

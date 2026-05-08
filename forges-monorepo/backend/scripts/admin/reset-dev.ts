@@ -142,11 +142,11 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
 
 À l'issue de la session, les participants passent un examen QCM dont la réussite conditionne l'obtention du certificat. Les lauréats reçoivent le titre de Certified Strategic Cybersecurity & AI Governance Analyst, assorti d'un badge numérique vérifiable (LinkedIn, portfolio professionnel), reconnu par le gouvernement ivoirien et aligné sur la Stratégie nationale de cybersécurité 2026-2030.`,
         duree_jours: 10,
-        cout_catalogue: 2000000,
+        cout_catalogue: 3000000,
         responsable_id: adminId,
         type_formation: 'SUR_DEVIS',
         mode_formation: 'AVEC_SESSION',
-        statut: 'PUBLIEE',
+        statut: 'ACTIVE',
         inclus_abonnement: false,
         public_cible: 'Décideurs, responsables IT, cadres en cybersécurité, leaders en gouvernance IA',
         objectifs_pedagogiques: [
@@ -160,7 +160,7 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
         certification_delivree: true,
       },
       update: {
-        statut: 'PUBLIEE',
+        statut: 'ACTIVE',
         responsable_id: adminId,
       },
     });
@@ -178,7 +178,7 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
         capacite: 20,
         nb_inscrits: 0,
         places_restantes: 20,
-        statut: 'PLANIFIEE',
+        statut: 'INSCRIPTIONS_OUVERTES',
       },
       update: {},
     });
