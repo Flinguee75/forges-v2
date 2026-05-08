@@ -52,7 +52,7 @@ async function truncateTables() {
     'AccesFormationDemande',
     'FeedbackFormation',
     'FormationPartenaire',
-    'Devis',
+    'devis',
     'AbonnementRetail',
     'AbonnementB2B',
     'AbonnementOrganisation',
