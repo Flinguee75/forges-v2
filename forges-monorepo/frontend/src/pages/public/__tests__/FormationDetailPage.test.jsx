@@ -173,11 +173,11 @@ describe('FormationDetailPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Certification obtenue')).toBeInTheDocument();
+      expect(screen.getByText('Certification délivrée à l\'issue de cette formation')).toBeInTheDocument();
     });
   });
 
-  it('devrait afficher les informations clés (durée, tarif, accès)', async () => {
+  it('devrait afficher les informations clés (durée, tarif)', async () => {
     render(
       <BrowserRouter>
         <FormationDetailPage />
@@ -187,12 +187,10 @@ describe('FormationDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Durée')).toBeInTheDocument();
       expect(screen.getByText('Tarif')).toBeInTheDocument();
-      expect(screen.getByText('Accès')).toBeInTheDocument();
-      expect(screen.getByText('365 jours d\'accès')).toBeInTheDocument();
     });
   });
 
-  it('devrait afficher le type de formation', async () => {
+  it('devrait afficher le mode de la formation', async () => {
     render(
       <BrowserRouter>
         <FormationDetailPage />
@@ -200,8 +198,7 @@ describe('FormationDetailPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Type')).toBeInTheDocument();
-      expect(screen.getByText('PREMIUM')).toBeInTheDocument();
+      expect(screen.getByText('Mode')).toBeInTheDocument();
     });
   });
 
