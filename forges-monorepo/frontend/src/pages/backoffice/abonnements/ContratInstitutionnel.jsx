@@ -30,7 +30,7 @@ export default function ContratInstitutionnel() {
   const total = data?.meta?.total || 0;
 
   const formatDate = (date) => (date ? new Date(date).toLocaleDateString('fr-FR') : 'Non renseigné');
-  const formatMoney = (amount) => `${Number(amount || 0).toLocaleString('fr-FR')} FCFA`;
+  const formatMoney = (amount) => `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
 
   const getStatutBadge = (statut) => {
     const mapping = {

@@ -18,7 +18,7 @@ const formatDate = (value) => {
 
 const formatAmount = (value) => {
   if (value === null || value === undefined) return 'N/A';
-  return `${Number(value).toLocaleString('fr-FR')} FCFA`;
+  return `${Math.round(Number(value) / 100).toLocaleString('fr-FR')} FCFA`;
 };
 
 function statutBadge(apprenant) {
