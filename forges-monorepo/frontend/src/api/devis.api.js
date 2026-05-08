@@ -79,13 +79,13 @@ export const devisApi = {
     return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
   },
 
-  // Télécharger la facture PDF
+  // Télécharger le devis depuis le template officiel
   telechargerPdf: async (id, numeroDevis) => {
     const response = await apiClient.get(`/admin/devis/${id}/pdf`, { responseType: 'blob' });
-    const url = window.URL.createObjectURL(new Blob([response.data ?? response], { type: 'application/pdf' }));
+    const url = window.URL.createObjectURL(new Blob([response.data ?? response], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${numeroDevis || `devis-${id}`}.pdf`);
+    link.setAttribute('download', `${numeroDevis || `devis-${id}`}.docx`);
     document.body.appendChild(link);
     link.click();
     link.remove();

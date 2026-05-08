@@ -92,11 +92,11 @@ export class DevisController {
     }
   }
 
-  // GET /api/admin/devis/:id/pdf — Télécharger le PDF de la facture (ADMIN, AGENT)
+  // GET /api/admin/devis/:id/pdf — Télécharger le devis depuis le template officiel (ADMIN, AGENT)
   async telechargerPdf(req: Request, res: Response, next: NextFunction) {
     try {
-      const { buffer, filename } = await this.devisService.telechargerPdfDevis(req.params.id);
-      res.setHeader('Content-Type', 'application/pdf');
+      const { buffer, filename } = await this.devisService.telechargerDocxDevis(req.params.id);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       return res.send(buffer);
     } catch (error: any) {

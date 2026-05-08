@@ -1,9 +1,7 @@
 import { Router } from 'express';
-import { PartenaireController } from '../partenaires/partenaire.controller';
 import { PartenaireService } from '../partenaires/partenaire.service';
 import { PartenaireRepository } from '../partenaires/partenaire.repository';
 import { FormationPartenaireRepository } from '../partenaires/formation-partenaire.repository';
-import { ValidationFormationService } from '../partenaires/validation-formation.service';
 import { ApporteurController } from '../apporteurs/apporteur.controller';
 import { ApporteurService } from '../apporteurs/apporteur.service';
 import { ApporteurRepository } from '../apporteurs/apporteur.repository';
@@ -23,11 +21,9 @@ const apporteurRepo = new ApporteurRepository(prisma);
 
 // Services
 const partenaireService = new PartenaireService(partenaireRepo, fpRepo, prisma, audit, emailService);
-const validationService = new ValidationFormationService(fpRepo, prisma, audit, emailService);
 const apporteurService = new ApporteurService(apporteurRepo, prisma, audit, emailService);
 
 // Controllers
-const partenaireController = new PartenaireController(partenaireService, validationService);
 const apporteurController = new ApporteurController(apporteurService);
 
 // ============================================
