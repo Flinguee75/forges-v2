@@ -35,7 +35,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@forges-group.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@FORGES2026!';
 
 export const FORMATION_ID = 'frm-masterclass-gwu-ccdl-2026';
-export const SESSION_ID = 'ses-anssi-juin-2026';
+export const SESSION_ID = 'ses-gwu-ccdl-juin-2026';
 
 async function truncateTables() {
   console.log('[reset] Suppression des données métier...');
@@ -178,7 +178,7 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
         date_cloture: new Date('2026-05-31'),
         date_debut: new Date('2026-06-01'),
         date_fin: new Date('2026-06-11'),
-        capacite: 20,
+        capacite: 50,
         nb_inscrits: 0,
         places_restantes: 20,
         lieu: 'AIGF, Anoumabo, Abidjan, Côte d\'Ivoire',
