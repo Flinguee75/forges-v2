@@ -403,7 +403,7 @@ export default function LandingPage() {
                     </div>
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
                       <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Tarif</p>
-                      <p className="font-bold text-lg">2 000 000 FCFA</p>
+                      <p className="font-bold text-lg">3 000 000 FCFA</p>
                     </div>
                   </div>
                   <ul className="space-y-2 text-sm opacity-90">
