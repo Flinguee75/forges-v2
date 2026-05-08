@@ -41,4 +41,14 @@ export default defineConfig([
       globals: globals.node,
     },
   },
+  {
+    files: ['**/__tests__/**/*.{js,jsx}', '**/*.test.{js,jsx}', 'src/test/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.jest,
+        vi: 'readonly',
+      },
+    },
+  },
 ])

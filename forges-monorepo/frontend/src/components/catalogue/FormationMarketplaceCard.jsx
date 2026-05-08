@@ -79,8 +79,8 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
 
   const theme = getTheme(formationData.titre);
   const category = getCategoryLabel(formationData.titre);
-  const highlight = getHighlight(formationData);
-  const secondaryBadge = getSecondaryBadge(formationData);
+  const _highlight = getHighlight(formationData);
+  const _secondaryBadge = getSecondaryBadge(formationData);
   const actionLabel = getActionLabel(formationData, context);
   const nextPath = to || (
     context === 'apprenant' && formationData.mode_formation === 'A_LA_DEMANDE'

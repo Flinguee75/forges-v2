@@ -34,7 +34,7 @@ const state = vi.hoisted(() => ({
       const result = await apiCall();
       await options?.onSuccess?.(result);
       return result;
-    } catch (err) {
+    } catch {
       if (options?.showErrorToast !== false) state.showToast('Erreur', 'error');
     }
   }),

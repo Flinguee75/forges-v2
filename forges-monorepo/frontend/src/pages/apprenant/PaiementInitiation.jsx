@@ -34,7 +34,7 @@ export default function PaiementInitiation() {
         });
 
         window.location.assign(data.checkout_link);
-      } catch (errFineo) {
+      } catch {
         // Fallback NGSER top 2
         try {
           const response = await paiementsApi.initierNgser({ dossier_id: dossierId });

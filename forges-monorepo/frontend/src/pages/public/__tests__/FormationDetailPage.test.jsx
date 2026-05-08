@@ -103,7 +103,9 @@ describe('FormationDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useParamsMock.mockReturnValue({ id: mockFormation.id });
+    // eslint-disable-next-line no-import-assign
     authHook.useAuth = vi.fn(() => ({ user: null }));
+    // eslint-disable-next-line no-import-assign
     formationsApi.formationsApi = {
       getFormationDetail: vi.fn(() => Promise.resolve({ data: mockFormation })),
       getSessionsOuvertes: vi.fn(() => Promise.resolve({ data: mockSessions })),

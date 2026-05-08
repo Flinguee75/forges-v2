@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 /**
@@ -5,10 +6,7 @@ import { Link } from 'react-router-dom';
  * Améliore le contexte et l'UX
  */
 export default function Breadcrumb({ items = [] }) {
-  if (items.length === 0) return null;
-
-  // Schéma JSON-LD pour breadcrumbs
-  const breadcrumbSchema = {
+  const breadcrumbSchema = items.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: items.map((item, index) => ({
@@ -17,10 +15,10 @@ export default function Breadcrumb({ items = [] }) {
       name: item.label,
       item: item.url ? `https://forges.com${item.url}` : undefined,
     })),
-  };
+  } : null;
 
-  // Ajouter le schéma JSON-LD au head
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!breadcrumbSchema) return;
     let script = document.querySelector('script[data-breadcrumb="true"]');
     if (!script) {
       script = document.createElement('script');
@@ -29,7 +27,11 @@ export default function Breadcrumb({ items = [] }) {
       document.head.appendChild(script);
     }
     script.textContent = JSON.stringify(breadcrumbSchema);
-  }, []);
+  // breadcrumbSchema est recompute a chaque render depuis items — on depend de items via la prop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
+  if (items.length === 0) return null;
 
   return (
     <nav

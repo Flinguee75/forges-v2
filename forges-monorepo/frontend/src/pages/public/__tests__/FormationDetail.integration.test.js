@@ -3,7 +3,7 @@
  * Valide le flux complet: Catalogue → Détail → Informations enrichies
  */
 
-import { render, screen, within } from '@testing-library/react';
+import {} from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
 describe('Intégration: Amélioration présentation formations', () => {
@@ -183,7 +183,7 @@ describe('Intégration: Amélioration présentation formations', () => {
         ],
       };
 
-      mockFormation.objectifs_pedagogiques.forEach((competence, idx) => {
+      mockFormation.objectifs_pedagogiques.forEach((competence, _idx) => {
         expect(competence).toBeTruthy();
         expect(typeof competence).toBe('string');
       });
