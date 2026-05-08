@@ -32,7 +32,7 @@ function getStatutBadge(statut) {
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('fr-FR');
+  return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function SessionsList() {
@@ -106,11 +106,15 @@ export default function SessionsList() {
       key: 'dates',
       label: 'Dates',
       render: (_, session) => (
-        <div className="text-xs">
-          <div>Ouverture: {formatDate(session.date_ouverture)}</div>
-          <div>Clôture: {formatDate(session.date_cloture)}</div>
-          <div>Début: {formatDate(session.date_debut)}</div>
-          <div>Fin: {formatDate(session.date_fin)}</div>
+        <div className="space-y-1 text-sm">
+          <div>
+            <span className="font-medium text-primary">
+              {formatDate(session.date_debut)} — {formatDate(session.date_fin)}
+            </span>
+          </div>
+          <div className="text-xs text-subtext">
+            Inscriptions : {formatDate(session.date_ouverture)} au {formatDate(session.date_cloture)}
+          </div>
         </div>
       ),
     },
