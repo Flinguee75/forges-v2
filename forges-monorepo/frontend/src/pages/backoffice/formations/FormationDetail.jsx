@@ -162,9 +162,37 @@ export default function FormationDetail() {
       </Card>
 
       <Card title="Description">
-        <div className="space-y-4 text-sm text-text">
-          <p>{formation.description || formation.description_courte}</p>
-          {formation.description_longue && <p className="text-subtext">{formation.description_longue}</p>}
+        <div className="space-y-6 text-sm text-text">
+          {(formation.description_courte || formation.description) && (
+            <p className="font-medium leading-relaxed text-text">
+              {formation.description_courte || formation.description}
+            </p>
+          )}
+          {formation.description_longue && (
+            <div className="space-y-3 border-t border-border pt-4">
+              {formation.description_longue
+                .split(/\n{2,}|(?=Semaine \d)/)
+                .map((para) => para.trim())
+                .filter(Boolean)
+                .map((para, idx) => {
+                  const isSectionHeader = /^Semaine \d/.test(para);
+                  return isSectionHeader ? (
+                    <div key={idx} className="rounded-lg bg-[#F4F6F7] px-4 py-3">
+                      <p className="font-semibold text-primary">{para.split('—')[0].trim()}</p>
+                      {para.includes('—') && (
+                        <p className="mt-1 text-subtext leading-relaxed">
+                          {para.split('—').slice(1).join('—').trim()}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p key={idx} className="leading-relaxed text-subtext">
+                      {para}
+                    </p>
+                  );
+                })}
+            </div>
+          )}
         </div>
       </Card>
     </div>
