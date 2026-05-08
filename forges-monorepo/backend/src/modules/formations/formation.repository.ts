@@ -132,6 +132,7 @@ export class FormationRepository {
     responsable_id: string;
     type_formation: string;
     mode_formation: string;
+    lieu?: string;
     pilier_abonnement?: string;
     langues_disponibles: string[];
     certification_delivree?: boolean;
@@ -159,6 +160,8 @@ export class FormationRepository {
     duree_jours: number;
     cout_catalogue: number;
     statut: string;
+    mode_formation: string;
+    lieu: string;
     pilier_abonnement: string;
     langues_disponibles: string[];
     certification_delivree: boolean;

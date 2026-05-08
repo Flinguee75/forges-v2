@@ -14,7 +14,8 @@ const DEFAULT_FORM = {
   duree_jours: 1,
   cout_catalogue: 0,
   type_formation: '',
-  mode_formation: 'AVEC_SESSION',
+  mode_formation: 'PRESENTIEL',
+  lieu: '',
   pilier_abonnement: '',
   langues_disponibles: 'FR',
   certification_delivree: false,
@@ -35,7 +36,8 @@ function normalizeToForm(formation) {
     duree_jours: formation.duree_jours ?? formation.duree ?? 1,
     cout_catalogue: formation.cout_catalogue ?? formation.tarif ?? 0,
     type_formation: formation.type_formation || '',
-    mode_formation: formation.mode_formation || 'AVEC_SESSION',
+    mode_formation: formation.mode_formation || 'PRESENTIEL',
+    lieu: formation.lieu || '',
     pilier_abonnement: formation.pilier_abonnement || '',
     langues_disponibles: Array.isArray(formation.langues_disponibles)
       ? formation.langues_disponibles.join(', ')
@@ -75,6 +77,7 @@ function buildPayload(formData) {
     objectifs_pedagogiques: objectifs.length > 0 ? objectifs : undefined,
     prerequis: formData.prerequis.trim() || undefined,
     duree_acces_jours: Number(formData.duree_acces_jours),
+    lieu: formData.lieu.trim() || undefined,
   };
 
   if (formData.url_contenu && formData.url_contenu.trim()) {
@@ -132,7 +135,7 @@ export default function FormationForm() {
       nextErrors.duree_jours = 'La durée doit être un entier supérieur ou égal à 1.';
     }
     if (!Number.isInteger(Number(formData.cout_catalogue)) || Number(formData.cout_catalogue) < 0) {
-      nextErrors.cout_catalogue = 'Le tarif doit être un entier positif en centimes.';
+      nextErrors.cout_catalogue = 'Le tarif doit être un entier positif en FCFA.';
     }
 
     setFieldErrors(nextErrors);
@@ -239,7 +242,7 @@ export default function FormationForm() {
           <div className="grid gap-4 md:grid-cols-2">
             <Input
               type="number"
-              label="Tarif catalogue (centimes)"
+              label="Tarif catalogue (FCFA)"
               value={formData.cout_catalogue}
               onChange={(event) => handleChange('cout_catalogue', event.target.value)}
               error={fieldErrors.cout_catalogue}
@@ -265,7 +268,8 @@ export default function FormationForm() {
                 onChange={(event) => handleChange('mode_formation', event.target.value)}
                 className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="AVEC_SESSION">Avec session</option>
+                <option value="PRESENTIEL">Présentiel</option>
+                <option value="EN_LIGNE">En ligne</option>
                 <option value="A_LA_DEMANDE">À la demande</option>
               </select>
             </div>
@@ -286,6 +290,15 @@ export default function FormationForm() {
               </select>
             </div>
           </div>
+
+          {(formData.mode_formation === 'PRESENTIEL' || formData.mode_formation === 'EN_LIGNE') && (
+            <Input
+              label="Lieu"
+              value={formData.lieu}
+              onChange={(event) => handleChange('lieu', event.target.value)}
+              placeholder="Ex: AIGF, Abidjan, Côte d'Ivoire"
+            />
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>

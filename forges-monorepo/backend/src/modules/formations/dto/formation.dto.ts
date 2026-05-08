@@ -10,7 +10,8 @@ export const CreateFormationSchema = z.object({
   // Présent uniquement pour les formations internes FORGES (Admin/Responsable)
   type_formation: z.enum(['STANDARD', 'PREMIUM', 'SUR_DEVIS']).optional(),
   // RM-91 : mode_formation obligatoire
-  mode_formation: z.enum(['AVEC_SESSION', 'A_LA_DEMANDE']),
+  mode_formation: z.enum(['PRESENTIEL', 'EN_LIGNE', 'A_LA_DEMANDE', 'AVEC_SESSION']),
+  lieu: z.string().optional(),
   pilier_abonnement: z.enum(['RETAIL', 'B2B', 'INSTITUTIONNEL', 'TOUS']).optional(),
   langues_disponibles: z.array(z.enum(['FR', 'EN', 'ES', 'PT'])).min(1),
   certification_delivree: z.boolean().default(false),
@@ -31,9 +32,9 @@ export const AssignerTypeFormationSchema = z.object({
 
 export const UpdateFormationSchema = CreateFormationSchema.partial().omit({
   type_formation: true, // RM-86 : non modifiable via update standard
-  mode_formation: true, // mode_formation non modifiable après création
 }).extend({
   url_contenu: z.string().url().optional(),
+  lieu: z.string().optional(),
 });
 
 export type CreateFormationDto = z.infer<typeof CreateFormationSchema>;
