@@ -4,6 +4,8 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FeatureIcon from '../../components/ui/FeatureIcon';
 import logoForges from '../../assets/logo_forges.png';
+import logoAspire from '../../assets/logo_aspire.png';
+import logoAiCrafters from '../../assets/logo_ai_crafters.png';
 import StatusBadge from '../../components/ui/StatusBadge';
 
 /**
@@ -31,8 +33,8 @@ const CATEGORIES_COLLABORATEURS = [
     id: 'prives',
     label: 'Partenaires privés',
     collaborateurs: [
-      { sigle: 'P1', nom: 'Partenaire Entreprise 1', pays: 'Afrique', logo: null },
-      { sigle: 'P2', nom: 'Partenaire Entreprise 2', pays: 'Afrique', logo: null },
+      { sigle: 'ASPIRE', nom: 'Aspire', pays: 'Afrique', logo: logoAspire },
+      { sigle: 'AIC', nom: 'AI Crafters', pays: 'Afrique', logo: logoAiCrafters },
     ],
   },
 ];
