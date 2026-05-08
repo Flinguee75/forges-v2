@@ -83,7 +83,7 @@ export default function FormationDetailView({ formation, showStatut = false, act
           )}
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-subtext">Tarif</p>
-            <p className="mt-0.5 text-lg font-bold text-primary">{tarif.toLocaleString('fr-FR')} FCFA</p>
+            <p className="mt-0.5 text-lg font-bold text-primary">{Math.round(tarif / 100).toLocaleString('fr-FR')} FCFA</p>
           </div>
           {showStatut && (
             <div>

@@ -165,7 +165,7 @@ export default function FormationsList() {
                       <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-subtext">
                         <span>{formation.duree} jours</span>
                         <span className="h-1 w-1 rounded-full bg-border" />
-                        <span>{(formation.tarif || 0).toLocaleString('fr-FR')} FCFA</span>
+                        <span>{Math.round((formation.tarif || 0) / 100).toLocaleString('fr-FR')} FCFA</span>
                         <span className="h-1 w-1 rounded-full bg-border" />
                         <span>{sessionCount} session{sessionCount > 1 ? 's' : ''}</span>
                       </div>
