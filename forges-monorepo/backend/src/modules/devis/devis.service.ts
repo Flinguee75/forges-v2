@@ -71,57 +71,6 @@ export class DevisService {
       created_by: adminId,
     });
 
-    const langue = organisation.langue_preferee || 'FR';
-
-    let docxBuffer: Buffer | undefined;
-    try {
-      docxBuffer = genererDocxDevis(devis as any);
-    } catch (docxError: any) {
-      await this.audit.warning('DEVIS_DOCX_ECHEC', {
-        devis_id: devis.id,
-        numero_devis,
-        error: docxError?.message || 'UNKNOWN',
-      });
-    }
-
-    const emailSubject = langue === 'EN'
-      ? `Your quote ${numero_devis} from FORGES`
-      : `Votre facture ${numero_devis} — FORGES AGRÉGATEUR`;
-    const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation });
-
-    if (docxBuffer) {
-      await this.emailService.sendEmailWithAttachment({
-        to: organisation.email,
-        subject: emailSubject,
-        html: emailHtml,
-        attachment: {
-          filename: `${numero_devis}.docx`,
-          content: docxBuffer,
-          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        },
-      }).catch(async (emailError: any) => {
-        await this.audit.warning('DEVIS_EMAIL_ECHEC', {
-          devis_id: devis.id,
-          numero_devis,
-          to: organisation.email,
-          error: emailError?.message || 'UNKNOWN',
-        });
-      });
-    } else {
-      await this.emailService.sendEmail({
-        to: organisation.email,
-        subject: emailSubject,
-        html: emailHtml,
-      }).catch(async (emailError: any) => {
-        await this.audit.warning('DEVIS_EMAIL_ECHEC', {
-          devis_id: devis.id,
-          numero_devis,
-          to: organisation.email,
-          error: emailError?.message || 'UNKNOWN',
-        });
-      });
-    }
-
     return devis;
   }
 

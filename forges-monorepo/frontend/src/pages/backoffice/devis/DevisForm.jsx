@@ -16,6 +16,8 @@ export default function DevisForm() {
 
   const [formations, setFormations] = useState([]);
   const [organisations, setOrganisations] = useState([]);
+  const [devisCree, setDevisCree] = useState(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [formData, setFormData] = useState({
     organisation_id: '',
     formation_id: '',
@@ -52,10 +54,64 @@ export default function DevisForm() {
     await execute(() => devisApi.create(formData), {
       onSuccess: (devis) => {
         showToast(`Devis ${devis.numero_devis} créé.`, 'success');
-        navigate(`/backoffice/devis/${devis.id}`);
+        setDevisCree(devis);
       },
     });
   };
+
+  const handleEnvoyerEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      const result = await devisApi.envoyerEmail(devisCree.id);
+      showToast(`Email envoyé à ${result?.to || "l'organisation"}.`, 'success');
+    } catch {
+      showToast("Erreur lors de l'envoi de l'email.", 'error');
+    } finally {
+      setIsSendingEmail(false);
+      navigate(`/backoffice/devis/${devisCree.id}`);
+    }
+  };
+
+  const handlePlusTard = () => {
+    navigate(`/backoffice/devis/${devisCree.id}`);
+  };
+
+  if (devisCree) {
+    return (
+      <div className="mx-auto max-w-lg">
+        <div className="rounded-xl bg-white p-8 shadow-lg text-center space-y-6">
+          <div className="w-14 h-14 mx-auto rounded-full bg-green-50 flex items-center justify-center">
+            <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-primary">Devis créé</h2>
+            <p className="mt-1 font-mono text-sm text-subtext">{devisCree.numero_devis}</p>
+          </div>
+          <p className="text-sm text-text">
+            Voulez-vous envoyer ce devis par email à l'organisation maintenant ?
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button
+              loading={isSendingEmail}
+              onClick={handleEnvoyerEmail}
+              className="w-full"
+            >
+              Envoyer maintenant
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handlePlusTard}
+              className="w-full"
+            >
+              Plus tard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
