@@ -56,14 +56,8 @@ export class AbonnementOrganisationService {
     });
 
     if (existant) {
-      if (existant.statut === 'ACTIF') throw new Error('ABONNEMENT_ORG_DEJA_ACTIF');
-      // Idempotence : reémettre une session NGSER si le paiement est en attente
-      const session = await this.creerSessionNgser(existant.id, existant.montant_annuel);
-      return {
-        abonnement: existant,
-        payment_url: session.payment_url,
-        order_ngser: existant.order_ngser,
-      };
+      // RM-84 : unicité stricte — un seul abonnement actif ou en attente par organisation
+      throw new Error('ABONNEMENT_ORG_DEJA_ACTIF');
     }
 
     const offre = offre_org;

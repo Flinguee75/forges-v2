@@ -140,6 +140,7 @@ jobs:
           JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
           JWT_REFRESH_SECRET: ci_refresh_secret_not_for_production_64chars_minimum
           ENCRYPTION_KEY: ci_encryption_key_32bytes_hex_not_for_prod_change_me_now
+          AES_SECRET_KEY: Y2ktdGVzdC1rZXktZm9yZ2VzMjAyNmNpLXRlc3Qta2U=
           HMAC_KEY: ci_hmac_key_32bytes_hex_not_for_production_change_me_now
           WEBHOOK_SECRET: ci_webhook_secret_not_for_production
           SMTP_HOST: localhost
@@ -276,6 +277,7 @@ jobs:
           JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
           JWT_REFRESH_SECRET: ci_refresh_secret_not_for_production_64chars_minimum
           ENCRYPTION_KEY: ci_encryption_key_32bytes_hex_not_for_prod_change_me_now
+          AES_SECRET_KEY: Y2ktdGVzdC1rZXktZm9yZ2VzMjAyNmNpLXRlc3Qta2U=
           HMAC_KEY: ci_hmac_key_32bytes_hex_not_for_production_change_me_now
           WEBHOOK_SECRET: ci_webhook_secret_not_for_production
           SMTP_HOST: localhost

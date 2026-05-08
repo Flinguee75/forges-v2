@@ -108,9 +108,9 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
 
     organisationId = org.id;
 
-    expect(org.raison_sociale).toBe('ANSSI CI');
-    expect(org.type).toBe('GOUVERNEMENT');
-    expect(org.email).toBe('apprenant1@org-test.ci');
+    expect(org.raison_sociale).toBe(groupeConfig.organisation.raison_sociale);
+    expect(org.type).toBe(groupeConfig.organisation.type);
+    expect(org.email).toBe(groupeConfig.organisation.email);
     expect(org.statut).toBe('ACTIF');
   });
 
@@ -148,11 +148,7 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
     expect(apprenants.every(a => a.statut === 'EN_ATTENTE')).toBe(true);
     expect(apprenants.every(a => a.organisation_id === organisationId)).toBe(true);
     expect(apprenants.map(a => a.email)).toEqual(
-      expect.arrayContaining([
-        'apprenant1@org-test.ci',
-        'apprenant2@org-test.ci',
-        'apprenant3@org-test.ci',
-      ])
+      expect.arrayContaining(groupeConfig.apprenants.map(a => a.email))
     );
   });
 
@@ -307,7 +303,7 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
     appels.forEach((call) => {
       expect(call[0].to).toBe(EMAIL_TEST_OVERRIDE);
       expect(call[0].subject).toContain('FORGES');
-      expect(call[0].html).toContain('ANSSI CI');
+      expect(call[0].html).toContain(groupeConfig.organisation.raison_sociale);
       expect(call[0].html).toContain('GWU/CCDL');
       // Pas de code acces dans l'email apprenant
       expect(call[0].html).not.toContain('code acces');

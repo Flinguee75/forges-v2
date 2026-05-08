@@ -57,23 +57,9 @@ beforeAll(async () => {
     auth({ email: orgEmail, password: PASSWORD }),
   ]);
 
-  // Formation UUID valide
-  const formations = await prisma.$queryRaw`
-    SELECT id FROM "Formation"
-    WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    LIMIT 1
-  `;
-  expect(formations.length).toBeGreaterThan(0);
-  formationId = formations[0].id;
-
-  // Session UUID valide pour cette formation (optionnelle)
-  const sessions = await prisma.$queryRaw`
-    SELECT id FROM "Session"
-    WHERE formation_id = ${formationId}
-    AND id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    LIMIT 1
-  `;
-  sessionId = sessions.length > 0 ? sessions[0].id : undefined;
+  // Utiliser les formations/sessions du seed canonique (IDs stables)
+  formationId = ids.standardFormation;
+  sessionId = ids.standardSession;
 });
 
 afterAll(async () => {

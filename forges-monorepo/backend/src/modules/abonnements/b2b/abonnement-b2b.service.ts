@@ -80,14 +80,8 @@ export class AbonnementB2BService {
     });
 
     if (existant) {
-      if (existant.statut === 'ACTIF') throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
-      // Idempotence : réémettre une session NGSER si paiement en attente
-      const session = await this.creerSessionNgser(existant.id, existant.prix_annuel);
-      return {
-        abonnement: existant,
-        payment_url: session.payment_url,
-        order_ngser: existant.order_ngser,
-      };
+      // RM-84 : unicité stricte
+      throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
     }
 
     const date_fin = new Date(Date.now() + 365 * 24 * 3600 * 1000);

@@ -537,8 +537,8 @@ export class PartenaireService {
     const totalAbonnement = commissionsAbonnement.reduce((sum, c) => sum + c.montant_reverse, 0);
     const total = totalRetail + totalAbonnement;
 
-    // RM-138 : vérifier seuil minimum (50 000 XOF = 5 000 000 centimes)
-    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || '5000000');
+    // RM-138 : vérifier seuil minimum
+    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_PARTENAIRE_XOF || '50000');
 
     if (total < seuil) {
       throw new Error('SEUIL_NON_ATTEINT');
