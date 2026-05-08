@@ -14,7 +14,7 @@
   },
   "apprenants": [
     {
-      "nom": "SAMASSI",
+      "nom": "DIALLO",
       "prenoms": "Aly",
       "email": "apprenant1@org-test.ci",
       "fonction": "Directeur",
@@ -22,7 +22,7 @@
       "pays_nationalite": "CI"
     },
     {
-      "nom": "KONAN",
+      "nom": "TRAORE",
       "prenoms": "Kouame Wilfried",
       "email": "apprenant2@org-test.ci",
       "fonction": "Directeur General Adjoint",
@@ -30,7 +30,7 @@
       "pays_nationalite": "CI"
     },
     {
-      "nom": "JARVIS",
+      "nom": "COULIBALY",
       "prenoms": "Bintou",
       "email": "apprenant3@org-test.ci",
       "fonction": "Directrice du Pole Support et Gestion",

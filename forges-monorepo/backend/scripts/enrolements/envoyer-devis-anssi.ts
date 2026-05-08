@@ -84,7 +84,7 @@ async function main() {
   const devisAffichage = {
     ...devis,
     formation: { ...devis.formation, intitule: 'Masterclass GWU/CCDL' },
-    organisation: { ...devis.organisation, contact_referent: 'Elie Konan', email: 'apprenant2@org-test.ci' },
+    organisation: { ...devis.organisation, contact_referent: 'Contact Test', email: 'apprenant2@org-test.ci' },
   };
 
   let pdfBuffer: Buffer | undefined;
