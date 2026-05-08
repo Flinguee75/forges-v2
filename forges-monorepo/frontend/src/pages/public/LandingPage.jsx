@@ -50,9 +50,9 @@ function CarouselCollaborateurs() {
       <div className="carousel-track gap-8 px-4">
         {items.map((c, idx) => (
           <div key={idx} className="flex flex-col items-center gap-3 w-44 flex-shrink-0">
-            <div className={`w-32 h-32 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-md ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length]}`}>
+            <div className={`w-32 h-32 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-md overflow-hidden ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length]}`}>
               {c.logo
-                ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain rounded-2xl p-2 bg-white" />
+                ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain bg-white p-3" />
                 : <span className="text-sm text-center px-2">{c.sigle}</span>}
             </div>
             <p className="text-xs text-center text-subtext font-medium leading-tight">{c.nom}</p>
