@@ -6,6 +6,7 @@ import FeatureIcon from '../../components/ui/FeatureIcon';
 import logoForges from '../../assets/logo_forges.png';
 import logoAspire from '../../assets/logo_aspire.png';
 import logoAiCrafters from '../../assets/logo_ai_crafters.png';
+import imageCcdlGw from '../../assets/image_ccdl_gw.png';
 import StatusBadge from '../../components/ui/StatusBadge';
 
 /**
@@ -13,82 +14,52 @@ import StatusBadge from '../../components/ui/StatusBadge';
  * Référence: CLAUDE.md section 17 - Étape F-5
  * Optimisée pour conversions et SEO
  */
-const CATEGORIES_COLLABORATEURS = [
-  {
-    id: 'academiques',
-    label: 'Partenaires académiques',
-    collaborateurs: [
-      { sigle: 'GWU', nom: 'George Washington University', pays: 'États-Unis', logo: null },
-      { sigle: 'CCDL', nom: 'Centre de Certification Digital de Lomé', pays: 'Togo', logo: null },
-    ],
-  },
-  {
-    id: 'institutions',
-    label: 'Institutions & Organismes',
-    collaborateurs: [
-      { sigle: 'ANSSI', nom: 'Agence Nationale de la Sécurité des Systèmes d\'Information', pays: 'Côte d\'Ivoire', logo: null },
-    ],
-  },
-  {
-    id: 'prives',
-    label: 'Partenaires privés',
-    collaborateurs: [
-      { sigle: 'ASPIRE', nom: 'Aspire', pays: 'Afrique', logo: logoAspire },
-      { sigle: 'AIC', nom: 'AI Crafters', pays: 'Afrique', logo: logoAiCrafters },
-    ],
-  },
+const COLLABORATEURS = [
+  { sigle: 'GWU', nom: 'George Washington University', logo: null },
+  { sigle: 'CCDL', nom: 'Centre de Certification Digital de Lomé', logo: null },
+  { sigle: 'ANSSI', nom: 'Agence Nationale Sécurité SI', logo: null },
+  { sigle: 'ASPIRE', nom: 'Aspire', logo: logoAspire },
+  { sigle: 'AIC', nom: 'AI Crafters', logo: logoAiCrafters },
 ];
 
 const COULEURS_SIGLE = ['bg-primary', 'bg-secondary', 'bg-success', 'bg-warning', 'bg-apporteur'];
 
-function CollaborateursSection() {
-  const [openCat, setOpenCat] = useState(null);
-
-  const toggleCat = (id) => setOpenCat(openCat === id ? null : id);
-
+function CarouselCollaborateurs() {
+  const items = [...COLLABORATEURS, ...COLLABORATEURS];
   return (
-    <div className="max-w-4xl mx-auto space-y-3">
-      {CATEGORIES_COLLABORATEURS.map((cat, catIdx) => (
-        <div key={cat.id} className="border border-border rounded-lg overflow-hidden">
-          <button
-            onClick={() => toggleCat(cat.id)}
-            className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-bg transition-colors bg-white"
-          >
-            <span className="font-semibold text-primary">
-              {cat.label}
-              <span className="ml-2 text-xs font-normal text-subtext bg-bg px-2 py-0.5 rounded-full">
-                {cat.collaborateurs.length}
-              </span>
-            </span>
-            <svg
-              className={`w-5 h-5 text-secondary transition-transform ${openCat === cat.id ? 'rotate-180' : ''}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {openCat === cat.id && (
-            <div className="px-6 py-5 bg-bg border-t border-border">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {cat.collaborateurs.map((c, idx) => (
-                  <div key={c.sigle} className="flex flex-col items-center text-center gap-2">
-                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-sm ${COULEURS_SIGLE[(catIdx * 3 + idx) % COULEURS_SIGLE.length]}`}>
-                      {c.logo
-                        ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain rounded-xl" />
-                        : c.sigle}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-text leading-tight">{c.nom}</p>
-                      <p className="text-xs text-subtext">{c.pays}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+    <div className="overflow-hidden relative w-full">
+      <style>{`
+        @keyframes scroll-left {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .carousel-track {
+          display: flex;
+          width: max-content;
+          animation: scroll-left 18s linear infinite;
+        }
+        .carousel-track:hover { animation-play-state: paused; }
+      `}</style>
+      <div
+        className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(to right, white, transparent)' }}
+      />
+      <div
+        className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(to left, white, transparent)' }}
+      />
+      <div className="carousel-track gap-8 px-4">
+        {items.map((c, idx) => (
+          <div key={idx} className="flex flex-col items-center gap-3 w-32 flex-shrink-0">
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-md ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length]}`}>
+              {c.logo
+                ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain rounded-2xl p-1 bg-white" />
+                : <span className="text-xs text-center px-1">{c.sigle}</span>}
             </div>
-          )}
-        </div>
-      ))}
+            <p className="text-xs text-center text-subtext font-medium leading-tight">{c.nom}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -404,58 +375,42 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 md:p-10 border border-white border-opacity-20">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs opacity-70 uppercase tracking-wide">Session</p>
-                      <p className="font-semibold">1 juin — 11 juin 2026</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs opacity-70 uppercase tracking-wide">Format</p>
-                      <p className="font-semibold">Présentiel + distanciel</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs opacity-70 uppercase tracking-wide">Certification</p>
-                      <p className="font-semibold">Double certification GWU + CCDL</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs opacity-70 uppercase tracking-wide">Tarif</p>
-                      <p className="font-semibold text-xl">2 000 000 FCFA</p>
-                    </div>
-                  </div>
+            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white border-opacity-20">
+              <div className="grid md:grid-cols-2">
+                {/* Image GWU/CCDL */}
+                <div className="relative min-h-64 md:min-h-0">
+                  <img
+                    src={imageCcdlGw}
+                    alt="Masterclass GWU CCDL"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
 
-                <div className="space-y-4">
-                  <p className="opacity-90 leading-relaxed">
-                    Une formation d'excellence co-certifiée par <strong>George Washington University (GWU)</strong> et
-                    le <strong>Centre de Certification Digital de Lomé (CCDL)</strong>. Maîtrisez les outils de
-                    cybersécurité et d'IA appliqués au contexte africain.
-                  </p>
+                {/* Infos */}
+                <div className="p-8 space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Session</p>
+                      <p className="font-semibold text-sm">1 — 11 juin 2026</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Format</p>
+                      <p className="font-semibold text-sm">Présentiel + distanciel</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Certification</p>
+                      <p className="font-semibold text-sm">Double GWU + CCDL</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Tarif</p>
+                      <p className="font-bold text-lg">2 000 000 FCFA</p>
+                    </div>
+                  </div>
                   <ul className="space-y-2 text-sm opacity-90">
                     <li className="flex items-center gap-2">
                       <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Sécurité des systèmes d'information
+                      Cybersécurité des systèmes d'information
                     </li>
                     <li className="flex items-center gap-2">
                       <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
@@ -463,15 +418,11 @@ export default function LandingPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Gestion des incidents & réponse aux crises
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                       Places limitées — inscription ouverte
                     </li>
                   </ul>
                   <Link to="/catalogue">
-                    <Button variant="white" size="large" className="w-full font-semibold mt-4">
+                    <Button variant="white" size="large" className="w-full font-semibold">
                       S'inscrire à cette formation
                     </Button>
                   </Link>
@@ -494,7 +445,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <CollaborateursSection />
+          <CarouselCollaborateurs />
         </div>
       </section>
 
