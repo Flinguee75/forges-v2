@@ -172,7 +172,7 @@ export class DevisService {
       // RM-154 : dossiers ayant utilisé un de ces vouchers → PAYE automatiquement
       const dossiers = await this.prisma.dossier.findMany({
         where: { voucher_organisation_id: { in: voucherIds } },
-        select: { id: true },
+        select: { id: true, source_financement: true, formation: { select: { cout_catalogue: true } } },
       });
 
       for (const dossier of dossiers) {
@@ -180,6 +180,30 @@ export class DevisService {
           where: { id: dossier.id },
           data: { statut: 'PAYE' },
         });
+
+        // Créer le Paiement CONFIRME pour que les KPIs comptabilisent ce CA
+        const montant = dossier.formation?.cout_catalogue ?? 0;
+        const existingPaiement = await this.prisma.paiement.findUnique({
+          where: { dossier_id: dossier.id },
+        });
+        if (!existingPaiement) {
+          await this.prisma.paiement.create({
+            data: {
+              dossier_id: dossier.id,
+              montant_catalogue: montant,
+              montant_final: montant,
+              methode: 'VIREMENT',
+              statut: 'CONFIRME',
+              provider: 'VIREMENT',
+              confirmed_at: new Date(),
+            },
+          });
+        } else if (existingPaiement.statut !== 'CONFIRME') {
+          await this.prisma.paiement.update({
+            where: { dossier_id: dossier.id },
+            data: { statut: 'CONFIRME', montant_final: montant },
+          });
+        }
 
         await this.audit.info('DOSSIER_PAYE_VIA_DEVIS', {
           dossier_id: dossier.id,
