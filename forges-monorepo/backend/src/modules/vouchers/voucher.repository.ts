@@ -30,7 +30,10 @@ export class VoucherRepository {
 
   async findById(id: string, type?: VoucherType) {
     if (type === 'ORGANISATION') {
-      return this.prisma.voucherOrganisation.findUnique({ where: { id } });
+      return this.prisma.voucherOrganisation.findUnique({
+        where: { id },
+        include: { formation: { select: { id: true, intitule: true, statut: true } } },
+      });
     }
     if (type === 'APPORTEUR' || type === 'PROMOTIONNEL') {
       return this.prisma.voucherApporteur.findUnique({
@@ -39,7 +42,10 @@ export class VoucherRepository {
       });
     }
     // Type inconnu : cherche dans les deux tables
-    const org = await this.prisma.voucherOrganisation.findUnique({ where: { id } });
+    const org = await this.prisma.voucherOrganisation.findUnique({
+      where: { id },
+      include: { formation: { select: { id: true, intitule: true, statut: true } } },
+    });
     if (org) return org;
     return this.prisma.voucherApporteur.findUnique({
       where: { id },

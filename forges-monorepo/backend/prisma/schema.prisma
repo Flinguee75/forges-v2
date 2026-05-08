@@ -111,6 +111,7 @@ model Formation {
   sessions                Session[]
   dossiers                Dossier[]
   vouchers                VoucherApporteur[]
+  vouchers_organisation   VoucherOrganisation[]
   commissions_partenaires CommissionPartenaire[]
   feedbacks               FeedbackFormation[]
   langues_disponibles     String[]
@@ -352,6 +353,7 @@ model VoucherOrganisation {
   code                      String    @unique
   organisation_id           String
   formation_id              String?
+  formation                 Formation? @relation(fields: [formation_id], references: [id])
   devis_id                  String?
   type                      String    @default("ORGANISATION")
   valeur                    Int?
