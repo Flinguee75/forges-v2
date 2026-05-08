@@ -128,27 +128,34 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
       className="group block h-full rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 hover:border-slate-400 hover:shadow-md"
     >
       <div className="flex h-full flex-col">
-        <div className={`relative mb-3 overflow-hidden rounded-lg bg-gradient-to-br ${theme.shell}`}>
-          <div className="aspect-[16/10] p-3">
-            <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-lg border border-white/10 bg-black/10 p-3 text-left backdrop-blur-[2px]">
-              <div className="flex items-start justify-between gap-2">
-                <span className="rounded-sm border border-white/20 bg-white/10 px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-[0.12em] text-white/70">
-                  FORGES
-                </span>
-                <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[9px] font-medium text-white/80">
-                  {category}
-                </span>
-              </div>
-
-              <div className="relative">
-                <div className={`absolute -right-3 -top-5 h-16 w-16 rounded-full blur-2xl ${theme.orb}`} />
-                <div className={`absolute -left-3 bottom-0 h-10 w-10 rounded-full blur-lg ${theme.accent}`} />
-                <p className="relative max-w-[12rem] text-left text-base font-semibold leading-tight text-white">
-                  {formationData.titre}
-                </p>
+        <div className="relative mb-3 overflow-hidden rounded-lg aspect-[16/10]">
+          {formationData.image_url ? (
+            <img
+              src={formationData.image_url}
+              alt={formationData.titre}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className={`h-full w-full bg-gradient-to-br ${theme.shell} p-3`}>
+              <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-lg border border-white/10 bg-black/10 p-3 text-left backdrop-blur-[2px]">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="rounded-sm border border-white/20 bg-white/10 px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-[0.12em] text-white/70">
+                    FORGES
+                  </span>
+                  <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[9px] font-medium text-white/80">
+                    {category}
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className={`absolute -right-3 -top-5 h-16 w-16 rounded-full blur-2xl ${theme.orb}`} />
+                  <div className={`absolute -left-3 bottom-0 h-10 w-10 rounded-full blur-lg ${theme.accent}`} />
+                  <p className="relative max-w-[12rem] text-left text-base font-semibold leading-tight text-white">
+                    {formationData.titre}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex flex-1 flex-col text-left">
