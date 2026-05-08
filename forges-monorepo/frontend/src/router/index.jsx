@@ -106,6 +106,7 @@ const ApprenantDetail = lazy(() => import('../pages/backoffice/apprenants/Appren
 const ApprenantCreate = lazy(() => import('../pages/backoffice/apprenants/ApprenantCreate'));
 const OrganisationsList = lazy(() => import('../pages/backoffice/organisations/OrganisationsList'));
 const OrganisationDetail = lazy(() => import('../pages/backoffice/organisations/OrganisationDetail'));
+const OrganisationCreate = lazy(() => import('../pages/backoffice/organisations/OrganisationCreate'));
 
 const DevisList = lazy(() => import('../pages/backoffice/devis/DevisList'));
 const DevisForm = lazy(() => import('../pages/backoffice/devis/DevisForm'));
@@ -805,6 +806,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
             {withSuspense(<OrganisationsList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'organisations/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<OrganisationCreate />)}
           </RoleGuard>
         ),
       },

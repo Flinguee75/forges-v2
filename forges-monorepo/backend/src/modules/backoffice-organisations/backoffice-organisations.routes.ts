@@ -77,6 +77,64 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
   }
 });
 
+// POST /api/backoffice/organisations - Créer une organisation (backoffice)
+router.post('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res, next) => {
+  try {
+    const {
+      raison_sociale,
+      email,
+      type,
+      contact_referent,
+      pays = 'CI',
+      langue_preferee = 'FR',
+      identifiant_legal,
+    } = req.body;
+
+    if (!raison_sociale || !email || !type || !contact_referent) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: 'CHAMPS_REQUIS',
+        message: 'raison_sociale, email, type et contact_referent sont obligatoires',
+      });
+    }
+
+    const existing = await prisma.organisation.findFirst({ where: { email } });
+    if (existing) {
+      return res.status(409).json({
+        statusCode: 409,
+        error: 'EMAIL_DEJA_UTILISE',
+        message: 'Une organisation avec cet email existe déjà',
+      });
+    }
+
+    const organisation = await prisma.organisation.create({
+      data: {
+        raison_sociale,
+        email,
+        type,
+        contact_referent,
+        pays,
+        langue_preferee,
+        identifiant_legal: identifiant_legal || null,
+        statut: 'ACTIVE',
+        consentement_rgpd: true,
+        consentement_timestamp: new Date(),
+        consentement_version_cgu: '1.0',
+      },
+    });
+
+    res.status(201).json({
+      statusCode: 201,
+      data: {
+        ...organisation,
+        nom_organisation: organisation.raison_sociale,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/backoffice/organisations/:id - Détail d'une organisation
 router.get('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res, next) => {
   try {
