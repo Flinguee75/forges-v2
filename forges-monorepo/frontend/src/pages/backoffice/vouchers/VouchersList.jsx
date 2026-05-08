@@ -60,6 +60,7 @@ export default function VouchersList() {
             className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
           >
             <option value="">Tous les statuts</option>
+            <option value="EN_ATTENTE">En attente</option>
             <option value="BROUILLON">Brouillon</option>
             <option value="ACTIF">Actif</option>
             <option value="EPUISE">Épuisé</option>
@@ -98,8 +99,12 @@ export default function VouchersList() {
                     <td className="py-4 text-sm text-text">{voucher.type}</td>
                     <td className="py-4 text-sm text-text">{voucher.formation?.titre || voucher.formation?.intitule || '-'}</td>
                     <td className="py-4">
-                      <Badge variant={voucher.statut === 'ACTIF' ? 'success' : voucher.statut === 'BROUILLON' ? 'warning' : 'gray'}>
-                        {voucher.statut}
+                      <Badge variant={
+                        voucher.statut === 'ACTIF' ? 'success' :
+                        voucher.statut === 'EN_ATTENTE' ? 'warning' :
+                        voucher.statut === 'BROUILLON' ? 'warning' : 'gray'
+                      }>
+                        {voucher.statut === 'EN_ATTENTE' ? 'En attente' : voucher.statut}
                       </Badge>
                     </td>
                     <td className="py-4 text-right text-sm text-text">

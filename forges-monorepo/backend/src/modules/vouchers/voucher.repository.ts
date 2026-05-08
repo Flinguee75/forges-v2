@@ -52,30 +52,57 @@ export class VoucherRepository {
     const limit = pagination.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (filters.type) where.type = filters.type;
-    if (filters.statut) where.statut = filters.statut;
-    if (filters.formation_id) where.formation_id = filters.formation_id;
-    if (filters.organisation_id) where.organisation_id = filters.organisation_id;
+    const whereApporteur: any = {};
+    const whereOrg: any = {};
+
+    if (filters.statut) {
+      whereApporteur.statut = filters.statut;
+      whereOrg.statut = filters.statut;
+    }
+    if (filters.formation_id) {
+      whereApporteur.formation_id = filters.formation_id;
+      whereOrg.formation_id = filters.formation_id;
+    }
+    if (filters.organisation_id) {
+      whereOrg.organisation_id = filters.organisation_id;
+    }
     if (filters.search) {
-      where.OR = [
-        { code: { contains: filters.search, mode: 'insensitive' } },
-      ];
+      whereApporteur.OR = [{ code: { contains: filters.search, mode: 'insensitive' } }];
+      whereOrg.OR = [{ code: { contains: filters.search, mode: 'insensitive' } }];
     }
 
-    const [items, total] = await Promise.all([
-      this.prisma.voucherApporteur.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { created_at: 'desc' },
-        include: {
-          formation: { select: { id: true, intitule: true, statut: true } },
-          apporteur: { select: { id: true, nom: true, email: true, code_apporteur: true, statut: true } },
-        },
-      }),
-      this.prisma.voucherApporteur.count({ where }),
+    const includeTypeApporteur = !filters.type || filters.type === 'APPORTEUR' || filters.type === 'PROMOTIONNEL';
+    const includeTypeOrg = !filters.type || filters.type === 'ORGANISATION';
+
+    const [apporteurItems, apporteurTotal, orgItems, orgTotal] = await Promise.all([
+      includeTypeApporteur
+        ? this.prisma.voucherApporteur.findMany({
+            where: whereApporteur,
+            orderBy: { created_at: 'desc' },
+            include: {
+              formation: { select: { id: true, intitule: true, statut: true } },
+              apporteur: { select: { id: true, nom: true, email: true, code_apporteur: true, statut: true } },
+            },
+          })
+        : Promise.resolve([]),
+      includeTypeApporteur ? this.prisma.voucherApporteur.count({ where: whereApporteur }) : Promise.resolve(0),
+      includeTypeOrg
+        ? this.prisma.voucherOrganisation.findMany({
+            where: whereOrg,
+            orderBy: { created_at: 'desc' },
+            include: {
+              formation: { select: { id: true, intitule: true, statut: true } },
+            },
+          })
+        : Promise.resolve([]),
+      includeTypeOrg ? this.prisma.voucherOrganisation.count({ where: whereOrg }) : Promise.resolve(0),
     ]);
+
+    const allItems = [...apporteurItems, ...orgItems].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    const total = apporteurTotal + orgTotal;
+    const items = allItems.slice(skip, skip + limit);
 
     return {
       data: items,
