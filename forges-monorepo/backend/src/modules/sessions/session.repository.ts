@@ -155,6 +155,18 @@ export class SessionRepository {
     });
   }
 
+  async findDossiersBySession(sessionId: string) {
+    return this.prisma.dossier.findMany({
+      where: { session_id: sessionId },
+      include: {
+        apprenant: {
+          select: { id: true, nom: true, prenoms: true, email: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
   // RM-20 : sessions à transitionner par le scheduler
   async findSessionsATransitionner() {
     const now = new Date();

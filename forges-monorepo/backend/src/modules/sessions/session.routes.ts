@@ -31,6 +31,10 @@ router.post('/scheduler/run', authorize('ADMIN'), (req, res, next) => {
   sessionController.runScheduler(req, res, next);
 });
 
+router.get('/:id/dossiers', authorize('ADMIN', 'SUPERVISEUR', 'RESPONSABLE'), (req, res, next) => {
+  sessionController.getDossiers(req, res, next);
+});
+
 router.get('/:id', authorize('ADMIN', 'SUPERVISEUR', 'RESPONSABLE'), (req, res, next) => {
   sessionController.getById(req, res, next);
 });

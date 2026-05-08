@@ -12,9 +12,11 @@ function getStatutBadge(statut) {
   const mapping = {
     BROUILLON: { variant: 'gray', label: 'Brouillon' },
     PLANIFIEE: { variant: 'info', label: 'Planifiée' },
+    A_VENIR: { variant: 'info', label: 'À venir' },
+    INSCRIPTIONS_OUVERTES: { variant: 'success', label: 'Inscriptions ouvertes' },
     OUVERTE: { variant: 'success', label: 'Ouverte' },
-    CLOTUREE: { variant: 'warning', label: 'Clôturée' },
     EN_COURS: { variant: 'info', label: 'En cours' },
+    CLOTUREE: { variant: 'warning', label: 'Clôturée' },
     TERMINEE: { variant: 'gray', label: 'Terminée' },
     ARCHIVEE: { variant: 'gray', label: 'Archivée' },
     ANNULEE: { variant: 'danger', label: 'Annulée' },
@@ -45,12 +47,17 @@ export default function SessionDetail() {
   };
 
   const loadDossiers = async () => {
-    await execute(() => sessionsApi.getDossiers(id), {
-      onSuccess: (response) => {
-        const payload = response?.data ?? response;
-        setDossiers(Array.isArray(payload) ? payload : []);
-      },
-    });
+    try {
+      await execute(() => sessionsApi.getDossiers(id), {
+        showErrorToast: false,
+        onSuccess: (response) => {
+          const payload = response?.data ?? response;
+          setDossiers(Array.isArray(payload) ? payload : []);
+        },
+      });
+    } catch {
+      // dossiers non bloquants
+    }
   };
 
   useEffect(() => {
@@ -123,17 +130,17 @@ export default function SessionDetail() {
             </p>
           </div>
           <div className="flex gap-2">
-            {session.statut === 'BROUILLON' && (
+            {['BROUILLON', 'PLANIFIEE'].includes(session.statut) && (
               <Button variant="outline" onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}>
                 Modifier
               </Button>
             )}
-            {session.statut === 'OUVERTE' && (
+            {['OUVERTE', 'INSCRIPTIONS_OUVERTES'].includes(session.statut) && (
               <Button variant="warning" onClick={closeSession} loading={isLoading}>
                 Clôturer
               </Button>
             )}
-            {['PLANIFIEE', 'OUVERTE'].includes(session.statut) && (
+            {['PLANIFIEE', 'A_VENIR', 'INSCRIPTIONS_OUVERTES', 'OUVERTE'].includes(session.statut) && (
               <Button variant="danger" onClick={cancelSession} loading={isLoading}>
                 Annuler
               </Button>
@@ -158,8 +165,24 @@ export default function SessionDetail() {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-subtext">Formation</p>
-            <p className="mt-1 text-sm text-text">{session.formation?.titre || session.formation?.intitule || 'N/A'}</p>
+            <button
+              type="button"
+              onClick={() => navigate(`/backoffice/formations/${session.formation_id}`)}
+              className="mt-1 text-sm font-medium text-primary underline-offset-2 hover:underline"
+            >
+              {session.formation?.titre || session.formation?.intitule || 'N/A'}
+            </button>
           </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-subtext">Places restantes</p>
+            <p className="mt-1 text-sm text-text">{session.places_restantes ?? session.capacite}</p>
+          </div>
+          {session.lieu && (
+            <div className="md:col-span-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-subtext">Lieu</p>
+              <p className="mt-1 text-sm text-text">{session.lieu}</p>
+            </div>
+          )}
         </div>
       </Card>
 

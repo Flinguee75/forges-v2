@@ -249,6 +249,12 @@ export class SessionService {
     return session;
   }
 
+  async getDossiers(id: string) {
+    const session = await this.sessionRepo.findById(id);
+    if (!session) throw new Error('SESSION_NOT_FOUND');
+    return this.sessionRepo.findDossiersBySession(id);
+  }
+
   async getByFormation(formation_id: string) {
     return this.sessionRepo.findByFormation(formation_id);
   }
