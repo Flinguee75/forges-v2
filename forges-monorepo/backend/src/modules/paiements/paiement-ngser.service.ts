@@ -6,7 +6,7 @@ import { InitierPaiementNgserDto } from './dto/paiement.dto';
 import { getDelaiPaiementH } from '../../config/env.config';
 
 const NGSER_PROVIDER = 'NGSER';
-const NGSER_MOCK_BASE_URL = 'https://mock-ngser.forges.ci/pay';
+const NGSER_MOCK_BASE_URL = `${(process.env.FRONTEND_URL || 'https://dev.forges-group.com').replace(/\/$/, '')}/mock-checkout`;
 
 export class PaiementNgserService {
   constructor(
@@ -194,6 +194,6 @@ export class PaiementNgserService {
   }
 
   private buildMockPaymentUrl(order: string): string {
-    return `${NGSER_MOCK_BASE_URL}?order=${order}`;
+    return `${NGSER_MOCK_BASE_URL}/${order}`;
   }
 }
