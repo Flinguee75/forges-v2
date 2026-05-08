@@ -147,12 +147,25 @@ export class InscriptionService {
 
     const montant_apres_reduction = montant_total - montant_reduction;
 
+    // Statut dossier selon le mode de financement (RM-140, RM-41)
+    // - Voucher ORGANISATION → PAYE (l'org couvre le paiement — RM-41)
+    // - Premium+Retail → EN_ATTENTE_VERIFICATION (RM-140)
+    // - Voucher APPORTEUR/PROMOTIONNEL ou autres → PAYE_DIRECTEMENT (l'apprenant paie)
+    let statutDossier: string;
+    if (voucher?.type === 'ORGANISATION') {
+      statutDossier = 'PAYE';
+    } else if (estPremiumEtRetail) {
+      statutDossier = 'EN_ATTENTE_VERIFICATION';
+    } else {
+      statutDossier = 'PAYE_DIRECTEMENT';
+    }
+
     const dossierData: any = {
       apprenant_id: params.apprenantId,
       formation_id: session.formation_id,
       session_id: params.session_id,
       source_financement: params.source_financement,
-      statut: voucher?.type === 'ORGANISATION' ? 'PAYE' : estPremiumEtRetail ? 'EN_ATTENTE_VERIFICATION' : 'PAYE_DIRECTEMENT',
+      statut: statutDossier,
       type_fenetre: typeFenetre,
       voucher_code: params.voucher_code,
       code_apporteur: params.code_apporteur,
@@ -196,6 +209,7 @@ export class InscriptionService {
             data: { statut: 'EPUISE' },
           });
         }
+
       }
     }
 
