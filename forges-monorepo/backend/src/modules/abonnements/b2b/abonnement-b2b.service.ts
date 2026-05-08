@@ -80,6 +80,14 @@ export class AbonnementB2BService {
     });
 
     if (existant) {
+      if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
+        const session = await this.creerSessionNgser(existant.id, existant.prix_annuel);
+        return {
+          abonnement: existant,
+          payment_url: session.payment_url,
+          order_ngser: existant.order_ngser,
+        };
+      }
       // RM-84 : unicité stricte
       throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
     }
