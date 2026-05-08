@@ -8,9 +8,11 @@ dotenv.config();
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
+import * as os from 'os';
 import { PrismaClient } from '@prisma/client';
 import { EmailService } from '../../src/shared/email/email.service';
-import { genererPdfDevis } from '../../src/modules/devis/devis-pdf.service';
+import { genererDocxDevis } from '../../src/modules/devis/devis-docx.service';
 
 const LOGO_PATH = path.join(__dirname, '../../../frontend/src/assets/logo_forges.png');
 
@@ -82,17 +84,32 @@ async function main() {
   const devisAffichage = {
     ...devis,
     formation: { ...devis.formation, intitule: 'Masterclass GWU/CCDL' },
-    organisation: { ...devis.organisation, contact_referent: 'Elie Konan' },
+    organisation: { ...devis.organisation, contact_referent: 'Elie Konan', email: 'apprenant2@org-test.ci' },
   };
 
   let pdfBuffer: Buffer | undefined;
   try {
-    pdfBuffer = await genererPdfDevis({
-      devis,
+    const docxBuffer = genererDocxDevis({
+      numero_devis: devis.numero_devis,
+      created_at: devis.created_at,
+      nb_places: devis.nb_places,
+      tarif_unitaire_xof: devis.tarif_unitaire_xof,
+      montant_total_xof: devis.montant_total_xof,
       organisation: devisAffichage.organisation,
       formation: devisAffichage.formation,
       session: devis.session,
     });
+    console.log(`Facture DOCX generee : ${docxBuffer.length} octets`);
+
+    // Conversion DOCX -> PDF via LibreOffice
+    const tmpDir = os.tmpdir();
+    const docxPath = path.join(tmpDir, `${devis.numero_devis}.docx`);
+    const pdfPath = path.join(tmpDir, `${devis.numero_devis}.pdf`);
+    fs.writeFileSync(docxPath, docxBuffer);
+    execSync(`soffice --headless --convert-to pdf --outdir "${tmpDir}" "${docxPath}"`, { timeout: 30000 });
+    pdfBuffer = fs.readFileSync(pdfPath);
+    fs.unlinkSync(docxPath);
+    fs.unlinkSync(pdfPath);
     console.log(`Facture PDF generee : ${pdfBuffer.length} octets`);
   } catch (err: any) {
     console.warn(`PDF non genere (non bloquant): ${err.message}`);
