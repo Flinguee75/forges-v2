@@ -1,10 +1,23 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { DevisRepository } from './devis.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { CreerDevisDto } from './dto/devis.dto';
 import { genererDocxDevis } from './devis-docx.service';
+
+const LOGO_PATH = path.join(__dirname, '../../../../frontend/src/assets/logo_forges.png');
+
+function getLogoBase64(): string {
+  try {
+    if (!fs.existsSync(LOGO_PATH)) return '';
+    return `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString('base64')}`;
+  } catch {
+    return '';
+  }
+}
 
 export class DevisService {
   constructor(
@@ -60,10 +73,6 @@ export class DevisService {
 
     const langue = organisation.langue_preferee || 'FR';
 
-    const session = dto.session_id
-      ? await this.prisma.session.findUnique({ where: { id: dto.session_id } })
-      : undefined;
-
     let docxBuffer: Buffer | undefined;
     try {
       docxBuffer = genererDocxDevis(devis as any);
@@ -77,8 +86,8 @@ export class DevisService {
 
     const emailSubject = langue === 'EN'
       ? `Your quote ${numero_devis} from FORGES`
-      : `Votre devis ${numero_devis} — FORGES AGRÉGATEUR`;
-    const emailHtml = this.buildEmailDevis(devis, organisation, formation, session, langue);
+      : `Votre facture ${numero_devis} — FORGES AGRÉGATEUR`;
+    const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation });
 
     if (docxBuffer) {
       await this.emailService.sendEmailWithAttachment({
@@ -303,10 +312,6 @@ export class DevisService {
     if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
     if (!formation) throw new Error('FORMATION_NOT_FOUND');
 
-    const session = devis.session_id
-      ? await this.prisma.session.findUnique({ where: { id: devis.session_id } })
-      : undefined;
-
     const langue = organisation.langue_preferee || 'FR';
 
     let docxBuffer: Buffer | undefined;
@@ -318,8 +323,8 @@ export class DevisService {
 
     const emailSubject = langue === 'EN'
       ? `Your quote ${devis.numero_devis} from FORGES`
-      : `Votre devis ${devis.numero_devis} — FORGES AGRÉGATEUR`;
-    const emailHtml = this.buildEmailDevis(devis, organisation, formation, session, langue);
+      : `Votre facture ${devis.numero_devis} — FORGES AGRÉGATEUR`;
+    const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation });
 
     if (docxBuffer) {
       await this.emailService.sendEmailWithAttachment({
@@ -354,166 +359,111 @@ export class DevisService {
     return montant.toLocaleString('fr-FR') + ' XOF';
   }
 
-  private buildEmailDevis(devis: any, organisation: any, formation: any, session: any, langue: string): string {
-    const sessionInfo = session
-      ? `${new Date(session.date_debut).toLocaleDateString('fr-FR')} — ${new Date(session.date_fin).toLocaleDateString('fr-FR')}`
-      : 'À planifier';
-
-    const styles = `
-      <style>
-        .devis-container { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1C2833; }
-        .devis-header { background: #F4F6F7; padding: 20px; border-radius: 8px 8px 0 0; }
-        .devis-header h2 { margin: 0; color: #1B4F72; font-size: 18px; }
-        .devis-header p { margin: 5px 0 0; color: #566573; font-size: 12px; }
-        .devis-content { padding: 20px; }
-        .destinataire { margin-bottom: 20px; }
-        .destinataire-label { color: #2E86C1; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .destinataire-nom { font-size: 16px; font-weight: bold; margin: 4px 0; }
-        .destinataire-email { color: #566573; font-size: 13px; }
-        .section-title { color: #1B4F72; font-size: 14px; font-weight: bold; margin: 20px 0 12px; border-bottom: 1px solid #D5D8DC; padding-bottom: 8px; }
-        .devis-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .devis-table th { background: #1B4F72; color: white; padding: 10px 8px; text-align: left; font-weight: 600; }
-        .devis-table td { padding: 12px 8px; border-bottom: 1px solid #D5D8DC; }
-        .devis-table tr:nth-child(even) { background: #F4F6F7; }
-        .devis-table .text-right { text-align: right; }
-        .devis-table .text-center { text-align: center; }
-        .total-row { background: #1B4F72 !important; color: white; font-weight: bold; }
-        .total-row td { padding: 14px 8px; }
-        .instructions { background: #F4F6F7; padding: 16px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #1B4F72; }
-        .instructions-title { color: #1B4F72; font-weight: bold; font-size: 13px; margin-bottom: 10px; }
-        .instructions-text { font-size: 12px; line-height: 1.6; color: #566573; }
-        .rib-table { width: 100%; font-size: 12px; margin-top: 10px; }
-        .rib-table td { padding: 4px 0; }
-        .rib-label { color: #566573; font-weight: 600; width: 140px; }
-        .conditions { margin-top: 20px; padding: 12px; background: #F4F6F7; border-radius: 8px; font-size: 11px; color: #566573; line-height: 1.5; }
-        .conditions strong { color: #1B4F72; }
-        .footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid #D5D8DC; font-size: 11px; color: #566573; text-align: center; }
-      </style>
-    `;
-
-    if (langue === 'EN') {
-      return `
-        ${styles}
-        <div class="devis-container">
-          <div class="devis-header">
-            <h2>FORGES AGRÉGATEUR — INVOICE</h2>
-            <p>${devis.numero_devis} — Issued on ${new Date(devis.created_at || Date.now()).toLocaleDateString('en-GB')}</p>
-          </div>
-          <div class="devis-content">
-            <div class="destinataire">
-              <div class="destinataire-label">Recipient</div>
-              <div class="destinataire-nom">${organisation.raison_sociale}</div>
-              <div class="destinataire-email">${organisation.email}</div>
-              ${organisation.identifiant_legal ? `<div style="color:#566573;font-size:12px;">Legal ID: ${organisation.identifiant_legal}</div>` : ''}
-            </div>
-            <div class="section-title">Invoice Details</div>
-            <table class="devis-table">
-              <thead>
-                <tr>
-                  <th>Training</th>
-                  <th>Session</th>
-                  <th class="text-center">Qty</th>
-                  <th class="text-right">Unit Price</th>
-                  <th class="text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>${formation.intitule}</td>
-                  <td>${sessionInfo}</td>
-                  <td class="text-center">${devis.nb_places}</td>
-                  <td class="text-right">${this.formatMontant(devis.tarif_unitaire_xof)}</td>
-                  <td class="text-right">${this.formatMontant(devis.montant_total_xof)}</td>
-                </tr>
-                <tr class="total-row">
-                  <td colspan="4">TOTAL AMOUNT</td>
-                  <td class="text-right">${this.formatMontant(devis.montant_total_xof)}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="instructions">
-              <div class="instructions-title">Payment Instructions</div>
-              <div class="instructions-text">Payment must be made by bank transfer to the following account:</div>
-              <table class="rib-table">
-                <tr><td class="rib-label">Bank:</td><td>${process.env.FORGES_BANK_NOM || 'NSIA Banque Cote d\'Ivoire'}</td></tr>
-                <tr><td class="rib-label">Account holder:</td><td>${process.env.FORGES_BANK_TITULAIRE || 'Network Services Consulting'}</td></tr>
-                <tr><td class="rib-label">IBAN:</td><td>${process.env.FORGES_BANK_IBAN || 'CI93 CI04 2012 9106 9108 2020 0294'}</td></tr>
-                <tr><td class="rib-label">Account No.:</td><td>${process.env.FORGES_BANK_COMPTE || '069108202002'}</td></tr>
-                <tr><td class="rib-label">BIC/SWIFT:</td><td>${process.env.FORGES_BANK_BIC || 'BIAOCIABXXX'}</td></tr>
-                <tr><td class="rib-label">Mandatory reference:</td><td><strong>${devis.numero_devis}</strong></td></tr>
-              </table>
-            </div>
-            <div class="conditions">
-              <strong>Terms:</strong> This invoice is valid for 30 days from the date of issue. Please include the reference <strong>${devis.numero_devis}</strong> in your transfer label. Upon receipt of payment, your FORGES contact will proceed with enrollment confirmation.
-            </div>
-            <div class="footer">
-              FORGES AGRÉGATEUR — Contact: ${process.env.EMAIL_FROM || 'contact@forges-group.com'}
-            </div>
-          </div>
-        </div>
-      `;
-    }
+  private buildEmailHtml(devis: any): string {
+    const org = devis.organisation;
+    const formation = devis.formation;
+    const montant = devis.montant_total_xof.toLocaleString('fr-FR');
+    const tarif = devis.tarif_unitaire_xof.toLocaleString('fr-FR');
+    const BLEU = '#0d1b6e';
+    const OR = '#FFE500';
+    const logoBase64 = getLogoBase64();
 
     return `
-      ${styles}
-      <div class="devis-container">
-        <div class="devis-header">
-          <h2>FORGES AGRÉGATEUR — FACTURE</h2>
-          <p>${devis.numero_devis} — Émis le ${new Date(devis.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
-        </div>
-        <div class="devis-content">
-          <div class="destinataire">
-            <div class="destinataire-label">Destinataire</div>
-            <div class="destinataire-nom">${organisation.raison_sociale}</div>
-            <div class="destinataire-email">${organisation.email}</div>
-            ${organisation.pays ? `<div style="color:#566573;font-size:12px;">${organisation.pays}</div>` : ''}
-            ${organisation.identifiant_legal ? `<div style="color:#566573;font-size:12px;">ID légal : ${organisation.identifiant_legal}</div>` : ''}
-          </div>
-          <div class="section-title">Détails de la facture</div>
-          <table class="devis-table">
-            <thead>
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f2f8;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f8;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(4,26,159,0.12);">
+
+        <tr>
+          <td style="background:${BLEU};padding:28px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <th>Formation</th>
-                <th>Session</th>
-                <th class="text-center">Qté</th>
-                <th class="text-right">P.U.</th>
-                <th class="text-right">Total</th>
+                <td width="72" valign="middle">
+                  ${logoBase64 ? `<img src="${logoBase64}" alt="FORGES" width="60" height="60" style="display:block;border-radius:8px;" />` : ''}
+                </td>
+                <td valign="middle" style="padding-left:16px;">
+                  <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">FORGES AGRÉGATEUR</div>
+                  <div style="color:${OR};font-size:13px;margin-top:4px;font-weight:600;">Plateforme de formations certifiantes</div>
+                </td>
+                <td align="right" valign="middle">
+                  <div style="background:${OR};color:${BLEU};padding:8px 16px;border-radius:6px;font-weight:700;font-size:12px;text-align:center;letter-spacing:0.5px;">
+                    FACTURE<br>
+                    <span style="font-size:10px;font-weight:400;">${devis.numero_devis}</span>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${formation.intitule}</td>
-                <td>${sessionInfo}</td>
-                <td class="text-center">${devis.nb_places}</td>
-                <td class="text-right">${this.formatMontant(devis.tarif_unitaire_xof)}</td>
-                <td class="text-right">${this.formatMontant(devis.montant_total_xof)}</td>
-              </tr>
-              <tr class="total-row">
-                <td colspan="4">MONTANT TOTAL</td>
-                <td class="text-right">${this.formatMontant(devis.montant_total_xof)}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="instructions">
-            <div class="instructions-title">Instructions de paiement</div>
-            <div class="instructions-text">Le paiement s'effectue par virement bancaire aux coordonnées suivantes :</div>
-            <table class="rib-table">
-              <tr><td class="rib-label">Banque :</td><td>${process.env.FORGES_BANK_NOM || 'NSIA Banque Cote d\'Ivoire'}</td></tr>
-              <tr><td class="rib-label">Titulaire :</td><td>${process.env.FORGES_BANK_TITULAIRE || 'Network Services Consulting'}</td></tr>
-              <tr><td class="rib-label">IBAN :</td><td>${process.env.FORGES_BANK_IBAN || 'CI93 CI04 2012 9106 9108 2020 0294'}</td></tr>
-              <tr><td class="rib-label">N° Compte :</td><td>${process.env.FORGES_BANK_COMPTE || '069108202002'}</td></tr>
-              <tr><td class="rib-label">BIC/SWIFT :</td><td>${process.env.FORGES_BANK_BIC || 'BIAOCIABXXX'}</td></tr>
-              <tr><td class="rib-label">Référence obligatoire :</td><td><strong>${devis.numero_devis}</strong></td></tr>
             </table>
-          </div>
-          <div class="conditions">
-            <strong>Conditions :</strong> Cette facture est valable 30 jours à compter de sa date d'émission. Merci d'indiquer obligatoirement la référence <strong>${devis.numero_devis}</strong> dans le libellé de votre virement. Après réception du paiement, votre contact FORGES procédera à la confirmation des inscriptions.
-          </div>
-          <div class="footer">
-            FORGES AGRÉGATEUR — Contact : ${process.env.EMAIL_FROM || 'contact@forges-group.com'}
-          </div>
-        </div>
-      </div>
+          </td>
+        </tr>
+
+        <tr><td style="background:${OR};height:4px;"></td></tr>
+
+        <tr>
+          <td style="background:#ffffff;padding:36px 32px;">
+            <p style="margin:0 0 8px;font-size:15px;color:#333;">
+              Bonjour <strong>${org.contact_referent || org.raison_sociale}</strong>,
+            </p>
+            <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+              Veuillez trouver ci-jointe la facture <strong style="color:${BLEU};">${devis.numero_devis}</strong>
+              etablie pour <strong>${org.raison_sociale}</strong> concernant la formation
+              <strong>${formation.intitule}</strong>.
+            </p>
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:14px;">
+              <tr style="background:${BLEU};">
+                <td style="padding:12px 16px;color:#ffffff;font-weight:700;">Formation</td>
+                <td style="padding:12px 16px;color:${OR};font-weight:700;text-align:right;">${formation.intitule}</td>
+              </tr>
+              <tr style="background:#f8f9fb;">
+                <td style="padding:11px 16px;color:#666;">Nombre de places</td>
+                <td style="padding:11px 16px;font-weight:600;text-align:right;color:#333;">${devis.nb_places}</td>
+              </tr>
+              <tr>
+                <td style="padding:11px 16px;color:#666;border-top:1px solid #e2e8f0;">Tarif unitaire</td>
+                <td style="padding:11px 16px;font-weight:600;text-align:right;color:#333;border-top:1px solid #e2e8f0;">${tarif} FCFA</td>
+              </tr>
+              <tr style="background:${BLEU};">
+                <td style="padding:14px 16px;color:#ffffff;font-weight:700;font-size:15px;">MONTANT TOTAL</td>
+                <td style="padding:14px 16px;color:${OR};font-weight:700;font-size:18px;text-align:right;">${montant} FCFA</td>
+              </tr>
+            </table>
+
+            ${devis.notes_admin ? `
+            <p style="margin:20px 0 0;font-size:13px;color:#888;font-style:italic;border-left:3px solid ${OR};padding-left:12px;">${devis.notes_admin}</p>
+            ` : ''}
+
+            <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
+              La facture est jointe a cet email au format Word.<br>
+              Apres validation, notre equipe vous communiquera les acces a la plateforme FORGES.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background:${BLEU};padding:20px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="color:#a0b0e0;font-size:12px;">
+                  <strong style="color:#ffffff;">FORGES AGRÉGATEUR</strong><br>
+                  contact@forges-group.com &nbsp;|&nbsp; www.forges-group.com
+                </td>
+                <td align="right">
+                  <div style="width:8px;height:8px;background:${OR};border-radius:50%;display:inline-block;"></div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
     `;
   }
+
 }
