@@ -63,6 +63,16 @@ run_newman() {
     --reporters cli,htmlextra \
     --reporter-htmlextra-export newman-report-dev.html
   log_info "Newman report: ${BACKEND}/newman-report-dev.html"
+
+  log_info "Resetting dev DB after Newman (etat propre pour la demo)..."
+  if curl -sf --max-time 3 http://localhost:3001/health > /dev/null 2>&1; then
+    DATABASE_URL="${DATABASE_URL:-}" node "${BACKEND}/seed-e2e.js" --reset
+  else
+    scp -i ~/.ssh/id_ed25519_forges "${BACKEND}/seed-e2e.js" forgesadmin@92.205.164.97:/tmp/seed-e2e.js
+    ssh -i ~/.ssh/id_ed25519_forges forgesadmin@92.205.164.97 \
+      "docker cp /tmp/seed-e2e.js forges-backend-dev:/app/seed-e2e.js && docker exec forges-backend-dev node seed-e2e.js --reset"
+  fi
+  log_info "DB reset post-Newman OK."
 }
 
 run_playwright() {
