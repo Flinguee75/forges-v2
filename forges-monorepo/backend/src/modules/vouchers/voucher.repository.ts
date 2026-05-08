@@ -90,15 +90,26 @@ export class VoucherRepository {
         ? this.prisma.voucherOrganisation.findMany({
             where: whereOrg,
             orderBy: { created_at: 'desc' },
-            include: {
-              formation: { select: { id: true, intitule: true, statut: true } },
-            },
           })
         : Promise.resolve([]),
       includeTypeOrg ? this.prisma.voucherOrganisation.count({ where: whereOrg }) : Promise.resolve(0),
     ]);
 
-    const allItems = [...apporteurItems, ...orgItems].sort(
+    // Enrichir les voucherOrganisation avec les données de formation (jointure manuelle)
+    const formationIds = [...new Set(orgItems.map((v: any) => v.formation_id).filter(Boolean))];
+    const formations = formationIds.length > 0
+      ? await this.prisma.formation.findMany({
+          where: { id: { in: formationIds as string[] } },
+          select: { id: true, intitule: true, statut: true },
+        })
+      : [];
+    const formationMap = new Map(formations.map((f) => [f.id, f]));
+    const orgItemsWithFormation = orgItems.map((v: any) => ({
+      ...v,
+      formation: v.formation_id ? (formationMap.get(v.formation_id) ?? null) : null,
+    }));
+
+    const allItems = [...apporteurItems, ...orgItemsWithFormation].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     const total = apporteurTotal + orgTotal;
