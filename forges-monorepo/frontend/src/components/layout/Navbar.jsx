@@ -119,6 +119,7 @@ export default function Navbar({
   title,
   user,
   onLogout,
+  onMenuToggle,
 }) {
   const isPublic = variant === 'public';
   const privateCopy = getPrivateCopy(user?.langue_preferee);
@@ -145,6 +146,18 @@ export default function Navbar({
             </>
           ) : (
             <div className="flex items-center gap-3 min-w-0">
+              {onMenuToggle && (
+                <button
+                  type="button"
+                  onClick={onMenuToggle}
+                  className="shrink-0 rounded-md p-1.5 text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary md:hidden"
+                  aria-label="Ouvrir le menu"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              )}
               <img src={logoForges} alt="FORGES" className="h-8 w-auto shrink-0" />
               <div className="min-w-0">
               <p className="truncate text-xs font-semibold uppercase tracking-[0.24em] text-primary/55">
@@ -220,4 +233,5 @@ Navbar.propTypes = {
     raison_sociale: PropTypes.string,
   }),
   onLogout: PropTypes.func,
+  onMenuToggle: PropTypes.func,
 };

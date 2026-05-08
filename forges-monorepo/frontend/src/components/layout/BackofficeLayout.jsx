@@ -97,7 +97,7 @@ export default function BackofficeLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-bg md:flex">
+    <div className="flex min-h-screen bg-bg">
       <Sidebar
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -110,15 +110,16 @@ export default function BackofficeLayout() {
           .filter((section) => section.items.length > 0)}
       />
 
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Navbar
           variant="private"
           title="Espace Backoffice"
           user={user}
           onLogout={handleLogout}
+          onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
 
