@@ -188,4 +188,11 @@ export class VoucherRepository {
       });
     }
   }
+
+  async delete(id: string, type?: VoucherType) {
+    if (type === 'ORGANISATION') {
+      return this.prisma.voucherOrganisation.delete({ where: { id } });
+    }
+    return this.prisma.voucherApporteur.delete({ where: { id } });
+  }
 }

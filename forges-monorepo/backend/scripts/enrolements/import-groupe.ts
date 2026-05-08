@@ -233,8 +233,19 @@ async function run() {
 
   // --- Etape 4: Vouchers nominatifs EN_ATTENTE (1 par apprenant, liés au devis) ---
   console.log('[4/5] Vouchers nominatifs...');
-  const expiration = new Date();
-  expiration.setDate(expiration.getDate() + VOUCHER_EXPIRATION_DAYS);
+
+  // Expiration = date_debut de la session si disponible, sinon J+90
+  let expiration = new Date();
+  if (sessionId) {
+    const session = await prisma.session.findUnique({ where: { id: sessionId }, select: { date_debut: true } });
+    if (session?.date_debut) {
+      expiration = new Date(session.date_debut);
+    } else {
+      expiration.setDate(expiration.getDate() + VOUCHER_EXPIRATION_DAYS);
+    }
+  } else {
+    expiration.setDate(expiration.getDate() + VOUCHER_EXPIRATION_DAYS);
+  }
   const voucherCodes: string[] = [];
 
   for (let i = 0; i < config.apprenants.length; i++) {

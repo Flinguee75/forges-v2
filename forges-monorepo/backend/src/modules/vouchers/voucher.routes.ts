@@ -50,4 +50,12 @@ router.patch('/:id/reject', authenticate, authorize('ADMIN', 'SUPERVISEUR'), (re
   voucherController.rejectPromotionnel(req, res, next);
 });
 
+router.patch('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.updateVoucher(req, res, next);
+});
+
+router.delete('/:id', authenticate, authorize('ADMIN', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.deleteVoucher(req, res, next);
+});
+
 export default router;

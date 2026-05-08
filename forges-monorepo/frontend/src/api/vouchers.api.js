@@ -93,6 +93,15 @@ export const vouchersApi = {
     });
     return unwrapPayload(response);
   },
+
+  update: async (id, data) => {
+    const response = await apiClient.patch(`/vouchers/${id}`, data);
+    return normalizeVoucher(unwrapPayload(response));
+  },
+
+  delete: async (id) => {
+    return apiClient.delete(`/vouchers/${id}`);
+  },
 };
 
 export default vouchersApi;

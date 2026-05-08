@@ -157,4 +157,24 @@ export class VoucherController {
       next(error);
     }
   }
+
+  async updateVoucher(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.voucherService.updateVoucher(req.params.id, req.body);
+      res.status(200).json({ statusCode: 200, data: result });
+    } catch (error: any) {
+      if (error.message === 'VOUCHER_NOT_FOUND') return res.status(404).json({ statusCode: 404, error: 'VOUCHER_NOT_FOUND' });
+      next(error);
+    }
+  }
+
+  async deleteVoucher(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.voucherService.deleteVoucher(req.params.id);
+      res.status(200).json({ statusCode: 200, message: 'Voucher supprime' });
+    } catch (error: any) {
+      if (error.message === 'VOUCHER_NOT_FOUND') return res.status(404).json({ statusCode: 404, error: 'VOUCHER_NOT_FOUND' });
+      next(error);
+    }
+  }
 }

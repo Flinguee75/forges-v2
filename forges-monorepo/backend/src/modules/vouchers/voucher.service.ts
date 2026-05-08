@@ -339,4 +339,23 @@ export class VoucherService {
       nom: byVoucherCode.apporteur.nom,
     };
   }
+
+  async updateVoucher(id: string, data: { quota_max?: number; date_expiration?: string; statut?: string }) {
+    const voucher = await this.voucherRepo.findById(id);
+    if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
+
+    const updateData: Record<string, unknown> = {};
+    if (data.quota_max !== undefined) updateData.quota_max = data.quota_max;
+    if (data.date_expiration !== undefined) updateData.date_expiration = new Date(data.date_expiration);
+    if (data.statut !== undefined) updateData.statut = data.statut;
+
+    const updated = await this.voucherRepo.update(id, updateData, voucher.type as any);
+    return this.serializeVoucher({ ...voucher, ...updated });
+  }
+
+  async deleteVoucher(id: string) {
+    const voucher = await this.voucherRepo.findById(id);
+    if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
+    await this.voucherRepo.delete(id, voucher.type as any);
+  }
 }
