@@ -93,6 +93,7 @@ model Formation {
   responsable_id          String
   type_formation          String
   mode_formation          String
+  lieu                    String?
   statut                  String                  @default("BROUILLON")
   inclus_abonnement       Boolean                 @default(false)
   pilier_abonnement       String?
@@ -148,6 +149,7 @@ model Session {
   capacite         Int
   nb_inscrits      Int       @default(0)
   places_restantes Int
+  lieu             String?
   statut           String    @default("PLANIFIEE")
   created_at       DateTime  @default(now())
   formation        Formation @relation(fields: [formation_id], references: [id])
@@ -616,6 +618,8 @@ enum TypeFormation {
 enum ModeFormation {
   AVEC_SESSION
   A_LA_DEMANDE
+  PRESENTIEL
+  EN_LIGNE
 }
 
 enum PilierAbonnement {
