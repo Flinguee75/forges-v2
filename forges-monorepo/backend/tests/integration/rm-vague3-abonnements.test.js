@@ -116,6 +116,12 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(first.body.data.organisation_id).toBe(account.id);
     expect(first.body.data.nb_max).toBe(20);
 
+    // Activer l'abonnement (simule le paiement NGSER reçu)
+    await prisma.abonnementB2B.update({
+      where: { id: first.body.data.id },
+      data: { statut: 'ACTIF' },
+    });
+
     const duplicate = await request(API_URL)
       .post('/api/abonnements/b2b')
       .set(headers)

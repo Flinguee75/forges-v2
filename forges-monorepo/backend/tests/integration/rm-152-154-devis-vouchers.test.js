@@ -57,12 +57,8 @@ beforeAll(async () => {
     auth({ email: orgEmail, password: PASSWORD }),
   ]);
 
-  // Le DTO devis exige un UUID — on utilise la première formation disponible
-  const formation = await prisma.formation.findFirst({ where: { statut: 'PUBLIEE' } });
-  if (!formation) throw new Error('Aucune formation PUBLIEE — lancez le seed avant ce test');
-  formationId = formation.id;
-  const session = await prisma.session.findFirst({ where: { formation_id: formationId, statut: 'OUVERTE' } });
-  sessionId = session?.id ?? null;
+  formationId = ids.standardFormation;
+  sessionId = ids.standardSession;
 });
 
 afterAll(async () => {

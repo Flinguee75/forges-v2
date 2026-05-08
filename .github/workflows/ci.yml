@@ -253,6 +253,21 @@ jobs:
           DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
         run: npx prisma migrate deploy
 
+      - name: Charger les données de test E2E
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+          NODE_ENV: test
+          JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
+          JWT_REFRESH_SECRET: ci_refresh_secret_not_for_production_64chars_minimum
+          ENCRYPTION_KEY: ci_encryption_key_32bytes_hex_not_for_prod_change_me_now
+          AES_SECRET_KEY: Y2ktdGVzdC1rZXktZm9yZ2VzMjAyNmNpLXRlc3Qta2U=
+          HMAC_KEY: ci_hmac_key_32bytes_hex_not_for_production_change_me_now
+          WEBHOOK_SECRET: ci_webhook_secret_not_for_production
+          SMTP_HOST: localhost
+          FRONTEND_URL: http://localhost:5173
+        run: npm run prisma:seed:e2e
+
       - name: Verifier drift schema vs migrations
         working-directory: forges-monorepo/backend
         env:

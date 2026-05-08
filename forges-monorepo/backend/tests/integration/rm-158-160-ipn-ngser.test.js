@@ -551,6 +551,7 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
         .post(`/api/sessions/${ids.partenaireSession}/inscrire`)
         .set(headers)
         .send({ source_financement: 'RETAIL' });
+      expect(inscription.status).toBe(201);
 
       const dossierId = inscription.body.dossier.id;
       const paiement = await createNgserPaiement(dossierId);
