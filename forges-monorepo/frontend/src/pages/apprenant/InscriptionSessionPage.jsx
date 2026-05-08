@@ -24,6 +24,8 @@ export default function InscriptionSessionPage() {
   const [apporteurCode, setApporteurCode] = useState('');
   const [sourceFinancement, setSourceFinancement] = useState('RETAIL');
   const [formError, setFormError] = useState('');
+  const [abonnementActif, setAbonnementActif] = useState(null);
+  const [loadingAbonnement, setLoadingAbonnement] = useState(true);
 
   const { execute: executeFormation, isLoading: loadingFormation } = useApi();
   const { execute: executeSessions, isLoading: loadingSessions } = useApi();
@@ -49,6 +51,13 @@ export default function InscriptionSessionPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formationId]);
+
+  useEffect(() => {
+    apprenantApi.getMonAbonnementRetail()
+      .then((data) => setAbonnementActif(data?.statut === 'ACTIF' ? data : null))
+      .catch(() => setAbonnementActif(null))
+      .finally(() => setLoadingAbonnement(false));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,7 +87,16 @@ export default function InscriptionSessionPage() {
         });
       },
       onError: (err) => {
-        setFormError(err?.message || 'Une erreur est survenue lors de l\'inscription.');
+        const code = err?.message || '';
+        if (code.includes('ABONNEMENT_REQUIS')) {
+          setFormError('Vous devez avoir un abonnement actif pour utiliser cette option.');
+        } else if (code.includes('FORMATION_LIMIT_REACHED')) {
+          setFormError('Vous avez atteint la limite de 3 formations simultanées avec votre abonnement.');
+        } else if (code.includes('ALREADY_ENROLLED')) {
+          setFormError('Vous êtes déjà inscrit à cette formation.');
+        } else {
+          setFormError(code || 'Une erreur est survenue lors de l\'inscription.');
+        }
       },
     });
   };
@@ -206,17 +224,21 @@ export default function InscriptionSessionPage() {
               </div>
             </label>
 
-            <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:border-secondary transition-colors">
+            <label className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${abonnementActif ? 'cursor-pointer hover:border-secondary' : 'cursor-not-allowed opacity-50'}`}>
               <input
                 type="radio"
                 name="source_financement"
                 value="ABONNEMENT"
                 checked={sourceFinancement === 'ABONNEMENT'}
                 onChange={(e) => setSourceFinancement(e.target.value)}
+                disabled={!abonnementActif || loadingAbonnement}
               />
               <div>
                 <div className="font-medium text-text">Mon abonnement</div>
-                <div className="text-sm text-subtext">Utiliser mon abonnement actif</div>
+                {abonnementActif
+                  ? <div className="text-sm text-subtext">Abonnement {abonnementActif.offre} actif</div>
+                  : <div className="text-sm text-danger">Aucun abonnement actif — <button type="button" className="underline" onClick={() => navigate('/apprenant/abonnement/souscrire')}>Souscrire</button></div>
+                }
               </div>
             </label>
           </div>

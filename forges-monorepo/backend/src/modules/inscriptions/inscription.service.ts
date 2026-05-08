@@ -39,12 +39,14 @@ export class InscriptionService {
     });
     if (inscriptionFormation) throw new Error('ALREADY_ENROLLED');
 
-    // RM-72 : Limite 3 formations simultanées pour abonnés Retail
+    // Vérification abonnement actif requis pour source_financement=ABONNEMENT
     if (params.source_financement === 'ABONNEMENT') {
+      const abonnementActif = await this.retailRepo.findActifByApprenant(params.apprenantId);
+      if (!abonnementActif) throw new Error('ABONNEMENT_REQUIS');
+
+      // RM-72 : Limite 3 formations simultanées pour abonnés Retail
       const nbActives = await this.retailRepo.countFormationsActives(params.apprenantId);
-      if (nbActives >= 3) {
-        throw new Error('FORMATION_LIMIT_REACHED');
-      }
+      if (nbActives >= 3) throw new Error('FORMATION_LIMIT_REACHED');
     }
 
     if (params.code_apporteur) {
