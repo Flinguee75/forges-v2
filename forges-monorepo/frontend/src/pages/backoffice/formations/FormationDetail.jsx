@@ -138,9 +138,24 @@ export default function FormationDetail() {
             <p className="mt-1 text-sm text-text">{formation.duree || formation.duree_jours} jours</p>
           </div>
           <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-subtext">Mode</p>
+            <p className="mt-1 text-sm text-text">
+              {formation.mode_formation === 'PRESENTIEL' ? 'Présentiel'
+                : formation.mode_formation === 'EN_LIGNE' ? 'En ligne'
+                : formation.mode_formation === 'A_LA_DEMANDE' ? 'À la demande'
+                : formation.mode_formation || '-'}
+            </p>
+          </div>
+          {formation.lieu && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-subtext">Lieu</p>
+              <p className="mt-1 text-sm text-text">{formation.lieu}</p>
+            </div>
+          )}
+          <div>
             <p className="text-xs font-medium uppercase tracking-wide text-subtext">Tarif</p>
             <p className="mt-1 text-sm text-text">
-              {Math.round((formation.tarif || formation.cout_catalogue || 0) / 100).toLocaleString('fr-FR')} FCFA
+              {(formation.tarif || formation.cout_catalogue || 0).toLocaleString('fr-FR')} FCFA
             </p>
           </div>
         </div>

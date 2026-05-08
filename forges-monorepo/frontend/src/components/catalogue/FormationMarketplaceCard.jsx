@@ -159,7 +159,14 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
           <p className="mt-1 text-[0.8rem] text-slate-500">
             {formationData.mode_formation === 'A_LA_DEMANDE'
               ? 'À la demande'
+              : formationData.mode_formation === 'PRESENTIEL'
+              ? 'Présentiel'
+              : formationData.mode_formation === 'EN_LIGNE'
+              ? 'En ligne'
               : 'Sessions programmées'}
+            {formationData.lieu && (
+              <span className="ml-1">— {formationData.lieu}</span>
+            )}
           </p>
 
           <div className="mt-2.5 flex flex-wrap gap-1.5">

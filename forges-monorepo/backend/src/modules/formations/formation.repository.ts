@@ -86,10 +86,12 @@ export class FormationRepository {
           cout_catalogue: true,
           type_formation: true,
           mode_formation: true,
+          lieu: true,
           inclus_abonnement: true,
           pilier_abonnement: true,
           langues_disponibles: true,
           certification_delivree: true,
+          public_cible: true,
           partenaire: {
             select: { raison_sociale: true }
           },
@@ -102,7 +104,8 @@ export class FormationRepository {
               id: true,
               date_debut: true,
               date_fin: true,
-              places_restantes: true
+              places_restantes: true,
+              lieu: true,
             }
           }
         },
