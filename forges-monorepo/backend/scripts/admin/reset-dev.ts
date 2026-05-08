@@ -145,7 +145,8 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
         cout_catalogue: 3000000,
         responsable_id: adminId,
         type_formation: 'SUR_DEVIS',
-        mode_formation: 'AVEC_SESSION',
+        mode_formation: 'PRESENTIEL',
+        lieu: 'AIGF, Anoumabo, Abidjan, Côte d\'Ivoire',
         statut: 'ACTIVE',
         inclus_abonnement: false,
         public_cible: 'Décideurs, responsables IT, cadres en cybersécurité, leaders en gouvernance IA',
@@ -161,6 +162,8 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
       },
       update: {
         statut: 'ACTIVE',
+        mode_formation: 'PRESENTIEL',
+        lieu: 'AIGF, Anoumabo, Abidjan, Côte d\'Ivoire',
         responsable_id: adminId,
       },
     });
@@ -178,6 +181,7 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
         capacite: 20,
         nb_inscrits: 0,
         places_restantes: 20,
+        lieu: 'AIGF, Anoumabo, Abidjan, Côte d\'Ivoire',
         statut: 'INSCRIPTIONS_OUVERTES',
       },
       update: {},
