@@ -74,3 +74,5 @@ infra/env/.env.*.deploy
 # ─── Fichiers sensibles de test ──────────────────────────────────────────────
 *.postman_environment.json
 **/tests/tokens.env
+VPS-CONNEXION.md
+**/.env.monitoring.*

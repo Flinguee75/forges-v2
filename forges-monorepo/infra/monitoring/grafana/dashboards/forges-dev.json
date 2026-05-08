@@ -7,13 +7,13 @@
   "links": [],
   "panels": [
     {
-      "title": "DEMO Backend Logs",
+      "title": "DEV Backend Logs",
       "type": "logs",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{environment=\"demo\", service=\"backend\"}",
+          "expr": "{environment=\"dev\", service=\"backend\"}",
           "refId": "A"
         }
       ],
@@ -29,13 +29,13 @@
       }
     },
     {
-      "title": "DEMO Errors",
+      "title": "DEV Errors",
       "type": "logs",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{environment=\"demo\"} |~ \"(?i)error\"",
+          "expr": "{environment=\"dev\"} |~ \"(?i)error\"",
           "refId": "A"
         }
       ],
@@ -48,13 +48,13 @@
       }
     },
     {
-      "title": "DEMO PostgreSQL Logs",
+      "title": "DEV PostgreSQL Logs",
       "type": "logs",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{environment=\"demo\", service=\"postgres\"}",
+          "expr": "{environment=\"dev\", service=\"postgres\"}",
           "refId": "A"
         }
       ],
@@ -73,7 +73,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum(rate({environment=\"demo\", level=\"error\"} [5m]))",
+          "expr": "sum(rate({environment=\"dev\", level=\"error\"} [5m]))",
           "refId": "A",
           "legendFormat": "errors/s"
         }
@@ -97,7 +97,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum by (service) (rate({environment=\"demo\"} [5m]))",
+          "expr": "sum by (service) (rate({environment=\"dev\"} [5m]))",
           "refId": "A",
           "legendFormat": "{{service}}"
         }
@@ -114,13 +114,13 @@
       }
     },
     {
-      "title": "DEMO Redis Logs",
+      "title": "DEV Redis Logs",
       "type": "logs",
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 26 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{environment=\"demo\", service=\"redis\"}",
+          "expr": "{environment=\"dev\", service=\"redis\"}",
           "refId": "A"
         }
       ],
@@ -139,7 +139,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service=\"checker\", environment=\"demo\", level=\"error\"}",
+          "expr": "{service=\"checker\", environment=\"dev\", level=\"error\"}",
           "refId": "A"
         }
       ],
@@ -158,7 +158,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service=\"checker\", environment=\"demo\"}",
+          "expr": "{service=\"checker\", environment=\"dev\"}",
           "refId": "A"
         }
       ],
@@ -172,13 +172,13 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": ["forges", "demo", "monitoring"],
+  "tags": ["forges", "dev", "monitoring"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "FORGES Demo Monitoring",
-  "uid": "forges-demo-main",
+  "title": "FORGES Dev Monitoring",
+  "uid": "forges-dev-main",
   "version": 1,
   "refresh": "30s"
 }

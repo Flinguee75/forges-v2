@@ -1,115 +1,121 @@
-version: '3.8'
-
-# Docker Compose - Monitoring UNIFIED avec logs séparés
-# Stack monitoring UNIQUE pour dev, test et demo
-# Services: Portainer CE, Uptime Kuma, Loki (logs centralisés + séparés par env)
-# Date: 4 mai 2026
-#
-# Architecture:
-# - Portainer: Interface unique pour voir tous les conteneurs (dev/test/demo)
-# - Uptime Kuma: Monitoring unique pour tous les endpoints
-# - Loki: Agrégation des logs avec tags par environnement
-# - Promtail: Collecteur de logs par conteneur
+name: forges-monitoring-dev
 
 services:
-  # Portainer CE - Interface Docker
-  # Voit tous les conteneurs des 3 environnements
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    restart: always
+  loki:
+    image: grafana/loki:3.1.0
+    container_name: forges-loki-dev
+    restart: unless-stopped
     ports:
-      - "9443:9443"      # HTTPS
-      - "9000:9000"      # HTTP
+      - "3101:3100"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    environment:
-      - AGENT_SECRET=forges_monitoring_secret
-    networks:
-      - monitoring
-    labels:
-      - "monitoring=true"
-      - "environment=monitoring"
+      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-dev-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
     healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "https://localhost:9443"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forges-monitoring-dev
 
-  # Uptime Kuma - Surveillance disponibilité
-  # Monitore les 3 environnements: dev, test, demo
+  promtail:
+    image: grafana/promtail:3.1.0
+    container_name: forges-promtail-dev
+    restart: unless-stopped
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - forges-monitoring-dev
+      - forges-dev
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: forges-grafana-dev
+    restart: unless-stopped
+    ports:
+      - "3051:3000"
+    env_file:
+      - .env
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-forges2026}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3051}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/forges-dev.json
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: ${SMTP_HOST:-smtp.forges-group.com}:${SMTP_PORT:-587}
+      GF_SMTP_USER: ${SMTP_USER:-noreply@forges-group.com}
+      GF_SMTP_PASSWORD: ${SMTP_PASS}
+      GF_SMTP_FROM_ADDRESS: ${SMTP_USER:-noreply@forges-group.com}
+      GF_SMTP_FROM_NAME: FORGES Monitoring
+      GF_SMTP_SKIP_VERIFY: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-dev-data:/var/lib/grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forges-monitoring-dev
+
   uptime-kuma:
     image: louislam/uptime-kuma:1
-    container_name: uptime-kuma
-    restart: always
+    container_name: forges-uptime-dev
+    restart: unless-stopped
     ports:
-      - "3001:3001"      # HTTP
+      - "3004:3001"
     volumes:
-      - uptime_kuma_data:/app/data
+      - uptime-dev-data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/entry-page || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - forges-monitoring-dev
+
+  checker:
+    image: alpine/curl:latest
+    container_name: forges-checker-dev
+    restart: unless-stopped
+    volumes:
+      - ./silent-check.sh:/silent-check.sh:ro
+    command: sh /silent-check.sh
     environment:
-      - TZ=Europe/Paris
-    networks:
-      - monitoring
-    labels:
-      - "monitoring=true"
-      - "environment=monitoring"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Loki - Agrégation des logs avec séparation par environnement
-  # Les logs de chaque env sont taggés et séparables
-  loki:
-    image: grafana/loki:latest
-    container_name: loki
-    restart: always
-    ports:
-      - "3100:3100"      # Loki API
-    volumes:
-      - ./loki-config.yml:/etc/loki/local-config.yaml
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - monitoring
-    labels:
-      - "monitoring=true"
-      - "environment=monitoring"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3100/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Promtail - Collecteur de logs Docker
-  # Envoie les logs à Loki avec tags par environnement
-  promtail:
-    image: grafana/promtail:latest
-    container_name: promtail
-    restart: always
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./promtail-config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - monitoring
-    labels:
-      - "monitoring=true"
-      - "environment=monitoring"
+      FORGES_BASE_URL: http://forges-backend-dev:3001
+      CHECK_INTERVAL: "300"
     depends_on:
       - loki
-
-volumes:
-  portainer_data:
-    driver: local
-  uptime_kuma_data:
-    driver: local
-  loki_data:
-    driver: local
+    networks:
+      - forges-monitoring-dev
+      - forges-dev
 
 networks:
-  monitoring:
+  forges-monitoring-dev:
+    name: forges-monitoring-dev
     driver: bridge
+  forges-dev:
+    name: forges-dev
+    external: true
+
+volumes:
+  loki-dev-data:
+    name: forges-loki-dev
+  grafana-dev-data:
+    name: forges-grafana-dev
+  uptime-dev-data:
+    name: forges-uptime-dev

@@ -10,6 +10,8 @@ dotenv.config();
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', 1);
+
 // =====================================================
 // SCHEDULERS (Gap 1, Gap 2 - RM-07, RM-20, RM-21, RM-146)
 // =====================================================

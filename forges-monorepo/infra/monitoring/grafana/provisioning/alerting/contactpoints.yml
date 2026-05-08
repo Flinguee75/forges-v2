@@ -7,6 +7,6 @@ contactPoints:
       - uid: forges-email-receiver
         type: email
         settings:
-          addresses: ${ALERT_EMAIL_RECIPIENTS:-admin@forges-group.com}
+          addresses: TidianeCisse9@outlook.fr
           singleEmail: true
         disableResolveMessage: false

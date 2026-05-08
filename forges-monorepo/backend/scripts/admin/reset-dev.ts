@@ -143,7 +143,7 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
 
 À l'issue de la session, les participants passent un examen QCM dont la réussite conditionne l'obtention du certificat. Les lauréats reçoivent le titre de Certified Strategic Cybersecurity & AI Governance Analyst, assorti d'un badge numérique vérifiable (LinkedIn, portfolio professionnel), reconnu par le gouvernement ivoirien et aligné sur la Stratégie nationale de cybersécurité 2026-2030.`,
         duree_jours: 10,
-        cout_catalogue: 3000000,
+        cout_catalogue: 300000000,
         responsable_id: adminId,
         type_formation: 'SUR_DEVIS',
         mode_formation: 'PRESENTIEL',
@@ -160,13 +160,15 @@ Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion d
         ],
         langues_disponibles: ['FR'],
         certification_delivree: true,
+        image_url: 'https://dev.forges-group.com/formations/masterclass-ccdl-gw.png',
       },
       update: {
         statut: 'ACTIVE',
         mode_formation: 'PRESENTIEL',
         lieu: 'AIGF, Anoumabo, Abidjan, Côte d\'Ivoire',
         responsable_id: adminId,
-        cout_catalogue: 3000000,
+        cout_catalogue: 300000000,
+        image_url: 'https://dev.forges-group.com/formations/masterclass-ccdl-gw.png',
       },
     });
     console.log(`  -> Formation: ${formation.intitule} (${formation.id})`);
