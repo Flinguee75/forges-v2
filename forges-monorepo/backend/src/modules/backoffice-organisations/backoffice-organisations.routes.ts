@@ -112,14 +112,13 @@ router.post('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, re
         raison_sociale,
         email,
         type,
+        sous_types: [],
         contact_referent,
         pays,
         langue_preferee,
         identifiant_legal: identifiant_legal || null,
+        password_hash: '',
         statut: 'ACTIVE',
-        consentement_rgpd: true,
-        consentement_timestamp: new Date(),
-        consentement_version_cgu: '1.0',
       },
     });
 
