@@ -33,6 +33,7 @@ const FormationsALaDemande = lazy(() => import('../pages/apprenant/FormationsALa
 const AccesFormation = lazy(() => import('../pages/apprenant/AccesFormation'));
 const MesDossiersApprenantPage = lazy(() => import('../pages/apprenant/MesDossiersPage'));
 const InscriptionSessionPage = lazy(() => import('../pages/apprenant/InscriptionSessionPage'));
+const FormationDetailApprenantPage = lazy(() => import('../pages/apprenant/FormationDetailApprenantPage'));
 const MesDossiersPage = lazy(() => import('../pages/etudiant/MesDossiersPage'));
 const DossierDetail = lazy(() => import('../pages/etudiant/DossierDetail'));
 const CatalogueApprenantPage = lazy(() => import('../pages/apprenant/CatalogueApprenantPage'));
@@ -283,6 +284,10 @@ const router = createBrowserRouter([
       {
         path: 'formations-a-la-demande/:accesId',
         element: withSuspense(<AccesFormation />),
+      },
+      {
+        path: 'formations/:id',
+        element: withSuspense(<FormationDetailApprenantPage />),
       },
       {
         path: 'inscrire/:formationId',

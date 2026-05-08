@@ -315,7 +315,7 @@ export default function CatalogueApprenantPage() {
                 formation={formation}
                 index={index}
                 onAcceder={handleAccederFormation}
-                onInscrire={(id) => navigate(`/apprenant/inscrire/${id}`)}
+                onInscrire={(id) => navigate(`/apprenant/formations/${id}`)}
               />
             ))}
           </div>
