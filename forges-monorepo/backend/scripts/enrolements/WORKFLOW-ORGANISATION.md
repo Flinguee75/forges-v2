@@ -5,6 +5,41 @@ Template utilisé pour ANSSI CI — réutilisable pour CIPREL, ministères, entr
 
 ---
 
+## Formation de référence — Masterclass GWU/CCDL
+
+### Description courte (500 car. max — champ `description_courte`)
+
+> Masterclass internationale co-délivrée par la George Washington University et le CCDL. 10 jours intensifs sur la cybersécurité stratégique et la gouvernance IA, du 1er au 11 juin 2026 à Abidjan. Certification reconnue par le gouvernement ivoirien, badge numérique vérifiable.
+
+### Description longue (champ `description_longue`)
+
+Certified Strategic Cybersecurity & AI Governance Analyst est une Masterclass internationale de haut niveau co-délivrée par la George Washington University School of Business et le Center for Cyber Diplomacy and Leadership (CCDL). Elle se tient du 1er au 11 juin 2026 à l'Agence Ivoirienne de Gestion des Fréquences (AIGF), Anoumabo, Abidjan, Côte d'Ivoire — première édition de cet événement sur le continent africain.
+
+Conçue pour les stratèges de haut niveau, décideurs politiques, responsables IT, cadres en cybersécurité et leaders en gouvernance IA, cette formation intensive de 10 jours couvre deux semaines thématiques :
+
+**Semaine 1 — Fondamentaux :** Paysage mondial des menaces cyber, Intelligence artificielle (opportunités, risques et implications stratégiques), Design thinking stratégique, Cadres internationaux de gouvernance (NIST, ISO 27001, EU AI Act), Régulation de l'IA, Protection des données et droits numériques, Gestion des risques cyber et IA, Cyber threat intelligence, Architecture nationale de cybersécurité.
+
+**Semaine 2 — Mise en œuvre et leadership :** Réponse aux incidents et gestion de crise, Cyber diplomatie et coopération internationale, Attribution et dissuasion cyber, Sécurité de l'IA, IA responsable (éthique et redevabilité), Gouvernance organisationnelle de l'IA, Développement de la main-d'œuvre, Communication stratégique.
+
+À l'issue de la session, les participants passent un examen QCM dont la réussite conditionne l'obtention du certificat. Les lauréats reçoivent le titre de **Certified Strategic Cybersecurity & AI Governance Analyst**, assorti d'un badge numérique vérifiable (LinkedIn, portfolio professionnel), reconnu par le gouvernement ivoirien et aligné sur la Stratégie nationale de cybersécurité 2026-2030.
+
+### Métadonnées formation (reset-dev.ts)
+
+| Champ | Valeur |
+|---|---|
+| `intitule` | Masterclass GWU/CCDL — Cybersécurité & IA |
+| `type_formation` | `SUR_DEVIS` |
+| `mode_formation` | `AVEC_SESSION` |
+| `duree_jours` | 10 |
+| `cout_catalogue` | 2 000 000 XOF |
+| `certification_delivree` | true |
+| `public_cible` | Décideurs, responsables IT, cadres cybersécurité, leaders gouvernance IA |
+| `lieu` | AIGF, Anoumabo, Abidjan, Côte d'Ivoire |
+| `session date_debut` | 2026-06-01 |
+| `session date_fin` | 2026-06-11 |
+
+---
+
 ## Vue d'ensemble
 
 ```

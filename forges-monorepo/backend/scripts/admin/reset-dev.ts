@@ -131,8 +131,16 @@ async function createFormationEtSession(adminId: string) {
       create: {
         id: FORMATION_ID,
         intitule: 'Masterclass GWU/CCDL — Cybersécurité & IA',
-        description_courte: 'Masterclass intensive sur la cybersécurité et l\'intelligence artificielle pour professionnels.',
-        description_longue: 'Formation intensive de 10 jours couvrant les enjeux de cybersécurité, gouvernance numérique et intelligence artificielle appliquée au secteur public et privé.',
+        description_courte: 'Masterclass internationale co-délivrée par la George Washington University et le CCDL. 10 jours intensifs sur la cybersécurité stratégique et la gouvernance IA, du 1er au 11 juin 2026 à Abidjan. Certification reconnue par le gouvernement ivoirien, badge numérique vérifiable.',
+        description_longue: `Certified Strategic Cybersecurity & AI Governance Analyst est une Masterclass internationale de haut niveau co-délivrée par la George Washington University School of Business et le Center for Cyber Diplomacy and Leadership (CCDL). Elle se tient du 1er au 11 juin 2026 à l'Agence Ivoirienne de Gestion des Fréquences (AIGF), Anoumabo, Abidjan, Côte d'Ivoire — première édition de cet événement sur le continent africain.
+
+Conçue pour les stratèges de haut niveau, décideurs politiques, responsables IT, cadres en cybersécurité et leaders en gouvernance IA, cette formation intensive de 10 jours couvre deux semaines thématiques :
+
+Semaine 1 — Fondamentaux : Paysage mondial des menaces cyber, Intelligence artificielle (opportunités, risques et implications stratégiques), Design thinking stratégique, Cadres internationaux de gouvernance (NIST, ISO 27001, EU AI Act), Régulation de l'IA, Protection des données et droits numériques, Gestion des risques cyber et IA, Cyber threat intelligence, Architecture nationale de cybersécurité.
+
+Semaine 2 — Mise en œuvre et leadership : Réponse aux incidents et gestion de crise, Cyber diplomatie et coopération internationale, Attribution et dissuasion cyber, Sécurité de l'IA, IA responsable (éthique et redevabilité), Gouvernance organisationnelle de l'IA, Développement de la main-d'œuvre, Communication stratégique.
+
+À l'issue de la session, les participants passent un examen QCM dont la réussite conditionne l'obtention du certificat. Les lauréats reçoivent le titre de Certified Strategic Cybersecurity & AI Governance Analyst, assorti d'un badge numérique vérifiable (LinkedIn, portfolio professionnel), reconnu par le gouvernement ivoirien et aligné sur la Stratégie nationale de cybersécurité 2026-2030.`,
         duree_jours: 10,
         cout_catalogue: 2000000,
         responsable_id: adminId,
@@ -140,10 +148,13 @@ async function createFormationEtSession(adminId: string) {
         mode_formation: 'AVEC_SESSION',
         statut: 'PUBLIEE',
         inclus_abonnement: false,
+        public_cible: 'Décideurs, responsables IT, cadres en cybersécurité, leaders en gouvernance IA',
         objectifs_pedagogiques: [
-          'Maîtriser les fondamentaux de la cybersécurité',
-          'Comprendre les enjeux de l\'IA pour la sécurité',
-          'Gouvernance et conformité des systèmes d\'information',
+          'Maîtriser le paysage mondial des menaces cyber et les cadres de gouvernance (NIST, ISO 27001, EU AI Act)',
+          'Comprendre les opportunités, risques et implications stratégiques de l\'IA',
+          'Développer une architecture nationale de cybersécurité et une stratégie de réponse aux incidents',
+          'Conduire la cyber diplomatie et la coopération internationale',
+          'Obtenir la certification Certified Strategic Cybersecurity & AI Governance Analyst',
         ],
         langues_disponibles: ['FR'],
         certification_delivree: true,
