@@ -71,7 +71,7 @@ export default function FormationDetailPage() {
     keywords: formation
       ? `${getFormationTitre(formation)}, formation, certification, FORGES`
       : 'formation, certification',
-    canonical: `https://forges.com/formations/${id}`,
+    canonical: `https://edu.forges-group.com/formations/${id}`,
     ogImage: '/logo_forges.png',
     schema: formation ? getFormationSchema(formation) : null,
   });

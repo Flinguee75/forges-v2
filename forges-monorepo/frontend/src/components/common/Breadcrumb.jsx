@@ -13,7 +13,7 @@ export default function Breadcrumb({ items = [] }) {
       '@type': 'ListItem',
       position: index + 1,
       name: item.label,
-      item: item.url ? `https://forges.com${item.url}` : undefined,
+      item: item.url ? `https://edu.forges-group.com${item.url}` : undefined,
     })),
   } : null;
 

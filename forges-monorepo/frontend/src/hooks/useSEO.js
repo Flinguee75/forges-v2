@@ -95,7 +95,7 @@ export function getFormationSchema(formation) {
     provider: {
       '@type': 'Organization',
       name: 'FORGES',
-      sameAs: 'https://forges.com',
+      sameAs: 'https://edu.forges-group.com',
     },
     duration: `P${formation.duree_jours || formation.duree}D`,
     price: {
@@ -105,7 +105,7 @@ export function getFormationSchema(formation) {
     },
     offers: {
       '@type': 'Offer',
-      url: `https://forges.com/formations/${formation.id}`,
+      url: `https://edu.forges-group.com/formations/${formation.id}`,
       priceCurrency: 'XOF',
       price: (formation.cout_catalogue || formation.tarif) / 100,
       availability: 'https://schema.org/InStock',
@@ -134,14 +134,14 @@ export function getCatalogSchema(formations = []) {
     '@type': 'CollectionPage',
     name: 'Catalogue FORGES',
     description: 'Formations certifiantes en cybersécurité, IA, data science et transformation digitale',
-    url: 'https://forges.com/formations',
+    url: 'https://edu.forges-group.com/formations',
     image: '/logo_forges.png',
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: formations.map((formation, index) => ({
         '@type': 'ListItem',
         position: index + 1,
-        url: `https://forges.com/formations/${formation.id}`,
+        url: `https://edu.forges-group.com/formations/${formation.id}`,
         name: formation.titre || formation.intitule,
         description: formation.description_courte || formation.description,
       })),
@@ -157,8 +157,8 @@ export function getOrganizationSchema() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'FORGES',
-    url: 'https://forges.com',
-    logo: 'https://forges.com/logo_forges.png',
+    url: 'https://edu.forges-group.com',
+    logo: 'https://edu.forges-group.com/logo_forges.png',
     description: 'Plateforme de formations certifiantes professionnelles',
     sameAs: [
       'https://twitter.com/forges',
