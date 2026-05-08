@@ -123,7 +123,8 @@ export class ReconciliationNgserScheduler {
    */
   async reconcilierPaiement(order_ngser: string): Promise<ReconciliationResult> {
     try {
-      if (this.mockMode) {
+      const isMock = process.env.NGSER_MOCK_MODE !== 'false';
+      if (isMock) {
         // J3-J5: Mode mock
         return await this.reconcilierMock(order_ngser);
       } else {

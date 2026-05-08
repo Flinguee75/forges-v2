@@ -1,11 +1,12 @@
 import { createHmac } from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { prisma as globalPrisma } from '../prisma/prisma.client';
 
 export class AuditLogger {
   private prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
   }
 
   async log(level: string, action: string, metadata: any, userId?: string) {

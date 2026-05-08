@@ -76,6 +76,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          -e POSTGRES_SHARED_PRELOAD_LIBRARIES=""
+        command: postgres -c max_connections=200
 
       # Redis de test (éphémère)
       redis:
@@ -134,7 +136,7 @@ jobs:
       - name: Exécuter les tests unitaires
         working-directory: forges-monorepo/backend
         env:
-          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test?connection_limit=5
           REDIS_URL: redis://localhost:6379
           NODE_ENV: test
           JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
@@ -214,6 +216,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        command: postgres -c max_connections=200
 
       redis:
         image: redis:7
@@ -271,7 +274,7 @@ jobs:
       - name: Exécuter les tests d'intégration
         working-directory: forges-monorepo/backend
         env:
-          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test?connection_limit=5
           REDIS_URL: redis://localhost:6379
           NODE_ENV: test
           JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
