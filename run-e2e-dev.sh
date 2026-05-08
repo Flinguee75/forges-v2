@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 # Lance Newman + Playwright contre dev.forges-group.com
+#
+# IMPORTANT: Ne jamais lancer Newman directement via npx newman run.
+# Ce script est le seul point d'entree valide — il fait toujours :
+#   1. seed --reset  (DB dans un etat connu)
+#   2. token refresh (JWT frais pour tous les comptes)
+#   3. Newman run
+#
 # Usage:
 #   ./run-e2e-dev.sh          — Newman + Playwright
 #   ./run-e2e-dev.sh newman   — Newman uniquement
