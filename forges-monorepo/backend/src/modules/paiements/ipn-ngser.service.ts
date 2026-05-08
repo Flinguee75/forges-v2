@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CommissionService } from './commission.service';
 
@@ -167,6 +167,8 @@ export class IpnNgserService {
   private async traiterSuccess(paiement: any, ipn: IpnPayload): Promise<IpnResult> {
     let commissionsCreated = false;
 
+    let commissions: { partenaire?: any; apporteur?: any } = {};
+
     await this.prisma.$transaction(async (tx) => {
       // Mettre à jour paiement
       await tx.paiement.update({
@@ -188,16 +190,25 @@ export class IpnNgserService {
         data: { statut: 'PAYE' },
       });
 
-      // Créer commissions (RM-09, RM-145)
-      const commissions = await this.commissionService.creerCommissionsApresSuccessPayment(
+      // Créer commissions dans la transaction (RM-09, RM-145)
+      commissions = await this.commissionService.creerCommissionsApresSuccessPayment(
         paiement,
         paiement.dossier,
         paiement.dossier.formation,
         tx
       );
-
-      commissionsCreated = !!(commissions.partenaire || commissions.apporteur);
     });
+
+    commissionsCreated = !!(commissions.partenaire || commissions.apporteur);
+
+    if (commissions.partenaire) {
+      await this.audit.info('COMMISSION_PARTENAIRE_CREEE', {
+        commission_id: commissions.partenaire.id,
+        paiement_id: paiement.id,
+        partenaire_id: paiement.dossier?.formation?.partenaire_id,
+        montant_reverse: commissions.partenaire.montant_reverse,
+      }).catch(() => {});
+    }
 
     await this.audit.info('IPN_SUCCESS_TRAITE', {
       paiement_id: paiement.id,

@@ -31,8 +31,9 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
 
   // Helper: Créer un paiement NGSER en DB
   async function createNgserPaiement(dossierId) {
+    const dossier = await prisma.dossier.findUnique({ where: { id: dossierId }, select: { formation_id: true } });
     const formation = await prisma.formation.findUnique({
-      where: { id: ids.standardFormation },
+      where: { id: dossier?.formation_id || ids.standardFormation },
     });
     const orderNgser = `FRG-2026-TEST-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
     return prisma.paiement.create({
@@ -544,6 +545,15 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
   // ============================================================================
 
   describe('RM-158.3: Commissions créées une seule fois', () => {
+    afterEach(async () => {
+      await prisma.commissionPartenaire.deleteMany({
+        where: { paiement: { order_ngser: { startsWith: 'FRG-2026-TEST-' } } },
+      }).catch(() => {});
+      await prisma.paiement.deleteMany({
+        where: { order_ngser: { startsWith: 'FRG-2026-TEST-' } },
+      }).catch(() => {});
+    });
+
     test('commission partenaire créée une seule fois (pas dupliquée)', async () => {
       const account = await createApprenantAccount('ipn-commission-' + Date.now());
       const headers = await auth(account);
@@ -554,7 +564,11 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
       expect(inscription.status).toBe(201);
 
       const dossierId = inscription.body.dossier.id;
+      // Supprimer les paiements residuels pour ce dossier avant de créer le test
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement: { dossier_id: dossierId } } }).catch(() => {});
+      await prisma.paiement.deleteMany({ where: { dossier_id: dossierId } }).catch(() => {});
       const paiement = await createNgserPaiement(dossierId);
+      const montantXof = Math.round(paiement.montant_initie / 100);
 
       const txnId = `TXN-COMMISSION-${Date.now()}`;
 
@@ -563,7 +577,7 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
         order_id: paiement.order_ngser,
         status_id: 1,
         transaction_id: txnId,
-        transaction_amount: MONTANT_CATALOGUE_XOF,
+        transaction_amount: montantXof,
       };
 
       const res1 = await sendWebhookIpn(ipn1);

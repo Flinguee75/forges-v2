@@ -96,12 +96,25 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(me.status).toBe(200);
     expect(me.body.data.nb_gestionnaires_max).toBe(5);
 
+    // EN_ATTENTE_PAIEMENT → idempotence : retourne 201 avec la meme URL paiement
     const duplicate = await request(API_URL)
       .post('/api/abonnements/organisation')
       .set(headers)
       .send({ offre: 'BASIQUE' });
-    expect(duplicate.status).toBe(409);
-    expect(duplicate.body.error).toBe('ABONNEMENT_ORG_DEJA_ACTIF');
+    expect(duplicate.status).toBe(201);
+    expect(duplicate.body.data.payment_url).toBeTruthy();
+
+    // Forcer ACTIF pour tester le 409 strict (RM-84)
+    await prisma.abonnementOrganisation.update({
+      where: { id: first.body.data.id },
+      data: { statut: 'ACTIF' },
+    });
+    const duplicateActif = await request(API_URL)
+      .post('/api/abonnements/organisation')
+      .set(headers)
+      .send({ offre: 'BASIQUE' });
+    expect(duplicateActif.status).toBe(409);
+    expect(duplicateActif.body.error).toBe('ABONNEMENT_ORG_DEJA_ACTIF');
   });
 
   test('RM-60/RM-61/RM-64/RM-65/RM-68 — B2B lie organisation, plafonne et monte en palier au prorata', async () => {
@@ -137,8 +150,8 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(upgrade.body.data.nouveau_palier).toBe('BUSINESS');
     expect(upgrade.body.data.montant_prorata).toBeGreaterThanOrEqual(0);
 
-    const org = await prisma.organisation.findUnique({ where: { id: account.id } });
-    const b2b = await prisma.abonnementB2B.findUnique({ where: { id: org.abonnement_b2b_id } });
+    const b2b = await prisma.abonnementB2B.findFirst({ where: { organisation_id: account.id, statut: 'ACTIF' } });
+    expect(b2b).not.toBeNull();
     expect(b2b.palier).toBe('BUSINESS');
     expect(b2b.nb_max).toBe(50);
 

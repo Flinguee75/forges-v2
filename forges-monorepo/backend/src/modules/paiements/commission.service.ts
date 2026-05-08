@@ -19,9 +19,8 @@ export class CommissionService {
     paiement: any,
     dossier: any,
     formation: any,
-    tx?: Prisma.TransactionClient
+    tx: Prisma.TransactionClient
   ) {
-    const prismaClient = tx || this.prisma;
     const commissions: { partenaire?: any; apporteur?: any } = {};
 
     // Commission partenaire
@@ -29,7 +28,7 @@ export class CommissionService {
       commissions.partenaire = await this.creerCommissionPartenaire(
         paiement,
         formation,
-        prismaClient
+        tx
       );
     }
 
@@ -38,7 +37,7 @@ export class CommissionService {
       commissions.apporteur = await this.creerCommissionApporteur(
         paiement,
         dossier,
-        prismaClient
+        tx
       );
     }
 
@@ -56,10 +55,6 @@ export class CommissionService {
     });
 
     if (existante) {
-      await this.audit.info('COMMISSION_PARTENAIRE_EXISTANTE', {
-        paiement_id: paiement.id,
-        commission_id: existante.id,
-      });
       return existante;
     }
 
@@ -78,14 +73,6 @@ export class CommissionService {
         montant_reverse: montantReverse,
         statut: 'EN_ATTENTE',
       },
-    });
-
-    await this.audit.info('COMMISSION_PARTENAIRE_CREEE', {
-      commission_id: commission.id,
-      paiement_id: paiement.id,
-      partenaire_id: formation.partenaire_id,
-      montant_reverse: montantReverse,
-      commission_forges_pct: commissionForgesPct,
     });
 
     return commission;
