@@ -231,6 +231,7 @@ async function cleanupScenarioData() {
         { dossier_id: { in: commissionDossierIds } },
         { dossier: { apprenant_id: { in: apprenantIds } } },
         { dossier: { apprenant_id: { startsWith: 'app-rm' } } },
+        { dossier: { apprenant: { email: { contains: 'forges.test' } } } },
       ],
     },
   });
