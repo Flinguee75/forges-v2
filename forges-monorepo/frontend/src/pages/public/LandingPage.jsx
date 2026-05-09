@@ -7,8 +7,6 @@ import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
 import logoAspire from '../../assets/logo_aspire.png';
 import logoAiCrafters from '../../assets/logo_ai_crafters.png';
-import logoGwu from '../../assets/logo_gwu.png';
-import logoCcdl from '../../assets/logo_ccdl.png';
 import imageCcdlGw from '../../assets/image_ccdl_gw.png';
 import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -19,9 +17,8 @@ import StatusBadge from '../../components/ui/StatusBadge';
  * Optimisée pour conversions et SEO
  */
 const COLLABORATEURS = [
-  { sigle: 'GWU', nom: 'George Washington University', logo: logoGwu },
-  { sigle: 'CCDL', nom: 'Center for Cyber Diplomacy and Leadership', logo: logoCcdl },
-  { sigle: 'ASPIRE', nom: 'Aspire', logo: logoAspire },
+  { sigle: 'GWU/CCDL', nom: 'George Washington University & CCDL', logo: imageCcdlGw },
+  { sigle: 'ASPIRE', nom: 'Aspire Institute', logo: logoAspire },
   { sigle: 'AIC', nom: 'AI Crafters', logo: logoAiCrafters },
 ];
 
@@ -58,13 +55,13 @@ function CarouselCollaborateurs() {
       />
       <div className="carousel-track gap-8 px-4">
         {items.map((c, idx) => (
-          <div key={idx} className="flex flex-col items-center gap-3 w-44 flex-shrink-0">
-            <div className={`w-32 h-32 rounded-2xl flex items-center justify-center font-bold text-base shadow-md overflow-hidden ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].bg} ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].text}`}>
+          <div key={idx} className="flex flex-col items-center gap-3 w-48 flex-shrink-0">
+            <div className="w-36 h-36 rounded-2xl flex items-center justify-center shadow-md overflow-hidden bg-white border border-gray-100">
               {c.logo
-                ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain bg-white p-3" />
-                : <span className="text-sm text-center px-2 font-bold text-white drop-shadow-md">{c.sigle}</span>}
+                ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain p-3 mix-blend-multiply" />
+                : <span className={`text-sm text-center px-2 font-bold drop-shadow-md ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].bg} ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].text}`}>{c.sigle}</span>}
             </div>
-            <p className="text-xs text-center text-subtext font-medium leading-tight">{c.nom}</p>
+            <p className="text-xs text-center text-subtext font-medium leading-tight max-w-[10rem]">{c.nom}</p>
           </div>
         ))}
       </div>
@@ -137,11 +134,6 @@ export default function LandingPage() {
               <Link to="/register" className="min-h-[48px] min-w-[280px] inline-flex items-center justify-center">
                 <Button variant="white" size="large" className="min-w-[280px] min-h-[48px] font-semibold px-8 py-3">
                   Créer un compte gratuit
-                </Button>
-              </Link>
-              <Link to="/catalogue" className="min-h-[48px] min-w-[280px] inline-flex items-center justify-center">
-                <Button variant="white" size="large" className="min-w-[280px] min-h-[48px] font-semibold bg-transparent border-2 border-white hover:bg-white hover:bg-opacity-10 px-8 py-3">
-                  Explorer le catalogue
                 </Button>
               </Link>
             </div>
@@ -247,12 +239,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Nos Collaborateurs */}
+      {/* Nos Partenaires */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-              Nos Collaborateurs
+              Nos Partenaires
             </h2>
             <p className="text-lg text-subtext max-w-2xl mx-auto">
               FORGES s'appuie sur un réseau de partenaires académiques, institutionnels et privés de premier plan

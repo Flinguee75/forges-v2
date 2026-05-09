@@ -143,9 +143,6 @@ export default function Navbar({
                 <Link to="/" className="font-medium text-text transition-colors hover:text-primary">
                   Accueil
                 </Link>
-                <Link to="/catalogue" className="font-medium text-text transition-colors hover:text-primary">
-                  Catalogue
-                </Link>
               </nav>
             </>
           ) : (
