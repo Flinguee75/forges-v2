@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.monitoring.dev.yml"
+ENV_FILE="${SCRIPT_DIR}/.env.monitoring.dev"
 PROJECT_NAME="forges-monitoring-dev"
 
 RED='\033[0;31m'
@@ -25,16 +26,25 @@ check_docker() {
   fi
 }
 
+compose_cmd() {
+  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" "$@"
+}
+
 cmd_start() {
   check_docker
   log_info "Starting FORGES monitoring stack (dev)..."
+
+  if [ ! -f "${ENV_FILE}" ]; then
+    log_error "${ENV_FILE} is missing"
+    exit 1
+  fi
 
   if ! docker network inspect forges-dev &> /dev/null 2>&1; then
     log_warn "Network 'forges-dev' does not exist. Creating it..."
     docker network create forges-dev
   fi
 
-  docker compose -f "${COMPOSE_FILE}" up -d
+  compose_cmd up -d
   log_info "Monitoring stack started."
   echo ""
   cmd_status
@@ -42,7 +52,7 @@ cmd_start() {
 
 cmd_stop() {
   log_info "Stopping FORGES monitoring stack (dev)..."
-  docker compose -f "${COMPOSE_FILE}" down
+  compose_cmd down
   log_info "Monitoring stack stopped."
 }
 
@@ -56,7 +66,7 @@ cmd_status() {
   echo "  FORGES Monitoring - Dev Environment"
   echo "============================================"
   echo ""
-  docker compose -f "${COMPOSE_FILE}" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+  compose_cmd ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
   echo ""
   echo "-------------------------------------------"
   echo "  Access URLs:"
@@ -104,9 +114,9 @@ cmd_health() {
 cmd_logs() {
   local service="${1:-}"
   if [ -n "${service}" ]; then
-    docker compose -f "${COMPOSE_FILE}" logs -f --tail=100 "${service}"
+    compose_cmd logs -f --tail=100 "${service}"
   else
-    docker compose -f "${COMPOSE_FILE}" logs -f --tail=50
+    compose_cmd logs -f --tail=50
   fi
 }
 

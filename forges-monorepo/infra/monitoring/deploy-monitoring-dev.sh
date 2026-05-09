@@ -51,7 +51,7 @@ sync_files() {
   $SCP "${SCRIPT_DIR}/promtail-config.yml" \
        "${VPS_USER}@${VPS_HOST}:${VPS_DIR}/"
   $SCP "${SCRIPT_DIR}/.env.monitoring.dev" \
-       "${VPS_USER}@${VPS_HOST}:${VPS_DIR}/.env.dev"
+       "${VPS_USER}@${VPS_HOST}:${VPS_DIR}/.env.monitoring.dev"
 
   # Grafana provisioning
   $SCP "${SCRIPT_DIR}/grafana/provisioning/datasources/loki.yml" \
@@ -85,7 +85,7 @@ sync_files() {
 
 start_stack() {
   log_info "Starting monitoring stack on VPS..."
-  $SSH "cd ${VPS_DIR} && cp .env.dev .env && ./monitoring-dev.sh start"
+  $SSH "cd ${VPS_DIR} && ./monitoring-dev.sh start"
 }
 
 check_health() {
