@@ -2,12 +2,15 @@ name: Deploy → https://edu.forges-group.com
 
 on:
   workflow_dispatch:
-  push:
+  # Se lance automatiquement après le workflow deploy-dev
+  workflow_run:
+    workflows: ['Deploy → https://dev.forges-group.com']
+    types: [completed]
     branches: [develop]
 
-# Même groupe de concurrence que dev (même serveur)
+# Groupe séparé pour tourner après DEV sans conflit
 concurrency:
-  group: forges-server-deploy
+  group: forges-edu-deploy
   cancel-in-progress: false
 
 env:
@@ -17,6 +20,8 @@ jobs:
   build-frontend:
     name: Build frontend Vite (EDU)
     runs-on: ubuntu-22.04
+    # Ne s'exécute que si DEV a réussi
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout
@@ -53,9 +58,7 @@ jobs:
     name: Déploiement sur edu
     runs-on: ubuntu-22.04
     needs: [build-frontend]
-    environment:
-      name: development
-      url: https://edu.forges-group.com
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Download dist frontend
