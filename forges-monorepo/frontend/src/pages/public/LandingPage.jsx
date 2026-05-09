@@ -205,10 +205,10 @@ export default function LandingPage() {
                 Formation vedette
               </span>
               <h2 className="text-3xl md:text-4xl font-bold mb-3">
-                {featuredFormation?.intitule}
+                {featuredFormation?.titre}
               </h2>
               <p className="text-lg text-white/95">
-                {featuredFormation?.description_courte}
+                {featuredFormation?.description}
               </p>
             </div>
             )}
@@ -232,24 +232,24 @@ export default function LandingPage() {
                 <div className="p-8 space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Session</p>
-                      <p className="font-semibold text-sm">{featuredFormation?.date_session}</p>
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Durée</p>
+                      <p className="font-semibold text-sm">{featuredFormation?.duree} jours</p>
                     </div>
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
                       <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Format</p>
-                      <p className="font-semibold text-sm">{featuredFormation?.format}</p>
+                      <p className="font-semibold text-sm">{featuredFormation?.mode_formation}</p>
                     </div>
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Certification</p>
-                      <p className="font-semibold text-sm">{featuredFormation?.certification}</p>
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Lieu</p>
+                      <p className="font-semibold text-sm">{featuredFormation?.lieu}</p>
                     </div>
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
                       <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Tarif</p>
-                      <p className="font-bold text-lg">{featuredFormation?.prix}</p>
+                      <p className="font-bold text-lg">{featuredFormation?.tarif ? (featuredFormation.tarif / 100).toLocaleString('fr-FR') + ' FCFA' : 'Sur devis'}</p>
                     </div>
                   </div>
                   <ul className="space-y-2 text-sm text-white/95">
-                    {featuredFormation?.points_cles?.map((point, idx) => (
+                    {(featuredFormation?.objectifs_pedagogiques || featuredFormation?.points_cles || []).slice(0, 3).map((point, idx) => (
                       <li key={idx} className="flex items-center gap-2">
                         <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                         {point}
