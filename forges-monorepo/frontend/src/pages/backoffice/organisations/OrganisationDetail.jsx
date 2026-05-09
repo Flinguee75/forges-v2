@@ -65,6 +65,7 @@ export default function OrganisationDetail() {
   const [configForm, setConfigForm] = useState({ commission_forges_pct: '', seuil_reversement_xof: '' });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [configSaved, setConfigSaved] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -149,6 +150,21 @@ export default function OrganisationDetail() {
     }
   };
 
+  const handleDeleteOrganisation = async () => {
+    const confirmed = window.confirm(
+      `Supprimer l'organisation "${organisationName}" ? Cette action supprimera aussi les devis, vouchers, abonnements et configurations liés.`
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      await organisationsApi.delete(id);
+      navigate('/backoffice/organisations');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="rounded-lg bg-white p-6 shadow">
@@ -167,9 +183,14 @@ export default function OrganisationDetail() {
               )}
             </div>
           </div>
-          <Button variant="outline" onClick={() => navigate('/backoffice/organisations')}>
-            Retour à la liste
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => navigate('/backoffice/organisations')}>
+              Retour à la liste
+            </Button>
+            <Button variant="danger" onClick={handleDeleteOrganisation} loading={isDeleting}>
+              Supprimer l'organisation
+            </Button>
+          </div>
         </div>
       </div>
 

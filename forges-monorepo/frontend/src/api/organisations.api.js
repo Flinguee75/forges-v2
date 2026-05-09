@@ -63,6 +63,10 @@ export const organisationsApi = {
     return apiClient.patch(`/backoffice/organisations/${id}/suspension`, { suspended });
   },
 
+  delete: async (id) => {
+    return apiClient.delete(`/backoffice/organisations/${id}`);
+  },
+
   /**
    * Récupère les membres d'une organisation
    * @param {string} id - ID de l'organisation

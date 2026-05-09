@@ -223,6 +223,74 @@ router.patch('/:id/suspension', authenticate, authorize('ADMIN', 'SUPERVISEUR'),
   }
 });
 
+// DELETE /api/backoffice/organisations/:id - Supprimer une organisation (ADMIN uniquement)
+router.delete('/:id', authenticate, authorize('ADMIN'), async (req, res, next) => {
+  try {
+    const organisation = await prisma.organisation.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, raison_sociale: true, email: true },
+    });
+
+    if (!organisation) {
+      return res.status(404).json({
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'Organisation non trouvée',
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.apprenant.updateMany({
+        where: { organisation_id: req.params.id },
+        data: { organisation_id: null },
+      });
+
+      await tx.feedbackFormation.deleteMany({
+        where: { organisation_id: req.params.id },
+      });
+
+      await tx.conversationBot.deleteMany({
+        where: { organisation_id: req.params.id },
+      });
+
+      await tx.voucherOrganisation.deleteMany({
+        where: { organisation_id: req.params.id },
+      });
+
+      await tx.devis.deleteMany({
+        where: { organisation_id: req.params.id },
+      });
+
+      await tx.organisationConfig.deleteMany({
+        where: { organisation_id: req.params.id },
+      });
+
+      await tx.abonnementB2B.deleteMany({
+        where: { organisation_id: req.params.id },
+      });
+
+      await tx.abonnementOrganisation.deleteMany({
+        where: { organisation_id: req.params.id },
+      });
+
+      await tx.organisation.delete({
+        where: { id: req.params.id },
+      });
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      data: {
+        id: organisation.id,
+        raison_sociale: organisation.raison_sociale,
+        email: organisation.email,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/backoffice/organisations/:id/membres - Membres de l'organisation
 router.get('/:id/membres', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res, next) => {
   try {

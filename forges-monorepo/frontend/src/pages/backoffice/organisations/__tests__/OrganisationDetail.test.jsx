@@ -11,6 +11,7 @@ vi.mock('../../../../api/organisations.api', () => ({
     getAbonnement: vi.fn(),
     getVouchers: vi.fn(),
     getConfig: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -90,6 +91,7 @@ describe('OrganisationDetail', () => {
     expect(screen.getByText('BUSINESS')).toBeInTheDocument();
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
     expect(screen.getByText('ORG-2026')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "Supprimer l'organisation" })).toBeInTheDocument();
     expect(organisationsApi.getById).toHaveBeenCalledWith('org-1');
     expect(organisationsApi.getMembres).toHaveBeenCalledWith('org-1');
     expect(organisationsApi.getAbonnement).toHaveBeenCalledWith('org-1');

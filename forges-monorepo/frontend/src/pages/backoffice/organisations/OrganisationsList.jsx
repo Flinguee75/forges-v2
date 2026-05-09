@@ -71,6 +71,23 @@ export default function OrganisationsList() {
     );
   };
 
+  const handleDeleteOrganisation = async (org) => {
+    const confirmed = window.confirm(
+      `Supprimer l'organisation "${org.nom_organisation || org.raison_sociale || 'N/A'}" ? Cette action supprimera aussi les devis, vouchers, abonnements et configurations liés.`
+    );
+    if (!confirmed) return;
+
+    await execute(
+      () => organisationsApi.delete(org.id),
+      {
+        onSuccess: () => {
+          loadOrganisations(meta.page);
+        },
+        successMessage: "Organisation supprimée",
+      }
+    );
+  };
+
   const getStatutBadge = (org) => {
     if (org.suspended) {
       return <Badge variant="danger" size="small">Suspendue</Badge>;
@@ -161,6 +178,13 @@ export default function OrganisationsList() {
             onClick={() => handleSuspendToggle(org.id, org.suspended)}
           >
             {org.suspended ? 'Activer' : 'Suspendre'}
+          </Button>
+          <Button
+            variant="danger"
+            size="small"
+            onClick={() => handleDeleteOrganisation(org)}
+          >
+            Supprimer
           </Button>
         </div>
       ),
