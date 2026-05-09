@@ -13,9 +13,13 @@ export class AuthService {
     private email: EmailService = new EmailService()
   ) {}
 
+  private isAccountActive(statut: string | undefined | null) {
+    return statut === 'ACTIF' || statut === 'ACTIVE';
+  }
+
   async login(email: string, password: string, ip: string) {
     const user = await this.userRepo.findByEmail(email);
-    if (!user || !user.password_hash || user.statut !== 'ACTIF') throw new Error('INVALID_CREDENTIALS');
+    if (!user || !user.password_hash || !this.isAccountActive(user.statut)) throw new Error('INVALID_CREDENTIALS');
     const valid = await compare(password, user.password_hash);
     if (!valid) throw new Error('INVALID_CREDENTIALS');
 
@@ -36,7 +40,7 @@ export class AuthService {
 
     // Récupérer l'utilisateur pour obtenir son role actuel
     const user = await this.userRepo.findById(payload.sub);
-    if (!user || user.statut === 'INACTIF') throw new Error('UNAUTHORIZED');
+    if (!user || !this.isAccountActive(user.statut)) throw new Error('UNAUTHORIZED');
 
     const tokenPayload = {
       sub: user.id,
@@ -54,7 +58,7 @@ export class AuthService {
     if (
       !user ||
       !user.password_hash ||
-      user.statut !== 'ACTIF' ||
+      !this.isAccountActive(user.statut) ||
       !['APPRENANT', 'ORGANISATION'].includes(user.source)
     ) {
       return { message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' };
@@ -105,7 +109,8 @@ export class AuthService {
     if (
       !user ||
       !user.password_hash ||
-      !['APPRENANT', 'ORGANISATION'].includes(user.source)
+      !['APPRENANT', 'ORGANISATION'].includes(user.source) ||
+      !this.isAccountActive(user.statut)
     ) {
       throw new Error('USER_NOT_FOUND');
     }
