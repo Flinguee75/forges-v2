@@ -7,12 +7,27 @@ set -e
 VPS_HOST="92.205.164.97"
 VPS_USER="forgesadmin"
 ENV_PATH="/var/www/vhosts/dev.forges-group.com/httpdocs/.env"
+SSH_KEY="${HOME}/.ssh/id_ed25519_forges"
 
 echo "=== Fix CORS pour edu.forges-group.com ==="
 echo ""
 
+# Vérifier que la clé SSH existe
+if [ ! -f "$SSH_KEY" ]; then
+  echo "❌ Clé SSH non trouvée: $SSH_KEY"
+  echo "Cherche clé alternative..."
+  SSH_KEY="${HOME}/.ssh/id_rsa"
+  if [ ! -f "$SSH_KEY" ]; then
+    echo "❌ Aucune clé SSH trouvée. Utilisez ssh-keygen ou indiquez le chemin manuellement."
+    exit 1
+  fi
+fi
+
+echo "✅ Utilisation de la clé: $SSH_KEY"
+echo ""
+
 # SSH et modification de l'env
-ssh ${VPS_USER}@${VPS_HOST} << 'EOF'
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${VPS_USER}@${VPS_HOST} << 'EOF'
   set -e
   
   ENV_PATH="/var/www/vhosts/dev.forges-group.com/httpdocs/.env"
