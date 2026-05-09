@@ -11,7 +11,7 @@ import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 
 function formatFcfa(amount) {
-  return `${Number(amount || 0).toLocaleString('fr-FR')} FCFA`;
+  return `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
 }
 
 function formatTimeParts(date) {

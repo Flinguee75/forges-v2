@@ -19,6 +19,7 @@ type DashboardFilters = {
 
 const PAID_DOSSIER_STATUSES = ['PAYE', 'PAYE_DIRECTEMENT'];
 const OPEN_SESSION_STATUSES = ['OUVERTE', 'INSCRIPTIONS_OUVERTES', 'EN_COURS'];
+const ACTIVE_ORGANISATION_STATUSES = ['ACTIF', 'ACTIVE'];
 
 function buildDateCondition(dateFrom?: string | Date, dateTo?: string | Date): any {
   if (!dateFrom && !dateTo) {
@@ -112,7 +113,7 @@ export class DashboardRepository {
       dossiersParStatut,
     ] = await Promise.all([
       this.prisma.apprenant.count({ where: { statut: 'ACTIF' } }),
-      this.prisma.organisation.count({ where: { statut: 'ACTIF' } }),
+      this.prisma.organisation.count({ where: { statut: { in: ACTIVE_ORGANISATION_STATUSES } } }),
       this.prisma.formation.count({ where: { statut: 'ACTIVE' } }),
       this.prisma.session.count({ where: { statut: { in: OPEN_SESSION_STATUSES } } }),
       this.prisma.dossier.count(),

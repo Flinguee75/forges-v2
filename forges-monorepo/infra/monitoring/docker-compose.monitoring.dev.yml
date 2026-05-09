@@ -97,6 +97,7 @@ services:
     command: sh /silent-check.sh
     environment:
       FORGES_BASE_URL: http://forges-backend-dev:3001
+      FORGES_ENVIRONMENT: dev
       CHECK_INTERVAL: "300"
     depends_on:
       - loki

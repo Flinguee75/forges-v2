@@ -57,7 +57,7 @@ describe('BackofficeDashboard', () => {
       expect(screen.getByText('Organisations actives')).toBeInTheDocument();
       expect(screen.getByText('12')).toBeInTheDocument();
       expect(screen.getByText('CA total')).toBeInTheDocument();
-      expect(screen.getByText(/15[\s\u202f]000[\s\u202f]000 FCFA/)).toBeInTheDocument();
+      expect(screen.getByText(/150[\s\u202f]?000 FCFA/)).toBeInTheDocument();
     });
   });
 

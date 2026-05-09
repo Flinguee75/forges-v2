@@ -3,15 +3,16 @@
 # Logs structured JSON to stdout so Promtail/Loki picks it up
 # An ERROR log triggers the Grafana alert rule
 
-BASE_URL="${FORGES_BASE_URL:-http://forges-backend-demo:3003}"
+BASE_URL="${FORGES_BASE_URL:-http://forges-backend-dev:3001}"
 INTERVAL="${CHECK_INTERVAL:-300}"
+ENVIRONMENT="${FORGES_ENVIRONMENT:-dev}"
 
 log() {
   level="$1"
   check="$2"
   msg="$3"
-  printf '{"level":"%s","service":"checker","environment":"demo","check":"%s","msg":"%s","ts":"%s"}\n' \
-    "$level" "$check" "$msg" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf '{"level":"%s","service":"checker","environment":"%s","check":"%s","msg":"%s","ts":"%s"}\n' \
+    "$level" "$ENVIRONMENT" "$check" "$msg" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 
 check_health() {
