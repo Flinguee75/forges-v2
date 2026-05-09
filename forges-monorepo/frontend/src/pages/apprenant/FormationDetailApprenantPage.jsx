@@ -48,13 +48,7 @@ export default function FormationDetailApprenantPage() {
 
   if (!formation) return null;
 
-  const isALaDemande = formation.mode_formation === 'A_LA_DEMANDE';
-
-  const apprenantActions = (
-    <Button onClick={() => navigate(`/apprenant/inscrire/${id}`)}>
-      {isALaDemande ? 'Accéder maintenant' : "S'inscrire à une session"}
-    </Button>
-  );
+  const apprenantActions = null;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -66,12 +60,9 @@ export default function FormationDetailApprenantPage() {
         &larr; Retour au catalogue
       </button>
       <FormationDetailView formation={formation} actions={apprenantActions} />
-      <div className="mt-6 flex justify-between gap-3 pb-6">
+      <div className="mt-6 pb-6">
         <Button variant="outline" onClick={() => navigate('/apprenant/catalogue')}>
           Retour au catalogue
-        </Button>
-        <Button onClick={() => navigate(`/apprenant/inscrire/${id}`)}>
-          {isALaDemande ? 'Accéder maintenant' : "S'inscrire à une session"}
         </Button>
       </div>
     </div>

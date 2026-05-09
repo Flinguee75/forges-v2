@@ -81,9 +81,17 @@ export default function InscriptionSessionPage() {
     }
 
     await executeInscription(() => apprenantApi.inscrireSession(selectedSessionId, payload), {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        const dossier = data?.data || data;
         navigate('/apprenant/dossiers', {
-          state: { message: 'Inscription réussie ! Votre dossier a été créé.' },
+          state: {
+            dossierCree: {
+              dossierId: dossier?.id,
+              formationTitre: formation?.intitule || formation?.titre,
+              montant: dossier?.montant_total,
+              delaiPaiement: '72 heures'
+            }
+          },
         });
       },
       onError: (err) => {
