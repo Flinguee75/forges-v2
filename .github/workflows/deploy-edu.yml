@@ -1,0 +1,107 @@
+name: Deploy → https://edu.forges-group.com
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+
+# Même groupe de concurrence que dev (même serveur)
+concurrency:
+  group: forges-server-deploy
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-frontend:
+    name: Build frontend Vite (EDU)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: forges-monorepo/frontend/package-lock.json
+
+      - name: Installer dépendances frontend
+        working-directory: forges-monorepo/frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Vite (EDU)
+        working-directory: forges-monorepo/frontend
+        env:
+          VITE_API_URL: /api  # URL relative - utilise le même domaine
+          VITE_ENV: dev
+          VITE_COMMIT_SHA: ${{ github.sha }}
+        run: npm run build
+
+      - name: Upload dist frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-edu
+          path: forges-monorepo/frontend/dist/
+          retention-days: 1
+          include-hidden-files: true
+
+  deploy:
+    name: Déploiement sur edu
+    runs-on: ubuntu-22.04
+    needs: [build-frontend]
+    environment:
+      name: development
+      url: https://edu.forges-group.com
+
+    steps:
+      - name: Download dist frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-edu
+          path: frontend-dist/
+
+      - name: Configurer SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Transférer frontend (rsync)
+        run: |
+          rsync -rltz --delete --omit-dir-times --no-perms --no-group \
+            --chmod=D755,F644 \
+            --exclude='.env' --exclude='infra/' --exclude='uploads/' --exclude='prisma/' \
+            frontend-dist/ \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:/var/www/vhosts/edu.forges-group.com/httpdocs/
+
+      - name: Corriger permissions frontend
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} \
+            "find /var/www/vhosts/edu.forges-group.com/httpdocs -not -path '*/.env' -not -path '*/infra/*' -not -path '*/uploads/*' -type f -exec chmod 644 {} \; && find /var/www/vhosts/edu.forges-group.com/httpdocs -type d -exec chmod 755 {} \;"
+
+      - name: Healthcheck
+        run: |
+          sleep 5
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://edu.forges-group.com/health || echo "000")
+          [ "$HTTP_CODE" = "200" ] && echo "✅ EDU OK" || echo "⚠️ Healthcheck: $HTTP_CODE"
+
+      - name: Résumé
+        if: always()
+        run: |
+          echo "## Deploy EDU — ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | https://edu.forges-group.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| API | Relative (/api) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Déployé par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Nettoyer clé SSH
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
