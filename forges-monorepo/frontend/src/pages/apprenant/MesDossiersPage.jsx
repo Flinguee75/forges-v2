@@ -213,7 +213,7 @@ export default function MesDossiersPage() {
                     </div>
                   )}
 
-                  {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT') && (
+                  {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT') && dossier.source_financement !== 'VOUCHER' && (
                     <Button
                       variant="primary"
                       size="medium"

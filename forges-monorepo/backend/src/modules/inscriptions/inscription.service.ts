@@ -152,7 +152,8 @@ export class InscriptionService {
     // - Premium+Retail → EN_ATTENTE_VERIFICATION (RM-140)
     // - Tous les autres (paiement direct) → PAYE_DIRECTEMENT (RM-140)
     let statutDossier: string;
-    if (voucher?.type === 'ORGANISATION') {
+    if (voucher?.type === 'ORGANISATION' || voucherPromo) {
+      // Voucher organisation ou promotionnel : paiement couvert, pas d'action requise
       statutDossier = 'PAYE';
     } else if (estPremiumEtRetail) {
       statutDossier = 'EN_ATTENTE_VERIFICATION';
