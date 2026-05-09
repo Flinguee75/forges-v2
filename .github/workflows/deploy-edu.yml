@@ -59,6 +59,9 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-frontend]
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    environment:
+      name: dev
+      url: https://edu.forges-group.com
 
     steps:
       - name: Download dist frontend
