@@ -38,6 +38,11 @@ services:
     image: ${BACKEND_IMAGE}:dev-${IMAGE_TAG}
     container_name: forges-backend-dev
     restart: unless-stopped
+    labels:
+      com.docker.compose.project: forges-dev
+      com.docker.compose.service: backend
+      environment: dev
+      service: backend
     env_file:
       - /var/www/vhosts/dev.forges-group.com/httpdocs/.env
     environment:

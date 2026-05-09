@@ -13,7 +13,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} | json",
           "refId": "A"
         }
       ],
@@ -29,13 +29,13 @@
       }
     },
     {
-      "title": "DEV Errors",
+      "title": "DEV Backend Errors",
       "type": "logs",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\" |~ \"(?i)error\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | level=~\"(?i)error\"",
           "refId": "A"
         }
       ],
@@ -48,13 +48,13 @@
       }
     },
     {
-      "title": "DEV PostgreSQL Logs",
+      "title": "DEV Scheduler / Text Logs",
       "type": "logs",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} |~ \"\\[.*Scheduler\\]|Démarré|Arrêté|Exécution|INFO|ERROR\"",
           "refId": "A"
         }
       ],
@@ -73,7 +73,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum(rate({service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\" | level=\"error\" [5m]))",
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | level=~\"(?i)error\" [5m]))",
           "refId": "A",
           "legendFormat": "errors/s"
         }
@@ -97,9 +97,9 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum by (service) (count_over_time({service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\" [5m]))",
+          "expr": "sum by (level) (count_over_time({service_name=~\"unknown_service|backend\"} | json [5m]))",
           "refId": "A",
-          "legendFormat": "{{service}}"
+          "legendFormat": "{{level}}"
         }
       ],
       "fieldConfig": {
@@ -114,13 +114,13 @@
       }
     },
     {
-      "title": "DEV Redis Logs",
+      "title": "DEV Backend Audit Logs",
       "type": "logs",
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 26 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | action=~\"COMPTE_CREE|APPRENANT_CREE_ADMIN|APPRENANT_SUPPRIME|LOGIN_SUCCESS|DASHBOARD_CONSULTE\"",
           "refId": "A"
         }
       ],
@@ -133,13 +133,13 @@
       }
     },
     {
-      "title": "Silent Checks — Erreurs detectees",
+      "title": "DEV Backend Errors Detaillees",
       "type": "logs",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\" | level=\"error\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | level=~\"(?i)error\"",
           "refId": "A"
         }
       ],
@@ -152,13 +152,13 @@
       }
     },
     {
-      "title": "Silent Checks — Historique cycles",
+      "title": "DEV Backend Historique brut",
       "type": "logs",
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 40 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|checker\"} | json | service=\"checker\" | environment=\"dev\"",
+          "expr": "{service_name=~\"unknown_service|backend\"}",
           "refId": "A"
         }
       ],

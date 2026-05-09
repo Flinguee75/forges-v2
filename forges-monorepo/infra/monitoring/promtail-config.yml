@@ -24,6 +24,8 @@ scrape_configs:
         target_label: container
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: service
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service_name
       - target_label: environment
         replacement: dev
       - target_label: job
@@ -49,6 +51,8 @@ scrape_configs:
         target_label: container
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: service
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service_name
       - target_label: environment
         replacement: test
       - target_label: job
@@ -74,6 +78,8 @@ scrape_configs:
         target_label: container
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: service
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service_name
       - target_label: environment
         replacement: demo
       - target_label: job

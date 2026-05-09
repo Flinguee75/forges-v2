@@ -42,14 +42,17 @@ export default function ApprenantCreate() {
 
   const validate = () => {
     const e = {};
-    if (!form.email) e.email = 'Email obligatoire';
-    if (!form.nom) e.nom = 'Nom obligatoire';
-    if (!form.prenoms) e.prenoms = 'Prenoms obligatoires';
+    if (!form.email.trim()) e.email = 'Email obligatoire';
+    if (!form.nom.trim()) e.nom = 'Nom obligatoire';
+    if (!form.prenoms.trim()) e.prenoms = 'Prenoms obligatoires';
     if (form.type_apprenant === 'PROFESSIONNEL' && !form.secteur_activite) {
       e.secteur_activite = 'Secteur obligatoire pour un professionnel';
     }
     if (form.type_apprenant === 'APPRENANT' && !form.niveau_etude) {
       e.niveau_etude = "Niveau d'etude obligatoire";
+    }
+    if (form.mot_de_passe_temp && form.mot_de_passe_temp.length > 0 && form.mot_de_passe_temp.length < 8) {
+      e.mot_de_passe_temp = 'Minimum 8 caracteres';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -64,43 +67,56 @@ export default function ApprenantCreate() {
     e.preventDefault();
     if (!validate()) return;
 
-    await execute(
-      () => apprenantsApi.create({
-        email: form.email,
-        nom: form.nom,
-        prenoms: form.prenoms,
-        type_apprenant: form.type_apprenant,
-        secteur_activite: form.secteur_activite || undefined,
-        niveau_etude: form.niveau_etude || undefined,
-        pays_residence: form.pays_residence,
-        pays_nationalite: form.pays_nationalite,
-        langue_preferee: form.langue_preferee,
-        organisation_id: form.organisation_id || undefined,
-        telephone: form.telephone || undefined,
-        mot_de_passe_temp: form.mot_de_passe_temp || undefined,
-      }),
-      {
-        onSuccess: (data) => {
-          const apprenant = data?.data ?? data;
-          setCredentials({
-            email: apprenant.email,
-            mot_de_passe_temp: apprenant.mot_de_passe_temp,
-            id: apprenant.id,
-          });
-          showToast('Compte apprenant cree avec succes.', 'success');
-        },
-        onError: (err) => {
-          const code = err?.response?.data?.error;
-          if (code === 'EMAIL_ALREADY_EXISTS') {
-            setErrors(prev => ({ ...prev, email: 'Cet email est deja utilise' }));
-          } else if (code === 'ORGANISATION_NOT_FOUND') {
-            setErrors(prev => ({ ...prev, organisation_id: 'Organisation introuvable' }));
-          } else {
-            showToast('Erreur lors de la creation du compte.', 'error');
-          }
-        },
-      }
-    );
+    try {
+      await execute(
+        () => apprenantsApi.create({
+          email: form.email.trim(),
+          nom: form.nom.trim(),
+          prenoms: form.prenoms.trim(),
+          type_apprenant: form.type_apprenant,
+          secteur_activite: form.secteur_activite?.trim() || undefined,
+          niveau_etude: form.niveau_etude?.trim() || undefined,
+          pays_residence: form.pays_residence.trim().toUpperCase(),
+          pays_nationalite: form.pays_nationalite.trim().toUpperCase(),
+          langue_preferee: form.langue_preferee,
+          organisation_id: form.organisation_id || undefined,
+          telephone: form.telephone?.trim() || undefined,
+          mot_de_passe_temp: form.mot_de_passe_temp?.trim() || undefined,
+        }),
+        {
+          onSuccess: (data) => {
+            const apprenant = data?.data ?? data;
+            setCredentials({
+              email: apprenant.email,
+              mot_de_passe_temp: apprenant.mot_de_passe_temp,
+              id: apprenant.id,
+            });
+            showToast('Compte apprenant cree avec succes.', 'success');
+          },
+          onError: (err) => {
+            const code = err?.error ?? err?.response?.data?.error;
+            const details = err?.details ?? err?.response?.data?.details;
+            if (code === 'EMAIL_ALREADY_EXISTS') {
+              setErrors(prev => ({ ...prev, email: 'Cet email est deja utilise' }));
+            } else if (code === 'ORGANISATION_NOT_FOUND') {
+              setErrors(prev => ({ ...prev, organisation_id: 'Organisation introuvable' }));
+            } else if (code === 'VALIDATION_ERROR' && Array.isArray(details) && details.length > 0) {
+              const first = details[0];
+              const field = first?.path?.[0];
+              if (field) {
+                setErrors(prev => ({ ...prev, [field]: first?.message || 'Valeur invalide' }));
+              } else {
+                showToast(first?.message || 'Erreur de validation.', 'error');
+              }
+            } else {
+              showToast(err?.message || 'Erreur lors de la creation du compte.', 'error');
+            }
+          },
+        }
+      );
+    } catch {
+      // L'erreur est deja traitee par onError ; on évite un rejet non capture dans la console.
+    }
   };
 
   if (credentials) {
@@ -269,6 +285,7 @@ export default function ApprenantCreate() {
             label="Mot de passe temporaire (laissez vide pour auto-generer)"
             value={form.mot_de_passe_temp}
             onChange={handleChange('mot_de_passe_temp')}
+            error={errors.mot_de_passe_temp}
             placeholder="Auto-genere si vide"
             data-testid="input-mdp-temp"
           />
