@@ -26,11 +26,13 @@ export class EmailService {
   private translationsCache: Map<string, Record<string, any>> = new Map();
 
   constructor() {
-    const smtpHost = process.env.BREVO_SMTP_HOST || process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-    const smtpPort = parseInt(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || '587', 10);
-    const smtpSecure = (process.env.BREVO_SMTP_SECURE || process.env.SMTP_SECURE || 'false') === 'true';
-    const smtpUser = process.env.BREVO_SMTP_USER || process.env.SMTP_USER;
-    const smtpPass = process.env.BREVO_SMTP_KEY || process.env.SMTP_PASS;
+    // Priorité au SMTP "runtime" (Plesk/deploy) pour permettre de forcer Office 365.
+    // Les variables BREVO_* restent en fallback de compatibilité.
+    const smtpHost = process.env.SMTP_HOST || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || process.env.BREVO_SMTP_PORT || '587', 10);
+    const smtpSecure = (process.env.SMTP_SECURE || process.env.BREVO_SMTP_SECURE || 'false') === 'true';
+    const smtpUser = process.env.SMTP_USER || process.env.BREVO_SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.BREVO_SMTP_KEY;
 
     this.transporter = nodemailer.createTransport({
       host: smtpHost,

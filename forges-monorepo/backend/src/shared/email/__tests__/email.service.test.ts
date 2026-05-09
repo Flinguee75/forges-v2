@@ -213,7 +213,7 @@ describe('EmailService', () => {
     it('sendTempPassword délègue correctement', async () => {
       await service.sendTempPassword('a@test.ci', 'Temp1234!', 'FR');
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        subject: 'Mot de passe temporaire FORGES',
+        subject: 'Bienvenue sur FORGES — Vos identifiants de connexion (compte Apprenant)',
       }));
     });
 
