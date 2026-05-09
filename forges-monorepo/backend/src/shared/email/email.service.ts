@@ -36,11 +36,13 @@ export class EmailService {
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
+      requireTLS: smtpPort === 587,
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
       tls: {
+        ciphers: 'SSLv3',
         rejectUnauthorized: false,
       },
     });
@@ -308,25 +310,49 @@ export class EmailService {
     });
   }
 
-  async sendTempPassword(email: string, tempPassword: string, langue: string): Promise<void> {
-    const title = 'Mot de passe temporaire FORGES';
+  async sendTempPassword(
+    email: string,
+    tempPassword: string,
+    langue: string,
+    typeCompte: 'APPRENANT' | 'ORGANISATION' = 'APPRENANT',
+  ): Promise<void> {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+    const typeLabel = typeCompte === 'ORGANISATION' ? 'Organisation' : 'Apprenant';
+    const subject = `Bienvenue sur FORGES — Vos identifiants de connexion (compte ${typeLabel})`;
+
     await this.sendEmail({
       to: email,
-      subject: title,
+      subject,
       text: this.buildTextEmail([
         'Bonjour,',
         '',
-        'Un mot de passe temporaire a été généré pour votre compte FORGES.',
-        `Mot de passe temporaire: ${tempPassword}`,
-        'Connectez-vous puis changez-le immédiatement.',
-        `Langue du message: ${langue}`,
+        `Votre compte ${typeLabel} FORGES vient d'être créé par notre équipe.`,
+        '',
+        'Vos identifiants de connexion :',
+        `  Email : ${email}`,
+        `  Mot de passe temporaire : ${tempPassword}`,
+        '',
+        `Connectez-vous ici : ${loginUrl}`,
+        '',
+        'IMPORTANT : Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
+        '',
+        'Si vous n\'etes pas a l\'origine de cette creation ou pour toute question, contactez-nous : support@forges-group.com',
+        '',
+        'L\'equipe FORGES',
       ]),
-      html: this.buildHtmlEmail(title, [
-        'Bonjour,',
-        'Un mot de passe temporaire a été généré pour votre compte FORGES.',
-        `<strong>Mot de passe temporaire :</strong> ${tempPassword}`,
-        'Connectez-vous puis changez-le immédiatement.',
-        `Langue du message : ${langue}`,
+      html: this.buildHtmlEmail(subject, [
+        `Votre compte <strong>${typeLabel}</strong> FORGES vient d'être créé par notre équipe.`,
+        '<br>',
+        'Vos identifiants de connexion :',
+        `<strong>Email :</strong> ${email}`,
+        `<strong>Mot de passe temporaire :</strong> <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${tempPassword}</code>`,
+        '<br>',
+        `<a href="${loginUrl}" style="display:inline-block;background:#1B4F72;color:#FFFFFF;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">Accéder à mon espace</a>`,
+        `<p style="font-size:12px;color:#666;">Si le bouton ne fonctionne pas, copiez ce lien : <a href="${loginUrl}">${loginUrl}</a></p>`,
+        '<br>',
+        '<strong>Important :</strong> Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
+        '<br>',
+        'Si vous n\'êtes pas à l\'origine de cette création ou pour toute question, contactez-nous : <a href="mailto:support@forges-group.com">support@forges-group.com</a>',
       ]),
     });
   }

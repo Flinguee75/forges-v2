@@ -1,6 +1,11 @@
 import { Router } from 'express';
+import bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
+import { EmailService } from '../../shared/email/email.service';
+
+const emailService = new EmailService();
 
 const router = Router();
 
@@ -107,6 +112,9 @@ router.post('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, re
       });
     }
 
+    const tempPassword = randomBytes(6).toString('hex').toUpperCase() + '!' + randomBytes(3).toString('hex');
+    const password_hash = await bcrypt.hash(tempPassword, 12);
+
     const organisation = await prisma.organisation.create({
       data: {
         raison_sociale,
@@ -117,9 +125,13 @@ router.post('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, re
         pays,
         langue_preferee,
         identifiant_legal: identifiant_legal || null,
-        password_hash: '',
+        password_hash,
         statut: 'ACTIVE',
       },
+    });
+
+    emailService.sendTempPassword(email, tempPassword, langue_preferee, 'ORGANISATION').catch((err) => {
+      console.error('[backoffice-organisations] sendTempPassword failed:', err);
     });
 
     res.status(201).json({

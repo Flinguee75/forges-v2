@@ -297,7 +297,9 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res, next) => {
     });
 
     // Envoyer les credentials par email (non bloquant)
-    emailService.sendWelcomeEmail(emailNormalise, dto.nom).catch(() => undefined);
+    emailService.sendTempPassword(emailNormalise, motDePasseTemp, dto.langue_preferee, 'APPRENANT').catch((err) => {
+      console.error('[backoffice-apprenants] sendTempPassword failed:', err);
+    });
 
     return res.status(201).json({
       statusCode: 201,
