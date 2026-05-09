@@ -22,11 +22,14 @@ export default defineConfig({
           if (id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
             return 'vendor-react';
           }
-          if (id.includes('node_modules/react/')) {
+          if (id.includes('node_modules/react')) {
             return 'vendor-react';
           }
           if (id.includes('node_modules/qrcode')) {
             return 'vendor-qrcode';
+          }
+          if (id.includes('node_modules/axios')) {
+            return 'vendor-api';
           }
         },
       },

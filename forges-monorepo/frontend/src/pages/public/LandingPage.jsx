@@ -1,12 +1,16 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Button from '../../components/ui/Button';
+import { useApi } from '../../hooks/useApi';
+import { formationsApi } from '../../api/formations.api';
 import Card from '../../components/ui/Card';
 import FeatureIcon from '../../components/ui/FeatureIcon';
 import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
 import logoAspire from '../../assets/logo_aspire.png';
 import logoAiCrafters from '../../assets/logo_ai_crafters.png';
+import logoGwu from '../../assets/logo_gwu.png';
+import logoCcdl from '../../assets/logo_ccdl.png';
 import imageCcdlGw from '../../assets/image_ccdl_gw.png';
 import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -17,13 +21,18 @@ import StatusBadge from '../../components/ui/StatusBadge';
  * Optimisée pour conversions et SEO
  */
 const COLLABORATEURS = [
-  { sigle: 'GWU', nom: 'George Washington University', logo: null },
-  { sigle: 'CCDL', nom: 'Centre de Certification Digital de Lomé', logo: null },
+  { sigle: 'GWU', nom: 'George Washington University', logo: logoGwu },
+  { sigle: 'CCDL', nom: 'Center for Cyber Diplomacy and Leadership', logo: logoCcdl },
   { sigle: 'ASPIRE', nom: 'Aspire', logo: logoAspire },
   { sigle: 'AIC', nom: 'AI Crafters', logo: logoAiCrafters },
 ];
 
-const COULEURS_SIGLE = ['bg-primary', 'bg-secondary', 'bg-success', 'bg-warning', 'bg-apporteur'];
+const COULEURS_SIGLE = [
+  { bg: 'bg-primary', text: 'text-white' },
+  { bg: 'bg-secondary', text: 'text-white' },
+  { bg: 'bg-success', text: 'text-white' },
+  { bg: 'bg-apporteur', text: 'text-white' },
+];
 
 function CarouselCollaborateurs() {
   const items = [...COLLABORATEURS, ...COLLABORATEURS];
@@ -52,10 +61,10 @@ function CarouselCollaborateurs() {
       <div className="carousel-track gap-8 px-4">
         {items.map((c, idx) => (
           <div key={idx} className="flex flex-col items-center gap-3 w-44 flex-shrink-0">
-            <div className={`w-32 h-32 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-md overflow-hidden ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length]}`}>
+            <div className={`w-32 h-32 rounded-2xl flex items-center justify-center font-bold text-base shadow-md overflow-hidden ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].bg} ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].text}`}>
               {c.logo
                 ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain bg-white p-3" />
-                : <span className="text-sm text-center px-2">{c.sigle}</span>}
+                : <span className="text-sm text-center px-2 font-bold text-white drop-shadow-md">{c.sigle}</span>}
             </div>
             <p className="text-xs text-center text-subtext font-medium leading-tight">{c.nom}</p>
           </div>
@@ -67,6 +76,25 @@ function CarouselCollaborateurs() {
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [featuredFormation, setFeaturedFormation] = useState(null);
+  const { execute, isLoading } = useApi();
+
+  const loadFeaturedFormation = useCallback(async () => {
+    await execute(
+      () => formationsApi.getCatalogue({ vedette: true, limit: 1 }),
+      {
+        onSuccess: (data) => {
+          if (data.formations && data.formations.length > 0) {
+            setFeaturedFormation(data.formations[0]);
+          }
+        },
+      }
+    );
+  }, [execute]);
+
+  useEffect(() => {
+    loadFeaturedFormation();
+  }, [loadFeaturedFormation]);
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -120,20 +148,20 @@ export default function LandingPage() {
             </p>
 
             {/* Value Proposition */}
-            <p className="text-base md:text-lg mb-10 opacity-95 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg mb-10 text-white/95 max-w-2xl mx-auto leading-relaxed">
               Inscription en ligne, paiements sécurisés, suivi en temps réel et attestations officielles.
               Tout ce dont vous avez besoin pour gérer vos formations du début à la fin.
             </p>
 
             {/* Strong CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to="/register">
-                <Button variant="white" size="large" className="min-w-[240px] font-semibold">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
+              <Link to="/register" className="min-h-[48px] min-w-[280px] inline-flex items-center justify-center">
+                <Button variant="white" size="large" className="min-w-[280px] min-h-[48px] font-semibold px-8 py-3">
                   Créer un compte gratuit
                 </Button>
               </Link>
-              <Link to="/catalogue">
-                <Button variant="white" size="large" className="min-w-[240px] font-semibold bg-transparent border-2 border-white hover:bg-white hover:bg-opacity-10">
+              <Link to="/catalogue" className="min-h-[48px] min-w-[280px] inline-flex items-center justify-center">
+                <Button variant="white" size="large" className="min-w-[280px] min-h-[48px] font-semibold bg-transparent border-2 border-white hover:bg-white hover:bg-opacity-10 px-8 py-3">
                   Explorer le catalogue
                 </Button>
               </Link>
@@ -143,20 +171,20 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto pt-10 border-t border-white border-opacity-20">
               <div className="flex flex-col items-center">
                 <div className="text-4xl md:text-5xl font-bold mb-2">100%</div>
-                <div className="text-sm md:text-base opacity-90">Digital & Mobile</div>
+                <div className="text-sm md:text-base text-white/95">Digital & Mobile</div>
               </div>
               <div className="flex flex-col items-center">
                 <div className="text-4xl md:text-5xl font-bold mb-2">Sécurisé</div>
-                <div className="text-sm md:text-base opacity-90">Paiements Mobile Money</div>
+                <div className="text-sm md:text-base text-white/95">Paiements Mobile Money</div>
               </div>
               <div className="flex flex-col items-center">
                 <div className="text-4xl md:text-5xl font-bold mb-2">Rapide</div>
-                <div className="text-sm md:text-base opacity-90">Inscription en 2 minutes</div>
+                <div className="text-sm md:text-base text-white/95">Inscription en 2 minutes</div>
               </div>
             </div>
 
             {/* Social Proof Teaser */}
-            <div className="mt-12 text-sm opacity-80">
+            <div className="mt-12 text-sm text-white/90">
               Rejoignez les professionnels et organisations qui développent leurs compétences avec FORGES
             </div>
           </div>
@@ -167,17 +195,23 @@ export default function LandingPage() {
       <section className="py-20 bg-gradient-to-br from-primary to-secondary text-white">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto" />
+              </div>
+            ) : (
             <div className="text-center mb-10">
               <span className="inline-block bg-white bg-opacity-20 text-white text-xs font-bold uppercase tracking-widest px-4 py-1 rounded-full mb-4">
                 Formation vedette
               </span>
               <h2 className="text-3xl md:text-4xl font-bold mb-3">
-                Masterclass GWU / CCDL
+                {featuredFormation?.intitule}
               </h2>
-              <p className="text-lg opacity-90">
-                Cybersécurité &amp; Intelligence Artificielle — Certification internationale
+              <p className="text-lg text-white/95">
+                {featuredFormation?.description_courte}
               </p>
             </div>
+            )}
 
             <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white border-opacity-20">
               <div className="grid md:grid-cols-2">
@@ -188,7 +222,7 @@ export default function LandingPage() {
                     <img
                       src={imageCcdlGw}
                       alt="Masterclass GWU CCDL"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-white/10"
                     />
                   </picture>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
@@ -198,37 +232,31 @@ export default function LandingPage() {
                 <div className="p-8 space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Session</p>
-                      <p className="font-semibold text-sm">1 — 11 juin 2026</p>
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Session</p>
+                      <p className="font-semibold text-sm">{featuredFormation?.date_session}</p>
                     </div>
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Format</p>
-                      <p className="font-semibold text-sm">Présentiel + distanciel</p>
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Format</p>
+                      <p className="font-semibold text-sm">{featuredFormation?.format}</p>
                     </div>
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Certification</p>
-                      <p className="font-semibold text-sm">Double GWU + CCDL</p>
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Certification</p>
+                      <p className="font-semibold text-sm">{featuredFormation?.certification}</p>
                     </div>
                     <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs opacity-70 uppercase tracking-wide mb-1">Tarif</p>
-                      <p className="font-bold text-lg">3 000 000 FCFA</p>
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Tarif</p>
+                      <p className="font-bold text-lg">{featuredFormation?.prix}</p>
                     </div>
                   </div>
-                  <ul className="space-y-2 text-sm opacity-90">
-                    <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Cybersécurité des systèmes d'information
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Intelligence artificielle appliquée
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Places limitées — inscription ouverte
-                    </li>
+                  <ul className="space-y-2 text-sm text-white/95">
+                    {featuredFormation?.points_cles?.map((point, idx) => (
+                      <li key={idx} className="flex items-center gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        {point}
+                      </li>
+                    ))}
                   </ul>
-                  <Link to="/catalogue">
+                  <Link to={featuredFormation?.id ? `/formations/${featuredFormation.id}` : '/catalogue'}>
                     <Button variant="white" size="large" className="w-full font-semibold">
                       S'inscrire à cette formation
                     </Button>
@@ -397,7 +425,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Paiements locaux acceptés</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Paiements locaux acceptés</h3>
                 <p className="text-sm text-subtext">Mobile Money, Orange Money, Wave, cartes bancaires et virements : tous les modes de paiement africains sont pris en charge</p>
               </div>
             </div>
@@ -407,7 +435,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Attestations officielles en PDF</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Attestations officielles en PDF</h3>
                 <p className="text-sm text-subtext">Téléchargez vos attestations certifiées immédiatement après validation de votre formation, sans déplacement</p>
               </div>
             </div>
@@ -417,7 +445,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Sécurité certifiée</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Sécurité certifiée</h3>
                 <p className="text-sm text-subtext">Vos données personnelles et paiements protégés par chiffrement AES-256 et conformes aux standards internationaux</p>
               </div>
             </div>
@@ -427,7 +455,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Accessible 24/7 partout</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Accessible 24/7 partout</h3>
                 <p className="text-sm text-subtext">Plateforme responsive accessible depuis mobile, tablette ou ordinateur, même avec une connexion faible</p>
               </div>
             </div>
@@ -437,7 +465,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Support client réactif</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Support client réactif</h3>
                 <p className="text-sm text-subtext">Équipe support disponible par email et téléphone pour vous accompagner à chaque étape de votre parcours</p>
               </div>
             </div>
@@ -447,7 +475,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Vouchers pour organisations</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Vouchers pour organisations</h3>
                 <p className="text-sm text-subtext">Système de vouchers prépayés pour former vos employés ou membres en masse avec tableau de bord consolidé</p>
               </div>
             </div>
