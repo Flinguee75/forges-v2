@@ -48,7 +48,14 @@ export default function FormationDetailApprenantPage() {
 
   if (!formation) return null;
 
-  const apprenantActions = null;
+  const isALaDemande = formation.mode_formation === 'A_LA_DEMANDE';
+
+
+const apprenantActions = (
+    <Button onClick={() => navigate(`/apprenant/inscrire/${id}`)}>
+      {isALaDemande ? 'Accéder maintenant' : "S'inscrire à une session"}
+    </Button>
+  );
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -59,7 +66,7 @@ export default function FormationDetailApprenantPage() {
       >
         &larr; Retour au catalogue
       </button>
-      <FormationDetailView formation={formation} actions={apprenantActions} />
+      <FormationDetailView formation={formation} actions={isALaDemande ? null : apprenantActions} />
       <div className="mt-6 pb-6">
         <Button variant="outline" onClick={() => navigate('/apprenant/catalogue')}>
           Retour au catalogue
