@@ -277,6 +277,24 @@ export default function InscriptionSessionPage() {
           </div>
         )}
 
+        {/* Avertissement engagement paiement (RM-140, RM-07) */}
+        {(sourceFinancement === 'RETAIL' || sourceFinancement === 'DIRECT') && (
+          <div className="rounded-lg border border-warning bg-warning/10 p-4 text-sm text-warning" data-testid="engagement-paiement-warning">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-semibold">Engagement de paiement</p>
+                <p className="mt-1">
+                  En validant cette inscription, vous vous engagez à effectuer le paiement dans les <strong>72 heures</strong>.
+                  Passé ce délai, votre dossier sera automatiquement annulé (RM-07).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-4 justify-end">
           <Button

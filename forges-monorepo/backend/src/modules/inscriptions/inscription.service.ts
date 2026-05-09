@@ -150,7 +150,7 @@ export class InscriptionService {
     // Statut dossier selon le mode de financement (RM-140, RM-41)
     // - Voucher ORGANISATION → PAYE (l'org couvre le paiement — RM-41)
     // - Premium+Retail → EN_ATTENTE_VERIFICATION (RM-140)
-    // - Voucher APPORTEUR/PROMOTIONNEL ou autres → PAYE_DIRECTEMENT (l'apprenant paie)
+    // - Tous les autres (paiement direct) → PAYE_DIRECTEMENT (RM-140)
     let statutDossier: string;
     if (voucher?.type === 'ORGANISATION') {
       statutDossier = 'PAYE';
