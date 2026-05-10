@@ -184,13 +184,13 @@ jobs:
                 exit 1
               fi
 
-              echo "Synchronisation schema Prisma (db push)..."
+              echo "Application des migrations Prisma..."
               for attempt in 1 2 3; do
-                docker exec forges-backend-edu sh -c 'cd /app && npx prisma db push --skip-generate --accept-data-loss' && break
+                docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy' && break
                 echo "  Tentative $attempt echouee, retry dans 10s..."
                 sleep 10
               done
-              echo "Schema OK"
+              echo "Migrations OK"
           ENDSSH
 
       - name: Healthcheck
