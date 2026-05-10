@@ -223,7 +223,7 @@ export default function OrganisationCreate() {
             <div className="rounded-lg border border-border bg-bg p-4">
               <p className="text-sm font-semibold text-primary">Si l’email n’a pas été reçu</p>
               <p className="mt-2 text-sm text-subtext">
-                Transmettre les informations suivantes au support ou à l’équipe concernée :
+                Transmettre les informations suivantes au contact ou à l’équipe concernée :
               </p>
               <ul className="mt-3 space-y-2 text-sm text-text">
                 <li><strong>Raison sociale :</strong> {successPayload.raison_sociale}</li>
