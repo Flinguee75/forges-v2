@@ -1,8 +1,9 @@
 import { Suspense, lazy } from 'react';
-import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import RoleGuard from './RoleGuard';
 import { useAuth } from '../hooks/useAuth';
+import RouteErrorFallback from '../components/common/RouteErrorFallback';
 
 const PublicLayout = lazy(() => import('../components/layout/PublicLayout'));
 const EtudiantLayout = lazy(() => import('../components/layout/EtudiantLayout'));
@@ -163,6 +164,10 @@ function LegacyApprenantRedirect() {
  * Référence: CLAUDE.md section 17.3 et 17.7
  */
 const router = createBrowserRouter([
+  {
+    element: <Outlet />,
+    errorElement: <RouteErrorFallback />,
+    children: [
   // ============================================
   // ROUTES PUBLIQUES (sans authentification)
   // ============================================
@@ -899,6 +904,8 @@ const router = createBrowserRouter([
         </div>
       </div>
     ),
+  },
+    ],
   },
 ]);
 

@@ -2,14 +2,17 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/index.css'
 import App from './App.jsx'
-
-const CHUNK_RELOAD_KEY = 'chunk_reload_attempted';
+import { clearChunkReloadAttempt, hasAttemptedChunkReload, markChunkReloadAttempt } from './utils/chunkReload';
 
 window.addEventListener('vite:preloadError', () => {
-  if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
-    sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+  if (!hasAttemptedChunkReload()) {
+    markChunkReloadAttempt();
     window.location.reload();
   }
+});
+
+window.addEventListener('load', () => {
+  clearChunkReloadAttempt();
 });
 
 createRoot(document.getElementById('root')).render(

@@ -1,16 +1,10 @@
 import { Component } from 'react';
-
-const CHUNK_ERROR_RELOAD_KEY = 'chunk_error_reloaded';
-
-function isChunkError(error) {
-  if (!error) return false;
-  const msg = error.message || '';
-  return (
-    msg.includes('Failed to fetch dynamically imported module') ||
-    msg.includes('Importing a module script failed') ||
-    msg.includes('Unable to preload CSS')
-  );
-}
+import AppRecoveryScreen from './AppRecoveryScreen';
+import {
+  hasAttemptedChunkReload,
+  isChunkLoadError,
+  markChunkReloadAttempt,
+} from '../../utils/chunkReload';
 
 export default class ChunkErrorBoundary extends Component {
   constructor(props) {
@@ -19,44 +13,60 @@ export default class ChunkErrorBoundary extends Component {
   }
 
   static getDerivedStateFromError(error) {
-    if (isChunkError(error)) {
+    if (isChunkLoadError(error)) {
       return { hasError: true, chunkError: true };
     }
     return { hasError: true, chunkError: false };
   }
 
   componentDidCatch(error) {
-    if (isChunkError(error)) {
-      // Recharge une seule fois pour eviter une boucle infinie
-      const alreadyReloaded = sessionStorage.getItem(CHUNK_ERROR_RELOAD_KEY);
-      if (!alreadyReloaded) {
-        sessionStorage.setItem(CHUNK_ERROR_RELOAD_KEY, '1');
+    if (isChunkLoadError(error) && !hasAttemptedChunkReload()) {
+      markChunkReloadAttempt();
+      this.reloadTimer = window.setTimeout(() => {
         window.location.reload();
-      }
+      }, 300);
     }
   }
 
+  componentWillUnmount() {
+    if (this.reloadTimer) {
+      window.clearTimeout(this.reloadTimer);
+    }
+  }
+
+  renderChunkFallback() {
+    return (
+      <AppRecoveryScreen
+        title="Mise à jour en cours"
+        message="La version de l'application n'a pas pu être chargée complètement."
+        detail="Nous allons tenter un rechargement automatique. Si le problème persiste, rechargez la page manuellement."
+        onReload={() => {
+          markChunkReloadAttempt();
+          window.location.reload();
+        }}
+        reloadLabel="Recharger maintenant"
+      />
+    );
+  }
+
+  renderGenericFallback() {
+    return (
+      <AppRecoveryScreen
+        title="Une erreur est survenue"
+        message="L'application n'a pas pu afficher cette page."
+        detail="Rechargez la page pour reprendre la navigation. Si l'erreur persiste, contactez le support technique."
+        onReload={() => window.location.reload()}
+      />
+    );
+  }
+
   render() {
-    if (this.state.hasError && !this.state.chunkError) {
-      return (
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center space-y-4">
-            <h1 className="text-xl font-semibold text-primary">Une erreur est survenue</h1>
-            <p className="text-subtext text-sm">Rechargez la page ou contactez le support.</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="rounded-lg bg-primary px-4 py-2 text-sm text-white"
-            >
-              Recharger
-            </button>
-          </div>
-        </div>
-      );
+    if (this.state.hasError && this.state.chunkError) {
+      return this.renderChunkFallback();
     }
 
-    // Chunk error : affiche rien pendant le rechargement auto
-    if (this.state.hasError && this.state.chunkError) {
-      return null;
+    if (this.state.hasError) {
+      return this.renderGenericFallback();
     }
 
     return this.props.children;
