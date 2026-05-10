@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Button from '../ui/Button';
-import { apiClient } from '../../api/client';
 import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
 
@@ -126,6 +125,12 @@ function formatTimeParts(date) {
   });
 }
 
+function getHealthUrl() {
+  const apiUrl = import.meta.env.VITE_API_URL || '/api';
+  const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+  return `${baseUrl || ''}/health`;
+}
+
 function getBackendStatusLabel(isOnline, isChecking) {
   if (isChecking) {
     return { tone: 'warning', symbol: '⟳' };
@@ -168,12 +173,23 @@ export default function Navbar({
 
     const checkBackend = async () => {
       setIsCheckingBackend(true);
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 5000);
+
       try {
-        await apiClient.get('/health', { timeout: 5000 });
+        const response = await fetch(getHealthUrl(), {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Health check failed with status ${response.status}`);
+        }
+
         if (active) setIsBackendOnline(true);
       } catch {
         if (active) setIsBackendOnline(false);
       } finally {
+        window.clearTimeout(timeout);
         if (active) setIsCheckingBackend(false);
       }
     };
