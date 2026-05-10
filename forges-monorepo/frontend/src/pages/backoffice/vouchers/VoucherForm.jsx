@@ -292,8 +292,8 @@ export default function VoucherForm() {
             {modeCreation === 'ORGANISATION' ? (
               <>
                 {' '}
-                Un e-mail de confirmation est envoyé à l’organisation.
-                {formData.devis_id ? ' L’organisation recevra aussi le message associé au devis.' : ''}
+                Il sera envoyé à l’organisation après paiement du devis.
+                {formData.devis_id ? ' L’organisation recevra alors le message avec les vouchers à distribuer à ses employés.' : ''}
               </>
             ) : (
               ' Aucun e-mail automatique n’est envoyé pour un voucher promotionnel.'

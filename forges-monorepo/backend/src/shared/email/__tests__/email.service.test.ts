@@ -234,8 +234,8 @@ describe('EmailService', () => {
     it('sendVouchersOrganisation envoie un message simple et pro', async () => {
       await service.sendVouchersOrganisation('org@test.ci', ['V-1', 'V-2'], 'Formation 1', 'Org Test');
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        subject: 'Vouchers organisation disponibles',
-        text: expect.stringContaining('Vos vouchers pour l\'organisation Org Test sont prêts.'),
+        subject: 'Vos vouchers organisation FORGES',
+        text: expect.stringContaining('Suite au paiement de votre devis, vos vouchers pour l\'organisation Org Test sont prêts.'),
       }));
       expect(sendMail).not.toHaveBeenCalledWith(expect.objectContaining({
         text: expect.stringContaining('Langue du message'),

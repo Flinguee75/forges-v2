@@ -433,10 +433,10 @@ export class EmailService {
     formationLabel: string,
     organisationLabel?: string
   ): Promise<void> {
-    const title = 'Vouchers organisation disponibles';
+    const title = 'Vos vouchers organisation FORGES';
     const intro = organisationLabel
-      ? `Vos vouchers pour l'organisation ${organisationLabel} sont prêts.`
-      : 'Vos vouchers organisation sont prêts.';
+      ? `Suite au paiement de votre devis, vos vouchers pour l'organisation ${organisationLabel} sont prêts.`
+      : 'Suite au paiement de votre devis, vos vouchers organisation sont prêts.';
     await this.sendEmail({
       to: email,
       subject: title,
@@ -444,16 +444,18 @@ export class EmailService {
         'Bonjour,',
         '',
         intro,
-        `Formation: ${formationLabel}`,
-        `Codes: ${codes.join(', ')}`,
+        `Formation : ${formationLabel}`,
+        `Codes : ${codes.join(', ')}`,
+        'Merci de les distribuer à vos employés pour leurs inscriptions.',
       ]),
       html: this.buildHtmlEmail(title, [
         'Bonjour,',
         organisationLabel
-          ? `Vos vouchers pour l'organisation <strong>${organisationLabel}</strong> sont prêts.`
-          : 'Vos vouchers organisation sont prêts.',
+          ? `Suite au paiement de votre devis, vos vouchers pour l'organisation <strong>${organisationLabel}</strong> sont prêts.`
+          : 'Suite au paiement de votre devis, vos vouchers organisation sont prêts.',
         `<strong>Formation :</strong> ${formationLabel}`,
         `<strong>Codes :</strong> ${codes.join(', ')}`,
+        'Merci de les distribuer à vos employés pour leurs inscriptions.',
       ]),
     });
   }

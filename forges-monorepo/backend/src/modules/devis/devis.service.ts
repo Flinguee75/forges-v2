@@ -124,6 +124,14 @@ export class DevisService {
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
     if (devis.statut !== 'CREE') throw new Error('DEVIS_STATUT_INVALIDE');
 
+    const [organisation, formation] = await Promise.all([
+      this.prisma.organisation.findUnique({ where: { id: devis.organisation_id } }),
+      this.prisma.formation.findUnique({ where: { id: devis.formation_id } }),
+    ]);
+
+    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    if (!formation) throw new Error('FORMATION_NOT_FOUND');
+
     const updated = await this.devisRepository.payer(id, notes_admin);
 
     await this.audit.info('DEVIS_PAYE', {
@@ -137,11 +145,12 @@ export class DevisService {
     // RM-153 : activer les vouchers EN_ATTENTE liés à ce devis
     const vouchers = await this.prisma.voucherOrganisation.findMany({
       where: { devis_id: id, statut: 'EN_ATTENTE' },
-      select: { id: true },
+      select: { id: true, code: true },
     });
 
     if (vouchers.length > 0) {
       const voucherIds = vouchers.map(v => v.id);
+      const voucherCodes = vouchers.map((v) => v.code);
 
       await this.prisma.voucherOrganisation.updateMany({
         where: { id: { in: voucherIds } },
@@ -152,6 +161,15 @@ export class DevisService {
         devis_id: id,
         nb_vouchers_actives: voucherIds.length,
         agent_id: agentId,
+      });
+
+      this.emailService.sendVouchersOrganisation(
+        organisation.email,
+        voucherCodes,
+        formation.intitule,
+        organisation.raison_sociale
+      ).catch((error) => {
+        console.error('[DevisService] Email vouchers organisation non bloquant:', (error as Error).message);
       });
 
       // RM-154 : dossiers ayant utilisé un de ces vouchers → PAYE automatiquement

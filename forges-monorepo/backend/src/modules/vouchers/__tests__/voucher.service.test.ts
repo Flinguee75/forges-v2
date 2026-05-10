@@ -2,14 +2,12 @@ import { PrismaClient } from '@prisma/client';
 import { VoucherRepository } from '../voucher.repository';
 import { VoucherService } from '../voucher.service';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
-import { EmailService } from '../../../shared/email/email.service';
 
 describe('VoucherService', () => {
   let service: VoucherService;
   let mockRepo: jest.Mocked<VoucherRepository>;
   let mockAudit: jest.Mocked<AuditLogger>;
   let mockPrisma: jest.Mocked<PrismaClient>;
-  let mockEmail: jest.Mocked<EmailService>;
 
   beforeEach(() => {
     mockRepo = {
@@ -52,11 +50,7 @@ describe('VoucherService', () => {
       },
     } as any;
 
-    mockEmail = {
-      sendVouchersOrganisation: jest.fn().mockResolvedValue(undefined),
-    } as any;
-
-    service = new VoucherService(mockRepo, mockAudit, mockPrisma, mockEmail);
+    service = new VoucherService(mockRepo, mockAudit, mockPrisma);
   });
 
   it('valide un voucher promotionnel brouillon', async () => {
@@ -197,11 +191,5 @@ describe('VoucherService', () => {
     expect(mockPrisma.organisation.findUnique).toHaveBeenCalledWith({
       where: { id: 'org-01' },
     });
-    expect(mockEmail.sendVouchersOrganisation).toHaveBeenCalledWith(
-      'org@test.ci',
-      ['V-04'],
-      'Formation Test',
-      'Org Test'
-    );
   });
 });

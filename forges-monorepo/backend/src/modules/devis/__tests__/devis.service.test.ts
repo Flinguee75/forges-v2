@@ -35,7 +35,7 @@ const mockPrisma = {
 };
 
 const mockAudit = { info: jest.fn(), error: jest.fn() };
-const mockEmail = { sendEmail: jest.fn(), sendEmailWithAttachment: jest.fn() };
+const mockEmail = { sendEmail: jest.fn(), sendEmailWithAttachment: jest.fn(), sendVouchersOrganisation: jest.fn() };
 
 const orgFixture = {
   id: 'org-01',
@@ -71,6 +71,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockEmail.sendEmail.mockResolvedValue(undefined);
   mockEmail.sendEmailWithAttachment.mockResolvedValue(undefined);
+  mockEmail.sendVouchersOrganisation.mockResolvedValue(undefined);
   mockAudit.info.mockResolvedValue(undefined);
   mockPrisma.voucherOrganisation.count.mockResolvedValue(0);
   mockPrisma.session.findUnique.mockResolvedValue(sessionFixture);
@@ -420,10 +421,12 @@ describe('DevisService — payerDevis cascade vouchers (RM-153/154)', () => {
     mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
     mockDevisRepo.payer.mockResolvedValue({ ...devisCreeFix, statut: 'PAYE', paid_at: new Date() });
     mockPrisma.voucherOrganisation.findMany.mockResolvedValue([
-      { id: 'v-1' },
-      { id: 'v-2' },
-      { id: 'v-3' },
+      { id: 'v-1', code: 'V-1' },
+      { id: 'v-2', code: 'V-2' },
+      { id: 'v-3', code: 'V-3' },
     ]);
+    mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+    mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
     mockPrisma.dossier.findMany.mockResolvedValue([]);
 
     const service = makeService();
@@ -433,6 +436,12 @@ describe('DevisService — payerDevis cascade vouchers (RM-153/154)', () => {
       where: { id: { in: ['v-1', 'v-2', 'v-3'] } },
       data: { statut: 'ACTIF' },
     });
+    expect(mockEmail.sendVouchersOrganisation).toHaveBeenCalledWith(
+      'contact@acme.ci',
+      ['V-1', 'V-2', 'V-3'],
+      'Formation Test',
+      'ACME Corp'
+    );
     expect(result.vouchers_actives).toBe(3);
     expect(mockAudit.info).toHaveBeenCalledWith('DEVIS_VOUCHERS_ACTIVES', expect.objectContaining({ nb_vouchers_actives: 3 }));
   });
@@ -441,6 +450,8 @@ describe('DevisService — payerDevis cascade vouchers (RM-153/154)', () => {
     mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
     mockDevisRepo.payer.mockResolvedValue({ ...devisCreeFix, statut: 'PAYE', paid_at: new Date() });
     mockPrisma.voucherOrganisation.findMany.mockResolvedValue([{ id: 'v-1' }, { id: 'v-2' }]);
+    mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+    mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
     mockPrisma.dossier.findMany.mockResolvedValue([{ id: 'd-aly' }, { id: 'd-elie' }]);
 
     const service = makeService();
@@ -462,6 +473,8 @@ describe('DevisService — payerDevis cascade vouchers (RM-153/154)', () => {
     mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
     mockDevisRepo.payer.mockResolvedValue({ ...devisCreeFix, statut: 'PAYE', paid_at: new Date() });
     mockPrisma.voucherOrganisation.findMany.mockResolvedValue([]);
+    mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+    mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
 
     const service = makeService();
     const result = await service.payerDevis('devis-anssi', 'agent-01');
