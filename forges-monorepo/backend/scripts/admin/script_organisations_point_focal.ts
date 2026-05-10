@@ -28,7 +28,9 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { EmailService } from '../../src/shared/email/email.service';
-import { genererPdfDevis } from '../../src/modules/devis/devis-pdf.service';
+import { DevisRepository } from '../../src/modules/devis/devis.repository';
+import { DevisService } from '../../src/modules/devis/devis.service';
+import { AuditLogger } from '../../src/shared/audit/audit.logger';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const LOG_FILE = path.join(__dirname, 'enrolement_organisations_log.json');
@@ -114,6 +116,12 @@ const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl.includes('connection_limit') ? dbUrl : `${dbUrl}?connection_limit=3` } },
 });
 const emailService = new EmailService();
+const devisService = new DevisService(
+  new DevisRepository(prisma),
+  prisma,
+  new AuditLogger(prisma),
+  emailService
+);
 
 const logs: Array<{ level: string; message: string; data: Record<string, unknown>; ts: string }> = [];
 
@@ -350,36 +358,7 @@ async function main() {
         numeroDevis = createdDevis.numeroDevis;
         devisId = devis.id;
         log('INFO', 'Devis créé', { numero: numeroDevis, montant: montantTotal, id: devisId });
-        const pdfBuffer = await genererPdfDevis({
-          devis: {
-            numero_devis: devis.numero_devis,
-            created_at: devis.created_at,
-            nb_places: devis.nb_places,
-            tarif_unitaire_xof: devis.tarif_unitaire_xof,
-            montant_total_xof: devis.montant_total_xof,
-          },
-          organisation: {
-            raison_sociale: org.nom,
-            email: orgEmail,
-            contact_referent: org.referent.nom,
-            pays: org.pays,
-            identifiant_legal: null,
-          },
-          formation: { intitule: formation.intitule },
-          session: { date_debut: session.date_debut, date_fin: session.date_fin },
-        });
-        await emailService.sendEnrolementDevisOrganisation({
-          to: orgEmail,
-          contactReferent: org.referent.nom,
-          organisation: org.nom,
-          formation: formation.intitule,
-          numeroDevis: devis.numero_devis,
-          nbPlaces: devis.nb_places,
-          tarifUnitaire: devis.tarif_unitaire_xof,
-          montantTotal: devis.montant_total_xof,
-          pdfBuffer,
-          pdfFilename: `${devis.numero_devis}.pdf`,
-        });
+        await devisService.envoyerEmailDevis(devis.id, 'script_organisations_point_focal');
         log('INFO', 'Email devis envoyé', {
           organisation: org.nom,
           email: orgEmail,
