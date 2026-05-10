@@ -120,7 +120,7 @@ export class EmailService {
         t_team_signature: commonTranslations.team_signature || "L'équipe FORGES",
         t_footer_copyright: commonTranslations.footer_copyright || '© 2026 FORGES',
         t_footer_visit_site: commonTranslations.footer_visit_site || 'Visiter notre site',
-        t_footer_support: commonTranslations.footer_support || 'Support',
+        t_footer_support: commonTranslations.footer_support || 'Contact',
         t_contact_us: commonTranslations.contact_us || '',
         // Traductions spécifiques au template (préfixées t_)
         t_title: emailTranslations.title || '',
@@ -196,7 +196,7 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<void> {
     try {
-      const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
+      const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'contact@forges.local';
       const fromAddress = `"FORGES AGRÉGATEUR" <${fromEmail}>`;
 
       await this.transporter.sendMail({
@@ -214,7 +214,7 @@ export class EmailService {
   }
 
   async sendEmailWithAttachment(options: EmailWithAttachmentOptions): Promise<void> {
-    const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
+    const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'contact@forges.local';
     const fromAddress = `"FORGES AGRÉGATEUR" <${fromEmail}>`;
 
     await this.transporter.sendMail({
@@ -338,7 +338,7 @@ export class EmailService {
         '',
         'IMPORTANT : Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
         '',
-        'Si vous n\'etes pas a l\'origine de cette creation ou pour toute question, contactez-nous : support@forges-group.com',
+        'Si vous n\'etes pas a l\'origine de cette creation ou pour toute question, contactez-nous : contact@forges-group.com',
         '',
         'L\'equipe FORGES',
       ]),
@@ -354,7 +354,7 @@ export class EmailService {
         '<br>',
         '<strong>Important :</strong> Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
         '<br>',
-        'Si vous n\'êtes pas à l\'origine de cette création ou pour toute question, contactez-nous : <a href="mailto:support@forges-group.com">support@forges-group.com</a>',
+        'Si vous n\'êtes pas à l\'origine de cette création ou pour toute question, contactez-nous : <a href="mailto:contact@forges-group.com">contact@forges-group.com</a>',
       ]),
     });
   }
