@@ -45,7 +45,7 @@ Conçue pour les stratèges de haut niveau, décideurs politiques, responsables 
 ```
 Admin         → reset-dev.ts          (1x par environnement)
 Admin         → script-orga.ts         (seed simple d'organisations)
-Admin         → script_organisations_point_focal.ts (workflow test / point focal / vouchers)
+Admin         → script_organisations_point_focal.ts (workflow test / point focal / vouchers + emails)
 Admin         → import-groupe.ts       (workflow standard d'organisation)
 Organisation  → reçoit email devis    (automatique)
 Admin         → payer-devis.ts        (à réception du virement)
@@ -263,7 +263,7 @@ Format attendu :
 |---|---|---|
 | `scripts/admin/reset-dev.ts` | Init environnement + admin | 1 fois par env |
 | `scripts/admin/script-orga.ts` | Seed organisations | Par lot ou organisation |
-| `scripts/admin/script_organisations_point_focal.ts` | Seed orga + apprenants + devis + vouchers | Par organisation test |
+| `scripts/admin/script_organisations_point_focal.ts` | Seed orga + apprenants + devis + vouchers + emails | Par organisation test |
 | `scripts/enrolements/import-groupe.ts` | Org + apprenants + devis + vouchers | Par organisation standard |
 | `scripts/enrolements/payer-devis.ts` | Confirmer paiement + activer dossiers | À réception virement |
 | `scripts/enrolements/rappel-j7.ts` | Email pratique J-7 | 7 jours avant session |
