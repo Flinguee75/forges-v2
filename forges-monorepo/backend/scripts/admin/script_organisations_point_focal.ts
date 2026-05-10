@@ -107,6 +107,9 @@ const ORGANISATIONS: OrganisationSeed[] = [
 ];
 
 const dbUrl = process.env.DATABASE_URL || '';
+if (!process.env.FRONTEND_URL && dbUrl.includes('forges_edu')) {
+  process.env.FRONTEND_URL = 'https://edu.forges-group.com';
+}
 const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl.includes('connection_limit') ? dbUrl : `${dbUrl}?connection_limit=3` } },
 });
