@@ -4,18 +4,18 @@ import { BrowserRouter } from 'react-router-dom';
 import Navbar from '../Navbar';
 
 describe('Navbar', () => {
-  const originalFetch = global.fetch;
+  const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
   });
 
   it('affiche le voyant backend en vert quand le health check repond 200', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
 
     render(
       <BrowserRouter>
@@ -34,7 +34,7 @@ describe('Navbar', () => {
   });
 
   it('utilise /health et pas /api/health pour le backend', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
 
     render(
       <BrowserRouter>
@@ -47,10 +47,10 @@ describe('Navbar', () => {
     );
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled();
+      expect(globalThis.fetch).toHaveBeenCalled();
     });
 
-    const [calledUrl] = global.fetch.mock.calls[0];
+    const [calledUrl] = globalThis.fetch.mock.calls[0];
     expect(calledUrl).toContain('/health');
     expect(calledUrl).not.toContain('/api/health');
   });
