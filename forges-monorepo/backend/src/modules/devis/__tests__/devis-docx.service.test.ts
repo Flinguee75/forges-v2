@@ -29,6 +29,8 @@ describe('genererDocxDevis', () => {
     });
 
     const documentXml = extractDocumentXml(buffer);
-    expect(documentXml).toContain('+225 05 04 08 43 84');
+    expect(documentXml).toContain('Lu et approuve');
+    expect(documentXml).not.toContain('{date_approbation}');
+    expect(documentXml).toMatch(new RegExp(new Date().toLocaleDateString('fr-FR').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
 });

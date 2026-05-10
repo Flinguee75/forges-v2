@@ -16,6 +16,10 @@ function formatMontant(n: number | null | undefined): string {
   return n.toLocaleString('fr-FR');
 }
 
+function formatApprovalDate(date = new Date()): string {
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export function genererDocxDevis(devis: {
   numero_devis: string;
   created_at: Date;
@@ -72,6 +76,7 @@ export function genererDocxDevis(devis: {
     total_ligne3: '',
     // Total general
     total_regler: formatMontant(devis.montant_total_xof),
+    date_approbation: formatApprovalDate(),
   });
 
   return doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' }) as Buffer;
