@@ -48,6 +48,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://forges_edu:SqwbMP5BBpk4NRbylRWibWq@postgres:5432/forges_edu"
       NODE_ENV: development
+      FRONTEND_URL: ${FRONTEND_URL:-https://edu.forges-group.com}
       PORT: ${BACKEND_INTERNAL_PORT}
       BACKEND_PORT: ${BACKEND_INTERNAL_PORT}
       POSTGRES_HOST: postgres
