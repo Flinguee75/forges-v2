@@ -148,7 +148,8 @@ jobs:
                 echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
               fi
 
-              docker compose -f infra/docker/docker-compose.edu.deploy.yml \
+              IMAGE_TAG="$RESOLVED_IMAGE_TAG" \
+                docker compose -f infra/docker/docker-compose.edu.deploy.yml \
                 --env-file infra/env/.env.edu.deploy up -d
 
               echo "Attente healthcheck backend edu..."
