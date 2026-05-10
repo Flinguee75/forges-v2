@@ -132,19 +132,21 @@ jobs:
               # sur le tag dev pour eviter un echec "manifest unknown".
               if docker manifest inspect ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG >/dev/null 2>&1; then
                 docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
+                RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
               else
                 echo "Image dev-$IMAGE_TAG introuvable, fallback sur le tag dev"
                 RESOLVED_IMAGE_TAG="dev"
                 docker pull ghcr.io/flinguee75/forges-backend:dev
+                RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev"
               fi
 
-              # Met a jour IMAGE_TAG dans le .env racine pour docker compose
-              sed -i '/^IMAGE_TAG=/d' .env
-              echo "IMAGE_TAG=$RESOLVED_IMAGE_TAG" >> .env
+              # Met a jour l'image backend resolue dans les fichiers de deploy
+              sed -i '/^BACKEND_IMAGE_REF=/d' .env
+              echo "BACKEND_IMAGE_REF=$RESOLVED_IMAGE_REF" >> .env
 
               # Garde aussi le fichier de deploy edu synchronise pour le suivi manuel
-              sed -i '/^IMAGE_TAG=/d' infra/env/.env.edu.deploy
-              echo "IMAGE_TAG=$RESOLVED_IMAGE_TAG" >> infra/env/.env.edu.deploy
+              sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
+              echo "BACKEND_IMAGE_REF=$RESOLVED_IMAGE_REF" >> infra/env/.env.edu.deploy
 
               # Nettoyage containers edu existants
               ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-edu$' || true)
@@ -152,8 +154,7 @@ jobs:
                 echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
               fi
 
-              IMAGE_TAG="$RESOLVED_IMAGE_TAG" \
-                docker compose -f infra/docker/docker-compose.edu.deploy.yml \
+              docker compose -f infra/docker/docker-compose.edu.deploy.yml \
                 --env-file .env up -d
 
               echo "Attente healthcheck backend edu..."

@@ -35,7 +35,7 @@ services:
       retries: 5
 
   backend:
-    image: ${BACKEND_IMAGE}:dev-${IMAGE_TAG}
+    image: ${BACKEND_IMAGE_REF}
     container_name: forges-backend-edu
     restart: unless-stopped
     labels:
