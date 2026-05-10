@@ -104,5 +104,7 @@ describe('VoucherForm', () => {
         expect.objectContaining({ devis_id: 'devis-1' })
       );
     });
+    expect(await screen.findByText(/Voucher créé avec succès/i)).toBeInTheDocument();
+    expect(screen.getByText(/un e-mail de confirmation sera envoyé/i)).toBeInTheDocument();
   });
 });

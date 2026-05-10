@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { formationsApi } from '../../api/formations.api';
+import { etudiantApi } from '../../api/espace-etudiant.api';
 import Button from '../../components/ui/Button';
 import Pagination from '../../components/ui/Pagination';
 import Spinner from '../../components/feedback/Spinner';
@@ -14,6 +15,7 @@ import FormationMarketplaceCard from '../../components/catalogue/FormationMarket
  */
 export default function CatalogueEtudiantPage() {
   const [formations, setFormations] = useState([]);
+  const [enrollments, setEnrollments] = useState({});
   const [filters, setFilters] = useState({
     search: '',
     niveau: '',
@@ -30,20 +32,48 @@ export default function CatalogueEtudiantPage() {
   const { execute, isLoading } = useApi();
 
   const loadFormations = async () => {
-    await execute(() => formationsApi.getCatalogue({
-      page: filters.page,
-      limit: filters.limit,
-      search: filters.search || undefined,
-    }), {
-      onSuccess: (data) => {
-        setFormations(data.data || []);
+    const result = await execute(async () => {
+      const [formationsData, dossiersResponse] = await Promise.all([
+        formationsApi.getCatalogue({
+          page: filters.page,
+          limit: filters.limit,
+          search: filters.search || undefined,
+        }),
+        etudiantApi.getMesDossiers({ limit: 100 }).catch(() => ({ data: [] })),
+      ]);
+
+      return { formationsData, dossiersResponse };
+    }, {
+      onSuccess: ({ formationsData, dossiersResponse }) => {
+        const dossiers = Array.isArray(dossiersResponse?.data)
+          ? dossiersResponse.data
+          : Array.isArray(dossiersResponse?.dossiers)
+            ? dossiersResponse.dossiers
+            : [];
+
+        const enrollmentMap = dossiers.reduce((acc, dossier) => {
+          if (!dossier?.formation?.id) return acc;
+
+          const attestationAvailable = dossier.statut === 'PAYE' && dossier.session?.statut === 'CLOTUREE';
+          acc[dossier.formation.id] = {
+            dossierId: dossier.id,
+            isEnrolled: true,
+            attestationAvailable,
+          };
+          return acc;
+        }, {});
+
+        setEnrollments(enrollmentMap);
+        setFormations(formationsData.data || []);
         setPagination({
-          total: data.meta?.total || 0,
-          totalPages: data.meta?.totalPages || 0,
-          currentPage: data.meta?.page || 1,
+          total: formationsData.meta?.total || 0,
+          totalPages: formationsData.meta?.totalPages || 0,
+          currentPage: formationsData.meta?.page || 1,
         });
       },
     });
+
+    return result;
   };
 
   useEffect(() => {
@@ -109,7 +139,14 @@ export default function CatalogueEtudiantPage() {
         <>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {formations.map((formation) => (
-              <FormationMarketplaceCard key={formation.id} formation={formation} />
+              <FormationMarketplaceCard
+                key={formation.id}
+                formation={{
+                  ...formation,
+                  enrollment: enrollments[formation.id] || null,
+                }}
+                context="apprenant"
+              />
             ))}
           </div>
 

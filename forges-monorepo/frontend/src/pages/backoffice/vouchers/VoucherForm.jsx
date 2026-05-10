@@ -8,6 +8,7 @@ import devisApi from '../../../api/devis.api';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
+import Modal from '../../../components/ui/Modal';
 import Spinner from '../../../components/feedback/Spinner';
 
 function getDefaultExpiry() {
@@ -33,6 +34,7 @@ export default function VoucherForm() {
     devis_id: '',
   });
   const [createdVoucher, setCreatedVoucher] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     execute(async () => {
@@ -70,6 +72,7 @@ export default function VoucherForm() {
     await execute(action, {
       onSuccess: (voucher) => {
         setCreatedVoucher(voucher);
+        setShowSuccessModal(true);
         showToast(
           modeCreation === 'ORGANISATION'
             ? 'Voucher organisation créé.'
@@ -91,21 +94,6 @@ export default function VoucherForm() {
             : 'Crée un voucher promotionnel pour une formation donnée.'}
         </p>
       </div>
-
-      {createdVoucher && (
-        <Card bodyClassName="space-y-3">
-          <div className="text-sm font-semibold text-success">Voucher créé</div>
-          <div className="text-sm text-text">
-            Code: <span className="font-mono">{createdVoucher.code}</span>
-          </div>
-          <div className="text-sm text-text">
-            Statut: {createdVoucher.statut}
-          </div>
-          <Button variant="outline" onClick={() => navigate(`/backoffice/vouchers/${createdVoucher.id}`)}>
-            Ouvrir le détail
-          </Button>
-        </Card>
-      )}
 
       <Card>
         {isLoading && formationOptions.length === 0 ? (
@@ -276,6 +264,64 @@ export default function VoucherForm() {
           </form>
         )}
       </Card>
+
+      <Modal
+        isOpen={showSuccessModal && Boolean(createdVoucher)}
+        onClose={() => setShowSuccessModal(false)}
+        title="Voucher créé avec succès"
+        size="large"
+        footer={(
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowSuccessModal(false)}>
+              Fermer
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => navigate(`/backoffice/vouchers/${createdVoucher?.id}`)}
+            >
+              Voir le détail
+            </Button>
+          </div>
+        )}
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border border-success/20 bg-success-soft p-4 text-sm text-text">
+            Tout est bon. Le voucher a bien été créé et un e-mail de confirmation sera envoyé.
+            Si le voucher est lié à un devis, l’organisation recevra aussi le message associé.
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <div className="text-xs uppercase tracking-[0.2em] text-subtext">Code</div>
+              <div className="mt-1 font-mono text-sm text-text">{createdVoucher?.code}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.2em] text-subtext">Statut</div>
+              <div className="mt-1 text-sm text-text">{createdVoucher?.statut}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.2em] text-subtext">Formation</div>
+              <div className="mt-1 text-sm text-text">
+                {formationOptions.find((formation) => formation.id === formData.formation_id)?.titre
+                  || formationOptions.find((formation) => formation.id === formData.formation_id)?.intitule
+                  || 'Non sélectionnée'}
+              </div>
+            </div>
+            {modeCreation === 'ORGANISATION' && (
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-subtext">Devis source</div>
+                <div className="mt-1 text-sm text-text">
+                  {devisList.find((devis) => devis.id === formData.devis_id)?.numero_devis || 'Non sélectionné'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <p className="text-sm text-subtext">
+            Vous pouvez fermer cette fenêtre ou ouvrir le détail du voucher. Après inscription, l’apprenant verra aussi son attestation PDF depuis son espace personnel si la session est clôturée.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -68,6 +68,7 @@ function formatDuration(days) {
 }
 
 export default function FormationMarketplaceCard({ formation, to, context = 'public' }) {
+  const enrollment = formation.enrollment || null;
   // Mapper les champs backend vers frontend
   const formationData = {
     ...formation,
@@ -81,11 +82,17 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
   const category = getCategoryLabel(formationData.titre);
   const _highlight = getHighlight(formationData);
   const _secondaryBadge = getSecondaryBadge(formationData);
-  const actionLabel = getActionLabel(formationData, context);
+  const isEnrolled = Boolean(enrollment?.isEnrolled);
+  const hasAttestation = Boolean(enrollment?.attestationAvailable);
+  const actionLabel = isEnrolled
+    ? (hasAttestation ? "Télécharger l'attestation" : 'Déjà inscrit')
+    : getActionLabel(formationData, context);
   const nextPath = to || (
-    context === 'apprenant' && formationData.mode_formation === 'A_LA_DEMANDE'
-      ? `/apprenant/formations-a-la-demande/${formationData.id}`
-      : `/formations/${formationData.id}`
+    context === 'apprenant' && isEnrolled && hasAttestation
+      ? `/apprenant/attestations?dossier=${enrollment.dossierId}`
+      : context === 'apprenant' && formationData.mode_formation === 'A_LA_DEMANDE'
+        ? `/apprenant/formations-a-la-demande/${formationData.id}`
+        : `/formations/${formationData.id}`
   );
   const badges = [];
 
@@ -118,6 +125,28 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
         className="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700"
       >
         Certifiante
+      </span>
+    );
+  }
+
+  if (isEnrolled) {
+    badges.push(
+      <span
+        key="enrolled"
+        className="inline-flex items-center rounded-full bg-success-soft px-2.5 py-1 text-xs font-medium text-success"
+      >
+        Déjà inscrit
+      </span>
+    );
+  }
+
+  if (hasAttestation) {
+    badges.push(
+      <span
+        key="attestation"
+        className="inline-flex items-center rounded-full bg-secondary-soft px-2.5 py-1 text-xs font-medium text-secondary"
+      >
+        Attestation PDF
       </span>
     );
   }
