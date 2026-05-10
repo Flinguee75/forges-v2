@@ -78,12 +78,25 @@ export default function GestionEmployesPage() {
     );
   };
 
+  const getDernierDossier = (membre) => {
+    if (membre.derniere_inscription) {
+      return membre.derniere_inscription;
+    }
+
+    if (Array.isArray(membre.dossiers) && membre.dossiers.length > 0) {
+      return membre.dossiers[0];
+    }
+
+    return null;
+  };
+
   const getStatutDossierBadge = (membre) => {
-    if (!membre.dossiers || membre.dossiers.length === 0) {
+    const dernierDossier = getDernierDossier(membre);
+
+    if (!dernierDossier) {
       return <span className="text-xs text-subtext">Aucun dossier</span>;
     }
 
-    const dernierDossier = membre.dossiers[0];
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
       EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },

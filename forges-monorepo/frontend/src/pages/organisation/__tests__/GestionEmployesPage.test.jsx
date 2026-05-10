@@ -39,6 +39,10 @@ const mockMembresData = {
       nom: 'Dupont',
       prenom: 'Jean',
       statut: 'ACTIF',
+      derniere_inscription: {
+        id: 'dossier-1',
+        statut: 'PAYE',
+      },
     },
     {
       id: '2',
@@ -82,6 +86,18 @@ describe('GestionEmployesPage - Tests', () => {
       expect(screen.getByText('Dupont')).toBeInTheDocument();
       expect(screen.getByText('Jean')).toBeInTheDocument();
       expect(screen.getByText('marie.martin@example.com')).toBeInTheDocument();
+    });
+  });
+
+  it('affiche le statut du dernier dossier quand il est fourni par l API', async () => {
+    render(
+      <BrowserRouter>
+        <GestionEmployesPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Payé')).toBeInTheDocument();
     });
   });
 
