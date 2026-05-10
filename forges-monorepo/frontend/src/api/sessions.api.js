@@ -37,6 +37,16 @@ function normalizeBackofficeResponse(response) {
   };
 }
 
+function normalizeBackofficeItem(response) {
+  const payload = response?.data ?? response;
+  const item = payload?.data ?? payload;
+
+  return {
+    ...(payload || {}),
+    data: normalizeSession(item),
+  };
+}
+
 export const sessionsApi = {
   // ============================================
   // API BACKOFFICE (gestion sessions)
@@ -71,7 +81,7 @@ export const sessionsApi = {
    */
   getById: async (id) => {
     const response = await apiClient.get(`/backoffice/sessions/${id}`);
-    return normalizeBackofficeResponse(response);
+    return normalizeBackofficeItem(response);
   },
 
   /**
