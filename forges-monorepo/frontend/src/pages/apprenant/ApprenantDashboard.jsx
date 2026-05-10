@@ -23,7 +23,7 @@ const DOSSIER_STATUT_LABEL = {
   EN_ATTENTE: 'En attente',
   EN_ATTENTE_VERIFICATION: 'Verification',
   RETENU: 'Retenu',
-  PAYE_DIRECTEMENT: 'Paye',
+  PAYE_DIRECTEMENT: 'A payer',
   PAYE: 'Paye',
   ANNULE: 'Annule',
   EXPIRE: 'Expire',
@@ -33,7 +33,7 @@ const DOSSIER_STATUT_VARIANT = {
   EN_ATTENTE: 'warning',
   EN_ATTENTE_VERIFICATION: 'warning',
   RETENU: 'info',
-  PAYE_DIRECTEMENT: 'success',
+  PAYE_DIRECTEMENT: 'warning',
   PAYE: 'success',
   ANNULE: 'danger',
   EXPIRE: 'danger',
@@ -89,7 +89,7 @@ export default function ApprenantDashboard() {
     inclus: formations.filter((f) => f.inclus_abonnement).length,
     premium: formations.filter((f) => f.type_formation === 'PREMIUM').length,
     dossiersActifs: dossiers.filter((d) =>
-      ['EN_ATTENTE', 'EN_ATTENTE_VERIFICATION', 'RETENU'].includes(d.statut)
+      ['EN_ATTENTE', 'EN_ATTENTE_VERIFICATION', 'RETENU', 'PAYE_DIRECTEMENT'].includes(d.statut)
     ).length,
     dossiersTotal: dossiers.length,
   }), [formations, dossiers]);

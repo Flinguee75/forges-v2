@@ -86,7 +86,8 @@ export class InscriptionController {
   // GET /api/dossiers — Liste dossiers apprenant (Sprint 1 - APPRENANT)
   async getAllDossiers(req: Request, res: Response, next: NextFunction) {
     try {
-      const dossiers = await this.inscriptionService.getDossiersByApprenant(req.user!.userId);
+      const { statut } = req.query as { statut?: string };
+      const dossiers = await this.inscriptionService.getDossiersByApprenant(req.user!.userId, { statut });
       res.status(200).json({ statusCode: 200, data: dossiers });
     } catch (error: any) {
       next(error);

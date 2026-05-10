@@ -119,8 +119,12 @@ export default function DossierDecision() {
   const getStatutBadge = (statut) => {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      RETENU: { variant: 'success', label: 'Retenu' },
+      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
+      RETENU: { variant: 'info', label: 'Retenu' },
+      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
+      PAYE: { variant: 'success', label: 'Payé' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
+      REJETE: { variant: 'danger', label: 'Rejeté' },
       REFUSE: { variant: 'danger', label: 'Refusé' },
       GRIS: { variant: 'warning', label: 'Gris' },
       EXCEPTION: { variant: 'danger', label: 'Exception' },
@@ -159,9 +163,9 @@ export default function DossierDecision() {
     return null;
   }
 
-  const etudiant = dossier.etudiant || {};
+  const etudiant = dossier.apprenant || dossier.etudiant || {};
   const session = dossier.session || {};
-  const formation = session.formation || {};
+  const formation = dossier.formation || session.formation || {};
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -175,10 +179,10 @@ export default function DossierDecision() {
               {getStatutBadge(dossier.statut)}
             </div>
             <h2 className="mt-3 text-2xl font-semibold text-primary">
-              Dossier de {etudiant.nom} {etudiant.prenom}
+              Dossier de {etudiant.nom} {etudiant.prenom || etudiant.prenoms}
             </h2>
             <p className="mt-1 text-sm text-subtext">
-              Formation: {formation.titre}
+              Formation: {formation.titre || formation.intitule}
             </p>
           </div>
           <div className="flex gap-2">
@@ -200,7 +204,7 @@ export default function DossierDecision() {
                 Apprenant
               </dt>
               <dd className="mt-1 text-sm text-text">
-                {etudiant.nom} {etudiant.prenom}
+                {etudiant.nom} {etudiant.prenom || etudiant.prenoms}
               </dd>
             </div>
             <div>
@@ -213,7 +217,7 @@ export default function DossierDecision() {
               <dt className="text-xs font-medium uppercase text-subtext">
                 Formation
               </dt>
-              <dd className="mt-1 text-sm text-text">{formation.titre}</dd>
+              <dd className="mt-1 text-sm text-text">{formation.titre || formation.intitule}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">

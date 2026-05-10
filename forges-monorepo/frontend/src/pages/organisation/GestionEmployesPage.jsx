@@ -88,7 +88,7 @@ export default function GestionEmployesPage() {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
       EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
       RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'success', label: 'Payé' },
+      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
       PAYE: { variant: 'success', label: 'Payé' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       REJETE: { variant: 'danger', label: 'Rejeté' },

@@ -227,8 +227,8 @@ export default function InscriptionSessionPage() {
                 onChange={(e) => setSourceFinancement(e.target.value)}
               />
               <div>
-                <div className="font-medium text-text">Paiement direct</div>
-                <div className="text-sm text-subtext">Payer directement les frais d'inscription</div>
+                <div className="font-medium text-text">Paiement apprenant</div>
+                <div className="text-sm text-subtext">Créer le dossier puis payer les frais d'inscription</div>
               </div>
             </label>
 

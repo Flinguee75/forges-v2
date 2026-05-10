@@ -122,7 +122,7 @@ describe('MesDossiersPage', () => {
     renderWithProviders(<MesDossiersPage />);
 
     expect(await screen.findByText('En attente de verification')).toBeInTheDocument();
-    const paiementDirectBadge = screen.getAllByText('Paiement direct').at(-1);
+    const paiementDirectBadge = screen.getAllByText('Paiement à effectuer').at(-1);
     const payeBadge = screen.getAllByText('Paye').at(-1);
     const rejeteBadge = screen.getAllByText('Rejete').at(-1);
     const listeGriseBadge = screen.getAllByText('Liste grise').at(-1);
@@ -132,7 +132,7 @@ describe('MesDossiersPage', () => {
     expect(rejeteBadge).toBeInTheDocument();
     expect(listeGriseBadge).toBeInTheDocument();
 
-    expect(paiementDirectBadge.closest('span')).toHaveClass('bg-success-soft');
+    expect(paiementDirectBadge.closest('span')).toHaveClass('bg-warning-soft');
     expect(rejeteBadge.closest('span')).toHaveClass('bg-danger-soft');
     expect(listeGriseBadge.closest('span')).toHaveClass('bg-warning-soft');
 

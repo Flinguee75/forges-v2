@@ -14,7 +14,7 @@ const STATUT_COLORS = {
   EN_ATTENTE_VERIFICATION: 'warning',
   RETENU: 'success',
   PAYE: 'success',
-  PAYE_DIRECTEMENT: 'success',
+  PAYE_DIRECTEMENT: 'warning',
   CONFIRME: 'success',
   REFUSE: 'danger',
   REJETE: 'danger',
@@ -29,7 +29,7 @@ const STATUT_LABELS = {
   EN_ATTENTE_VERIFICATION: 'En vérification',
   RETENU: 'Retenu',
   PAYE: 'Payé',
-  PAYE_DIRECTEMENT: 'Payé directement',
+  PAYE_DIRECTEMENT: 'Paiement à effectuer',
   CONFIRME: 'Confirmé',
   REFUSE: 'Refusé',
   REJETE: 'Rejeté',
@@ -44,6 +44,7 @@ const STATUS_FILTERS = [
   { value: 'EN_ATTENTE', label: 'En attente' },
   { value: 'EN_ATTENTE_VERIFICATION', label: 'En vérification' },
   { value: 'RETENU', label: 'Retenu' },
+  { value: 'PAYE_DIRECTEMENT', label: 'Paiement à effectuer' },
   { value: 'PAYE', label: 'Payé' },
   { value: 'REFUSE', label: 'Refusé' },
   { value: 'ANNULE', label: 'Annulé' },
@@ -195,7 +196,7 @@ export default function MesDossiersPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 items-end">
-                  {/* Bandeau warning place non garantie pour PAYE_DIRECTEMENT */}
+                  {/* Bandeau warning paiement requis pour PAYE_DIRECTEMENT */}
                   {dossier.statut === 'PAYE_DIRECTEMENT' && (
                     <div className="rounded-lg border-2 border-warning bg-warning/10 p-3 max-w-xs">
                       <div className="flex items-start gap-2">
@@ -203,10 +204,9 @@ export default function MesDossiersPage() {
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                         <div className="text-sm">
-                          <p className="font-semibold text-warning">Place non garantie !</p>
+                          <p className="font-semibold text-warning">Paiement à effectuer</p>
                           <p className="text-gray-700 mt-1">
-                            Votre inscription n'est définitive qu'après paiement.
-                            Vous avez <strong>72h</strong> pour payer avant annulation automatique.
+                            Votre dossier est accepté, mais l'inscription ne sera confirmée qu'après validation du paiement.
                           </p>
                         </div>
                       </div>
@@ -267,15 +267,14 @@ export default function MesDossiersPage() {
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="font-semibold text-warning text-lg">Attention : Votre place n'est pas encore garantie !</p>
+                <p className="font-semibold text-warning text-lg">Paiement encore à effectuer</p>
                 <p className="mt-2 text-gray-700">
-                  Votre inscription n'est définitive qu'après <strong>paiement complet</strong>.
+                  Votre dossier est créé, mais l'inscription ne sera confirmée qu'après <strong>paiement validé</strong>.
                 </p>
                 <div className="mt-3 p-3 bg-white rounded border border-warning">
-                  <p className="font-semibold text-warning">Délai de paiement : 72 heures</p>
+                  <p className="font-semibold text-warning">Prochaine étape</p>
                   <p className="text-sm text-gray-600 mt-1">
-                    Vous disposez de <strong>72 heures</strong> pour effectuer le paiement.
-                    Passé ce délai, votre dossier sera automatiquement annulé (RM-07).
+                    Lancez le paiement sécurisé. Le dossier passera en payé uniquement après confirmation du paiement.
                   </p>
                 </div>
               </div>
@@ -325,7 +324,7 @@ function formatDate(dateString) {
 
 function formatSourceFinancement(source) {
   const labels = {
-    RETAIL: 'Paiement direct',
+    RETAIL: 'Paiement apprenant',
     VOUCHER: 'Code Voucher',
     ABONNEMENT: 'Abonnement',
     B2B: 'Entreprise (B2B)',

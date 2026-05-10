@@ -469,13 +469,16 @@ export class InscriptionService {
   }
 
   // GET /api/dossiers — Liste dossiers apprenant (Sprint 1)
-  async getDossiersByApprenant(apprenantId: string) {
+  async getDossiersByApprenant(apprenantId: string, filters: { statut?: string } = {}) {
     return this.prisma.dossier.findMany({
-      where: { apprenant_id: apprenantId },
+      where: {
+        apprenant_id: apprenantId,
+        ...(filters.statut ? { statut: filters.statut } : {}),
+      },
       include: {
         formation: { select: { id: true, intitule: true, type_formation: true, cout_catalogue: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
-        paiement: { select: { id: true, statut: true, montant_final: true } }
+        paiement: { select: { id: true, statut: true, montant_final: true, methode: true, expires_at: true, confirmed_at: true } }
       },
       orderBy: { created_at: 'desc' }
     });
@@ -504,6 +507,7 @@ export class InscriptionService {
         apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
         formation: { select: { id: true, intitule: true, type_formation: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
+        paiement: { select: { id: true, statut: true, montant_final: true, methode: true, expires_at: true, confirmed_at: true } },
       },
       orderBy: { created_at: 'desc' },
     });

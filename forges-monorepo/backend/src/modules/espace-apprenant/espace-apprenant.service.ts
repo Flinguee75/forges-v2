@@ -14,8 +14,8 @@ export class EspaceApprenantService {
   ) {}
 
   // UCS11 — Mes dossiers
-  async getMesDossiers(apprenant_id: string) {
-    return this.espaceRepo.findDossiersByApprenant(apprenant_id);
+  async getMesDossiers(apprenant_id: string, filters: { statut?: string } = {}) {
+    return this.espaceRepo.findDossiersByApprenant(apprenant_id, filters);
   }
 
   // UCS11 — Annulation volontaire (RM-27)

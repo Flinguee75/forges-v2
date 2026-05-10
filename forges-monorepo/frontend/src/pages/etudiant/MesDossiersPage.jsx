@@ -55,7 +55,7 @@ export default function MesDossiersPage() {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
       EN_ATTENTE_VERIFICATION: { variant: 'gray', label: 'En attente de verification' },
       RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'success', label: 'Paiement direct' },
+      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
       PAYE: { variant: 'success', label: 'Paye' },
       CONFIRME: { variant: 'success', label: 'Confirme' },
       REJETE: { variant: 'danger', label: 'Rejete' },
@@ -69,6 +69,12 @@ export default function MesDossiersPage() {
     const config = mapping[statut] || { variant: 'gray', label: statut };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  const isPaiementConfirme = (dossier) =>
+    dossier?.paiement?.statut === 'CONFIRME' || dossier?.statut === 'PAYE';
+
+  const canPay = (dossier) =>
+    ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && !isPaiementConfirme(dossier);
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -142,7 +148,7 @@ export default function MesDossiersPage() {
           >
             Voir détails
           </Link>
-          {(dossier.statut === 'PAYE' || dossier.statut === 'CONFIRME') && (
+          {isPaiementConfirme(dossier) && (
             <Link
               to={`/apprenant/attestations?dossier=${dossier.id}`}
               className="text-sm text-success hover:underline"
@@ -150,7 +156,7 @@ export default function MesDossiersPage() {
               Attestation
             </Link>
           )}
-          {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT') && (
+          {canPay(dossier) && (
             <Link
               to="/apprenant/paiements"
               className="text-sm text-warning hover:underline"
@@ -189,7 +195,7 @@ export default function MesDossiersPage() {
               <option value="EN_ATTENTE">En attente</option>
               <option value="EN_ATTENTE_VERIFICATION">En attente de verification</option>
               <option value="RETENU">Retenu</option>
-              <option value="PAYE_DIRECTEMENT">Paiement direct</option>
+              <option value="PAYE_DIRECTEMENT">Paiement à effectuer</option>
               <option value="PAYE">Paye</option>
               <option value="CONFIRME">Confirme</option>
               <option value="REJETE">Rejete</option>

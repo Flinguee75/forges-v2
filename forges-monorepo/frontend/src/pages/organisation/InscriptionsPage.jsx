@@ -64,7 +64,7 @@ export default function InscriptionsPage() {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
       EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En attente de vérification' },
       RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'success', label: 'Payé directement' },
+      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
       PAYE: { variant: 'success', label: 'Payé' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       REJETE: { variant: 'danger', label: 'Rejeté' },
@@ -189,7 +189,7 @@ export default function InscriptionsPage() {
                 <option value="">Tous</option>
                 <option value="EN_ATTENTE">En attente</option>
                 <option value="EN_ATTENTE_VERIFICATION">En vérification</option>
-                <option value="PAYE_DIRECTEMENT">Payé</option>
+                <option value="PAYE_DIRECTEMENT">Paiement à effectuer</option>
                 <option value="PAYE">Payé (confirmé)</option>
                 <option value="CONFIRME">Confirmé</option>
                 <option value="REJETE">Rejeté</option>

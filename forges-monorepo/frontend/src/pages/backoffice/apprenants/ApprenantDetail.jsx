@@ -137,7 +137,7 @@ export default function ApprenantDetail() {
 
   const fullName = `${apprenant.prenoms || apprenant.prenom || ''} ${apprenant.nom || ''}`.trim() || 'N/A';
   const paidDossiers = dossiers.filter((dossier) =>
-    ['PAYE', 'PAYE_DIRECTEMENT'].includes(dossier.statut)
+    dossier.statut === 'PAYE' || dossier.paiement?.statut === 'CONFIRME'
   ).length;
 
   return (
@@ -229,9 +229,9 @@ export default function ApprenantDetail() {
                     </p>
                   </div>
                   <Badge
-                    variant={['PAYE', 'PAYE_DIRECTEMENT'].includes(dossier.statut) ? 'success' : 'warning'}
+                    variant={dossier.statut === 'PAYE' || dossier.paiement?.statut === 'CONFIRME' ? 'success' : 'warning'}
                   >
-                    {dossier.statut}
+                    {dossier.statut === 'PAYE_DIRECTEMENT' ? 'Paiement à effectuer' : dossier.statut}
                   </Badge>
                 </div>
               );

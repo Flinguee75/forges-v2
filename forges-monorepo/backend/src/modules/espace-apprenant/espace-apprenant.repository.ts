@@ -3,13 +3,16 @@ import { PrismaClient } from '@prisma/client';
 export class EspaceApprenantRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async findDossiersByApprenant(apprenant_id: string) {
+  async findDossiersByApprenant(apprenant_id: string, filters: { statut?: string } = {}) {
     return this.prisma.dossier.findMany({
-      where: { apprenant_id },
+      where: {
+        apprenant_id,
+        ...(filters.statut ? { statut: filters.statut } : {}),
+      },
       include: {
         formation: { select: { id: true, intitule: true, type_formation: true, mode_formation: true, cout_catalogue: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
-        paiement: { select: { statut: true, montant_final: true, confirmed_at: true } }
+        paiement: { select: { id: true, statut: true, montant_final: true, methode: true, expires_at: true, confirmed_at: true } }
       },
       orderBy: { created_at: 'desc' }
     });

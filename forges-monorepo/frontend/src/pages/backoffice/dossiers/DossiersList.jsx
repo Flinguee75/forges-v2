@@ -63,8 +63,12 @@ export default function DossiersList() {
   const getStatutBadge = (statut) => {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      RETENU: { variant: 'success', label: 'Retenu' },
+      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
+      RETENU: { variant: 'info', label: 'Retenu' },
+      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
+      PAYE: { variant: 'success', label: 'Payé' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
+      REJETE: { variant: 'danger', label: 'Rejeté' },
       REFUSE: { variant: 'danger', label: 'Refusé' },
       GRIS: { variant: 'warning', label: 'Gris' },
       EXCEPTION: { variant: 'danger', label: 'Exception' },
@@ -74,6 +78,22 @@ export default function DossiersList() {
 
     const config = mapping[statut] || { variant: 'gray', label: statut };
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
+  };
+
+  const getPaiementBadge = (paiement, dossierStatut) => {
+    if (paiement?.statut === 'CONFIRME') {
+      return <Badge variant="success" size="small">Paiement confirmé</Badge>;
+    }
+    if (paiement?.statut === 'PENDING' || paiement?.statut === 'EN_ATTENTE') {
+      return <Badge variant="warning" size="small">Paiement en cours</Badge>;
+    }
+    if (paiement?.statut === 'ECHOUE' || paiement?.statut === 'EXPIRE') {
+      return <Badge variant="danger" size="small">Paiement échoué</Badge>;
+    }
+    if (dossierStatut === 'PAYE_DIRECTEMENT' || dossierStatut === 'RETENU') {
+      return <Badge variant="warning" size="small">A régler</Badge>;
+    }
+    return <Badge variant="gray" size="small">Non initié</Badge>;
   };
 
   // RM-19: Fonction pour identifier les dossiers prioritaires
@@ -112,6 +132,11 @@ export default function DossiersList() {
       key: 'statut',
       label: 'Statut',
       render: (value) => getStatutBadge(value),
+    },
+    {
+      key: 'paiement',
+      label: 'Paiement',
+      render: (_, dossier) => getPaiementBadge(dossier.paiement, dossier.statut),
     },
     {
       key: 'created_at',
@@ -192,10 +217,14 @@ export default function DossiersList() {
             >
               <option value="">Tous les statuts</option>
               <option value="EN_ATTENTE">En attente</option>
+              <option value="EN_ATTENTE_VERIFICATION">En vérification</option>
               <option value="GRIS">Gris (priorité)</option>
               <option value="EXCEPTION">Exception (priorité)</option>
               <option value="RETENU">Retenu</option>
+              <option value="PAYE_DIRECTEMENT">Paiement à effectuer</option>
+              <option value="PAYE">Payé</option>
               <option value="CONFIRME">Confirmé</option>
+              <option value="REJETE">Rejeté</option>
               <option value="REFUSE">Refusé</option>
               <option value="ARCHIVE">Archivé</option>
               <option value="ANNULE">Annulé</option>

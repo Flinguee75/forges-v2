@@ -24,9 +24,10 @@ export default function MesPaiementsPage() {
   const navigate = useNavigate();
 
   const loadDossiersEnAttentePaiement = async () => {
-    await execute(() => etudiantApi.getMesDossiers({ statut: 'RETENU' }), {
+    await execute(() => etudiantApi.getMesDossiers(), {
       onSuccess: (data) => {
-        setDossiers(Array.isArray(data) ? data : data?.data || data?.dossiers || []);
+        const items = Array.isArray(data) ? data : data?.data || data?.dossiers || [];
+        setDossiers(items.filter((dossier) => isPayableDossier(dossier)));
       },
     });
   };
@@ -69,6 +70,25 @@ export default function MesPaiementsPage() {
     return tarif - remise;
   };
 
+  const isPayableDossier = (dossier) =>
+    ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && dossier?.paiement?.statut !== 'CONFIRME';
+
+  const getPaymentStatusBadge = (dossier) => {
+    if (dossier.paiement?.statut === 'PENDING') {
+      return <Badge variant="warning" size="small">Paiement en cours</Badge>;
+    }
+    if (dossier.paiement?.statut === 'EN_ATTENTE') {
+      return <Badge variant="warning" size="small">Paiement initié</Badge>;
+    }
+    if (dossier.paiement?.statut === 'ECHOUE') {
+      return <Badge variant="danger" size="small">Paiement échoué</Badge>;
+    }
+    if (dossier.statut === 'RETENU') {
+      return <Badge variant="info" size="small">Retenu, paiement requis</Badge>;
+    }
+    return <Badge variant="warning" size="small">Paiement à effectuer</Badge>;
+  };
+
   const columns = [
     {
       key: 'formation',
@@ -104,9 +124,20 @@ export default function MesPaiementsPage() {
       },
     },
     {
+      key: 'statut_paiement',
+      label: 'État',
+      render: (_, dossier) => getPaymentStatusBadge(dossier),
+    },
+    {
       key: 'date_limite',
       label: 'Date limite',
       render: (_, dossier) => {
+        if (dossier.paiement?.expires_at) {
+          return <span>{formatDate(dossier.paiement.expires_at)}</span>;
+        }
+        if (dossier.statut === 'PAYE_DIRECTEMENT') {
+          return <span className="text-subtext">À régler pour confirmer</span>;
+        }
         const dateRetenu = new Date(dossier.updated_at || dossier.updatedAt || dossier.created_at);
         const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
         const isExpired = dateLimite < new Date();
@@ -134,7 +165,7 @@ export default function MesPaiementsPage() {
           size="small"
           onClick={() => openPaiementModal(dossier)}
         >
-          Payer maintenant
+          {dossier.paiement ? 'Reprendre' : 'Payer maintenant'}
         </Button>
       ),
     },
@@ -145,14 +176,14 @@ export default function MesPaiementsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-primary">Mes Paiements</h1>
         <p className="mt-2 text-subtext">
-          Gérez vos paiements en attente et consultez votre historique
+          Réglez les dossiers qui nécessitent encore une confirmation de paiement
         </p>
       </div>
 
       <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
         <p className="text-sm text-warning">
-          Vous disposez de 72 heures après la décision "Retenu" pour effectuer
-          votre paiement. Passé ce délai, votre dossier sera annulé (RM-07).
+          Les dossiers “Paiement à effectuer” ne sont pas encore payés. Ils seront confirmés uniquement après validation du paiement.
+          Pour un dossier “Retenu”, le délai de règlement est de 72 heures.
         </p>
       </div>
 
@@ -233,7 +264,7 @@ export default function MesPaiementsPage() {
                 loading={isLoading}
                 className="flex-1"
               >
-                Confirmer le paiement
+                Continuer vers le paiement
               </Button>
             </div>
           </div>
