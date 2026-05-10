@@ -1,3 +1,7 @@
+jest.mock('../devis-pdf.service', () => ({
+  genererPdfDevis: jest.fn(async () => Buffer.from('%PDF-1.4\nmock-pdf')),
+}));
+
 import { DevisService } from '../devis.service';
 
 const mockDevisRepo = {
@@ -231,6 +235,42 @@ describe('DevisService — RM-149 à RM-151', () => {
 
       const service = makeService();
       await expect(service.payerDevis('d-01', 'agent-01')).rejects.toThrow('DEVIS_STATUT_INVALIDE');
+    });
+  });
+
+  describe('envoyerEmailDevis', () => {
+    it('joint le PDF officiel et affiche le numéro de contact', async () => {
+      const devisFixture = {
+        id: 'd-01',
+        numero_devis: 'FORGES-DEVIS-2026-001',
+        statut: 'CREE',
+        organisation_id: 'org-01',
+        formation_id: 'f-01',
+        session_id: 's-01',
+        nb_places: 3,
+        tarif_unitaire_xof: 15000,
+        montant_total_xof: 45000,
+        created_at: new Date('2026-05-10T00:00:00.000Z'),
+      };
+
+      mockDevisRepo.findById.mockResolvedValue(devisFixture);
+      mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      mockPrisma.session.findUnique.mockResolvedValue(sessionFixture);
+
+      const service = makeService();
+      await service.envoyerEmailDevis('d-01', 'admin-01');
+
+      expect(mockEmail.sendEmailWithAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'contact@acme.ci',
+          attachment: expect.objectContaining({
+            filename: 'FORGES-DEVIS-2026-001.pdf',
+            contentType: 'application/pdf',
+          }),
+          html: expect.stringContaining('+225 05 04 08 43 84'),
+        })
+      );
     });
   });
 

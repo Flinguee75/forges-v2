@@ -464,7 +464,8 @@ export class DevisService {
               <tr>
                 <td style="color:#a0b0e0;font-size:12px;">
                   <strong style="color:#ffffff;">FORGES AGRÉGATEUR</strong><br>
-                  contact@forges-group.com &nbsp;|&nbsp; <a href="https://edu.forges-group.com" style="color:#a0b0e0;text-decoration:none;">edu.forges-group.com</a>
+                  contact@forges-group.com &nbsp;|&nbsp; +225 05 04 08 43 84<br>
+                  <a href="https://edu.forges-group.com" style="color:#a0b0e0;text-decoration:none;">edu.forges-group.com</a>
                 </td>
                 <td align="right">
                   <div style="width:8px;height:8px;background:${OR};border-radius:50%;display:inline-block;"></div>
