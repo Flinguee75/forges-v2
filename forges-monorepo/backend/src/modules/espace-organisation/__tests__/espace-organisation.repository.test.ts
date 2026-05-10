@@ -95,29 +95,88 @@ describe('EspaceOrganisationRepository', () => {
   });
 
   it('retourne les vouchers, compte les actifs B2B et calcule les stats', async () => {
-    prisma.voucherApporteur.findMany.mockResolvedValue([{ id: 'voucher-01' }]);
+    prisma.voucherOrganisation.findMany.mockResolvedValue([
+      {
+        id: 'voucher-org-01',
+        code: 'ORG-01',
+        organisation_id: 'org-01',
+        formation_id: 'formation-org-01',
+        devis_id: 'devis-01',
+        type: 'ORGANISATION',
+        valeur: 100,
+        type_valeur: 'POURCENTAGE',
+        quota_max: 1,
+        quota_utilise: 0,
+        date_expiration: new Date('2026-12-31T00:00:00.000Z'),
+        statut: 'ACTIF',
+        created_at: new Date('2026-02-02T00:00:00.000Z'),
+        formation: { id: 'formation-org-01', intitule: 'Session devis' },
+      },
+    ] as any);
+    prisma.voucherApporteur.findMany.mockResolvedValue([
+      {
+        id: 'voucher-01',
+        code: 'PROMO-01',
+        organisation_id: 'org-01',
+        formation_id: 'formation-01',
+        type: 'PROMOTIONNEL',
+        valeur: 5000,
+        type_valeur: 'MONTANT',
+        quota_max: 1,
+        quota_utilise: 0,
+        date_expiration: new Date('2026-02-01T00:00:00.000Z'),
+        statut: 'ACTIF',
+        created_at: new Date('2026-02-01T00:00:00.000Z'),
+        formation: { id: 'formation-01', intitule: 'Formation promo' },
+      },
+    ] as any);
     prisma.apprenant.count
       .mockResolvedValueOnce(4)
       .mockResolvedValueOnce(9);
     prisma.dossier.count.mockResolvedValue(12);
+    prisma.voucherOrganisation.count.mockResolvedValue(2);
     prisma.voucherApporteur.count.mockResolvedValue(3);
     prisma.paiement.aggregate.mockResolvedValue({ _sum: { montant_final: 50000 } } as any);
 
-    await expect(repository.findVouchers('org-01')).resolves.toEqual([{ id: 'voucher-01' }]);
+    await expect(repository.findVouchers('org-01')).resolves.toEqual([
+      expect.objectContaining({
+        id: 'voucher-org-01',
+        source: 'DEVIS',
+        formation: expect.objectContaining({ titre: 'Session devis' }),
+      }),
+      expect.objectContaining({
+        id: 'voucher-01',
+        source: 'PROMOTIONNEL',
+        formation: expect.objectContaining({ titre: 'Formation promo' }),
+      }),
+    ]);
     await expect(repository.countActifsB2B('org-01')).resolves.toBe(4);
     await expect(repository.getStatsOrganisation('org-01')).resolves.toEqual({
       nb_beneficiaires: 9,
       nb_inscriptions: 12,
-      nb_vouchers_actifs: 3,
+      nb_vouchers_actifs: 5,
       montant_paye_total: 50000,
     });
 
+    expect(prisma.voucherOrganisation.findMany).toHaveBeenCalledWith({
+      where: { organisation_id: 'org-01' },
+      include: {
+        formation: { select: { id: true, intitule: true, type_formation: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
     expect(prisma.voucherApporteur.findMany).toHaveBeenCalledWith({
       where: { organisation_id: 'org-01' },
       include: {
-        formation: { select: { intitule: true } },
+        formation: { select: { id: true, intitule: true, type_formation: true } },
       },
       orderBy: { created_at: 'desc' },
+    });
+    expect(prisma.voucherOrganisation.count).toHaveBeenCalledWith({
+      where: { organisation_id: 'org-01', statut: 'ACTIF' },
+    });
+    expect(prisma.voucherApporteur.count).toHaveBeenCalledWith({
+      where: { organisation_id: 'org-01', statut: 'ACTIF' },
     });
     expect(prisma.apprenant.count).toHaveBeenNthCalledWith(1, {
       where: { organisation_id: 'org-01', statut: 'ACTIF' },

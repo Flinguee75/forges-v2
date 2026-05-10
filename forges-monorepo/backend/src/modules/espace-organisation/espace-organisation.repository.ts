@@ -3,6 +3,30 @@ import { PrismaClient } from '@prisma/client';
 export class EspaceOrganisationRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
+  private normalizeFormation(formation: any) {
+    if (!formation) return null;
+    return {
+      ...formation,
+      titre: formation.titre || formation.intitule || '',
+    };
+  }
+
+  private normalizeVoucherOrganisation(voucher: any) {
+    return {
+      ...voucher,
+      source: voucher.devis_id ? 'DEVIS' : 'ORGANISATION',
+      formation: this.normalizeFormation(voucher.formation),
+    };
+  }
+
+  private normalizeVoucherApporteur(voucher: any) {
+    return {
+      ...voucher,
+      source: voucher.type === 'PROMOTIONNEL' ? 'PROMOTIONNEL' : 'APPORTEUR',
+      formation: this.normalizeFormation(voucher.formation),
+    };
+  }
+
   async findOrganisationById(id: string) {
     return this.prisma.organisation.findUnique({
       where: { id },
@@ -90,13 +114,25 @@ export class EspaceOrganisationRepository {
   }
 
   async findVouchers(organisation_id: string) {
-    return this.prisma.voucherApporteur.findMany({
-      where: { organisation_id },
-      include: {
-        formation: { select: { intitule: true } }
-      },
-      orderBy: { created_at: 'desc' }
-    });
+    const [vouchersOrganisation, vouchersApporteur] = await Promise.all([
+      this.prisma.voucherOrganisation.findMany({
+        where: { organisation_id },
+        include: {
+          formation: { select: { id: true, intitule: true, type_formation: true } },
+        },
+        orderBy: { created_at: 'desc' },
+      }),
+      this.prisma.voucherApporteur.findMany({
+        where: { organisation_id },
+        include: {
+          formation: { select: { id: true, intitule: true, type_formation: true } },
+        },
+        orderBy: { created_at: 'desc' },
+      }),
+    ]);
+
+    return [...vouchersOrganisation.map((voucher) => this.normalizeVoucherOrganisation(voucher)), ...vouchersApporteur.map((voucher) => this.normalizeVoucherApporteur(voucher))]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
   // RM-61 : vérification plafond B2B
@@ -107,9 +143,12 @@ export class EspaceOrganisationRepository {
   }
 
   async getStatsOrganisation(organisation_id: string) {
-    const [nbBeneficiaires, nbInscriptions, nbVouchersActifs, paiements] = await Promise.all([
+    const [nbBeneficiaires, nbInscriptions, nbVouchersActifsOrganisation, nbVouchersActifsApporteur, paiements] = await Promise.all([
       this.prisma.apprenant.count({ where: { organisation_id } }),
       this.prisma.dossier.count({ where: { apprenant: { organisation_id } } }),
+      this.prisma.voucherOrganisation.count({
+        where: { organisation_id, statut: 'ACTIF' }
+      }),
       this.prisma.voucherApporteur.count({
         where: { organisation_id, statut: 'ACTIF' }
       }),
@@ -126,7 +165,7 @@ export class EspaceOrganisationRepository {
     return {
       nb_beneficiaires: nbBeneficiaires,
       nb_inscriptions: nbInscriptions,
-      nb_vouchers_actifs: nbVouchersActifs,
+      nb_vouchers_actifs: nbVouchersActifsOrganisation + nbVouchersActifsApporteur,
       montant_paye_total: paiements._sum.montant_final || 0,
     };
   }
