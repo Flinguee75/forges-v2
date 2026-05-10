@@ -124,6 +124,10 @@ jobs:
                 echo "$EDU_ENV_DEPLOY" | base64 -d > infra/env/.env.edu.deploy
               fi
 
+              # Sauvegarder l'image courante avant tout changement (base du rollback)
+              PREV_IMAGE_REF=$(grep '^BACKEND_IMAGE_REF=' infra/env/.env.edu.deploy | cut -d= -f2 || true)
+              echo "Image precedente: ${PREV_IMAGE_REF:-aucune}"
+
               echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
               # EDU doit suivre exactement le SHA demandé.
@@ -133,14 +137,16 @@ jobs:
                 echo "L'image ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG doit etre publiee avant le deploy EDU."
                 exit 1
               fi
+
+              # Pull d'abord — l'ancienne version continue de tourner pendant ce temps
               docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
               RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
 
-              # Met a jour le fichier de deploy EDU pour conserver les bons ports et la bonne image
+              # Met a jour le fichier de deploy EDU avec la nouvelle image
               sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
               echo "BACKEND_IMAGE_REF=$RESOLVED_IMAGE_REF" >> infra/env/.env.edu.deploy
 
-              # Nettoyage containers edu existants
+              # Nettoyage containers edu zombies (apres le pull pour minimiser le downtime)
               ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-edu$' || true)
               if [ -n "$ZOMBIES" ]; then
                 echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
@@ -150,12 +156,33 @@ jobs:
                 --env-file infra/env/.env.edu.deploy up -d
 
               echo "Attente healthcheck backend edu..."
+              HEALTHY=false
               for i in $(seq 1 30); do
                 STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
                 echo "  [$i/30] $STATUS"
-                [ "$STATUS" = "healthy" ] && break
+                if [ "$STATUS" = "healthy" ]; then
+                  HEALTHY=true
+                  break
+                fi
                 sleep 5
               done
+
+              if [ "$HEALTHY" = "false" ]; then
+                echo "Backend EDU non healthy apres 150s"
+                if [ -n "$PREV_IMAGE_REF" ] && [ "$PREV_IMAGE_REF" != "$RESOLVED_IMAGE_REF" ]; then
+                  echo "Rollback vers image precedente: $PREV_IMAGE_REF"
+                  sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
+                  echo "BACKEND_IMAGE_REF=$PREV_IMAGE_REF" >> infra/env/.env.edu.deploy
+                  docker compose -f infra/docker/docker-compose.edu.deploy.yml \
+                    --env-file infra/env/.env.edu.deploy up -d forges-backend-edu
+                  sleep 20
+                  RB_STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
+                  echo "Statut apres rollback: $RB_STATUS"
+                else
+                  echo "Pas d'image precedente disponible pour le rollback"
+                fi
+                exit 1
+              fi
 
               echo "Synchronisation schema Prisma (db push)..."
               for attempt in 1 2 3; do
@@ -170,7 +197,12 @@ jobs:
         run: |
           sleep 8
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://edu.forges-group.com/health || echo "000")
-          [ "$HTTP_CODE" = "200" ] && echo "EDU OK" || echo "Healthcheck: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "EDU OK"
+          else
+            echo "Healthcheck EDU echoue: HTTP $HTTP_CODE"
+            exit 1
+          fi
 
       - name: Resume
         if: always()
@@ -181,7 +213,7 @@ jobs:
           echo "| URL | https://edu.forges-group.com |" >> $GITHUB_STEP_SUMMARY
           echo "| SHA déployé | ${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Image demandee | ghcr.io/flinguee75/forges-backend:dev-${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Fallback | aucun |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fallback | image precedente si healthcheck KO |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | forges-backend-edu (port 3006) |" >> $GITHUB_STEP_SUMMARY
           echo "| DB | forges_edu (independante de dev) |" >> $GITHUB_STEP_SUMMARY
           echo "| Deploye par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
