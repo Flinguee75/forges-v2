@@ -198,6 +198,7 @@ export class InscriptionService {
         }
 
         await this.creerPaiementVoucherOrganisation(dossier.id, formation.cout_catalogue);
+        await this.notifierApprenantVoucherOrganisation(params.apprenantId, voucher.organisation_id, formation.intitule);
       } else {
         const updatedVoucher = await this.prisma.voucherApporteur.update({
           where: { id: voucher.id },
@@ -264,6 +265,48 @@ export class InscriptionService {
     });
 
     return paiement;
+  }
+
+  private async notifierApprenantVoucherOrganisation(
+    apprenantId: string,
+    organisationId: string,
+    formationIntitule: string
+  ) {
+    const [apprenant, organisation] = await Promise.all([
+      this.prisma.apprenant.findUnique({
+        where: { id: apprenantId },
+        select: {
+          email: true,
+          nom: true,
+          prenoms: true,
+          langue_preferee: true,
+        },
+      }),
+      this.prisma.organisation.findUnique({
+        where: { id: organisationId },
+        select: { raison_sociale: true },
+      }),
+    ]);
+
+    if (!apprenant) return;
+
+    await this.email.sendEnrolementConfirmationApprenant({
+      to: apprenant.email,
+      prenoms: apprenant.prenoms,
+      nom: apprenant.nom,
+      organisation: organisation?.raison_sociale || 'votre organisation',
+      formation: formationIntitule,
+    });
+    await this.email.sendPaiementConfirme(
+      apprenant.email,
+      formationIntitule,
+      (apprenant.langue_preferee as 'FR' | 'EN' | 'ES' | 'PT') || 'FR'
+    );
+
+    await this.audit.info('EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES', {
+      apprenant_id: apprenantId,
+      formation: formationIntitule,
+    });
   }
 
   // UCS08 — Rétention dossier Premium (RM-05 : irréversible, RM-140)

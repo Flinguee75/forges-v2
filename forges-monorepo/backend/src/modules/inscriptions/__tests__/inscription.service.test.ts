@@ -42,6 +42,7 @@ describe('InscriptionService', () => {
 
     mockVoucherValidation = {
       validateApporteur: jest.fn(),
+      validerVoucher: jest.fn(),
     } as any;
 
     mockRetailRepo = {
@@ -56,11 +57,15 @@ describe('InscriptionService', () => {
 
     mockEmail = {
       notifyResponsable: jest.fn(),
+      sendEnrolementConfirmationApprenant: jest.fn(),
+      sendPaiementConfirme: jest.fn(),
     } as any;
 
     mockPrisma = {
       dossier: { count: jest.fn(), findFirst: jest.fn() },
       apprenant: { findUnique: jest.fn() },
+      organisation: { findUnique: jest.fn() },
+      paiement: { findUnique: jest.fn(), create: jest.fn() },
       abonnementRetail: { findFirst: jest.fn() },
       voucherApporteur: { findFirst: jest.fn(), update: jest.fn() },
       voucherOrganisation: { update: jest.fn() },
@@ -69,6 +74,7 @@ describe('InscriptionService', () => {
     mockPrisma.dossier.findFirst.mockResolvedValue(null);
     mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
     mockPrisma.voucherApporteur.findFirst.mockResolvedValue(null);
+    mockPrisma.paiement.findUnique.mockResolvedValue(null);
 
     service = new InscriptionService(
       mockDossierRepo,
@@ -161,6 +167,76 @@ describe('InscriptionService', () => {
       type_fenetre: 'EXCEPTION',
     }));
     expect(mockEmail.notifyResponsable).toHaveBeenCalledWith('NOUVEAU_DOSSIER_A_VERIFIER', { dossier_id: 'dossier-02' });
+  });
+
+  it('crée dossier PAYE, paiement CONFIRME et emails quand l’apprenant utilise un voucher organisation', async () => {
+    mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+    mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+    mockPrisma.dossier.count.mockResolvedValue(2);
+    mockFormationRepo.findById.mockResolvedValue({
+      id: 'formation-01',
+      intitule: 'Masterclass Cyber',
+      type_formation: 'STANDARD',
+      cout_catalogue: 150000,
+    } as any);
+    mockVoucherValidation.validerVoucher.mockResolvedValue({
+      id: 'voucher-org-01',
+      code: 'ORG-001',
+      type: 'ORGANISATION',
+      organisation_id: 'org-01',
+    } as any);
+    mockDossierRepo.create.mockResolvedValue({ id: 'dossier-voucher', statut: 'PAYE' } as any);
+    mockPrisma.voucherOrganisation.update.mockResolvedValueOnce({
+      id: 'voucher-org-01',
+      quota_max: 1,
+      quota_utilise: 1,
+    });
+    mockPrisma.voucherOrganisation.update.mockResolvedValueOnce({});
+    mockPrisma.paiement.create.mockResolvedValue({ id: 'paiement-voucher', statut: 'CONFIRME' });
+    mockPrisma.apprenant.findUnique.mockResolvedValue({
+      email: 'aly@forges.test',
+      nom: 'Samassi',
+      prenoms: 'Aly',
+      langue_preferee: 'FR',
+    });
+    mockPrisma.organisation.findUnique.mockResolvedValue({ raison_sociale: 'ANSSI CI' });
+
+    const result = await service.inscrire({
+      session_id: 'session-01',
+      apprenantId: 'app-01',
+      source_financement: 'VOUCHER',
+      voucher_code: 'ORG-001',
+      code_apporteur: null,
+    });
+
+    expect(mockDossierRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      apprenant_id: 'app-01',
+      statut: 'PAYE',
+      source_financement: 'VOUCHER',
+      voucher_organisation_id: 'voucher-org-01',
+      voucher_code: 'ORG-001',
+    }));
+    expect(mockPrisma.paiement.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        dossier_id: 'dossier-voucher',
+        montant_catalogue: 150000,
+        montant_final: 150000,
+        methode: 'VOUCHER_ORG',
+        statut: 'CONFIRME',
+      }),
+    });
+    expect(mockEmail.sendEnrolementConfirmationApprenant).toHaveBeenCalledWith({
+      to: 'aly@forges.test',
+      prenoms: 'Aly',
+      nom: 'Samassi',
+      organisation: 'ANSSI CI',
+      formation: 'Masterclass Cyber',
+    });
+    expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith('aly@forges.test', 'Masterclass Cyber', 'FR');
+    expect(mockAudit.info).toHaveBeenCalledWith('EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES', expect.objectContaining({
+      apprenant_id: 'app-01',
+    }));
+    expect(result).toMatchObject({ id: 'dossier-voucher', statut: 'PAYE' });
   });
 
   it('retourne les dossiers d une session via le repository', async () => {

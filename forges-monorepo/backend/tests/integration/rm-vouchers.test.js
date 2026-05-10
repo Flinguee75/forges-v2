@@ -153,7 +153,8 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
 
   test('RM-41.1 — Voucher Organisation déclenche paiement automatique', async () => {
     const freshCode = await createOrganisationVoucher('RM41-1', 5);
-    const headers = await auth(await createApprenantAccount('rm41-1'));
+    const apprenant = await createApprenantAccount('rm41-1');
+    const headers = await auth(apprenant);
 
     const res = await request(API_URL)
       .post(`/api/sessions/${ids.standardSession}/inscrire`)
@@ -178,6 +179,16 @@ describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () =>
     expect(paiement).toBeDefined();
     expect(paiement.statut).toBe('CONFIRME');
     expect(paiement.methode).toBe('VOUCHER_ORG');
+
+    const auditEmail = await prisma.auditLog.findFirst({
+      where: { action: 'EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES' },
+      orderBy: { timestamp: 'desc' },
+    });
+    expect(auditEmail).toBeDefined();
+    expect(auditEmail.metadata).toMatchObject({
+      apprenant_id: apprenant.id,
+      formation: expect.any(String),
+    });
   });
 
   test('RM-41.2 — Paiement Organisation créé automatiquement avec montant voucher', async () => {
