@@ -107,7 +107,63 @@ ssh -i ~/.ssh/id_ed25519_forges forgesadmin@92.205.164.97 \
 
 ---
 
-## 6. Accès au monitoring dev (pour comparaison)
+## 6. Mettre à jour le dashboard Grafana
+
+### Modifier les panels ou requêtes (dashboard JSON uniquement)
+
+1. Editer le fichier localement :
+   ```
+   forges-monorepo/infra/monitoring/grafana/dashboards/forges-edu.json
+   ```
+
+2. Valider le JSON :
+   ```bash
+   python3 -c "import json; json.load(open('forges-monorepo/infra/monitoring/grafana/dashboards/forges-edu.json')); print('OK')"
+   ```
+
+3. Committer et pousser :
+   ```bash
+   git add forges-monorepo/infra/monitoring/grafana/dashboards/forges-edu.json
+   git commit -m "feat(grafana-edu): ..."
+   git push forges-v2 develop
+   ```
+
+4. Synchroniser sur le VPS (depuis la racine du projet) :
+   ```bash
+   ./forges-monorepo/infra/monitoring/deploy-monitoring-edu.sh
+   ```
+
+Le dashboard se recharge automatiquement en moins de 10 secondes — rien d'autre à faire.
+
+---
+
+### Modifier le provisioning (datasources, alerting, config Grafana)
+
+Mêmes étapes 1 à 4, puis redémarrer Grafana pour que la config soit prise en compte :
+
+```bash
+ssh -i ~/.ssh/id_ed25519_forges forgesadmin@92.205.164.97 "docker restart forges-grafana-edu"
+```
+
+Vérifier que Grafana a redémarré correctement :
+
+```bash
+ssh -i ~/.ssh/id_ed25519_forges forgesadmin@92.205.164.97 "curl -s http://localhost:3052/api/health"
+```
+
+---
+
+### Résumé rapide
+
+| Ce qui a changé | Etapes |
+|---|---|
+| Panels / requêtes dashboard JSON | Modifier → committer → `deploy-monitoring-edu.sh` (auto-reload 10s) |
+| Provisioning (datasources, alerting) | Modifier → committer → `deploy-monitoring-edu.sh` → `docker restart forges-grafana-edu` |
+| Config Loki ou Promtail | Modifier → committer → `deploy-monitoring-edu.sh` (Loki/Promtail redémarrent via compose) |
+
+---
+
+## 7. Accès au monitoring dev (pour comparaison)
 
 Si tu veux aussi accéder au monitoring dev en même temps :
 
