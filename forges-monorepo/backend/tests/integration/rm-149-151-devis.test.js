@@ -10,7 +10,7 @@
 
 const { randomUUID } = require('crypto');
 const { hash } = require('bcrypt');
-const { API_URL, accounts, auth, prisma, request } = require('./helpers');
+const { API_URL, accounts, auth, ids, prisma, request } = require('./helpers');
 
 const PASSWORD = 'Test@FORGES2026!';
 
@@ -18,6 +18,7 @@ let adminHeaders;
 let agentHeaders;
 let orgHeaders;
 let formationId;
+let sessionId;
 let organisationId;
 let orgEmail;
 let createdDevisIds = [];
@@ -51,14 +52,8 @@ beforeAll(async () => {
     auth({ email: orgEmail, password: PASSWORD }),
   ]);
 
-  // Prendre une formation avec un vrai UUID (le DTO valide uuid())
-  const formations = await prisma.$queryRaw`
-    SELECT id FROM "Formation"
-    WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    LIMIT 1
-  `;
-  expect(formations.length).toBeGreaterThan(0);
-  formationId = formations[0].id;
+  formationId = ids.standardFormation;
+  sessionId = ids.standardSession;
 });
 
 afterAll(async () => {
@@ -81,6 +76,7 @@ async function creerDevis(headers, overrides = {}) {
     .send({
       organisation_id: organisationId,
       formation_id: formationId,
+      session_id: sessionId,
       nb_places: 5,
       tarif_unitaire_xof: 40000,
       ...overrides,

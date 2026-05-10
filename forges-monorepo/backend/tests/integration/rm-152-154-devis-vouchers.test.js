@@ -90,6 +90,7 @@ async function creerDevis(nbPlaces = 3) {
     .send({
       organisation_id: organisationId,
       formation_id: formationId,
+      session_id: sessionId,
       nb_places: nbPlaces,
       tarif_unitaire_xof: 2000000,
       notes_admin: 'Test RM-152 ANSSI',
@@ -106,6 +107,7 @@ async function creerDevisAvecFormation(formId, nbPlaces = 1) {
     .send({
       organisation_id: organisationId,
       formation_id: formId,
+      session_id: sessionId,
       nb_places: nbPlaces,
       tarif_unitaire_xof: 500000,
       notes_admin: 'Test RM-153 usage voucher',
