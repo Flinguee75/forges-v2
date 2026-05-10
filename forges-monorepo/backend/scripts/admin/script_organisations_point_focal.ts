@@ -28,7 +28,6 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { EmailService } from '../../src/shared/email/email.service';
-import { genererPdfDevis } from '../../src/modules/devis/devis-pdf.service';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const LOG_FILE = path.join(__dirname, 'enrolement_organisations_log.json');
@@ -183,13 +182,6 @@ async function sendDevisEmail(params: {
   formation: { intitule: string };
   session: { date_debut?: Date | null; date_fin?: Date | null } | null;
 }) {
-  const pdfBuffer = await genererPdfDevis({
-    devis: params.devis,
-    organisation: params.organisation,
-    formation: params.formation,
-    session: params.session,
-  });
-
   await emailService.sendEnrolementDevisOrganisation({
     to: params.organisation.email,
     contactReferent: params.organisation.contact_referent,
@@ -199,8 +191,8 @@ async function sendDevisEmail(params: {
     nbPlaces: params.devis.nb_places,
     tarifUnitaire: params.devis.tarif_unitaire_xof,
     montantTotal: params.devis.montant_total_xof,
-    pdfBuffer,
-    pdfFilename: `${params.devis.numero_devis}.pdf`,
+    // Attachment volontairement omis dans ce script de seed pour rester
+    // compatible avec un VPS qui n'embarque pas les dépendances PDF.
   });
 }
 
