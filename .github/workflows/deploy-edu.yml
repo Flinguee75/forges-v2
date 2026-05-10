@@ -98,102 +98,129 @@ jobs:
             infra/docker/docker-compose.edu.deploy.yml \
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra/docker/
 
-      - name: Docker pull + migrate + restart (EDU)
+      - name: Lire image precedente (base rollback)
+        id: prev-image
         env:
           DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          EDU_ENV_DEPLOY: ${{ secrets.EDU_ENV_DEPLOY }}
+        run: |
+          PREV=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            "grep '^BACKEND_IMAGE_REF=' $DEPLOY_PATH/infra/env/.env.edu.deploy 2>/dev/null | cut -d= -f2 || echo ''")
+          echo "prev_image=${PREV}" >> $GITHUB_OUTPUT
+          echo "Image precedente: ${PREV:-aucune}"
+
+      - name: Verifier et pull image backend
+        env:
           SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
           SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ github.actor }}
           IMAGE_TAG: ${{ inputs.image_sha || github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            GHCR_TOKEN="$GHCR_TOKEN" GHCR_USER="$GHCR_USER" IMAGE_TAG="$IMAGE_TAG" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+              if ! docker manifest inspect ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG >/dev/null 2>&1; then
+                echo "Image introuvable: ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
+                exit 1
+              fi
+              docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
+              echo "Pull OK: ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
+          ENDSSH
+
+      - name: Deployer nouvelle version
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          IMAGE_TAG: ${{ inputs.image_sha || github.sha }}
           EDU_ENV_DEPLOY: ${{ secrets.EDU_ENV_DEPLOY }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
-            DEPLOY_PATH="$DEPLOY_PATH" \
-            GHCR_TOKEN="$GHCR_TOKEN" \
-            GHCR_USER="$GHCR_USER" \
-            IMAGE_TAG="$IMAGE_TAG" \
-            EDU_ENV_DEPLOY="$EDU_ENV_DEPLOY" \
+            DEPLOY_PATH="$DEPLOY_PATH" IMAGE_TAG="$IMAGE_TAG" EDU_ENV_DEPLOY="$EDU_ENV_DEPLOY" \
             bash -s << 'ENDSSH'
               set -euo pipefail
               mkdir -p "$DEPLOY_PATH/infra/docker" "$DEPLOY_PATH/infra/env"
               cd "$DEPLOY_PATH"
-
-              # Cree le fichier .env.edu.deploy s'il n'existe pas (premier deploy)
               if [ ! -f infra/env/.env.edu.deploy ]; then
                 echo "$EDU_ENV_DEPLOY" | base64 -d > infra/env/.env.edu.deploy
               fi
-
-              # Sauvegarder l'image courante avant tout changement (base du rollback)
-              PREV_IMAGE_REF=$(grep '^BACKEND_IMAGE_REF=' infra/env/.env.edu.deploy | cut -d= -f2 || true)
-              echo "Image precedente: ${PREV_IMAGE_REF:-aucune}"
-
-              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-              # EDU doit suivre exactement le SHA demandé.
-              # Si l'image n'existe pas, on echoue pour eviter de masquer un deploy incomplet.
-              if ! docker manifest inspect ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG >/dev/null 2>&1; then
-                echo "Image backend introuvable pour le SHA $IMAGE_TAG"
-                echo "L'image ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG doit etre publiee avant le deploy EDU."
-                exit 1
-              fi
-
-              # Pull d'abord — l'ancienne version continue de tourner pendant ce temps
-              docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
-              RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
-
-              # Met a jour le fichier de deploy EDU avec la nouvelle image
               sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
-              echo "BACKEND_IMAGE_REF=$RESOLVED_IMAGE_REF" >> infra/env/.env.edu.deploy
-
-              # Nettoyage containers edu zombies (apres le pull pour minimiser le downtime)
+              echo "BACKEND_IMAGE_REF=ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG" >> infra/env/.env.edu.deploy
               ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-edu$' || true)
-              if [ -n "$ZOMBIES" ]; then
-                echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
-              fi
-
+              [ -n "$ZOMBIES" ] && echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
               docker compose -f infra/docker/docker-compose.edu.deploy.yml \
                 --env-file infra/env/.env.edu.deploy up -d
-
-              echo "Attente healthcheck backend edu..."
-              HEALTHY=false
-              for i in $(seq 1 30); do
-                STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
-                echo "  [$i/30] $STATUS"
-                if [ "$STATUS" = "healthy" ]; then
-                  HEALTHY=true
-                  break
-                fi
-                sleep 5
-              done
-
-              if [ "$HEALTHY" = "false" ]; then
-                echo "Backend EDU non healthy apres 150s"
-                if [ -n "$PREV_IMAGE_REF" ] && [ "$PREV_IMAGE_REF" != "$RESOLVED_IMAGE_REF" ]; then
-                  echo "Rollback vers image precedente: $PREV_IMAGE_REF"
-                  sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
-                  echo "BACKEND_IMAGE_REF=$PREV_IMAGE_REF" >> infra/env/.env.edu.deploy
-                  docker compose -f infra/docker/docker-compose.edu.deploy.yml \
-                    --env-file infra/env/.env.edu.deploy up -d forges-backend-edu
-                  sleep 20
-                  RB_STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
-                  echo "Statut apres rollback: $RB_STATUS"
-                else
-                  echo "Pas d'image precedente disponible pour le rollback"
-                fi
-                exit 1
-              fi
-
-              echo "Application des migrations Prisma..."
-              for attempt in 1 2 3; do
-                docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy' && break
-                echo "  Tentative $attempt echouee, retry dans 10s..."
-                sleep 10
-              done
-              echo "Migrations OK"
           ENDSSH
 
-      - name: Healthcheck
+      - name: Healthcheck container (150s)
+        env:
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST bash -s << 'ENDSSH'
+            set -euo pipefail
+            HEALTHY=false
+            for i in $(seq 1 30); do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
+              echo "  [$i/30] $STATUS"
+              [ "$STATUS" = "healthy" ] && HEALTHY=true && break
+              sleep 5
+            done
+            [ "$HEALTHY" = "true" ] || { echo "Backend non healthy apres 150s"; exit 1; }
+          ENDSSH
+
+      - name: Appliquer migrations Prisma
+        env:
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST bash -s << 'ENDSSH'
+            set -euo pipefail
+            for attempt in 1 2 3; do
+              docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy' && break
+              echo "  Tentative $attempt echouee, retry dans 10s..."
+              [ $attempt -eq 3 ] && exit 1
+              sleep 10
+            done
+            echo "Migrations OK"
+          ENDSSH
+
+      - name: Rollback vers version precedente
+        if: failure()
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          PREV_IMAGE: ${{ steps.prev-image.outputs.prev_image }}
+        run: |
+          if [ -z "$PREV_IMAGE" ]; then
+            echo "Aucune image precedente — rollback impossible (premier deploy ?)"
+            exit 0
+          fi
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" PREV_IMAGE="$PREV_IMAGE" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              cd "$DEPLOY_PATH"
+              echo "Rollback vers: $PREV_IMAGE"
+              sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
+              echo "BACKEND_IMAGE_REF=$PREV_IMAGE" >> infra/env/.env.edu.deploy
+              docker compose -f infra/docker/docker-compose.edu.deploy.yml \
+                --env-file infra/env/.env.edu.deploy up -d forges-backend-edu
+              sleep 20
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
+              echo "Statut apres rollback: $STATUS"
+              [ "$STATUS" = "healthy" ] \
+                && echo "Rollback OK — ancienne version restauree" \
+                || echo "Rollback: container non healthy ($STATUS)"
+          ENDSSH
+
+      - name: Healthcheck public (edu.forges-group.com)
         run: |
           sleep 8
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://edu.forges-group.com/health || echo "000")
