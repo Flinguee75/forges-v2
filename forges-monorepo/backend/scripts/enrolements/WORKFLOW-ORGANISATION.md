@@ -44,9 +44,9 @@ Conçue pour les stratèges de haut niveau, décideurs politiques, responsables 
 
 ```
 Admin         → reset-dev.ts          (1x par environnement)
-Admin         → script-orga.ts        (1x par organisation ou lot d'organisations)
+Admin         → script-orga.ts         (seed simple d'organisations)
 Admin         → script_organisations.ts (workflow test / point focal / vouchers)
-Admin         → import-groupe.ts      (1x par organisation)
+Admin         → import-groupe.ts       (workflow standard d'organisation)
 Organisation  → reçoit email devis    (automatique)
 Admin         → payer-devis.ts        (à réception du virement)
 Apprenants    → reçoivent confirmations (automatique)
@@ -229,7 +229,7 @@ node -r ts-node/register/transpile-only \
 
 ## Script organisations seul
 
-Pour créer ou mettre à jour des organisations sans passer par le workflow groupe :
+Pour créer ou mettre à jour des organisations sans passer par le workflow complet :
 
 ```bash
 # Dry-run
@@ -264,6 +264,6 @@ Format attendu :
 | `scripts/admin/reset-dev.ts` | Init environnement + admin | 1 fois par env |
 | `scripts/admin/script-orga.ts` | Seed organisations | Par lot ou organisation |
 | `scripts/admin/script_organisations.ts` | Seed orga + apprenants + devis + vouchers | Par organisation test |
-| `scripts/enrolements/import-groupe.ts` | Org + apprenants + devis + vouchers | Par organisation |
+| `scripts/enrolements/import-groupe.ts` | Org + apprenants + devis + vouchers | Par organisation standard |
 | `scripts/enrolements/payer-devis.ts` | Confirmer paiement + activer dossiers | À réception virement |
 | `scripts/enrolements/rappel-j7.ts` | Email pratique J-7 | 7 jours avant session |
