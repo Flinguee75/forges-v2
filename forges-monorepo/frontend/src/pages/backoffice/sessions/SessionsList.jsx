@@ -35,6 +35,15 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function getCapacityStats(capacity, registeredCount) {
+  const capacityValue = Number(capacity || 0);
+  const registeredValue = Number(registeredCount || 0);
+  const remaining = Math.max(0, capacityValue - registeredValue);
+  const occupancy = capacityValue > 0 ? Math.round((registeredValue / capacityValue) * 100) : 0;
+
+  return { capacityValue, registeredValue, remaining, occupancy };
+}
+
 export default function SessionsList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -122,9 +131,10 @@ export default function SessionsList() {
       key: 'capacite',
       label: 'Capacité',
       render: (value, session) => {
-        const count = session._count?.dossiers || 0;
-        const restantes = (value || 0) - count;
-        const occupancy = value ? Math.round((count / value) * 100) : 0;
+        const { registeredValue: count, remaining: restantes, occupancy } = getCapacityStats(
+          value,
+          session._count?.dossiers || 0
+        );
 
         return (
           <div>
@@ -132,7 +142,7 @@ export default function SessionsList() {
               {count} / {value} inscrits
             </div>
             <div className="text-xs text-subtext">
-              {restantes} place{restantes > 1 ? 's' : ''} restante{restantes > 1 ? 's' : ''} — {occupancy}% rempli
+              {restantes} place{restantes === 1 ? '' : 's'} restante{restantes === 1 ? '' : 's'} — {occupancy}% rempli
             </div>
           </div>
         );

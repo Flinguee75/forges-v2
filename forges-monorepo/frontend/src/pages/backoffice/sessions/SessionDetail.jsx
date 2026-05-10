@@ -32,6 +32,15 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleString('fr-FR');
 }
 
+function getCapacityStats(capacity, registeredCount) {
+  const capacityValue = Number(capacity || 0);
+  const registeredValue = Number(registeredCount || 0);
+  const remaining = Math.max(0, capacityValue - registeredValue);
+  const occupancy = capacityValue > 0 ? Math.round((registeredValue / capacityValue) * 100) : 0;
+
+  return { capacityValue, registeredValue, remaining, occupancy };
+}
+
 export default function SessionDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -197,7 +206,9 @@ export default function SessionDetail() {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-subtext">Places restantes</p>
-            <p className="mt-1 text-sm text-text">{session.capacite - (session._count?.dossiers ?? session.nb_inscrits ?? 0)}</p>
+            <p className="mt-1 text-sm text-text">
+              {getCapacityStats(session.capacite, session._count?.dossiers ?? session.nb_inscrits ?? 0).remaining}
+            </p>
           </div>
           {session.lieu && (
             <div className="md:col-span-2">
