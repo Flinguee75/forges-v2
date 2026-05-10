@@ -6,6 +6,7 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Modal from '../../../components/ui/Modal';
+import { COUNTRY_OPTIONS } from '../../../constants/countries';
 
 const DEFAULT_FORM = {
   raison_sociale: '',
@@ -143,16 +144,11 @@ export default function OrganisationCreate() {
                 onChange={(e) => handleChange('pays', e.target.value)}
                 className={selectClass}
               >
-                <option value="CI">Côte d'Ivoire</option>
-                <option value="SN">Sénégal</option>
-                <option value="CM">Cameroun</option>
-                <option value="BF">Burkina Faso</option>
-                <option value="ML">Mali</option>
-                <option value="GN">Guinée</option>
-                <option value="TG">Togo</option>
-                <option value="BJ">Bénin</option>
-                <option value="FR">France</option>
-                <option value="OTHER">Autre</option>
+                {COUNTRY_OPTIONS.map((country) => (
+                  <option key={country.value} value={country.value}>
+                    {country.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

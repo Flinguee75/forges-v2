@@ -8,6 +8,7 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Modal from '../../../components/ui/Modal';
+import { COUNTRY_OPTIONS } from '../../../constants/countries';
 
 export default function ApprenantCreate() {
   const navigate = useNavigate();
@@ -239,7 +240,7 @@ export default function ApprenantCreate() {
               data-testid="select-type"
             >
               <option value="PROFESSIONNEL">Professionnel</option>
-              <option value="APPRENANT">Apprenant scolarise</option>
+              <option value="APPRENANT">Etudiant</option>
             </select>
           </div>
 
@@ -267,20 +268,42 @@ export default function ApprenantCreate() {
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label="Pays de residence (ISO)"
-              value={form.pays_residence}
-              onChange={handleChange('pays_residence')}
-              placeholder="CI"
-              data-testid="input-pays-residence"
-            />
-            <Input
-              label="Pays de nationalite (ISO)"
-              value={form.pays_nationalite}
-              onChange={handleChange('pays_nationalite')}
-              placeholder="CI"
-              data-testid="input-pays-nationalite"
-            />
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5" htmlFor="pays_residence">
+                Pays de residence
+              </label>
+              <select
+                id="pays_residence"
+                value={form.pays_residence}
+                onChange={handleChange('pays_residence')}
+                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus:border-primary focus:outline-none"
+                data-testid="select-pays-residence"
+              >
+                {COUNTRY_OPTIONS.map((country) => (
+                  <option key={country.value} value={country.value}>
+                    {country.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5" htmlFor="pays_nationalite">
+                Pays de nationalite
+              </label>
+              <select
+                id="pays_nationalite"
+                value={form.pays_nationalite}
+                onChange={handleChange('pays_nationalite')}
+                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus:border-primary focus:outline-none"
+                data-testid="select-pays-nationalite"
+              >
+                {COUNTRY_OPTIONS.map((country) => (
+                  <option key={country.value} value={country.value}>
+                    {country.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>

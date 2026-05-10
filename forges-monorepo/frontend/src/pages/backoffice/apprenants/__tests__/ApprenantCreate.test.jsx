@@ -65,6 +65,9 @@ describe('ApprenantCreate', () => {
     expect(screen.getByTestId('input-nom')).toBeInTheDocument();
     expect(screen.getByTestId('input-prenoms')).toBeInTheDocument();
     expect(screen.getByTestId('input-email')).toBeInTheDocument();
+    expect(screen.getByTestId('select-pays-residence')).toBeInTheDocument();
+    expect(screen.getByTestId('select-pays-nationalite')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Etudiant' })).toBeInTheDocument();
     expect(screen.getByTestId('btn-submit')).toBeInTheDocument();
   });
 

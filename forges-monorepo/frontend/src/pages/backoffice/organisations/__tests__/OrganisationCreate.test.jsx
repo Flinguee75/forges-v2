@@ -63,6 +63,8 @@ describe('OrganisationCreate', () => {
 
     renderComponent();
     await waitFor(() => screen.getByLabelText(/Raison sociale/i));
+    expect(screen.getByRole('option', { name: "Côte d'Ivoire" })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Nigeria' })).toBeInTheDocument();
     await user.type(screen.getByLabelText(/Raison sociale/i), 'Org Test');
     await user.type(screen.getByLabelText(/Email/i), 'org@test.ci');
     await user.type(screen.getByLabelText(/Contact référent/i), 'Alice Test');
