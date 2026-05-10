@@ -139,6 +139,11 @@ async function hashPassword(plain: string) {
   return hash(plain, BCRYPT_ROUNDS);
 }
 
+function isNumeroDevisUniqueError(error: unknown) {
+  const err = error as { code?: string; meta?: { target?: string[] } };
+  return err?.code === 'P2002' && Array.isArray(err?.meta?.target) && err.meta.target.includes('numero_devis');
+}
+
 async function orgExists(email: string) {
   const org = await prisma.organisation.findUnique({ where: { email: email.toLowerCase() } });
   return org;
@@ -158,6 +163,52 @@ async function devisExists(organisationId: string, formationId: string, sessionI
       statut: 'CREE',
     },
   });
+}
+
+async function createDevisWithRetry(params: {
+  numeroDevisBase: number;
+  organisationId: string;
+  formationId: string;
+  sessionId: string;
+  nbPlaces: number;
+  tarifUnitaire: number;
+  montantTotal: number;
+  notes: string | undefined;
+}) {
+  let sequence = params.numeroDevisBase;
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const numeroDevis = genDevisNum(sequence);
+    try {
+      const devis = await prisma.devis.create({
+        data: {
+          numero_devis: numeroDevis,
+          organisation_id: params.organisationId,
+          formation_id: params.formationId,
+          session_id: params.sessionId,
+          nb_places: params.nbPlaces,
+          tarif_unitaire_xof: params.tarifUnitaire,
+          montant_total_xof: params.montantTotal,
+          statut: 'CREE',
+          notes_admin: params.notes || null,
+          created_by: 'script_organisations',
+        },
+      });
+
+      return { devis, numeroDevis };
+    } catch (error) {
+      if (!isNumeroDevisUniqueError(error)) {
+        throw error;
+      }
+
+      log('WARN', 'Numero de devis déjà utilisé, tentative suivante', {
+        numero: numeroDevis,
+      });
+      sequence += 1;
+    }
+  }
+
+  throw new Error('Impossible de générer un numero_devis unique apres plusieurs tentatives.');
 }
 
 async function main() {
@@ -184,7 +235,23 @@ async function main() {
     log('INFO', `Session trouvée : ${session.date_debut} → ${session.date_fin}`, { id: SESSION_ID });
 
     const passwordHash = await hashPassword(TEMP_PASSWORD);
-    let devisSeq = 1;
+    const existingDevises = await prisma.devis.findMany({
+      where: {
+        numero_devis: {
+          startsWith: `FORGES-DEVIS-${ANNEE}-`,
+        },
+      },
+      select: {
+        numero_devis: true,
+      },
+    });
+    const usedSequences = existingDevises
+      .map((devis) => {
+        const match = devis.numero_devis.match(/-(\d{3})$/);
+        return match ? Number.parseInt(match[1], 10) : 0;
+      })
+      .filter((value) => Number.isFinite(value) && value > 0);
+    let devisSeq = usedSequences.length > 0 ? Math.max(...usedSequences) + 1 : 1;
 
     for (const org of ORGANISATIONS) {
       console.log(`\n${'─'.repeat(50)}`);
@@ -257,21 +324,18 @@ async function main() {
           notes: org.notes,
         });
       } else {
-        numeroDevis = genDevisNum(devisSeq++);
-        const devis = await prisma.devis.create({
-          data: {
-            numero_devis: numeroDevis,
-            organisation_id: organisationId,
-            formation_id: FORMATION_ID,
-            session_id: SESSION_ID,
-            nb_places: nbPlaces,
-            tarif_unitaire_xof: org.tarif,
-            montant_total_xof: montantTotal,
-            statut: 'CREE',
-            notes_admin: org.notes || null,
-            created_by: 'script_organisations',
-          },
+        const createdDevis = await createDevisWithRetry({
+          numeroDevisBase: devisSeq++,
+          organisationId,
+          formationId: FORMATION_ID,
+          sessionId: SESSION_ID,
+          nbPlaces,
+          tarifUnitaire: org.tarif,
+          montantTotal,
+          notes: org.notes,
         });
+        const devis = createdDevis.devis;
+        numeroDevis = createdDevis.numeroDevis;
         devisId = devis.id;
         log('INFO', 'Devis créé', { numero: numeroDevis, montant: montantTotal, id: devisId });
       }
