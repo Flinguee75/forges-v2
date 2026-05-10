@@ -176,12 +176,15 @@ describe('VoucherService', () => {
       type_valeur: 'MONTANT',
       quota_max: 1,
       date_expiration: new Date(Date.now() + 86_400_000),
-    }, 'org-01')).resolves.toEqual(expect.objectContaining({
+    }, 'admin-01')).resolves.toEqual(expect.objectContaining({
       devis_id: 'devis-01',
     }));
 
     expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({
       devis_id: 'devis-01',
     }));
+    expect(mockPrisma.organisation.findUnique).toHaveBeenCalledWith({
+      where: { id: 'org-01' },
+    });
   });
 });

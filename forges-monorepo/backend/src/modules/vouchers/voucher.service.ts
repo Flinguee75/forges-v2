@@ -47,20 +47,13 @@ export class VoucherService {
     }
   }
 
-  async createVoucher(dto: CreateVoucherDto, organisationId: string) {
-    const organisation = await this.prisma.organisation.findUnique({ where: { id: organisationId } });
-    if (!organisation) {
-      throw new Error('ORGANISATION_NOT_FOUND');
-    }
-
-    if (organisation.statut !== 'ACTIF' && organisation.statut !== 'ACTIVE') {
-      throw new Error('ORGANISATION_NOT_ACTIVE');
-    }
-
+  async createVoucher(dto: CreateVoucherDto, creatorId: string) {
     const formation = await this.prisma.formation.findUnique({ where: { id: dto.formation_id } });
     if (!formation) {
       throw new Error('FORMATION_NOT_FOUND');
     }
+
+    let organisationId = creatorId;
 
     if (dto.devis_id) {
       const devis = await this.prisma.devis.findUnique({
@@ -72,13 +65,20 @@ export class VoucherService {
         throw new Error('DEVIS_NOT_FOUND');
       }
 
-      if (devis.organisation_id !== organisationId) {
-        throw new Error('DEVIS_ORGANISATION_MISMATCH');
-      }
-
       if (devis.formation_id !== dto.formation_id) {
         throw new Error('DEVIS_FORMATION_MISMATCH');
       }
+
+      organisationId = devis.organisation_id;
+    }
+
+    const organisation = await this.prisma.organisation.findUnique({ where: { id: organisationId } });
+    if (!organisation) {
+      throw new Error('ORGANISATION_NOT_FOUND');
+    }
+
+    if (organisation.statut !== 'ACTIF' && organisation.statut !== 'ACTIVE') {
+      throw new Error('ORGANISATION_NOT_ACTIVE');
     }
 
     const voucher = await this.voucherRepo.create({
