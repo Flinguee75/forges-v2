@@ -106,16 +106,23 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ github.actor }}
           IMAGE_TAG: ${{ inputs.image_sha || github.sha }}
+          EDU_ENV_DEPLOY: ${{ secrets.EDU_ENV_DEPLOY }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
             DEPLOY_PATH="$DEPLOY_PATH" \
             GHCR_TOKEN="$GHCR_TOKEN" \
             GHCR_USER="$GHCR_USER" \
             IMAGE_TAG="$IMAGE_TAG" \
+            EDU_ENV_DEPLOY="$EDU_ENV_DEPLOY" \
             bash -s << 'ENDSSH'
               set -euo pipefail
-              mkdir -p "$DEPLOY_PATH/infra/docker"
+              mkdir -p "$DEPLOY_PATH/infra/docker" "$DEPLOY_PATH/infra/env"
               cd "$DEPLOY_PATH"
+
+              # Cree le fichier .env.edu.deploy s'il n'existe pas (premier deploy)
+              if [ ! -f infra/env/.env.edu.deploy ]; then
+                echo "$EDU_ENV_DEPLOY" | base64 -d > infra/env/.env.edu.deploy
+              fi
 
               echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
@@ -123,7 +130,7 @@ jobs:
               docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
 
               # Met a jour IMAGE_TAG dans le .env racine pour docker compose
-              sed -i '/^IMAGE_TAG=/d' infra/env/.env.edu.deploy 2>/dev/null || true
+              sed -i '/^IMAGE_TAG=/d' infra/env/.env.edu.deploy
               echo "IMAGE_TAG=$IMAGE_TAG" >> infra/env/.env.edu.deploy
 
               # Nettoyage containers edu existants
