@@ -183,6 +183,16 @@ jobs:
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://dev.forges-group.com/health || echo "000")
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
+      - name: Déclencher deploy edu
+        if: success()
+        run: |
+          gh workflow run "Deploy → https://edu.forges-group.com" \
+            --repo ${{ github.repository }} \
+            --ref develop \
+            --field image_sha=${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Résumé
         if: always()
         run: |
