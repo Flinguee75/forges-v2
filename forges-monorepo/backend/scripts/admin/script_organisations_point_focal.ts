@@ -3,8 +3,8 @@
  * v1.0 — adapté au schéma actuel FORGES
  *
  * Mode d'emploi :
- *   node -r ts-node/register/transpile-only scripts/admin/script_organisations.ts --dry-run
- *   node -r ts-node/register/transpile-only scripts/admin/script_organisations.ts
+ *   node -r ts-node/register/transpile-only scripts/admin/script_organisations_point_focal.ts --dry-run
+ *   node -r ts-node/register/transpile-only scripts/admin/script_organisations_point_focal.ts
  *
  * Prérequis : DATABASE_URL dans .env ou variable d'environnement
  *

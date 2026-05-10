@@ -24,7 +24,7 @@ Répertoire des scripts manuels, de seed et d'enrôlement.
 | Reset environnement dev | `scripts/admin/reset-dev.ts` |
 | Reset environnement edu | `scripts/admin/reset-edu.ts` |
 | Seed simple d'organisations | `scripts/admin/script-orga.ts` |
-| Workflow complet d'enrôlement test | `scripts/admin/script_organisations.ts` |
+| Workflow complet d'enrôlement test | `scripts/admin/script_organisations_point_focal.ts` |
 | Workflow standard d'organisation | `scripts/enrolements/import-groupe.ts` |
 | Paiement d'un devis organisation | `scripts/enrolements/payer-devis.ts` |
 | Rappel J-7 | `scripts/enrolements/rappel-j7.ts` |
