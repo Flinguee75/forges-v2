@@ -191,7 +191,7 @@ describe('GestionEmployesPage - Tests', () => {
     });
   });
 
-  it('affiche les boutons Supprimer pour chaque employé', async () => {
+  it('affiche les boutons Désactiver pour chaque employé', async () => {
     render(
       <BrowserRouter>
         <GestionEmployesPage />
@@ -199,7 +199,7 @@ describe('GestionEmployesPage - Tests', () => {
     );
 
     await waitFor(() => {
-      const deleteButtons = screen.getAllByText('Supprimer');
+      const deleteButtons = screen.getAllByText('Désactiver');
       expect(deleteButtons.length).toBe(2);
     });
   });

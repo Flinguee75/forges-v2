@@ -167,7 +167,7 @@ export default function GestionEmployesPage() {
           size="small"
           onClick={() => setConfirmDeleteId(membre.id)}
         >
-          Supprimer
+          Désactiver
         </Button>
       ),
     },
@@ -226,19 +226,19 @@ export default function GestionEmployesPage() {
       </Card>
 
       <Modal
-        isOpen={Boolean(confirmDeleteId)}
-        onClose={() => setConfirmDeleteId(null)}
-        title="Confirmer la suppression"
+      isOpen={Boolean(confirmDeleteId)}
+      onClose={() => setConfirmDeleteId(null)}
+      title="Confirmer la désactivation"
       >
         <p className="text-sm text-text">
-          Voulez-vous vraiment supprimer cet employé ? Cette action retirera son accès aux formations financées par l'organisation.
+          Voulez-vous vraiment désactiver cet employé ? Cette action retirera son accès aux formations financées par l'organisation, sans supprimer son historique.
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
             Annuler
           </Button>
           <Button variant="danger" onClick={handleDeleteConfirm} loading={isLoading}>
-            Supprimer
+            Désactiver
           </Button>
         </div>
       </Modal>
