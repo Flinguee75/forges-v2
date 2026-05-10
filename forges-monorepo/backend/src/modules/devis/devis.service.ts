@@ -316,42 +316,28 @@ export class DevisService {
     if (!session) throw new Error('SESSION_NOT_FOUND');
 
     const langue = organisation.langue_preferee || 'FR';
-
-    let pdfBuffer: Buffer | undefined;
-    try {
-      pdfBuffer = await genererPdfDevis({
-        devis: devis as any,
-        organisation,
-        formation,
-        session,
-      });
-    } catch {
-      // envoi sans pièce jointe si génération PDF échoue
-    }
+    const pdfBuffer = await genererPdfDevis({
+      devis: devis as any,
+      organisation,
+      formation,
+      session,
+    });
 
     const emailSubject = langue === 'EN'
       ? `Your quote ${devis.numero_devis} from FORGES`
       : `Votre devis ${devis.numero_devis} — FORGES AGRÉGATEUR`;
     const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation, session });
 
-    if (pdfBuffer) {
-      await this.emailService.sendEmailWithAttachment({
-        to: organisation.email,
-        subject: emailSubject,
-        html: emailHtml,
-        attachment: {
-          filename: `${devis.numero_devis}.pdf`,
-          content: pdfBuffer,
-          contentType: 'application/pdf',
-        },
-      });
-    } else {
-      await this.emailService.sendEmail({
-        to: organisation.email,
-        subject: emailSubject,
-        html: emailHtml,
-      });
-    }
+    await this.emailService.sendEmailWithAttachment({
+      to: organisation.email,
+      subject: emailSubject,
+      html: emailHtml,
+      attachment: {
+        filename: `${devis.numero_devis}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      },
+    });
 
     await this.audit.info('DEVIS_EMAIL_RENVOYE', {
       devis_id: id,
