@@ -1,9 +1,9 @@
-name: Deploy -> https://edu.forges-group.com
+name: Deploy → https://edu.forges-group.com
 
 on:
   # Se lance automatiquement apres le succes du deploy dev
   workflow_run:
-    workflows: ['Deploy -> https://dev.forges-group.com']
+    workflows: ['Deploy → https://dev.forges-group.com']
     types: [completed]
     branches: [develop]
   workflow_dispatch:
