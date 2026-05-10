@@ -80,7 +80,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|backend\"} |~ \"Scheduler|Démarré|Arrêté|Exécution\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} |~ \"Scheduler|D\u00e9marr\u00e9|Arr\u00eat\u00e9|Ex\u00e9cution\"",
           "refId": "A"
         }
       ],
@@ -243,17 +243,31 @@
       "title": "Avertissements (WARN)",
       "type": "row",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 46 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      }
     },
     {
-      "title": "Warnings — logs WARN / WARNING",
+      "title": "Warnings \u2014 logs WARN / WARNING (probe monitor exclu)",
       "type": "logs",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 47 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\"",
-          "refId": "A"
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" | metadata_error != \"INVALID_CREDENTIALS\"",
+          "refId": "A",
+          "legendFormat": "Warnings reels"
         }
       ],
       "options": {
@@ -265,10 +279,98 @@
       }
     },
     {
+      "title": "Tentatives login echouees (probe + utilisateurs)",
+      "type": "logs",
+      "gridPos": {
+        "h": 6,
+        "w": 16,
+        "x": 0,
+        "y": 55
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Login KO / 5m",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 55
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\" [5m]))",
+          "refId": "A",
+          "legendFormat": "login KO/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#E67E22"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          },
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.01
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          }
+        }
+      },
+      "description": "La probe silent-check genere 1 tentative toutes les 5 min \u2014 taux normal = ~0.003/s. Une hausse indique de vraies tentatives."
+    },
+    {
       "title": "Taux WARN (5m)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 55 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 61
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" [5m]))",
@@ -278,8 +380,15 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "fixed", "fixedColor": "#E67E22" },
-          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#E67E22"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          },
           "unit": "reqps"
         }
       }
@@ -287,8 +396,16 @@
     {
       "title": "Chemins les plus en WARN",
       "type": "logs",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 55 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 61
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" | keep timestamp, level, action, metadata_path, metadata_statusCode, metadata_error",
@@ -307,13 +424,26 @@
       "title": "Traces Utilisateurs",
       "type": "row",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 63 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 69
+      }
     },
     {
-      "title": "Activite utilisateur — Audit (user_id)",
+      "title": "Activite utilisateur \u2014 Audit (user_id)",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 64 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 70
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | user_id != \"\" | user_id != \"null\"",
@@ -338,8 +468,16 @@
     {
       "title": "Activite par utilisateur (5m)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 74 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 80
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "sum by (user_id) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | user_id != \"\" | user_id != \"null\" [5m]))",
@@ -349,7 +487,11 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
           "unit": "short"
         }
       }
@@ -357,8 +499,16 @@
     {
       "title": "Erreurs et Warnings par utilisateur",
       "type": "logs",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 74 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 80
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)error|warn(ing)?\" | metadata_user_id != \"\" | metadata_user_id != \"null\" | keep timestamp, level, action, metadata_user_id, metadata_path, metadata_statusCode, metadata_error",
@@ -377,13 +527,26 @@
       "title": "Clics utilisateurs",
       "type": "row",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 82 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 88
+      }
     },
     {
-      "title": "Flux de clics — temps reel",
+      "title": "Flux de clics \u2014 temps reel",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 83 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 89
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\"",
@@ -402,8 +565,16 @@
     {
       "title": "Clics par element (5m)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 93 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 99
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "sum by (element) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\" [5m]))",
@@ -413,7 +584,11 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
           "unit": "short"
         }
       }
@@ -421,8 +596,16 @@
     {
       "title": "Clics par page (5m)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 93 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 99
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "expr": "sum by (page) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\" [5m]))",
@@ -432,7 +615,11 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
           "unit": "short"
         }
       }
