@@ -329,6 +329,8 @@ export default function ApprenantCreate() {
         onClose={() => setShowSuccessModal(false)}
         title="Compte apprenant créé"
         size="large"
+        headerClassName="border-success-soft bg-success-soft"
+        titleClassName="text-success"
         footer={(
           <div className="flex flex-wrap justify-end gap-3">
             <Button variant="outline" onClick={() => setShowSuccessModal(false)}>
@@ -342,12 +344,12 @@ export default function ApprenantCreate() {
       >
         {credentials && (
           <div className="space-y-5">
-            <p className="text-sm text-text">
+            <div className="rounded-lg border border-success-soft bg-success-soft p-4 text-sm text-text">
               Un email de confirmation a été envoyé à <strong>{credentials.email}</strong>.
-            </p>
+            </div>
 
-            <div className="rounded-lg border border-border bg-bg p-4">
-              <p className="text-sm font-semibold text-primary">Si l’email n’a pas été reçu</p>
+            <div className="rounded-lg border border-success-soft bg-white p-4">
+              <p className="text-sm font-semibold text-success">Si l’email n’a pas été reçu</p>
               <p className="mt-2 text-sm text-subtext">
                 Transmettre les informations suivantes à l’apprenant :
               </p>

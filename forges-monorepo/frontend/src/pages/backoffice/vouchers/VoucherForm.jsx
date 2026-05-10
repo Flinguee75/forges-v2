@@ -270,6 +270,8 @@ export default function VoucherForm() {
         onClose={() => setShowSuccessModal(false)}
         title="Voucher créé avec succès"
         size="large"
+        headerClassName="border-success-soft bg-success-soft"
+        titleClassName="text-success"
         footer={(
           <div className="flex flex-wrap items-center justify-end gap-3">
             <Button variant="outline" onClick={() => setShowSuccessModal(false)}>
