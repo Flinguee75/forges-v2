@@ -112,7 +112,7 @@ export class DashboardRepository {
       nbAbonnementsB2BActifs,
       dossiersParStatut,
     ] = await Promise.all([
-      this.prisma.apprenant.count({ where: { statut: 'ACTIF' } }),
+      this.prisma.apprenant.count({ where: { statut: 'ACTIF', role: 'APPRENANT' } }),
       this.prisma.organisation.count({ where: { statut: { in: ACTIVE_ORGANISATION_STATUSES } } }),
       this.prisma.formation.count({ where: { statut: 'ACTIVE' } }),
       this.prisma.session.count({ where: { statut: { in: OPEN_SESSION_STATUSES } } }),

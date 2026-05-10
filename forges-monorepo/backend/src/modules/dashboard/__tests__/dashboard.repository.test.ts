@@ -32,6 +32,10 @@ describe('DashboardRepository', () => {
       nb_abonnements_b2b_actifs: 1,
       dossiers_par_statut: { PAYE: 12 },
     });
+
+    expect(prisma.apprenant.count).toHaveBeenCalledWith({
+      where: { statut: 'ACTIF', role: 'APPRENANT' },
+    });
   });
 
   it('compte les organisations actives avec les statuts ACTIVE et ACTIF', async () => {
