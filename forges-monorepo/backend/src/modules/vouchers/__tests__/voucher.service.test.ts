@@ -12,6 +12,7 @@ describe('VoucherService', () => {
   beforeEach(() => {
     mockRepo = {
       findById: jest.fn(),
+      create: jest.fn(),
       update: jest.fn(),
     } as any;
 
@@ -23,6 +24,9 @@ describe('VoucherService', () => {
 
     mockPrisma = {
       organisation: {
+        findUnique: jest.fn(),
+      },
+      devis: {
         findUnique: jest.fn(),
       },
       formation: {
@@ -142,5 +146,42 @@ describe('VoucherService', () => {
     await expect(
       service.checkApporteurCode('CODE-1', { dossier_id: 'dossier-01' })
     ).rejects.toThrow('VOUCHER_CUMUL_INTERDIT');
+  });
+
+  it('liait un voucher manuel a un devis valide de la meme organisation et formation', async () => {
+    (mockPrisma.devis.findUnique as jest.Mock).mockResolvedValue({
+      id: 'devis-01',
+      organisation_id: 'org-01',
+      formation_id: 'formation-01',
+      statut: 'CREE',
+    } as any);
+    (mockPrisma.organisation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'org-01',
+      statut: 'ACTIF',
+    } as any);
+    (mockPrisma.formation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'formation-01',
+    } as any);
+    (mockRepo.create as jest.Mock).mockResolvedValue({
+      id: 'voucher-04',
+      organisation_id: 'org-01',
+      formation_id: 'formation-01',
+      devis_id: 'devis-01',
+    } as any);
+
+    await expect(service.createVoucher({
+      formation_id: 'formation-01',
+      devis_id: 'devis-01',
+      valeur: 10000,
+      type_valeur: 'MONTANT',
+      quota_max: 1,
+      date_expiration: new Date(Date.now() + 86_400_000),
+    }, 'org-01')).resolves.toEqual(expect.objectContaining({
+      devis_id: 'devis-01',
+    }));
+
+    expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      devis_id: 'devis-01',
+    }));
   });
 });

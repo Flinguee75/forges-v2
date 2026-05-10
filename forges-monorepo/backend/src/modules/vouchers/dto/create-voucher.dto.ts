@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const baseVoucherSchema = z.object({
   formation_id: z.string().min(1),
+  devis_id: z.string().min(1).optional(),
   valeur: z.coerce.number().int().positive(),
   type_valeur: z.enum(['MONTANT', 'POURCENTAGE']),
   quota_max: z.coerce.number().int().positive(),

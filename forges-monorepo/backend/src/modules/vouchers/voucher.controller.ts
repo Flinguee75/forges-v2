@@ -24,6 +24,15 @@ export class VoucherController {
       if (error.message === 'FORMATION_NOT_FOUND') {
         return res.status(404).json({ statusCode: 404, error: 'FORMATION_NOT_FOUND' });
       }
+      if (error.message === 'DEVIS_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND' });
+      }
+      if (error.message === 'DEVIS_ORGANISATION_MISMATCH') {
+        return res.status(409).json({ statusCode: 409, error: 'DEVIS_ORGANISATION_MISMATCH' });
+      }
+      if (error.message === 'DEVIS_FORMATION_MISMATCH') {
+        return res.status(409).json({ statusCode: 409, error: 'DEVIS_FORMATION_MISMATCH' });
+      }
       next(error);
     }
   }

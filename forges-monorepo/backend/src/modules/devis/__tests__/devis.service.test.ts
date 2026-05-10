@@ -23,6 +23,11 @@ const mockPrisma = {
     findMany: jest.fn(),
     update: jest.fn(),
   },
+  paiement: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
 };
 
 const mockAudit = { info: jest.fn(), error: jest.fn() };
@@ -60,11 +65,14 @@ beforeEach(() => {
     id: `v-${Math.random().toString(36).slice(2)}`,
     ...args.data,
   }));
-  mockPrisma.voucherOrganisation.findMany.mockResolvedValue([]);
-  mockPrisma.voucherOrganisation.updateMany.mockResolvedValue({ count: 0 });
-  mockPrisma.dossier.findMany.mockResolvedValue([]);
-  mockPrisma.dossier.update.mockResolvedValue({});
-});
+    mockPrisma.voucherOrganisation.findMany.mockResolvedValue([]);
+    mockPrisma.voucherOrganisation.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.dossier.findMany.mockResolvedValue([]);
+    mockPrisma.dossier.update.mockResolvedValue({});
+    mockPrisma.paiement.findUnique.mockResolvedValue(null);
+    mockPrisma.paiement.create.mockResolvedValue({});
+    mockPrisma.paiement.update.mockResolvedValue({});
+  });
 
 describe('DevisService — RM-149 à RM-151', () => {
   describe('creerDevis', () => {
@@ -152,7 +160,7 @@ describe('DevisService — RM-149 à RM-151', () => {
       ).rejects.toThrow('SESSION_INVALIDE');
     });
 
-    it('logue DEVIS_CREE et envoie un email à l\'organisation', async () => {
+    it('logue DEVIS_CREE sans envoyer de mail à la création', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
       mockDevisRepo.countParAnnee.mockResolvedValue(0);
@@ -165,9 +173,8 @@ describe('DevisService — RM-149 à RM-151', () => {
       );
 
       expect(mockAudit.info).toHaveBeenCalledWith('DEVIS_CREE', expect.objectContaining({ organisation_id: 'org-01' }));
-      expect(mockEmail.sendEmail).toHaveBeenCalledWith(
-        expect.objectContaining({ to: 'contact@acme.ci' })
-      );
+      expect(mockEmail.sendEmail).not.toHaveBeenCalled();
+      expect(mockEmail.sendEmailWithAttachment).not.toHaveBeenCalled();
     });
   });
 

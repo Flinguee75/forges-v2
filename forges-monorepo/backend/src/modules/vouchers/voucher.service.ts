@@ -62,9 +62,29 @@ export class VoucherService {
       throw new Error('FORMATION_NOT_FOUND');
     }
 
+    if (dto.devis_id) {
+      const devis = await this.prisma.devis.findUnique({
+        where: { id: dto.devis_id },
+        select: { id: true, organisation_id: true, statut: true, formation_id: true },
+      });
+
+      if (!devis) {
+        throw new Error('DEVIS_NOT_FOUND');
+      }
+
+      if (devis.organisation_id !== organisationId) {
+        throw new Error('DEVIS_ORGANISATION_MISMATCH');
+      }
+
+      if (devis.formation_id !== dto.formation_id) {
+        throw new Error('DEVIS_FORMATION_MISMATCH');
+      }
+    }
+
     const voucher = await this.voucherRepo.create({
       organisation_id: organisationId,
       formation_id: dto.formation_id,
+      devis_id: dto.devis_id || null,
       code: uuidv4(),
       type: 'ORGANISATION',
       valeur: dto.valeur,

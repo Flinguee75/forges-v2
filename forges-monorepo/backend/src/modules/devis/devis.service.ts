@@ -7,6 +7,7 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { CreerDevisDto } from './dto/devis.dto';
 import { genererDocxDevis } from './devis-docx.service';
+import { genererPdfDevis } from './devis-pdf.service';
 
 const LOGO_PATH = path.join(__dirname, '../../../../frontend/src/assets/logo_forges.png');
 
@@ -89,6 +90,32 @@ export class DevisService {
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
     const buffer = genererDocxDevis(devis as any);
     return { buffer, filename: `${devis.numero_devis}.docx` };
+  }
+
+  async telechargerPdfDevis(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    const devis = await this.devisRepository.findById(id);
+    if (!devis) throw new Error('DEVIS_NOT_FOUND');
+
+    const [organisation, formation] = await Promise.all([
+      this.prisma.organisation.findUnique({ where: { id: devis.organisation_id } }),
+      this.prisma.formation.findUnique({ where: { id: devis.formation_id } }),
+    ]);
+
+    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    if (!formation) throw new Error('FORMATION_NOT_FOUND');
+
+    const session = devis.session_id
+      ? await this.prisma.session.findUnique({ where: { id: devis.session_id } })
+      : undefined;
+
+    const buffer = await genererPdfDevis({
+      devis: devis as any,
+      organisation,
+      formation,
+      session: session || undefined,
+    });
+
+    return { buffer, filename: `${devis.numero_devis}.pdf` };
   }
 
 
@@ -263,27 +290,31 @@ export class DevisService {
 
     const langue = organisation.langue_preferee || 'FR';
 
-    let docxBuffer: Buffer | undefined;
+    let pdfBuffer: Buffer | undefined;
     try {
-      docxBuffer = genererDocxDevis(devis as any);
+      pdfBuffer = await genererPdfDevis({
+        devis: devis as any,
+        organisation,
+        formation,
+      });
     } catch {
-      // envoi sans pièce jointe si génération DOCX échoue
+      // envoi sans pièce jointe si génération PDF échoue
     }
 
     const emailSubject = langue === 'EN'
       ? `Your quote ${devis.numero_devis} from FORGES`
-      : `Votre facture ${devis.numero_devis} — FORGES AGRÉGATEUR`;
+      : `Votre devis ${devis.numero_devis} — FORGES AGRÉGATEUR`;
     const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation });
 
-    if (docxBuffer) {
+    if (pdfBuffer) {
       await this.emailService.sendEmailWithAttachment({
         to: organisation.email,
         subject: emailSubject,
         html: emailHtml,
         attachment: {
-          filename: `${devis.numero_devis}.docx`,
-          content: docxBuffer,
-          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          filename: `${devis.numero_devis}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
         },
       });
     } else {
@@ -339,7 +370,7 @@ export class DevisService {
                 </td>
                 <td align="right" valign="middle">
                   <div style="background:${OR};color:${BLEU};padding:8px 16px;border-radius:6px;font-weight:700;font-size:12px;text-align:center;letter-spacing:0.5px;">
-                    FACTURE<br>
+                    DEVIS<br>
                     <span style="font-size:10px;font-weight:400;">${devis.numero_devis}</span>
                   </div>
                 </td>
@@ -385,7 +416,7 @@ export class DevisService {
             ` : ''}
 
             <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
-              La facture est jointe a cet email au format Word.<br>
+              Le devis est joint a cet email au format PDF.<br>
               Apres validation, notre equipe vous communiquera les acces a la plateforme FORGES.
             </p>
           </td>
@@ -397,7 +428,7 @@ export class DevisService {
               <tr>
                 <td style="color:#a0b0e0;font-size:12px;">
                   <strong style="color:#ffffff;">FORGES AGRÉGATEUR</strong><br>
-                  contact@forges-group.com &nbsp;|&nbsp; www.forges-group.com
+                  contact@forges-group.com &nbsp;|&nbsp; <a href="https://edu.forges-group.com" style="color:#a0b0e0;text-decoration:none;">edu.forges-group.com</a>
                 </td>
                 <td align="right">
                   <div style="width:8px;height:8px;background:${OR};border-radius:50%;display:inline-block;"></div>
