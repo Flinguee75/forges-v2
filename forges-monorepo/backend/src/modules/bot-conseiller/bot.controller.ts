@@ -23,15 +23,7 @@ export class BotController {
   async getActiveSession(req: Request, res: Response, next: NextFunction) {
     try {
       const session = await this.botService.getSessionActive(req.user!.userId);
-      if (!session) {
-        return res.status(404).json({
-          statusCode: 404,
-          error: 'NOT_FOUND',
-          code: 'NOT_FOUND',
-          message: 'Aucune session active'
-        });
-      }
-      res.status(200).json({ statusCode: 200, data: session });
+      res.status(200).json({ statusCode: 200, data: session ?? null });
     } catch (error) {
       next(error);
     }

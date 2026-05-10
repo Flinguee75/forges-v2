@@ -85,10 +85,7 @@ export class AbonnementController {
   async getMonAbonnementRetail(req: Request, res: Response, next: NextFunction) {
     try {
       const abonnement = await this.retailService.getAbonnementActif(req.user!.userId);
-      if (!abonnement) {
-        return res.status(404).json({ statusCode: 404, error: 'NOT_FOUND', message: 'Pas d\'abonnement retail actif' });
-      }
-      res.status(200).json({ statusCode: 200, data: abonnement });
+      res.status(200).json({ statusCode: 200, data: abonnement ?? null });
     } catch (error: any) {
       next(error);
     }

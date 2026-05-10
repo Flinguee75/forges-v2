@@ -40,6 +40,10 @@ export function useBot({ language = 'FR' } = {}) {
 
     try {
       const result = await botApi.getActiveSession();
+      if (!result?.data) {
+        setSession(null);
+        return null;
+      }
       const normalizedSession = normalizeBotSession(result, resolvedLanguage);
       setSession(normalizedSession);
       return normalizedSession;

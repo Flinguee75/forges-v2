@@ -121,6 +121,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
           error: body?.error ?? body?.message ?? null,
           request_id: res.locals.requestId,
           user_id: (req as any).user?.userId ?? null,
+          referer: req.headers.referer ?? req.headers['x-page'] ?? null,
         },
         timestamp: new Date().toISOString(),
       };
