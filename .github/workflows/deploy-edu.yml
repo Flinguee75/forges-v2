@@ -181,12 +181,24 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST bash -s << 'ENDSSH'
             set -euo pipefail
-            for attempt in 1 2 3; do
-              docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy' && break
-              echo "  Tentative $attempt echouee, retry dans 10s..."
-              [ $attempt -eq 3 ] && exit 1
-              sleep 10
-            done
+            RESULT=$(docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy 2>&1' || true)
+            echo "$RESULT"
+            if echo "$RESULT" | grep -q "P3005"; then
+              echo "P3005 detecte : DB existante sans historique migrations — baseline en cours..."
+              docker exec forges-backend-edu sh -c '
+                cd /app
+                for dir in prisma/migrations/*/; do
+                  [ -d "$dir" ] || continue
+                  name=$(basename "$dir")
+                  npx prisma migrate resolve --applied "$name" 2>/dev/null && echo "  Baseline: $name" || true
+                done
+              '
+              echo "Baseline termine — application des migrations restantes..."
+              docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy'
+            elif echo "$RESULT" | grep -qE "error|Error|ERROR"; then
+              echo "Erreur migration inattendue"
+              exit 1
+            fi
             echo "Migrations OK"
           ENDSSH
 
