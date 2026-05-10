@@ -227,6 +227,7 @@ export class DevisService {
           type_valeur: 'POURCENTAGE',
           quota_max: 1,
           quota_utilise: 0,
+          date_expiration: devis.session?.date_fin ?? null,
           statut: 'EN_ATTENTE',
         },
       });

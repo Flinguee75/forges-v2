@@ -280,8 +280,13 @@ const devisCreeFix = {
   statut: 'CREE',
   organisation_id: 'org-anssi',
   formation_id: 'f-cyber',
+  session_id: 'ses-anssi-01',
   nb_places: 3,
   montant_total_xof: 6000000,
+  session: {
+    id: 'ses-anssi-01',
+    date_fin: new Date('2026-06-30T00:00:00.000Z'),
+  },
 };
 
 describe('DevisService — genererVouchersDevis (RM-152)', () => {
@@ -301,6 +306,7 @@ describe('DevisService — genererVouchersDevis (RM-152)', () => {
           devis_id: 'devis-anssi',
           organisation_id: 'org-anssi',
           formation_id: 'f-cyber',
+          date_expiration: new Date('2026-06-30T00:00:00.000Z'),
           statut: 'EN_ATTENTE',
           valeur: 100,
           type_valeur: 'POURCENTAGE',
