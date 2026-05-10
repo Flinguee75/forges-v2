@@ -122,3 +122,247 @@ groups:
         annotations:
           summary: "DEMO - Un endpoint critique ne repond pas correctement"
           description: "Le checker a detecte une anomalie sur /health, /api/catalogue ou /api/auth. Verifier les logs checker dans Grafana."
+
+  - orgId: 1
+    name: FORGES EDU Alerts
+    folder: FORGES Monitoring
+    interval: 1m
+    rules:
+      - uid: forges-edu-error-rate
+        title: "EDU - High Error Rate"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'sum(rate({environment="edu", level="error"} [5m]))'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.05]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 2m
+        noDataState: OK
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: edu
+        annotations:
+          summary: "Error rate > 0.05/s on EDU backend"
+          description: "Le backend EDU produit plus de 3 erreurs/minute. Verifier les logs Grafana."
+
+      - uid: forges-edu-backend-down
+        title: "EDU - Backend Container Down"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({environment="edu", service="backend"} [5m])'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 3m
+        noDataState: Alerting
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: edu
+        annotations:
+          summary: "Backend EDU ne produit plus de logs (probablement down)"
+          description: "Aucun log du backend EDU depuis 5 minutes. Le container est probablement crash ou arrete."
+
+      - uid: forges-edu-checker-error
+        title: "EDU - Silent Check Failed"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({service="checker", environment="edu", level="error"} [10m])'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 0s
+        noDataState: OK
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: edu
+        annotations:
+          summary: "EDU - Un endpoint critique ne repond pas correctement"
+          description: "Le checker a detecte une anomalie sur /health, /api/catalogue ou /api/auth. Verifier les logs checker dans Grafana."
+
+  - orgId: 1
+    name: FORGES DEV Alerts
+    folder: FORGES Monitoring
+    interval: 1m
+    rules:
+      - uid: forges-dev-error-rate
+        title: "DEV - High Error Rate"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'sum(rate({environment="dev", level="error"} [5m]))'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.05]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 2m
+        noDataState: OK
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: dev
+        annotations:
+          summary: "Error rate > 0.05/s on DEV backend"
+          description: "Le backend DEV produit plus de 3 erreurs/minute. Verifier les logs Grafana."
+
+      - uid: forges-dev-backend-down
+        title: "DEV - Backend Container Down"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({environment="dev", service="backend"} [5m])'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 3m
+        noDataState: Alerting
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: dev
+        annotations:
+          summary: "Backend DEV ne produit plus de logs (probablement down)"
+          description: "Aucun log du backend DEV depuis 5 minutes. Le container est probablement crash ou arrete."
+
+      - uid: forges-dev-checker-error
+        title: "DEV - Silent Check Failed"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({service="checker", environment="dev", level="error"} [10m])'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 0s
+        noDataState: OK
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: dev
+        annotations:
+          summary: "DEV - Un endpoint critique ne repond pas correctement"
+          description: "Le checker a detecte une anomalie sur /health, /api/catalogue ou /api/auth. Verifier les logs checker dans Grafana."
