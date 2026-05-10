@@ -41,8 +41,9 @@ describe('J3 v4.9 — Initiation paiement NGSER mock', () => {
     expect(res.status).toBe(201);
     expect(res.body.data.order_ngser).toMatch(/^FRG-\d{4}-\d{3}-[A-F0-9]{6}$/);
     expect(res.body.data.order_ngser.length).toBeLessThanOrEqual(25);
+    const expectedBase = (process.env.FRONTEND_URL || 'https://dev.forges-group.com').replace(/\/$/, '');
     expect(res.body.data.payment_url).toBe(
-      `https://mock-ngser.forges.ci/pay?order=${res.body.data.order_ngser}`
+      `${expectedBase}/mock-checkout/${res.body.data.order_ngser}`
     );
     expect(res.body.data.montant_initie).toBe(formation.cout_catalogue);
 
