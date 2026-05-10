@@ -65,7 +65,7 @@ describe('InscriptionService', () => {
     } as any;
 
     mockPrisma = {
-      dossier: { count: jest.fn(), findFirst: jest.fn() },
+      dossier: { count: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn() },
       apprenant: { findUnique: jest.fn() },
       organisation: { findUnique: jest.fn() },
       paiement: { findUnique: jest.fn(), create: jest.fn() },
@@ -240,7 +240,7 @@ describe('InscriptionService', () => {
         lieu: baseSession.lieu,
       },
     });
-    expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith('aly@forges.test', 'Masterclass Cyber', 'FR');
+    expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith('aly@forges.test', 'Masterclass Cyber');
     expect(mockAudit.info).toHaveBeenCalledWith('EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES', expect.objectContaining({
       apprenant_id: 'app-01',
     }));
@@ -254,5 +254,79 @@ describe('InscriptionService', () => {
 
     expect(mockDossierRepo.findBySession).toHaveBeenCalledWith('session-01');
     expect(result).toEqual([{ id: 'dossier-01' }]);
+  });
+
+  it('retourne le détail complet du dossier avec les relations utiles', async () => {
+    mockPrisma.dossier.findUnique.mockResolvedValue({
+      id: 'dossier-01',
+      apprenant: {
+        id: 'app-01',
+        email: 'app@test.com',
+        nom: 'Cisse',
+        prenoms: 'Tidiane',
+        type_apprenant: 'APPRENANT',
+        langue_preferee: 'FR',
+        secteur_activite: 'IT',
+        niveau_etude: 'Master',
+        pays_residence: 'Côte d’Ivoire',
+        pays_nationalite: 'Sénégal',
+        organisation: {
+          id: 'org-01',
+          raison_sociale: 'Forges Org',
+          email: 'org@test.com',
+          type: 'ENTREPRISE',
+          contact_referent: 'Mme Test',
+          pays: 'Côte d’Ivoire',
+        },
+      },
+      formation: {
+        id: 'formation-01',
+        intitule: 'Masterclass Cyber',
+        type_formation: 'PREMIUM',
+      },
+      session: {
+        id: 'session-01',
+        date_debut: baseSession.date_debut,
+        date_fin: baseSession.date_fin,
+        statut: 'PLANIFIEE',
+        lieu: 'AIGF, Abidjan',
+        capacite: 10,
+        nb_inscrits: 4,
+        places_restantes: 6,
+      },
+      voucher_organisation: {
+        id: 'voucher-01',
+        code: 'VCHR-001',
+        statut: 'ACTIF',
+        quota_max: 1,
+        quota_utilise: 0,
+      },
+      paiement: {
+        id: 'paiement-01',
+        statut: 'CONFIRME',
+        methode: 'VOUCHER_ORG',
+      },
+    });
+
+    const result = await service.getDetail('dossier-01');
+
+    expect(mockPrisma.dossier.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'dossier-01' },
+        include: expect.objectContaining({
+          apprenant: expect.objectContaining({
+            select: expect.objectContaining({
+              organisation: expect.any(Object),
+            }),
+          }),
+          voucher_organisation: expect.any(Object),
+        }),
+      })
+    );
+    expect(result).toMatchObject({
+      id: 'dossier-01',
+      apprenant: expect.objectContaining({ organisation: expect.objectContaining({ raison_sociale: 'Forges Org' }) }),
+      voucher_organisation: expect.objectContaining({ code: 'VCHR-001' }),
+    });
   });
 });

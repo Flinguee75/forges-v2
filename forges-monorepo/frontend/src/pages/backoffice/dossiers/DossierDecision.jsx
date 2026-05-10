@@ -22,6 +22,7 @@ export default function DossierDecision() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [dossier, setDossier] = useState(null);
+  const [loadError, setLoadError] = useState('');
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [motifRefus, setMotifRefus] = useState('');
@@ -35,11 +36,20 @@ export default function DossierDecision() {
   }, [id]);
 
   const loadDossier = async () => {
-    await execute(() => inscriptionsApi.getByIdBackoffice(id), {
-      onSuccess: (data) => {
-        setDossier(data);
-      },
-    });
+    try {
+      const response = await execute(() => inscriptionsApi.getByIdBackoffice(id), {
+        showErrorToast: false,
+        onSuccess: (data) => {
+          setDossier(data?.data || data);
+        },
+      });
+      setLoadError('');
+      return response;
+    } catch (error) {
+      setLoadError(error?.message || error?.error || 'Impossible de charger le dossier');
+      setDossier(null);
+      return null;
+    }
   };
 
   const handleRetenir = () => {
@@ -151,6 +161,29 @@ export default function DossierDecision() {
   const canTakeDecision =
     user?.role === 'ADMIN' || user?.role === 'SUPERVISEUR';
 
+  const formatDate = (value) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('fr-FR');
+  };
+
+  const formatMontant = (value) => {
+    if (value === null || value === undefined) return '-';
+    return `${Number(value).toLocaleString('fr-FR')} FCFA`;
+  };
+
+  const getPaiementLabel = (paiementValue) => {
+    const mapping = {
+      CONFIRME: { variant: 'success', label: 'Paiement confirmé' },
+      EN_ATTENTE: { variant: 'warning', label: 'Paiement en attente' },
+      PENDING: { variant: 'warning', label: 'Paiement en cours' },
+      ECHOUE: { variant: 'danger', label: 'Paiement échoué' },
+      EXPIRE: { variant: 'danger', label: 'Paiement expiré' },
+    };
+
+    const config = mapping[paiementValue?.statut] || { variant: 'gray', label: 'Aucun paiement' };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
   if (isLoading && !dossier) {
     return (
       <div className="flex justify-center py-12">
@@ -160,15 +193,39 @@ export default function DossierDecision() {
   }
 
   if (!dossier) {
-    return null;
+    return (
+      <div className="mx-auto max-w-4xl">
+        <Card>
+          <div className="py-10 text-center">
+            <h2 className="text-xl font-semibold text-primary">
+              Dossier indisponible
+            </h2>
+            <p className="mt-2 text-sm text-subtext">
+              {loadError || 'Le dossier n’a pas pu être chargé.'}
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button variant="outline" onClick={loadDossier}>
+                Réessayer
+              </Button>
+              <Button variant="primary" onClick={() => navigate('/backoffice/dossiers')}>
+                Retour à la liste
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   const etudiant = dossier.apprenant || dossier.etudiant || {};
   const session = dossier.session || {};
   const formation = dossier.formation || session.formation || {};
+  const organisation = etudiant.organisation || dossier.organisation || {};
+  const paiement = dossier.paiement || {};
+  const voucher = dossier.voucher_organisation || {};
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       <div className="mb-6 rounded-lg bg-white p-6 shadow">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -224,16 +281,27 @@ export default function DossierDecision() {
                 Session
               </dt>
               <dd className="mt-1 text-sm text-text">
-                Du {new Date(session.date_debut).toLocaleDateString('fr-FR')} au{' '}
-                {new Date(session.date_fin).toLocaleDateString('fr-FR')}
+                Du {formatDate(session.date_debut)} au {formatDate(session.date_fin)}
               </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Source de financement
+              </dt>
+              <dd className="mt-1 text-sm text-text">{dossier.source_financement || '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Fenêtre
+              </dt>
+              <dd className="mt-1 text-sm text-text">{dossier.type_fenetre || '-'}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
                 Date de dépôt
               </dt>
               <dd className="mt-1 text-sm text-text">
-                {new Date(dossier.created_at).toLocaleDateString('fr-FR')}
+                {formatDate(dossier.created_at)}
               </dd>
             </div>
             <div>
@@ -246,6 +314,165 @@ export default function DossierDecision() {
             </div>
           </dl>
         </Card>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title="Apprenant">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Nom</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {etudiant.nom || '-'} {etudiant.prenoms || etudiant.prenom || ''}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Email</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.email || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Type</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.type_apprenant || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Pays</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {etudiant.pays_residence || '-'} / {etudiant.pays_nationalite || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Secteur</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.secteur_activite || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Niveau</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.niveau_etude || '-'}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card title="Organisation">
+            <dl className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase text-subtext">Raison sociale</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {organisation.raison_sociale || 'Aucune organisation rattachée'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Email</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.email || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Type</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.type || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Contact</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.contact_referent || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Pays</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.pays || '-'}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card title="Session">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Statut</dt>
+                <dd className="mt-1 text-sm text-text">{session.statut || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Lieu</dt>
+                <dd className="mt-1 text-sm text-text">{session.lieu || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Capacité</dt>
+                <dd className="mt-1 text-sm text-text">{session.capacite ?? '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Inscrits</dt>
+                <dd className="mt-1 text-sm text-text">{session.nb_inscrits ?? '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Places restantes</dt>
+                <dd className="mt-1 text-sm text-text">{session.places_restantes ?? '-'}</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title="Paiement">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Statut</dt>
+                <dd className="mt-1 text-sm text-text">{getPaiementLabel(paiement)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Methode</dt>
+                <dd className="mt-1 text-sm text-text">{paiement.methode || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Montant catalogue</dt>
+                <dd className="mt-1 text-sm text-text">{formatMontant(paiement.montant_catalogue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Montant final</dt>
+                <dd className="mt-1 text-sm text-text">{formatMontant(paiement.montant_final)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Réduction</dt>
+                <dd className="mt-1 text-sm text-text">{formatMontant(paiement.reduction_appliquee)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Confirmé le</dt>
+                <dd className="mt-1 text-sm text-text">{formatDate(paiement.confirmed_at)}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card title="Voucher / apporteur">
+            <dl className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase text-subtext">Voucher organisation</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {voucher.code ? `${voucher.code} (${voucher.statut || '-'})` : 'Aucun'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Type</dt>
+                <dd className="mt-1 text-sm text-text">{voucher.type_valeur || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Valeur</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {voucher.valeur === null || voucher.valeur === undefined
+                    ? '-'
+                    : `${voucher.valeur}${voucher.type_valeur === 'POURCENTAGE' ? '%' : ' FCFA'}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Quota</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {voucher.code ? `${voucher.quota_utilise || 0} / ${voucher.quota_max || 0}` : '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Expiration</dt>
+                <dd className="mt-1 text-sm text-text">{formatDate(voucher.date_expiration)}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase text-subtext">Code apporteur</dt>
+                <dd className="mt-1 text-sm text-text">{dossier.code_apporteur || '-'}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase text-subtext">Motif de refus</dt>
+                <dd className="mt-1 text-sm text-text">{dossier.motif_refus || '-'}</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
 
         {canTakeDecision && (
           <Card title="Prendre une décision">

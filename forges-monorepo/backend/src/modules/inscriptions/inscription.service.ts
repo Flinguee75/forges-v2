@@ -549,13 +549,79 @@ export class InscriptionService {
       include: {
         apprenant: {
           select: {
-            id: true, email: true, nom: true, prenoms: true,
-            type_apprenant: true, langue_preferee: true,
+            id: true,
+            email: true,
+            nom: true,
+            prenoms: true,
+            type_apprenant: true,
+            langue_preferee: true,
+            secteur_activite: true,
+            niveau_etude: true,
+            pays_residence: true,
+            pays_nationalite: true,
+            organisation: {
+              select: {
+                id: true,
+                raison_sociale: true,
+                email: true,
+                type: true,
+                contact_referent: true,
+                pays: true,
+              },
+            },
           }
         },
-        formation: true,
-        session: true,
-        paiement: true,
+        formation: {
+          select: {
+            id: true,
+            intitule: true,
+            type_formation: true,
+            mode_formation: true,
+            cout_catalogue: true,
+            lieu: true,
+            responsable_id: true,
+          },
+        },
+        session: {
+          select: {
+            id: true,
+            date_debut: true,
+            date_fin: true,
+            statut: true,
+            lieu: true,
+            capacite: true,
+            nb_inscrits: true,
+            places_restantes: true,
+          },
+        },
+        voucher_organisation: {
+          select: {
+            id: true,
+            code: true,
+            statut: true,
+            type_valeur: true,
+            valeur: true,
+            quota_max: true,
+            quota_utilise: true,
+            date_expiration: true,
+            devis_id: true,
+          },
+        },
+        paiement: {
+          select: {
+            id: true,
+            statut: true,
+            methode: true,
+            montant_catalogue: true,
+            montant_final: true,
+            reduction_appliquee: true,
+            confirmed_at: true,
+            expires_at: true,
+            transaction_id: true,
+            order_ngser: true,
+            provider: true,
+          },
+        },
       }
     });
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
