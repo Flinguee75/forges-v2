@@ -168,48 +168,6 @@ async function devisExists(organisationId: string, formationId: string, sessionI
   });
 }
 
-async function sendTemporaryPasswordEmail(email: string, typeCompte: 'APPRENANT' | 'ORGANISATION', nom: string) {
-  await emailService.sendTempPassword(email, TEMP_PASSWORD, 'FR', typeCompte);
-  log('INFO', 'Email mot de passe temporaire envoyé', {
-    email,
-    nom,
-    type_compte: typeCompte,
-  });
-}
-
-async function sendDevisEmail(params: {
-  devis: { numero_devis: string; created_at: Date; nb_places: number; tarif_unitaire_xof: number; montant_total_xof: number };
-  organisation: { raison_sociale: string; email: string; contact_referent: string; pays: string; identifiant_legal?: string | null };
-  formation: { intitule: string };
-  session: { date_debut?: Date | null; date_fin?: Date | null } | null;
-}) {
-  const pdfBuffer = await genererPdfDevis({
-    devis: {
-      numero_devis: params.devis.numero_devis,
-      created_at: params.devis.created_at,
-      nb_places: params.devis.nb_places,
-      tarif_unitaire_xof: params.devis.tarif_unitaire_xof,
-      montant_total_xof: params.devis.montant_total_xof,
-    },
-    organisation: params.organisation,
-    formation: params.formation,
-    session: params.session,
-  });
-
-  await emailService.sendEnrolementDevisOrganisation({
-    to: params.organisation.email,
-    contactReferent: params.organisation.contact_referent,
-    organisation: params.organisation.raison_sociale,
-    formation: params.formation.intitule,
-    numeroDevis: params.devis.numero_devis,
-    nbPlaces: params.devis.nb_places,
-    tarifUnitaire: params.devis.tarif_unitaire_xof,
-    montantTotal: params.devis.montant_total_xof,
-    pdfBuffer,
-    pdfFilename: `${params.devis.numero_devis}.pdf`,
-  });
-}
-
 async function createDevisWithRetry(params: {
   numeroDevisBase: number;
   organisationId: string;
@@ -341,7 +299,12 @@ async function main() {
         });
         organisationId = created.id;
         log('INFO', 'Organisation créée', { raison_sociale: org.nom, id: organisationId });
-        await sendTemporaryPasswordEmail(orgEmail, 'ORGANISATION', org.referent.nom);
+        await emailService.sendTempPassword(orgEmail, TEMP_PASSWORD, 'FR', 'ORGANISATION');
+        log('INFO', 'Email mot de passe temporaire envoyé', {
+          email: orgEmail,
+          nom: org.referent.nom,
+          type_compte: 'ORGANISATION',
+        });
       }
 
       const nbPlaces = org.membres.filter((membre) => membre.email_pro !== membre.email_perso).length;
@@ -384,8 +347,14 @@ async function main() {
         numeroDevis = createdDevis.numeroDevis;
         devisId = devis.id;
         log('INFO', 'Devis créé', { numero: numeroDevis, montant: montantTotal, id: devisId });
-        await sendDevisEmail({
-          devis,
+        const pdfBuffer = await genererPdfDevis({
+          devis: {
+            numero_devis: devis.numero_devis,
+            created_at: devis.created_at,
+            nb_places: devis.nb_places,
+            tarif_unitaire_xof: devis.tarif_unitaire_xof,
+            montant_total_xof: devis.montant_total_xof,
+          },
           organisation: {
             raison_sociale: org.nom,
             email: orgEmail,
@@ -395,6 +364,18 @@ async function main() {
           },
           formation: { intitule: formation.intitule },
           session: { date_debut: session.date_debut, date_fin: session.date_fin },
+        });
+        await emailService.sendEnrolementDevisOrganisation({
+          to: orgEmail,
+          contactReferent: org.referent.nom,
+          organisation: org.nom,
+          formation: formation.intitule,
+          numeroDevis: devis.numero_devis,
+          nbPlaces: devis.nb_places,
+          tarifUnitaire: devis.tarif_unitaire_xof,
+          montantTotal: devis.montant_total_xof,
+          pdfBuffer,
+          pdfFilename: `${devis.numero_devis}.pdf`,
         });
         log('INFO', 'Email devis envoyé', {
           organisation: org.nom,
@@ -476,7 +457,12 @@ async function main() {
           });
           apprenantId = createdApprenant.id;
           log('INFO', 'Apprenant créé', { email: apprenantEmail, id: apprenantId });
-          await sendTemporaryPasswordEmail(apprenantEmail, 'APPRENANT', `${membre.prenoms} ${membre.nom}`);
+          await emailService.sendTempPassword(apprenantEmail, TEMP_PASSWORD, 'FR', 'APPRENANT');
+          log('INFO', 'Email mot de passe temporaire envoyé', {
+            email: apprenantEmail,
+            nom: `${membre.prenoms} ${membre.nom}`,
+            type_compte: 'APPRENANT',
+          });
         }
 
         const voucherCode = genVoucherCode(org.code, voucherIdx);
