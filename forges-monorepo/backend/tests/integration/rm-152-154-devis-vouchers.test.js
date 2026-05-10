@@ -532,6 +532,7 @@ describe('KPI — payerDevis crée un Paiement CONFIRME par dossier pour aliment
       .send({
         organisation_id: organisationId,
         formation_id: formationId,
+        session_id: sessionId,
         nb_places: 1,
         tarif_unitaire_xof: 3000000,
         notes_admin: 'Test KPI paiement devis',
