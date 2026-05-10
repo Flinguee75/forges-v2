@@ -238,6 +238,140 @@
         "enableLogDetails": true,
         "sortOrder": "Descending"
       }
+    },
+    {
+      "title": "Avertissements (WARN)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 46 }
+    },
+    {
+      "title": "Warnings — logs WARN / WARNING",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 47 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Taux WARN (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 55 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" [5m]))",
+          "refId": "A",
+          "legendFormat": "warns/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#E67E22" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true },
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "title": "Chemins les plus en WARN",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 55 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" | keep timestamp, level, action, metadata_path, metadata_statusCode, metadata_error",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Traces Utilisateurs",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 63 }
+    },
+    {
+      "title": "Activite utilisateur — Audit (user_id)",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 64 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | user_id != \"\" | user_id != \"null\"",
+          "refId": "A",
+          "legendFormat": "Audit"
+        },
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_user_id != \"\" | metadata_user_id != \"null\"",
+          "refId": "B",
+          "legendFormat": "HTTP errors"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "title": "Activite par utilisateur (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 74 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (user_id) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | user_id != \"\" | user_id != \"null\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{user_id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Erreurs et Warnings par utilisateur",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 74 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)error|warn(ing)?\" | metadata_user_id != \"\" | metadata_user_id != \"null\" | keep timestamp, level, action, metadata_user_id, metadata_path, metadata_statusCode, metadata_error",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
     }
   ],
   "schemaVersion": 39,
