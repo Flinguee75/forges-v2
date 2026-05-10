@@ -55,4 +55,22 @@ describe('MonAbonnementOrg', () => {
       expect(screen.getByText(/7 jour\(s\) restant\(s\)/)).toBeInTheDocument();
     });
   });
+
+  it('affiche explicitement quand aucun abonnement n est souscrit', async () => {
+    organisationApiModule.organisationApi.getAbonnementOrganisation.mockRejectedValueOnce({
+      code: 'NOT_FOUND',
+      statusCode: 404,
+    });
+
+    render(
+      <BrowserRouter>
+        <MonAbonnementOrg />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Aucun abonnement actif')).toBeInTheDocument();
+      expect(screen.getByText(/Aucune offre n['’]est sélectionnée pour le moment/i)).toBeInTheDocument();
+    });
+  });
 });

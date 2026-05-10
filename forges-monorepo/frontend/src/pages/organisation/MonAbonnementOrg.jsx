@@ -41,7 +41,7 @@ export default function MonAbonnementOrg() {
   const location = useLocation();
   const shouldHighlightSubscribe = location.pathname.endsWith('/souscrire');
   const [abonnement, setAbonnement] = useState(null);
-  const [selectedOffer, setSelectedOffer] = useState('BASIQUE');
+  const [selectedOffer, setSelectedOffer] = useState(null);
   const didInitialLoad = useRef(false);
   const { execute, isLoading, error, reset } = useApi();
 
@@ -50,9 +50,7 @@ export default function MonAbonnementOrg() {
       showErrorToast: false,
       onSuccess: (data) => {
         setAbonnement(data);
-        if (data?.offre) {
-          setSelectedOffer(data.offre);
-        }
+        setSelectedOffer(data?.offre || null);
         reset?.();
       },
       onError: (loadError) => {
@@ -80,7 +78,7 @@ export default function MonAbonnementOrg() {
   }, [loadData]);
 
   const offerPreview = useMemo(
-    () => previewOrganisationSubscription(selectedOffer),
+    () => (selectedOffer ? previewOrganisationSubscription(selectedOffer) : null),
     [selectedOffer]
   );
   const welcomeOfferActive = useMemo(
@@ -88,10 +86,12 @@ export default function MonAbonnementOrg() {
     [abonnement]
   );
   const isTrial = abonnement?.is_trial ?? abonnement?.statut === 'ESSAI';
+  const hasSelectedOffer = Boolean(selectedOffer);
   // Bloquer si ACTIF ou EN_ATTENTE_PAIEMENT
   const canSubscribe = ['ACTIF', 'EN_ATTENTE_PAIEMENT'].includes(abonnement?.statut)
     ? false
     : (!abonnement || (abonnement?.can_subscribe ?? isTrial));
+  const canConfirmSubscription = canSubscribe && hasSelectedOffer;
 
   const handleSubscribe = async () => {
     await execute(() => organisationApi.souscrireOrganisation({ offre: selectedOffer }), {
@@ -200,8 +200,8 @@ export default function MonAbonnementOrg() {
 
       {!abonnement && !shouldHighlightSubscribe && (
         <EmptyState
-          title="Aucun abonnement organisation"
-          message="Souscrivez une offre annuelle pour conserver l'accès complet à la plateforme."
+          title="Aucun abonnement actif"
+          message="Aucune offre n&apos;est actuellement souscrite. Choisissez une offre ci-dessous pour activer l&apos;accès annuel."
           action={(
             <Link to="/organisation/abonnement/souscrire">
               <Button variant="primary">Choisir une offre</Button>
@@ -292,7 +292,7 @@ export default function MonAbonnementOrg() {
                     onClick={() => setSelectedOffer(offer.key)}
                     disabled={!canSubscribe && abonnement?.offre === offer.key}
                   >
-                    {isSelected ? 'Offre choisie' : 'Choisir'}
+                    {isSelected ? 'Offre sélectionnée' : 'Sélectionner'}
                   </Button>
                 </div>
               </div>
@@ -302,12 +302,20 @@ export default function MonAbonnementOrg() {
 
         <div className={`rounded-lg border p-4 ${shouldHighlightSubscribe ? 'border-warning bg-warning/5' : 'border-border bg-bg'}`}>
           <p className="text-sm font-semibold text-text">Prévisualisation</p>
-          <p className="mt-1 text-sm text-subtext">
-            Offre {offerPreview.label} a {offerPreview.formattedAmount} par an.
-          </p>
-          {welcomeOfferActive && (
-            <p className="mt-2 text-sm text-warning">
-              La remise bienvenue s&apos;affiche sur cette sélection tant que la fenêtre de conversion est active.
+          {offerPreview ? (
+            <>
+              <p className="mt-1 text-sm text-subtext">
+                Offre {offerPreview.label} a {offerPreview.formattedAmount} par an.
+              </p>
+              {welcomeOfferActive && (
+                <p className="mt-2 text-sm text-warning">
+                  La remise bienvenue s&apos;affiche sur cette sélection tant que la fenêtre de conversion est active.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-subtext">
+              Aucune offre n&apos;est sélectionnée pour le moment.
             </p>
           )}
         </div>
@@ -317,10 +325,10 @@ export default function MonAbonnementOrg() {
             <Button
               variant="primary"
               onClick={handleSubscribe}
-              disabled={isLoading}
+              disabled={isLoading || !canConfirmSubscription}
               loading={isLoading}
             >
-              {isTrial ? 'Activer mon abonnement' : 'Confirmer la souscription'}
+              {hasSelectedOffer ? (isTrial ? 'Activer mon abonnement' : 'Confirmer la souscription') : 'Sélectionner une offre'}
             </Button>
           )}
           <Link to="/organisation/b2b">
