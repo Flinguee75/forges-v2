@@ -226,7 +226,7 @@ async function run() {
       });
 
       // Email 2 : confirmation paiement
-      await emailService.sendPaiementConfirme(destinataire, formation.intitule, 'FR');
+      await emailService.sendPaiementConfirme(destinataire, formation.intitule);
     }
 
     console.log(`  -> ${dryRun ? '[DRY] ' : ''}Emails envoyes a ${apprenant.prenoms} ${apprenant.nom} <${destinataire}>`);

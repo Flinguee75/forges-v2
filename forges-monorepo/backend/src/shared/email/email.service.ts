@@ -583,7 +583,7 @@ export class EmailService {
     });
   }
 
-  async sendPaiementConfirme(email: string, formation: string, langue: string): Promise<void> {
+  async sendPaiementConfirme(email: string, formation: string): Promise<void> {
     const title = 'Paiement confirmé';
     await this.sendEmail({
       to: email,

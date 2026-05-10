@@ -316,8 +316,7 @@ export class InscriptionService {
     });
     await this.email.sendPaiementConfirme(
       apprenant.email,
-      formationIntitule,
-      (apprenant.langue_preferee as 'FR' | 'EN' | 'ES' | 'PT') || 'FR'
+      formationIntitule
     );
 
     await this.audit.info('EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES', {

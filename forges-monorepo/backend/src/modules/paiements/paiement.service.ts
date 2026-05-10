@@ -221,8 +221,7 @@ export class PaiementService {
         try {
           await this.email.sendPaiementConfirme(
             dossierComplet.apprenant.email,
-            dossierComplet.formation.intitule,
-            dossierComplet.apprenant.langue_preferee
+            dossierComplet.formation.intitule
           );
         } catch (error: any) {
           await this.audit.warning('PAIEMENT_CONFIRME_EMAIL_FAILED', {
