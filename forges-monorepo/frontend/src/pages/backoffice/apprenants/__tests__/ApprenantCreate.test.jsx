@@ -129,6 +129,9 @@ describe('ApprenantCreate', () => {
       expect(screen.getByTestId('success-title')).toBeInTheDocument();
       expect(screen.getByTestId('credentials-email')).toHaveTextContent('konan@test.ci');
       expect(screen.getByTestId('credentials-password')).toHaveTextContent('MotDePasse1!');
+      expect(screen.getByText('Compte apprenant créé')).toBeInTheDocument();
+      expect(screen.getByText(/Un email de confirmation a été envoyé à/i)).toBeInTheDocument();
+      expect(screen.getByText(/Si l’email n’a pas été reçu/i)).toBeInTheDocument();
     });
     expect(state.showToast).toHaveBeenCalledWith('Compte apprenant cree avec succes.', 'success');
   });

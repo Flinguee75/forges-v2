@@ -7,6 +7,7 @@ import { organisationsApi } from '../../../api/organisations.api';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
+import Modal from '../../../components/ui/Modal';
 
 export default function ApprenantCreate() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function ApprenantCreate() {
   });
   const [errors, setErrors] = useState({});
   const [credentials, setCredentials] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     organisationsApi.getAll({ limit: 100 })
@@ -86,11 +88,16 @@ export default function ApprenantCreate() {
         {
           onSuccess: (data) => {
             const apprenant = data?.data ?? data;
+            const organisationLabel = organisations.find((org) => org.id === (form.organisation_id || ''))?.raison_sociale || '';
             setCredentials({
               email: apprenant.email,
               mot_de_passe_temp: apprenant.mot_de_passe_temp,
               id: apprenant.id,
+              nom: apprenant.nom || form.nom.trim(),
+              prenoms: apprenant.prenoms || form.prenoms.trim(),
+              organisation: organisationLabel,
             });
+            setShowSuccessModal(true);
             showToast('Compte apprenant cree avec succes.', 'success');
           },
           onError: (err) => {
@@ -119,15 +126,22 @@ export default function ApprenantCreate() {
     }
   };
 
-  if (credentials) {
-    return (
-      <div className="mx-auto max-w-xl space-y-6">
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-primary">Creer un compte apprenant</h1>
+        <p className="mt-1 text-sm text-subtext">
+          Le compte est active immediatement. Les identifiants sont affichés apres creation.
+        </p>
+      </div>
+
+      {credentials ? (
         <div className="rounded-lg border border-success/30 bg-success/5 p-6">
           <h2 className="text-lg font-semibold text-primary" data-testid="success-title">
             Compte cree avec succes
           </h2>
           <p className="mt-2 text-sm text-subtext">
-            Transmettez ces identifiants a l'apprenant de facon securisee.
+            Les identifiants restent visibles ci-dessous. Vous pouvez aussi ouvrir le profil.
           </p>
           <div className="mt-4 space-y-3">
             <div className="rounded-lg bg-white p-4">
@@ -147,26 +161,34 @@ export default function ApprenantCreate() {
             <Button onClick={() => navigate(`/backoffice/apprenants/${credentials.id}`)} data-testid="btn-voir-profil">
               Voir le profil
             </Button>
-            <Button variant="outline" onClick={() => { setCredentials(null); setForm({ email: '', nom: '', prenoms: '', type_apprenant: 'PROFESSIONNEL', secteur_activite: '', niveau_etude: '', pays_residence: 'CI', pays_nationalite: 'CI', langue_preferee: 'FR', organisation_id: '', telephone: '', mot_de_passe_temp: '' }); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCredentials(null);
+                setShowSuccessModal(false);
+                setForm({
+                  email: '',
+                  nom: '',
+                  prenoms: '',
+                  type_apprenant: 'PROFESSIONNEL',
+                  secteur_activite: '',
+                  niveau_etude: '',
+                  pays_residence: 'CI',
+                  pays_nationalite: 'CI',
+                  langue_preferee: 'FR',
+                  organisation_id: '',
+                  telephone: '',
+                  mot_de_passe_temp: '',
+                });
+              }}
+            >
               Creer un autre compte
             </Button>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-primary">Creer un compte apprenant</h1>
-        <p className="mt-1 text-sm text-subtext">
-          Le compte est active immediatement. Les identifiants sont affichés apres creation.
-        </p>
-      </div>
-
-      <Card>
-        <form onSubmit={handleSubmit} className="space-y-5" data-testid="form-creer-apprenant">
+      ) : (
+        <Card>
+          <form onSubmit={handleSubmit} className="space-y-5" data-testid="form-creer-apprenant">
           <div className="grid gap-4 md:grid-cols-2">
             <Input
               label="Nom"
@@ -298,8 +320,50 @@ export default function ApprenantCreate() {
               Annuler
             </Button>
           </div>
-        </form>
-      </Card>
+          </form>
+        </Card>
+      )}
+
+      <Modal
+        isOpen={showSuccessModal && Boolean(credentials)}
+        onClose={() => setShowSuccessModal(false)}
+        title="Compte apprenant créé"
+        size="large"
+        footer={(
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowSuccessModal(false)}>
+              Fermer
+            </Button>
+            <Button onClick={() => navigate(`/backoffice/apprenants/${credentials?.id}`)}>
+              Voir le profil
+            </Button>
+          </div>
+        )}
+      >
+        {credentials && (
+          <div className="space-y-5">
+            <p className="text-sm text-text">
+              Un email de confirmation a été envoyé à <strong>{credentials.email}</strong>.
+            </p>
+
+            <div className="rounded-lg border border-border bg-bg p-4">
+              <p className="text-sm font-semibold text-primary">Si l’email n’a pas été reçu</p>
+              <p className="mt-2 text-sm text-subtext">
+                Transmettre les informations suivantes à l’apprenant :
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-text">
+                <li><strong>Email :</strong> {credentials.email}</li>
+                <li><strong>Nom :</strong> {credentials.nom}</li>
+                <li><strong>Prénoms :</strong> {credentials.prenoms}</li>
+                {credentials.organisation && (
+                  <li><strong>Organisation :</strong> {credentials.organisation}</li>
+                )}
+                <li><strong>Mot de passe temporaire :</strong> {credentials.mot_de_passe_temp}</li>
+              </ul>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

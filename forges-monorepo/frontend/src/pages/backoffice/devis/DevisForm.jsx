@@ -65,17 +65,19 @@ export default function DevisForm() {
       return [];
     }
 
+    const openStatuses = ['PLANIFIEE', 'A_VENIR', 'INSCRIPTIONS_OUVERTES', 'OUVERTE', 'EN_COURS'];
+
     return sessions.filter((session) => {
       const sessionFormationId = session?.formation_id || session?.formation?.id;
-      const allowedStatuses = ['PLANIFIEE', 'OUVERTE', 'EN_COURS'];
-      return sessionFormationId === formData.formation_id && allowedStatuses.includes(session?.statut);
+      return sessionFormationId === formData.formation_id && openStatuses.includes(session?.statut);
     });
   }, [formData.formation_id, sessions]);
 
   const formatSessionLabel = (session) => {
     if (!session) return '';
-    const debut = session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-FR') : '';
-    const fin = session.date_fin ? new Date(session.date_fin).toLocaleDateString('fr-FR') : '';
+    const options = { timeZone: 'UTC' };
+    const debut = session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-FR', options) : '';
+    const fin = session.date_fin ? new Date(session.date_fin).toLocaleDateString('fr-FR', options) : '';
     const periode = debut && fin ? `du ${debut} au ${fin}` : 'dates indisponibles';
     const lieu = session.lieu ? ` • ${session.lieu}` : '';
     return `${periode}${lieu}`;
@@ -212,7 +214,7 @@ export default function DevisForm() {
             </select>
             {formData.formation_id && selectedFormationSessions.length === 0 && (
               <p className="mt-1 text-xs text-warning">
-                Aucune session planifiée ou ouverte n&apos;est disponible pour cette formation.
+                Aucune session planifiée, à venir ou ouverte n&apos;est disponible pour cette formation.
               </p>
             )}
           </div>

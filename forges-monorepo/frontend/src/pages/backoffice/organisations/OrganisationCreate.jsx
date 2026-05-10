@@ -5,6 +5,7 @@ import { organisationsApi } from '../../../api/organisations.api';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
+import Modal from '../../../components/ui/Modal';
 
 const DEFAULT_FORM = {
   raison_sociale: '',
@@ -21,6 +22,7 @@ export default function OrganisationCreate() {
   const { execute, isLoading, error } = useApi();
   const [formData, setFormData] = useState(DEFAULT_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [successPayload, setSuccessPayload] = useState(null);
 
   const handleChange = (field, value) => {
     setFormData((current) => ({ ...current, [field]: value }));
@@ -53,7 +55,15 @@ export default function OrganisationCreate() {
     await execute(() => organisationsApi.create(payload), {
       onSuccess: (response) => {
         const created = response?.data || response;
-        navigate(`/backoffice/organisations/${created.id}`);
+        setSuccessPayload({
+          id: created.id,
+          email: created.email || payload.email,
+          raison_sociale: created.raison_sociale || payload.raison_sociale,
+          type: created.type || payload.type,
+          contact_referent: created.contact_referent || payload.contact_referent,
+          pays: created.pays || payload.pays,
+          identifiant_legal: created.identifiant_legal || payload.identifiant_legal || '',
+        });
       },
     });
   };
@@ -81,7 +91,7 @@ export default function OrganisationCreate() {
       )}
 
       <Card>
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-6" onSubmit={handleSubmit} data-testid="form-creer-organisation">
           <div className="grid gap-4 md:grid-cols-2">
             <Input
               label="Raison sociale"
@@ -180,6 +190,55 @@ export default function OrganisationCreate() {
           </div>
         </form>
       </Card>
+
+      <Modal
+        isOpen={Boolean(successPayload)}
+        onClose={() => setSuccessPayload(null)}
+        title="Organisation créée"
+        size="large"
+        footer={(
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button variant="outline" onClick={() => setSuccessPayload(null)}>
+              Fermer
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/backoffice/organisations')}
+            >
+              Retour à la liste
+            </Button>
+            <Button onClick={() => navigate(`/backoffice/organisations/${successPayload?.id}`)}>
+              Voir l’organisation
+            </Button>
+          </div>
+        )}
+      >
+        {successPayload && (
+          <div className="space-y-5">
+            <p className="text-sm text-text">
+              Compte organisation créé. Un email de confirmation a été envoyé à{' '}
+              <strong>{successPayload.email}</strong>.
+            </p>
+
+            <div className="rounded-lg border border-border bg-bg p-4">
+              <p className="text-sm font-semibold text-primary">Si l’email n’a pas été reçu</p>
+              <p className="mt-2 text-sm text-subtext">
+                Transmettre les informations suivantes au support ou à l’équipe concernée :
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-text">
+                <li><strong>Raison sociale :</strong> {successPayload.raison_sociale}</li>
+                <li><strong>Email :</strong> {successPayload.email}</li>
+                <li><strong>Type :</strong> {successPayload.type}</li>
+                <li><strong>Contact référent :</strong> {successPayload.contact_referent}</li>
+                <li><strong>Pays :</strong> {successPayload.pays}</li>
+                {successPayload.identifiant_legal && (
+                  <li><strong>Identifiant légal :</strong> {successPayload.identifiant_legal}</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

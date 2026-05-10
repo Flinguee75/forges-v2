@@ -43,6 +43,13 @@ describe('DevisForm', () => {
           date_debut: '2026-06-01T00:00:00.000Z',
           date_fin: '2026-06-10T00:00:00.000Z',
         },
+        {
+          id: 's-02',
+          formation_id: 'f-01',
+          statut: 'INSCRIPTIONS_OUVERTES',
+          date_debut: '2026-07-01T00:00:00.000Z',
+          date_fin: '2026-07-10T00:00:00.000Z',
+        },
       ],
     });
     vi.spyOn(devisApi, 'create').mockResolvedValue({
@@ -74,6 +81,8 @@ describe('DevisForm', () => {
     await waitFor(() => {
       expect(screen.getByTestId('select-session')).not.toBeDisabled();
       expect(screen.getByTestId('select-session').textContent).toMatch(/du .* au .*/i);
+      expect(screen.getByTestId('select-session').textContent).toContain('du 01/06/2026 au 10/06/2026');
+      expect(screen.getByTestId('select-session').textContent).toContain('du 01/07/2026 au 10/07/2026');
     });
 
     await user.selectOptions(screen.getByTestId('select-session'), 's-01');

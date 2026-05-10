@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
+import { useToast } from '../../../hooks/useToast';
 import { sessionsApi } from '../../../api/sessions.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
@@ -35,6 +36,7 @@ export default function SessionDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { execute, isLoading, error } = useApi();
+  const { showToast } = useToast();
   const [session, setSession] = useState(null);
   const [dossiers, setDossiers] = useState([]);
 
@@ -73,15 +75,37 @@ export default function SessionDetail() {
   }, [session]);
 
   const closeSession = async () => {
-    await execute(() => sessionsApi.cloturerManuellement(id), {
-      onSuccess: () => loadSession(),
-    });
+    try {
+      await execute(() => sessionsApi.cloturerManuellement(id), {
+        onSuccess: () => {
+          showToast('Session clôturée avec succès.', 'success');
+          loadSession();
+        },
+        onError: (err) => {
+          const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Impossible de clôturer la session.';
+          showToast(message, 'error');
+        },
+      });
+    } catch {
+      // Le toast est déjà affiché via onError ; on évite un rejet non géré.
+    }
   };
 
   const cancelSession = async () => {
-    await execute(() => sessionsApi.annuler(id), {
-      onSuccess: () => loadSession(),
-    });
+    try {
+      await execute(() => sessionsApi.annuler(id), {
+        onSuccess: () => {
+          showToast('Session annulée avec succès.', 'success');
+          loadSession();
+        },
+        onError: (err) => {
+          const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Impossible d’annuler la session.';
+          showToast(message, 'error');
+        },
+      });
+    } catch {
+      // Le toast est déjà affiché via onError ; on évite un rejet non géré.
+    }
   };
 
   if (isLoading && !session) {
