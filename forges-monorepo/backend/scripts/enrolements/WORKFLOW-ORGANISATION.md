@@ -44,6 +44,7 @@ Conçue pour les stratèges de haut niveau, décideurs politiques, responsables 
 
 ```
 Admin         → reset-dev.ts          (1x par environnement)
+Admin         → script-orga.ts        (1x par organisation ou lot d'organisations)
 Admin         → import-groupe.ts      (1x par organisation)
 Organisation  → reçoit email devis    (automatique)
 Admin         → payer-devis.ts        (à réception du virement)
@@ -225,11 +226,42 @@ node -r ts-node/register/transpile-only \
 
 ---
 
+## Script organisations seul
+
+Pour créer ou mettre à jour des organisations sans passer par le workflow groupe :
+
+```bash
+# Dry-run
+DRY_RUN=true \
+DATABASE_URL="..." \
+node -r ts-node/register/transpile-only \
+  scripts/admin/script-orga.ts --file scripts/admin/orga-seed.example.json
+
+# Production
+DATABASE_URL="..." \
+node -r ts-node/register/transpile-only \
+  scripts/admin/script-orga.ts --file scripts/admin/orga-seed.example.json
+```
+
+Format attendu :
+- `organisations[].raison_sociale`
+- `organisations[].type`
+- `organisations[].email`
+- `organisations[].contact_referent`
+- `organisations[].pays`
+- `organisations[].identifiant_legal` optionnel
+- `organisations[].langue_preferee` optionnel
+- `organisations[].statut` optionnel
+- `organisations[].sous_types` optionnel
+
+---
+
 ## Récapitulatif des scripts
 
 | Script | Rôle | Quand |
 |---|---|---|
 | `scripts/admin/reset-dev.ts` | Init environnement + admin | 1 fois par env |
+| `scripts/admin/script-orga.ts` | Seed organisations | Par lot ou organisation |
 | `scripts/enrolements/import-groupe.ts` | Org + apprenants + devis + vouchers | Par organisation |
 | `scripts/enrolements/payer-devis.ts` | Confirmer paiement + activer dossiers | À réception virement |
 | `scripts/enrolements/rappel-j7.ts` | Email pratique J-7 | 7 jours avant session |
