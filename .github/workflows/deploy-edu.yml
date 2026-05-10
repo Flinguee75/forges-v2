@@ -140,11 +140,7 @@ jobs:
                 RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev"
               fi
 
-              # Met a jour l'image backend resolue dans les fichiers de deploy
-              sed -i '/^BACKEND_IMAGE_REF=/d' .env
-              echo "BACKEND_IMAGE_REF=$RESOLVED_IMAGE_REF" >> .env
-
-              # Garde aussi le fichier de deploy edu synchronise pour le suivi manuel
+              # Met a jour le fichier de deploy EDU pour conserver les bons ports et la bonne image
               sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
               echo "BACKEND_IMAGE_REF=$RESOLVED_IMAGE_REF" >> infra/env/.env.edu.deploy
 
@@ -155,7 +151,7 @@ jobs:
               fi
 
               docker compose -f infra/docker/docker-compose.edu.deploy.yml \
-                --env-file .env up -d
+                --env-file infra/env/.env.edu.deploy up -d
 
               echo "Attente healthcheck backend edu..."
               for i in $(seq 1 30); do
