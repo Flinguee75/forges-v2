@@ -10,6 +10,7 @@ import { genererDocxDevis } from './devis-docx.service';
 import { genererPdfDevis } from './devis-pdf.service';
 
 const LOGO_PATH = path.join(__dirname, '../../../../frontend/src/assets/logo_forges.png');
+const SESSION_DEVIS_AUTORISEES = ['PLANIFIEE', 'A_VENIR', 'INSCRIPTIONS_OUVERTES', 'OUVERTE', 'EN_COURS'];
 
 function getLogoBase64(): string {
   try {
@@ -40,6 +41,9 @@ export class DevisService {
     const session = await this.prisma.session.findUnique({ where: { id: dto.session_id } });
     if (!session || session.formation_id !== dto.formation_id) {
       throw new Error('SESSION_INVALIDE');
+    }
+    if (!SESSION_DEVIS_AUTORISEES.includes(session.statut)) {
+      throw new Error('SESSION_NON_ELIGIBLE_DEVIS');
     }
 
     const annee = new Date().getFullYear();

@@ -49,6 +49,7 @@ const formationFixture = {
 const sessionFixture = {
   id: 's-01',
   formation_id: 'f-01',
+  statut: 'OUVERTE',
   date_debut: new Date('2026-06-01T00:00:00.000Z'),
   date_fin: new Date('2026-06-10T00:00:00.000Z'),
 };
@@ -166,6 +167,24 @@ describe('DevisService — RM-149 à RM-151', () => {
           'admin-01'
         )
       ).rejects.toThrow('SESSION_INVALIDE');
+    });
+
+    it('lève SESSION_NON_ELIGIBLE_DEVIS si la session est clôturée', async () => {
+      mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      mockPrisma.session.findUnique.mockResolvedValue({
+        id: 's-01',
+        formation_id: 'f-01',
+        statut: 'CLOTUREE',
+      });
+
+      const service = makeService();
+      await expect(
+        service.creerDevis(
+          { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 1, tarif_unitaire_xof: 1000 },
+          'admin-01'
+        )
+      ).rejects.toThrow('SESSION_NON_ELIGIBLE_DEVIS');
     });
 
     it('logue DEVIS_CREE sans envoyer de mail à la création', async () => {

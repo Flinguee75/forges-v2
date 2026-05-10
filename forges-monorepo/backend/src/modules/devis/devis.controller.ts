@@ -24,6 +24,13 @@ export class DevisController {
       if (error.message === 'SESSION_INVALIDE') {
         return res.status(400).json({ statusCode: 400, error: 'SESSION_INVALIDE', message: 'Session invalide ou non liée à cette formation' });
       }
+      if (error.message === 'SESSION_NON_ELIGIBLE_DEVIS') {
+        return res.status(400).json({
+          statusCode: 400,
+          error: 'SESSION_NON_ELIGIBLE_DEVIS',
+          message: 'La session sélectionnée n\'est pas éligible à la création d\'un devis',
+        });
+      }
       if (error.message === 'SESSION_NOT_FOUND') {
         return res.status(404).json({ statusCode: 404, error: 'SESSION_NOT_FOUND', message: 'Session introuvable' });
       }
