@@ -10,7 +10,7 @@ RUN npm prune --production
 
 FROM node:20-alpine AS runner
 WORKDIR /app
-RUN apk add --no-cache openssl postgresql-client wget
+RUN apk add --no-cache openssl postgresql-client wget libreoffice fontconfig font-dejavu
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
