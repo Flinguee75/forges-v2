@@ -33,6 +33,7 @@ const mockDashboardData = {
     budget_engage: 500000,
     vouchers_actifs: 5,
     total_employes: 30,
+    b2b_utilisation_pct: 80,
   },
   recent_inscriptions: [
     {
@@ -79,6 +80,7 @@ const mockFlatDashboardData = {
     budget_engage: 500000,
     vouchers_actifs: 5,
     total_employes: 30,
+    b2b_utilisation_pct: 80,
   },
   recent_inscriptions: [],
   recent_paiements: [],
@@ -107,7 +109,7 @@ describe('OrgDashboard - Tests', () => {
     });
   });
 
-  it('affiche le budget engagé formaté', async () => {
+  it('affiche la consommation B2B', async () => {
     render(
       <BrowserRouter>
         <OrgDashboard />
@@ -115,8 +117,7 @@ describe('OrgDashboard - Tests', () => {
     );
 
     await waitFor(() => {
-      // 500000 centimes = 5000 FCFA (with thousand separator)
-      expect(screen.getByText(/5.*000.*FCFA/)).toBeInTheDocument();
+      expect(screen.getByText('80%')).toBeInTheDocument();
     });
   });
 

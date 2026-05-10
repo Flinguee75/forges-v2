@@ -55,25 +55,25 @@ function getQuickLinks(role) {
 
   if (role === 'ADMIN' || role === 'SUPERVISEUR') {
     links.push(
-      { to: '/backoffice/apprenants', label: 'Utilisateurs', description: 'Gestion des comptes utilisateurs' },
-      { to: '/backoffice/organisations', label: 'Organisations', description: 'Gestion des comptes organisations' },
-      { to: '/backoffice/formations', label: 'Formations', description: 'Catalogue et validation' },
-      { to: '/backoffice/sessions', label: 'Sessions', description: 'Lecture des sessions' },
-      { to: '/backoffice/rapports', label: 'Rapports', description: 'Consultez et exportez les rapports' },
+      { to: '/backoffice/apprenants', label: 'Utilisateurs', description: 'Créer, consulter et relier des comptes' },
+      { to: '/backoffice/organisations', label: 'Organisations', description: 'Créer, modifier ou supprimer des comptes' },
+      { to: '/backoffice/formations', label: 'Formations', description: 'Catalogue et validation des offres' },
+      { to: '/backoffice/sessions', label: 'Sessions', description: 'Consulter les sessions et leurs dates' },
+      { to: '/backoffice/rapports', label: 'Rapports', description: 'Télécharger les exports disponibles' },
     );
   }
 
   if (role === 'ADMIN') {
     links.push(
-      { to: '/backoffice/config', label: 'Configuration', description: 'Paramètres globaux' },
-      { to: '/backoffice/abonnements', label: 'Abonnements', description: 'Vue consolidée' },
+      { to: '/backoffice/config', label: 'Configuration', description: 'Réglages globaux de la plateforme' },
+      { to: '/backoffice/abonnements', label: 'Abonnements', description: 'Suivi Retail, Organisation et B2B' },
     );
   }
 
   if (role === 'ADMIN' || role === 'SUPERVISEUR' || role === 'AGENT') {
     links.push(
-      { to: '/backoffice/vouchers', label: 'Vouchers', description: 'Gestion opérationnelle' },
-      { to: '/backoffice/apporteurs', label: 'Apporteurs', description: 'Commissions et codes' },
+      { to: '/backoffice/vouchers', label: 'Vouchers', description: 'Créer et suivre les vouchers' },
+      { to: '/backoffice/apporteurs', label: 'Apporteurs', description: 'Codes, commissions et reversements' },
     );
   }
 
@@ -226,7 +226,7 @@ export default function BackofficeDashboard() {
               Vue {role === 'ADMIN' ? 'administrateur' : 'superviseur'}
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              Vue consolidée de l&apos;activité de la plateforme FORGES.
+              Raccourcis vers les modules utiles et les indicateurs principaux du backoffice.
             </p>
             <p className="mt-1 text-xs text-subtext">
               Dernière mise à jour : {snapshot?.timestamp ? new Date(snapshot.timestamp).toLocaleString('fr-FR') : 'N/A'}

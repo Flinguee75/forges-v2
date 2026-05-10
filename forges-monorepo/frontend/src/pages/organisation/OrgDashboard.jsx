@@ -198,7 +198,7 @@ export default function OrgDashboard() {
             Pilotage de votre organisation
           </h2>
           <p className="mt-2 text-subtext">
-            {(organisation?.nom || organisation?.raison_sociale || 'Votre organisation')} : suivez en temps réel vos effectifs, budget et vouchers.
+            {(organisation?.nom || organisation?.raison_sociale || 'Votre organisation')} : suivez vos membres, vos vouchers et votre consommation B2B.
           </p>
         </div>
       </div>
@@ -219,12 +219,12 @@ export default function OrgDashboard() {
         <Card className="border-l-4 border-warning">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-subtext">Budget engagé</div>
+              <div className="text-sm text-subtext">Quota B2B utilisé</div>
               <div className="mt-2 text-3xl font-bold text-warning">
-                {formatMontant(stats.budget_engage)}
+                {stats.b2b_utilisation_pct ?? 0}%
               </div>
             </div>
-            <Icon name="cash" size={40} className="text-warning opacity-20" />
+            <Icon name="ticket" size={40} className="text-warning opacity-20" />
           </div>
         </Card>
 

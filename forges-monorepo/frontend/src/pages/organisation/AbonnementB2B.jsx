@@ -240,15 +240,22 @@ export default function AbonnementB2B() {
               Abonnement B2B
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-text">
-              Gestion multi-apprenants
+              Gestion des bénéficiaires de votre organisation
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              L&apos;abonnement B2B vous permet d&apos;inscrire plusieurs apprenants de votre organisation à des formations via un contrat annuel. Il complète votre abonnement organisation et s&apos;active par palier selon le nombre de bénéficiaires.
+              Cette page sert à souscrire ou faire évoluer un palier B2B, puis à suivre les membres actifs rattachés à votre quota.
             </p>
           </div>
           <Badge variant={currentStatus.variant} size="small">{currentStatus.label}</Badge>
         </div>
       </div>
+
+      <Card>
+        <p className="text-sm text-subtext">
+          En pratique, le B2B vous permet de gérer les apprenants de votre organisation sur un quota annuel:
+          souscription du palier, ajout de membres, import CSV et contrôle de consommation.
+        </p>
+      </Card>
 
       {/* Tabs */}
       <div className="border-b border-border bg-white rounded-t-lg">
