@@ -59,9 +59,13 @@ check_auth_rejects_bad_creds() {
 
 check_catalogue_item_structure() {
   body=$(curl -sf --max-time 5 "${BASE_URL}/api/catalogue") || return
-  # Check array is not empty and has id field
-  echo "$body" | grep -q '"id"' || {
-    log "error" "catalogue-structure" "GET /api/catalogue data has no id field — possible empty DB or schema change"
+  # Empty catalogue is normal on a fresh env — not an error
+  echo "$body" | grep -q '"data":\[\]' && {
+    log "info" "catalogue-structure" "catalogue vide (env non seede)"
+    return
+  }
+  echo "$body" | grep -q '"data":\[{' && ! echo "$body" | grep -q '"id"' && {
+    log "error" "catalogue-structure" "GET /api/catalogue items sans champ id — schema change possible"
     return
   }
   log "info" "catalogue-structure" "ok"
