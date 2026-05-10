@@ -98,6 +98,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 import { i18nMiddleware } from './middlewares/i18n.middleware';
 app.use(i18nMiddleware);
 
+// Request ID — corrélation de toutes les lignes de log d'une même requête
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = (req.headers['x-request-id'] as string) || crypto.randomUUID();
+  res.locals.requestId = requestId;
+  res.setHeader('x-request-id', requestId);
+  next();
+});
+
 // Log structuré JSON pour tous les 4xx/5xx — capturé par Promtail/Loki/Grafana
 app.use((req: Request, res: Response, next: NextFunction) => {
   const originalJson = res.json.bind(res);
@@ -111,6 +119,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
           path: req.path,
           statusCode: res.statusCode,
           error: body?.error ?? body?.message ?? null,
+          request_id: res.locals.requestId,
+          user_id: (req as any).user?.userId ?? null,
         },
         timestamp: new Date().toISOString(),
       };
@@ -245,6 +255,8 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
       method: req.method,
       path: req.path,
       error: err.message,
+      request_id: res.locals.requestId ?? null,
+      user_id: (req as any).user?.userId ?? null,
     },
     timestamp: new Date().toISOString(),
   };
@@ -256,6 +268,26 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
       : err.message,
     ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
+});
+
+// Promises rejetées sans .catch() et exceptions non catchées
+process.on('unhandledRejection', (reason: unknown) => {
+  process.stdout.write(JSON.stringify({
+    level: 'ERROR',
+    action: 'UNHANDLED_REJECTION',
+    metadata: { error: reason instanceof Error ? reason.message : String(reason) },
+    timestamp: new Date().toISOString(),
+  }) + '\n');
+});
+
+process.on('uncaughtException', (err: Error) => {
+  process.stdout.write(JSON.stringify({
+    level: 'ERROR',
+    action: 'UNCAUGHT_EXCEPTION',
+    metadata: { error: err.message },
+    timestamp: new Date().toISOString(),
+  }) + '\n');
+  process.exit(1);
 });
 
 // =====================================================
