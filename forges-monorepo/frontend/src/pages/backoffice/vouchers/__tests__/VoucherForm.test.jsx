@@ -105,6 +105,7 @@ describe('VoucherForm', () => {
       );
     });
     expect(await screen.findByText(/Voucher créé avec succès/i)).toBeInTheDocument();
-    expect(screen.getByText(/un e-mail de confirmation sera envoyé/i)).toBeInTheDocument();
+    expect(screen.getByText(/Un e-mail de confirmation est envoyé à l’organisation/i)).toBeInTheDocument();
+    expect(screen.getByText(/L’organisation recevra aussi le message associé au devis/i)).toBeInTheDocument();
   });
 });

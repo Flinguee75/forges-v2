@@ -288,8 +288,16 @@ export default function VoucherForm() {
       >
         <div className="space-y-4">
           <div className="rounded-lg border border-success/20 bg-success-soft p-4 text-sm text-text">
-            Tout est bon. Le voucher a bien été créé et un e-mail de confirmation sera envoyé.
-            Si le voucher est lié à un devis, l’organisation recevra aussi le message associé.
+            Tout est bon. Le voucher a bien été créé.
+            {modeCreation === 'ORGANISATION' ? (
+              <>
+                {' '}
+                Un e-mail de confirmation est envoyé à l’organisation.
+                {formData.devis_id ? ' L’organisation recevra aussi le message associé au devis.' : ''}
+              </>
+            ) : (
+              ' Aucun e-mail automatique n’est envoyé pour un voucher promotionnel.'
+            )}
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
