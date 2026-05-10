@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiClient } from '../../api/client';
 import { dashboardApi } from '../../api/dashboard.api';
 import RuntimeUnavailable from '../../components/feedback/RuntimeUnavailable';
 import Spinner from '../../components/feedback/Spinner';
@@ -12,25 +11,6 @@ import { useAuth } from '../../hooks/useAuth';
 
 function formatFcfa(amount) {
   return `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
-}
-
-function formatTimeParts(date) {
-  return date.toLocaleTimeString('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-}
-
-function getBackendStatusLabel(isOnline, isChecking) {
-  if (isChecking) {
-    return { label: 'Connexion backend', tone: 'warning', symbol: '⟳' };
-  }
-
-  return isOnline
-    ? { label: 'Backend connecté', tone: 'success', symbol: '●' }
-    : { label: 'Backend indisponible', tone: 'danger', symbol: '●' };
 }
 
 function StatCard({ label, value, sublabel, variant = 'gray' }) {
@@ -97,9 +77,6 @@ export default function BackofficeDashboard() {
   const [snapshot, setSnapshot] = useState(null);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [now, setNow] = useState(() => new Date());
-  const [isBackendOnline, setIsBackendOnline] = useState(false);
-  const [isCheckingBackend, setIsCheckingBackend] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -117,44 +94,6 @@ export default function BackofficeDashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    const checkBackend = async () => {
-      setIsCheckingBackend(true);
-      try {
-        await apiClient.get('/health', { timeout: 5000 });
-        if (active) {
-          setIsBackendOnline(true);
-        }
-      } catch {
-        if (active) {
-          setIsBackendOnline(false);
-        }
-      } finally {
-        if (active) {
-          setIsCheckingBackend(false);
-        }
-      }
-    };
-
-    checkBackend();
-    const interval = window.setInterval(checkBackend, 10000);
-
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-    };
-  }, []);
 
   const handleExport = async (format) => {
     try {
@@ -194,7 +133,6 @@ export default function BackofficeDashboard() {
 
   const data = snapshot?.data || {};
   const role = snapshot?.role || user?.role;
-  const backendStatus = getBackendStatusLabel(isBackendOnline, isCheckingBackend);
 
   const cards = role === 'ADMIN'
     ? [
@@ -231,26 +169,6 @@ export default function BackofficeDashboard() {
             <p className="mt-1 text-xs text-subtext">
               Dernière mise à jour : {snapshot?.timestamp ? new Date(snapshot.timestamp).toLocaleString('fr-FR') : 'N/A'}
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-medium text-subtext">
-              <span className="rounded-full border border-border bg-bg px-3 py-1 text-text">
-                {formatTimeParts(now)}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg px-3 py-1">
-                <span
-                  className={
-                    backendStatus.tone === 'success'
-                      ? 'text-success'
-                      : backendStatus.tone === 'warning'
-                        ? 'text-warning'
-                        : 'text-danger'
-                  }
-                  aria-hidden="true"
-                >
-                  {backendStatus.symbol}
-                </span>
-                <span className="text-text">{backendStatus.label}</span>
-              </span>
-            </div>
           </div>
           <div className="flex gap-2">
             <Button

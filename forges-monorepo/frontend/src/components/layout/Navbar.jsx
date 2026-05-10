@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Button from '../ui/Button';
+import { apiClient } from '../../api/client';
 import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
 
@@ -115,6 +117,25 @@ function getRoleLabel(role, roles, fallbackLabel) {
   return roles[role] || role || fallbackLabel;
 }
 
+function formatTimeParts(date) {
+  return date.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
+function getBackendStatusLabel(isOnline, isChecking) {
+  if (isChecking) {
+    return { tone: 'warning', symbol: '⟳' };
+  }
+
+  return isOnline
+    ? { tone: 'success', symbol: '●' }
+    : { tone: 'danger', symbol: '●' };
+}
+
 export default function Navbar({
   variant = 'public',
   title,
@@ -126,6 +147,47 @@ export default function Navbar({
   const privateCopy = getPrivateCopy(user?.langue_preferee);
   const displayName = getDisplayName(user, privateCopy.defaultUser);
   const roleLabel = getRoleLabel(user?.role, privateCopy.roles, privateCopy.defaultUser);
+  const [now, setNow] = useState(() => new Date());
+  const [isBackendOnline, setIsBackendOnline] = useState(false);
+  const [isCheckingBackend, setIsCheckingBackend] = useState(true);
+
+  useEffect(() => {
+    if (isPublic) return undefined;
+
+    const interval = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isPublic]);
+
+  useEffect(() => {
+    if (isPublic) return undefined;
+
+    let active = true;
+
+    const checkBackend = async () => {
+      setIsCheckingBackend(true);
+      try {
+        await apiClient.get('/health', { timeout: 5000 });
+        if (active) setIsBackendOnline(true);
+      } catch {
+        if (active) setIsBackendOnline(false);
+      } finally {
+        if (active) setIsCheckingBackend(false);
+      }
+    };
+
+    checkBackend();
+    const interval = window.setInterval(checkBackend, 10000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [isPublic]);
+
+  const backendStatus = getBackendStatusLabel(isBackendOnline, isCheckingBackend);
 
   return (
     <header className="border-b border-border bg-white shadow-sm">
@@ -213,6 +275,13 @@ export default function Navbar({
                   day: 'numeric',
                 })}
               </p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-full border border-border bg-bg px-3 py-1 text-xs font-medium text-subtext">
+              <span className={backendStatus.tone === 'success' ? 'text-success' : backendStatus.tone === 'warning' ? 'text-warning' : 'text-danger'} aria-hidden="true">
+                {backendStatus.symbol}
+              </span>
+              <span className="font-mono text-text">{formatTimeParts(now)}</span>
             </div>
 
             <Button variant="outline" type="button" onClick={onLogout} className="shrink-0">
