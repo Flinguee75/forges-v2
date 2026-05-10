@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Button from '../ui/Button';
+import StatusBadge from '../ui/StatusBadge';
 import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
 
@@ -299,6 +300,8 @@ export default function Navbar({
               </span>
               <span className="font-mono text-text">{formatTimeParts(now)}</span>
             </div>
+
+            <StatusBadge />
 
             <Button variant="outline" type="button" onClick={onLogout} className="shrink-0">
               {privateCopy.logout}

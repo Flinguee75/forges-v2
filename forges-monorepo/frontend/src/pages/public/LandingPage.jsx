@@ -9,7 +9,6 @@ import logoAspire from '../../assets/logo_aspire.png';
 import logoAiCrafters from '../../assets/logo_ai_crafters.png';
 import imageCcdlGw from '../../assets/image_ccdl_gw.png';
 import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
-import StatusBadge from '../../components/ui/StatusBadge';
 
 /**
  * LandingPage - Page d'accueil publique haute conversion
@@ -741,11 +740,6 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
-
-      {/* Status Bar */}
-      <div className="py-4 bg-bg border-t border-border flex justify-center">
-        <StatusBadge />
-      </div>
     </>
   );
 }
