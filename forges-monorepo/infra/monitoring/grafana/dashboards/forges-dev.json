@@ -80,7 +80,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|backend\"} |~ \"\\[.*Scheduler\\]|Démarré|Arrêté|Exécution|INFO|ERROR\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} |~ \"Scheduler|Démarré|Arrêté|Exécution\"",
           "refId": "A"
         }
       ],
