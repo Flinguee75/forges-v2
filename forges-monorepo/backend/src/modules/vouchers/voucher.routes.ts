@@ -3,13 +3,15 @@ import { VoucherController } from './voucher.controller';
 import { VoucherService } from './voucher.service';
 import { VoucherRepository } from './voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
+import { EmailService } from '../../shared/email/email.service';
 import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 
 const router = Router();
 const auditLogger = new AuditLogger();
+const emailService = new EmailService();
 const voucherRepository = new VoucherRepository(prisma);
-const voucherService = new VoucherService(voucherRepository, auditLogger, prisma);
+const voucherService = new VoucherService(voucherRepository, auditLogger, prisma, emailService);
 const voucherController = new VoucherController(voucherService);
 
 router.post('/organisation', authenticate, authorize('ADMIN', 'AGENT', 'ORGANISATION'), (req, res, next) => {

@@ -8,6 +8,7 @@ describe('VoucherService', () => {
   let mockRepo: jest.Mocked<VoucherRepository>;
   let mockAudit: jest.Mocked<AuditLogger>;
   let mockPrisma: jest.Mocked<PrismaClient>;
+  let mockEmail: { sendVouchersOrganisation: jest.Mock };
 
   beforeEach(() => {
     mockRepo = {
@@ -50,7 +51,11 @@ describe('VoucherService', () => {
       },
     } as any;
 
-    service = new VoucherService(mockRepo, mockAudit, mockPrisma);
+    mockEmail = {
+      sendVouchersOrganisation: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new VoucherService(mockRepo, mockAudit, mockPrisma, mockEmail as any);
   });
 
   it('valide un voucher promotionnel brouillon', async () => {
@@ -191,5 +196,42 @@ describe('VoucherService', () => {
     expect(mockPrisma.organisation.findUnique).toHaveBeenCalledWith({
       where: { id: 'org-01' },
     });
+    expect(mockEmail.sendVouchersOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('envoie un mail pour un voucher manuel sans devis', async () => {
+    (mockPrisma.organisation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'org-01',
+      raison_sociale: 'Org Test',
+      email: 'org@test.ci',
+      langue_preferee: 'FR',
+      statut: 'ACTIF',
+    } as any);
+    (mockPrisma.formation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'formation-01',
+      intitule: 'Formation Test',
+    } as any);
+    (mockRepo.create as jest.Mock).mockResolvedValue({
+      id: 'voucher-05',
+      code: 'V-05',
+      organisation_id: 'org-01',
+      formation_id: 'formation-01',
+      devis_id: null,
+    } as any);
+
+    await service.createVoucher({
+      formation_id: 'formation-01',
+      valeur: 10000,
+      type_valeur: 'MONTANT',
+      quota_max: 1,
+      date_expiration: new Date(Date.now() + 86_400_000),
+    }, 'admin-01');
+
+    expect(mockEmail.sendVouchersOrganisation).toHaveBeenCalledWith(
+      'org@test.ci',
+      ['V-05'],
+      'Formation Test',
+      'Org Test'
+    );
   });
 });

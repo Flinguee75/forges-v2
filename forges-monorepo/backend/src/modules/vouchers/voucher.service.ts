@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { VoucherRepository } from './voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
+import { EmailService } from '../../shared/email/email.service';
 import {
   CreateVoucherDto,
   CreateVoucherPromotionnelDto,
@@ -14,7 +15,8 @@ export class VoucherService {
   constructor(
     private readonly voucherRepo: VoucherRepository,
     private readonly audit: AuditLogger,
-    private readonly prisma: PrismaClient
+    private readonly prisma: PrismaClient,
+    private readonly email: EmailService
   ) {}
 
   private serializeVoucher(voucher: any) {
@@ -101,6 +103,17 @@ export class VoucherService {
       organisation_id: organisationId,
       formation_id: dto.formation_id,
     });
+
+    if (!dto.devis_id) {
+      this.email.sendVouchersOrganisation(
+        organisation.email,
+        [voucher.code],
+        formation.intitule,
+        organisation.raison_sociale
+      ).catch((error) => {
+        console.error('[VoucherService] Email voucher manuel non bloquant:', error?.message || error);
+      });
+    }
 
     return this.serializeVoucher(voucher);
   }
