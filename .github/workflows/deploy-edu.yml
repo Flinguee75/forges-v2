@@ -139,6 +139,10 @@ jobs:
               fi
 
               # Met a jour IMAGE_TAG dans le .env racine pour docker compose
+              sed -i '/^IMAGE_TAG=/d' .env
+              echo "IMAGE_TAG=$RESOLVED_IMAGE_TAG" >> .env
+
+              # Garde aussi le fichier de deploy edu synchronise pour le suivi manuel
               sed -i '/^IMAGE_TAG=/d' infra/env/.env.edu.deploy
               echo "IMAGE_TAG=$RESOLVED_IMAGE_TAG" >> infra/env/.env.edu.deploy
 
@@ -150,7 +154,7 @@ jobs:
 
               IMAGE_TAG="$RESOLVED_IMAGE_TAG" \
                 docker compose -f infra/docker/docker-compose.edu.deploy.yml \
-                --env-file infra/env/.env.edu.deploy up -d
+                --env-file .env up -d
 
               echo "Attente healthcheck backend edu..."
               for i in $(seq 1 30); do
