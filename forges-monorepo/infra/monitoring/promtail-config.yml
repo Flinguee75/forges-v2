@@ -1,5 +1,7 @@
 # Promtail Configuration
 # Collecte des logs Docker — filtrage via labels Docker Compose
+# NOTE: ce fichier est conserve comme reference. En production, chaque env
+# utilise son propre fichier (promtail-config.dev.yml, promtail-config.edu.yml).
 
 server:
   http_listen_port: 9080
@@ -18,7 +20,7 @@ scrape_configs:
         refresh_interval: 5s
     relabel_configs:
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
-        regex: 'forges-dev'
+        regex: '^forges-dev$'
         action: keep
       - source_labels: ['__meta_docker_container_name']
         target_label: container
@@ -30,8 +32,10 @@ scrape_configs:
         replacement: dev
       - target_label: job
         replacement: forges-dev
-      - target_label: __path__
-        replacement: /var/lib/docker/containers/*/*.log
+      - source_labels: ['__meta_docker_container_id']
+        regex: '(.+)'
+        target_label: __path__
+        replacement: '/var/lib/docker/containers/$1/$1-json.log'
     pipeline_stages:
       - json:
           expressions:
@@ -45,7 +49,7 @@ scrape_configs:
         refresh_interval: 5s
     relabel_configs:
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
-        regex: 'forges-test'
+        regex: '^forges-test$'
         action: keep
       - source_labels: ['__meta_docker_container_name']
         target_label: container
@@ -57,8 +61,10 @@ scrape_configs:
         replacement: test
       - target_label: job
         replacement: forges-test
-      - target_label: __path__
-        replacement: /var/lib/docker/containers/*/*.log
+      - source_labels: ['__meta_docker_container_id']
+        regex: '(.+)'
+        target_label: __path__
+        replacement: '/var/lib/docker/containers/$1/$1-json.log'
     pipeline_stages:
       - json:
           expressions:
@@ -72,7 +78,7 @@ scrape_configs:
         refresh_interval: 5s
     relabel_configs:
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
-        regex: 'forges-demo'
+        regex: '^forges-demo$'
         action: keep
       - source_labels: ['__meta_docker_container_name']
         target_label: container
@@ -84,8 +90,10 @@ scrape_configs:
         replacement: demo
       - target_label: job
         replacement: forges-demo
-      - target_label: __path__
-        replacement: /var/lib/docker/containers/*/*.log
+      - source_labels: ['__meta_docker_container_id']
+        regex: '(.+)'
+        target_label: __path__
+        replacement: '/var/lib/docker/containers/$1/$1-json.log'
     pipeline_stages:
       - json:
           expressions:
@@ -99,7 +107,7 @@ scrape_configs:
         refresh_interval: 5s
     relabel_configs:
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
-        regex: 'forges-edu'
+        regex: '^forges-edu$'
         action: keep
       - source_labels: ['__meta_docker_container_name']
         target_label: container
@@ -111,8 +119,10 @@ scrape_configs:
         replacement: edu
       - target_label: job
         replacement: forges-edu
-      - target_label: __path__
-        replacement: /var/lib/docker/containers/*/*.log
+      - source_labels: ['__meta_docker_container_id']
+        regex: '(.+)'
+        target_label: __path__
+        replacement: '/var/lib/docker/containers/$1/$1-json.log'
     pipeline_stages:
       - json:
           expressions:

@@ -6,7 +6,7 @@ set -euo pipefail
 VPS_USER="forgesadmin"
 VPS_HOST="92.205.164.97"
 VPS_KEY="$HOME/.ssh/id_ed25519_forges"
-VPS_DIR="$HOME/forges-v2/forges-monorepo/infra/monitoring"
+VPS_DIR="/home/forgesadmin/forges-v2/forges-monorepo/infra/monitoring"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -48,7 +48,7 @@ sync_files() {
        "${VPS_USER}@${VPS_HOST}:${VPS_DIR}/"
   $SCP "${SCRIPT_DIR}/loki-config.yml" \
        "${VPS_USER}@${VPS_HOST}:${VPS_DIR}/"
-  $SCP "${SCRIPT_DIR}/promtail-config.yml" \
+  $SCP "${SCRIPT_DIR}/promtail-config.dev.yml" \
        "${VPS_USER}@${VPS_HOST}:${VPS_DIR}/"
   $SCP "${SCRIPT_DIR}/.env.monitoring.dev" \
        "${VPS_USER}@${VPS_HOST}:${VPS_DIR}/.env.monitoring.dev"
