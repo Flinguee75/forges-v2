@@ -18,6 +18,7 @@ let adminHeaders;
 let agentHeaders;
 let createdOrgId;
 let createdApprenantIds = [];
+let createdDossierIds = [];
 
 beforeAll(async () => {
   createdOrgId = randomUUID();
@@ -45,6 +46,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (createdDossierIds.length > 0) {
+    await prisma.dossier.deleteMany({ where: { id: { in: createdDossierIds } } }).catch(() => {});
+  }
   if (createdApprenantIds.length > 0) {
     await prisma.apprenant.deleteMany({ where: { id: { in: createdApprenantIds } } }).catch(() => {});
   }
@@ -217,6 +221,45 @@ describe('PATCH /api/backoffice/apprenants/:id/lier-organisation — rattachemen
       .send({ organisation_id: createdOrgId });
 
     expect(res.status).toBe(403);
+  });
+});
+
+// ─────────────────────────────────────────────
+// DELETE /api/backoffice/apprenants/:id
+// ─────────────────────────────────────────────
+
+describe('DELETE /api/backoffice/apprenants/:id — suppression apprenant', () => {
+  it('retourne 409 si des dossiers existent', async () => {
+    const created = await creerApprenant(adminHeaders, { nom: 'Adele', prenoms: 'Test' });
+    const apprenantId = created.body.data.id;
+    const formation = await prisma.formation.findFirst({
+      select: { id: true },
+    });
+
+    if (!formation) {
+      throw new Error('Formation de test introuvable');
+    }
+
+    const dossier = await prisma.dossier.create({
+      data: {
+        apprenant_id: apprenantId,
+        formation_id: formation.id,
+        statut: 'PAYE',
+        source_financement: 'RETAIL',
+      },
+      select: { id: true },
+    });
+    createdDossierIds.push(dossier.id);
+
+    const res = await request(API_URL)
+      .delete(`/api/backoffice/apprenants/${apprenantId}`)
+      .set(adminHeaders);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('APPRENANT_SUPPRESSION_IMPOSSIBLE');
+
+    const stillThere = await prisma.apprenant.findUnique({ where: { id: apprenantId } });
+    expect(stillThere).toBeTruthy();
   });
 });
 

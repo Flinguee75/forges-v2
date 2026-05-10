@@ -87,6 +87,19 @@ router.get('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, res
       },
     });
   } catch (error) {
+    if ((error as any)?.code === 'P2003') {
+      await auditLogger.warning('APPRENANT_SUPPRESSION_IMPOSSIBLE', {
+        apprenant_id: req.params.id,
+        admin_id: (req as any).user?.userId,
+        reason: 'FOREIGN_KEY_CONSTRAINT',
+      });
+
+      return res.status(409).json({
+        statusCode: 409,
+        error: 'APPRENANT_SUPPRESSION_IMPOSSIBLE',
+        message: 'Impossible de supprimer un apprenant qui possède encore des données liées',
+      });
+    }
     next(error);
   }
 });
@@ -366,6 +379,26 @@ router.delete('/:id', authenticate, authorize('ADMIN'), async (req, res, next) =
 
     if (!apprenant) {
       return res.status(404).json({ statusCode: 404, error: 'NOT_FOUND', message: 'Apprenant non trouvé' });
+    }
+
+    const dossiersCount = await prisma.dossier.count({
+      where: { apprenant_id: req.params.id },
+    });
+
+    if (dossiersCount > 0) {
+      await auditLogger.warning('APPRENANT_SUPPRESSION_IMPOSSIBLE', {
+        apprenant_id: req.params.id,
+        email: apprenant.email,
+        dossiers_count: dossiersCount,
+        admin_id: (req as any).user.userId,
+      });
+
+      return res.status(409).json({
+        statusCode: 409,
+        error: 'APPRENANT_SUPPRESSION_IMPOSSIBLE',
+        message: 'Impossible de supprimer un apprenant qui possède des dossiers',
+        details: { dossiers_count: dossiersCount },
+      });
     }
 
     await prisma.apprenant.delete({ where: { id: req.params.id } });
