@@ -299,11 +299,11 @@ async function main() {
         });
         organisationId = created.id;
         log('INFO', 'Organisation créée', { raison_sociale: org.nom, id: organisationId });
-        await emailService.sendTempPassword(orgEmail, TEMP_PASSWORD, 'FR', 'ORGANISATION');
+        await emailService.sendTempPassword(orgEmail, TEMP_PASSWORD, 'FR', 'APPRENANT');
         log('INFO', 'Email mot de passe temporaire envoyé', {
           email: orgEmail,
           nom: org.referent.nom,
-          type_compte: 'ORGANISATION',
+          type_compte: 'APPRENANT',
         });
       }
 
