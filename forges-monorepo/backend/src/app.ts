@@ -98,6 +98,29 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 import { i18nMiddleware } from './middlewares/i18n.middleware';
 app.use(i18nMiddleware);
 
+// Log structuré JSON pour tous les 4xx/5xx — capturé par Promtail/Loki/Grafana
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body: any) => {
+    if (res.statusCode >= 400) {
+      const entry = {
+        level: res.statusCode >= 500 ? 'ERROR' : 'WARN',
+        action: 'HTTP_ERROR',
+        metadata: {
+          method: req.method,
+          path: req.path,
+          statusCode: res.statusCode,
+          error: body?.error ?? body?.message ?? null,
+        },
+        timestamp: new Date().toISOString(),
+      };
+      process.stdout.write(JSON.stringify(entry) + '\n');
+    }
+    return originalJson(body);
+  };
+  next();
+});
+
 // =====================================================
 // ROUTES
 // =====================================================
@@ -215,7 +238,17 @@ app.use((req: Request, res: Response) => {
 
 // Gestionnaire d'erreurs global
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
+  const entry = {
+    level: 'ERROR',
+    action: 'UNHANDLED_ERROR',
+    metadata: {
+      method: req.method,
+      path: req.path,
+      error: err.message,
+    },
+    timestamp: new Date().toISOString(),
+  };
+  process.stdout.write(JSON.stringify(entry) + '\n');
 
   res.status(500).json({
     error: process.env.NODE_ENV === 'production'
