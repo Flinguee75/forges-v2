@@ -35,6 +35,7 @@ vi.mock('../../../../api/formations.api', () => ({
 vi.mock('../../../../api/vouchers.api', () => ({
   default: {
     createPromotionnel: vi.fn(),
+    createOrganisation: vi.fn(),
   },
 }));
 
@@ -50,6 +51,11 @@ describe('VoucherForm', () => {
       code: 'V-1',
       statut: 'BROUILLON',
     });
+    vouchersApi.createOrganisation.mockResolvedValue({
+      id: 'v-2',
+      code: 'V-2',
+      statut: 'ACTIF',
+    });
   });
 
   it('crée un voucher promotionnel avec le runtime', async () => {
@@ -62,6 +68,23 @@ describe('VoucherForm', () => {
 
     await waitFor(() => {
       expect(vouchersApi.createPromotionnel).toHaveBeenCalled();
+    });
+  });
+
+  it('crée un voucher organisation lié à un devis avec le runtime', async () => {
+    const user = userEvent.setup();
+
+    render(<BrowserRouter><VoucherForm /></BrowserRouter>);
+
+    await waitFor(() => expect(screen.getByText('Formation 1')).toBeInTheDocument());
+    await user.selectOptions(screen.getByLabelText(/Type de création/i), 'ORGANISATION');
+    await user.type(screen.getByLabelText(/ID du devis/i), 'devis-1');
+    await user.click(screen.getByRole('button', { name: /Créer le voucher organisation/i }));
+
+    await waitFor(() => {
+      expect(vouchersApi.createOrganisation).toHaveBeenCalledWith(
+        expect.objectContaining({ devis_id: 'devis-1' })
+      );
     });
   });
 });

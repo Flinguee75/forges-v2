@@ -25,7 +25,7 @@ describe('vouchersApi', () => {
     await vouchersApi.getByCode('CODE-1');
     await vouchersApi.createOrganisation({
       formation_id: 'f-1',
-      organisation_id: 'org-1',
+      devis_id: 'devis-1',
       valeur: 50000,
       type_valeur: 'MONTANT',
       quota_max: 10,
@@ -51,7 +51,7 @@ describe('vouchersApi', () => {
 
     expect(apiClient.post).toHaveBeenCalledWith('/vouchers/organisation', {
       formation_id: 'f-1',
-      organisation_id: 'org-1',
+      devis_id: 'devis-1',
       valeur: 50000,
       type_valeur: 'MONTANT',
       quota_max: 10,

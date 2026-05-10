@@ -21,12 +21,14 @@ export default function VoucherForm() {
   const { execute, isLoading } = useApi();
 
   const [formations, setFormations] = useState([]);
+  const [modeCreation, setModeCreation] = useState('PROMOTIONNEL');
   const [formData, setFormData] = useState({
     formation_id: '',
     valeur: 10,
     type_valeur: 'POURCENTAGE',
     quota_max: 1,
     date_expiration: getDefaultExpiry(),
+    devis_id: '',
   });
   const [createdVoucher, setCreatedVoucher] = useState(null);
 
@@ -48,10 +50,19 @@ export default function VoucherForm() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    await execute(() => vouchersApi.createPromotionnel(formData), {
+    const action = modeCreation === 'ORGANISATION'
+      ? () => vouchersApi.createOrganisation(formData)
+      : () => vouchersApi.createPromotionnel(formData);
+
+    await execute(action, {
       onSuccess: (voucher) => {
         setCreatedVoucher(voucher);
-        showToast('Voucher promotionnel créé.', 'success');
+        showToast(
+          modeCreation === 'ORGANISATION'
+            ? 'Voucher organisation créé.'
+            : 'Voucher promotionnel créé.',
+          'success'
+        );
       },
     });
   };
@@ -61,7 +72,9 @@ export default function VoucherForm() {
       <div className="rounded-lg bg-white p-6 shadow">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">Formulaire voucher</p>
         <h2 className="mt-3 text-2xl font-semibold text-primary">Création promotionnelle</h2>
-        <p className="mt-2 text-subtext">Le contrat backend réactivé permet la création de vouchers promotionnels en brouillon.</p>
+        <p className="mt-2 text-subtext">
+          Crée un voucher promotionnel ou un voucher organisation lié à un devis.
+        </p>
       </div>
 
       {createdVoucher && (
@@ -87,8 +100,26 @@ export default function VoucherForm() {
         ) : (
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-text">Formation</label>
+              <label htmlFor="voucher-mode-creation" className="mb-1.5 block text-sm font-medium text-text">
+                Type de création
+              </label>
               <select
+                id="voucher-mode-creation"
+                value={modeCreation}
+                onChange={(e) => setModeCreation(e.target.value)}
+                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
+              >
+                <option value="PROMOTIONNEL">Voucher promotionnel</option>
+                <option value="ORGANISATION">Voucher organisation</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="voucher-formation" className="mb-1.5 block text-sm font-medium text-text">
+                Formation
+              </label>
+              <select
+                id="voucher-formation"
                 value={formData.formation_id}
                 onChange={(e) => setFormData((current) => ({ ...current, formation_id: e.target.value }))}
                 className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
@@ -102,6 +133,21 @@ export default function VoucherForm() {
               </select>
             </div>
 
+            {modeCreation === 'ORGANISATION' && (
+              <div>
+                <Input
+                  type="text"
+                  label="ID du devis"
+                  value={formData.devis_id}
+                  onChange={(e) => setFormData((current) => ({ ...current, devis_id: e.target.value }))}
+                  placeholder="devis_id"
+                />
+                <p className="mt-1 text-xs text-subtext">
+                  Obligatoire pour rattacher le voucher au devis de l'organisation.
+                </p>
+              </div>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2">
               <Input
                 type="number"
@@ -110,8 +156,11 @@ export default function VoucherForm() {
                 onChange={(e) => setFormData((current) => ({ ...current, valeur: e.target.value }))}
               />
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-text">Type de valeur</label>
+                <label htmlFor="voucher-type-valeur" className="mb-1.5 block text-sm font-medium text-text">
+                  Type de valeur
+                </label>
                 <select
+                  id="voucher-type-valeur"
                   value={formData.type_valeur}
                   onChange={(e) => setFormData((current) => ({ ...current, type_valeur: e.target.value }))}
                   className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
@@ -142,7 +191,7 @@ export default function VoucherForm() {
                 Annuler
               </Button>
               <Button type="submit" loading={isLoading}>
-                Créer le voucher
+                {modeCreation === 'ORGANISATION' ? 'Créer le voucher organisation' : 'Créer le voucher promo'}
               </Button>
             </div>
           </form>

@@ -57,7 +57,7 @@ export const vouchersApi = {
   createOrganisation: async (data) => {
     const response = await apiClient.post('/vouchers/organisation', {
       formation_id: data.formation_id,
-      organisation_id: data.organisation_id,
+      devis_id: data.devis_id || undefined,
       valeur: Number(data.valeur),
       type_valeur: data.type_valeur,
       quota_max: Number(data.quota_max),
