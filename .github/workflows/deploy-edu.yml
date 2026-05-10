@@ -118,7 +118,6 @@ jobs:
               set -euo pipefail
               mkdir -p "$DEPLOY_PATH/infra/docker" "$DEPLOY_PATH/infra/env"
               cd "$DEPLOY_PATH"
-              RESOLVED_IMAGE_TAG="$IMAGE_TAG"
 
               # Cree le fichier .env.edu.deploy s'il n'existe pas (premier deploy)
               if [ ! -f infra/env/.env.edu.deploy ]; then
@@ -127,18 +126,15 @@ jobs:
 
               echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-              # Recupere l'image backend deja buildee. Si la version SHA n'existe pas
-              # (cas d'un commit avec skip ci ou d'un build interrompu), on bascule
-              # sur le tag dev pour eviter un echec "manifest unknown".
-              if docker manifest inspect ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG >/dev/null 2>&1; then
-                docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
-                RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
-              else
-                echo "Image dev-$IMAGE_TAG introuvable, fallback sur le tag dev"
-                RESOLVED_IMAGE_TAG="dev"
-                docker pull ghcr.io/flinguee75/forges-backend:dev
-                RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev"
+              # EDU doit suivre exactement le SHA demandé.
+              # Si l'image n'existe pas, on echoue pour eviter de masquer un deploy incomplet.
+              if ! docker manifest inspect ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG >/dev/null 2>&1; then
+                echo "Image backend introuvable pour le SHA $IMAGE_TAG"
+                echo "L'image ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG doit etre publiee avant le deploy EDU."
+                exit 1
               fi
+              docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
+              RESOLVED_IMAGE_REF="ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
 
               # Met a jour le fichier de deploy EDU pour conserver les bons ports et la bonne image
               sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
@@ -183,8 +179,9 @@ jobs:
           echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| URL | https://edu.forges-group.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA déployé | ${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Image demandee | ghcr.io/flinguee75/forges-backend:dev-${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Fallback | tag dev si la version SHA est absente |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fallback | aucun |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | forges-backend-edu (port 3006) |" >> $GITHUB_STEP_SUMMARY
           echo "| DB | forges_edu (independante de dev) |" >> $GITHUB_STEP_SUMMARY
           echo "| Deploye par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
