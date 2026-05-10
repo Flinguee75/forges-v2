@@ -94,6 +94,8 @@ export default function SessionsList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  const totalSessions = Math.max(Number(meta.total || 0), sessions.length);
+
   const columns = [
     {
       key: 'formation',
@@ -247,7 +249,7 @@ export default function SessionsList() {
 
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold text-primary">
-            {meta.total} session{meta.total > 1 ? 's' : ''}
+            {totalSessions} session{totalSessions > 1 ? 's' : ''}
           </h3>
         </div>
 

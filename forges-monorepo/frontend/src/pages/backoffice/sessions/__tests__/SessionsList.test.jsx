@@ -97,4 +97,33 @@ describe('SessionsList', () => {
       expect(screen.getByText('0 places restantes — 125% rempli')).toBeInTheDocument();
     });
   });
+
+  it('affiche un total cohérent même si le backend renvoie meta.total à 0', async () => {
+    sessionsApi.getBackofficeList.mockResolvedValueOnce({
+      data: [
+        {
+          id: 's-3',
+          formation: { id: 'f-1', titre: 'Formation 1' },
+          date_ouverture: '2026-06-09T00:00:00.000Z',
+          date_cloture: '2026-06-10T00:00:00.000Z',
+          date_debut: '2026-06-11T00:00:00.000Z',
+          date_fin: '2026-06-12T00:00:00.000Z',
+          capacite: 15,
+          statut: 'OUVERTE',
+          _count: { dossiers: 3 },
+        },
+      ],
+      meta: { page: 1, totalPages: 1, total: 0 },
+    });
+
+    render(
+      <BrowserRouter>
+        <SessionsList />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('1 session')).toBeInTheDocument();
+    });
+  });
 });
