@@ -17,6 +17,7 @@ describe('genererDocxDevis', () => {
       organisation: {
         raison_sociale: 'Organisation Test',
         email: 'orga@test.ci',
+        identifiant_legal: 'CI-RCCM-2026-001',
         contact_referent: 'Contact Test',
       },
       formation: {
@@ -31,6 +32,8 @@ describe('genererDocxDevis', () => {
     const documentXml = extractDocumentXml(buffer);
     expect(documentXml).toContain('Lu et approuve');
     expect(documentXml).not.toContain('{date_approbation}');
+    expect(documentXml).toContain('CI-RCCM-2026-001');
+    expect(documentXml).not.toContain('A completer');
     expect(documentXml).toMatch(new RegExp(new Date().toLocaleDateString('fr-FR').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
 });

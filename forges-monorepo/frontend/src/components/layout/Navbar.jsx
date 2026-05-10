@@ -148,6 +148,7 @@ export default function Navbar({
   user,
   onLogout,
   onMenuToggle,
+  showSystemStatus = true,
 }) {
   const isPublic = variant === 'public';
   const privateCopy = getPrivateCopy(user?.langue_preferee);
@@ -158,17 +159,17 @@ export default function Navbar({
   const [isCheckingBackend, setIsCheckingBackend] = useState(true);
 
   useEffect(() => {
-    if (isPublic) return undefined;
+    if (isPublic || !showSystemStatus) return undefined;
 
     const interval = window.setInterval(() => {
       setNow(new Date());
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [isPublic]);
+  }, [isPublic, showSystemStatus]);
 
   useEffect(() => {
-    if (isPublic) return undefined;
+    if (isPublic || !showSystemStatus) return undefined;
 
     let active = true;
 
@@ -202,7 +203,7 @@ export default function Navbar({
       active = false;
       window.clearInterval(interval);
     };
-  }, [isPublic]);
+  }, [isPublic, showSystemStatus]);
 
   const backendStatus = getBackendStatusLabel(isBackendOnline, isCheckingBackend);
 
@@ -249,9 +250,11 @@ export default function Navbar({
                 <h1 className="truncate text-lg font-semibold text-text sm:text-xl">
                   {title}
                 </h1>
-                <div className="mt-2">
-                  <StatusBadge />
-                </div>
+                {showSystemStatus && (
+                  <div className="mt-2">
+                    <StatusBadge />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -283,26 +286,30 @@ export default function Navbar({
               </span>
             ) : null}
 
-            <div className="hidden text-right lg:block">
-              <p className="text-xs uppercase tracking-[0.24em] text-primary/55">
-                {privateCopy.today}
-              </p>
-              <p className="text-sm text-subtext">
-                {new Date().toLocaleDateString(privateCopy.locale, {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
-            </div>
+            {showSystemStatus && (
+              <>
+                <div className="hidden text-right lg:block">
+                  <p className="text-xs uppercase tracking-[0.24em] text-primary/55">
+                    {privateCopy.today}
+                  </p>
+                  <p className="text-sm text-subtext">
+                    {new Date().toLocaleDateString(privateCopy.locale, {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
 
-            <div className="flex items-center gap-2 rounded-full border border-border bg-bg px-3 py-1 text-xs font-medium text-subtext">
-              <span className={backendStatus.tone === 'success' ? 'text-success' : backendStatus.tone === 'warning' ? 'text-warning' : 'text-danger'} aria-hidden="true">
-                {backendStatus.symbol}
-              </span>
-              <span className="font-mono text-text">{formatTimeParts(now)}</span>
-            </div>
+                <div className="flex items-center gap-2 rounded-full border border-border bg-bg px-3 py-1 text-xs font-medium text-subtext">
+                  <span className={backendStatus.tone === 'success' ? 'text-success' : backendStatus.tone === 'warning' ? 'text-warning' : 'text-danger'} aria-hidden="true">
+                    {backendStatus.symbol}
+                  </span>
+                  <span className="font-mono text-text">{formatTimeParts(now)}</span>
+                </div>
+              </>
+            )}
 
             <Button variant="outline" type="button" onClick={onLogout} className="shrink-0">
               {privateCopy.logout}
@@ -327,4 +334,5 @@ Navbar.propTypes = {
   }),
   onLogout: PropTypes.func,
   onMenuToggle: PropTypes.func,
+  showSystemStatus: PropTypes.bool,
 };

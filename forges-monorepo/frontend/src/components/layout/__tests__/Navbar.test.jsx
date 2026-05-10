@@ -54,4 +54,24 @@ describe('Navbar', () => {
     expect(calledUrl).toContain('/health');
     expect(calledUrl).not.toContain('/api/health');
   });
+
+  it('masque le statut systeme sur les espaces organisation et apprenant', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+
+    render(
+      <BrowserRouter>
+        <Navbar
+          variant="private"
+          title="Espace Organisation"
+          user={{ role: 'ORGANISATION', email: 'org@test.com', raison_sociale: 'Org Test' }}
+          showSystemStatus={false}
+        />
+      </BrowserRouter>
+    );
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(screen.getByText('Org Test')).toBeInTheDocument();
+    expect(screen.queryByText('API en ligne')).not.toBeInTheDocument();
+    expect(screen.queryByText("Aujourd'hui")).not.toBeInTheDocument();
+  });
 });

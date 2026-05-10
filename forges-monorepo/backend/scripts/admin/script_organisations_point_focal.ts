@@ -69,6 +69,7 @@ const ORGANISATIONS: OrganisationSeed[] = [
     nom: 'Point Focal',
     type: 'ENTREPRISE',
     pays: 'CI',
+    identifiant_legal: 'CI-RCCM-POINTFOCAL-2026-001',
     tarif: 2000000,
     referent: {
       nom: 'Hassan Cissé',
@@ -297,6 +298,7 @@ async function main() {
           data: {
             raison_sociale: org.nom,
             type: org.type,
+            identifiant_legal: org.identifiant_legal || null,
             email: orgEmail,
             contact_referent: org.referent.nom,
             pays: org.pays,
@@ -310,11 +312,11 @@ async function main() {
         });
         organisationId = created.id;
         log('INFO', 'Organisation créée', { raison_sociale: org.nom, id: organisationId });
-        await emailService.sendTempPassword(orgEmail, TEMP_PASSWORD, 'FR', 'APPRENANT');
+        await emailService.sendTempPassword(orgEmail, TEMP_PASSWORD, 'FR', 'ORGANISATION');
         log('INFO', 'Email mot de passe temporaire envoyé', {
           email: orgEmail,
           nom: org.referent.nom,
-          type_compte: 'APPRENANT',
+          type_compte: 'ORGANISATION',
         });
       }
 

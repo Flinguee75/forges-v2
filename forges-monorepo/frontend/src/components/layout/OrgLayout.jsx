@@ -82,6 +82,7 @@ export default function OrgLayout() {
           title="Espace Organisation"
           user={user}
           onLogout={handleLogout}
+          showSystemStatus={false}
         />
 
         <main className="flex-1 p-6">

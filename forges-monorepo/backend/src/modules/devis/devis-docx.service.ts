@@ -55,7 +55,7 @@ export function genererDocxDevis(devis: {
     email_organisation: devis.organisation?.email ?? '',
     adresse_organisation: devis.organisation?.adresse ?? '',
     pays_organisation: devis.organisation?.pays ?? "Cote d'Ivoire",
-    id_legal: devis.organisation?.identifiant_legal ?? 'A completer',
+    id_legal: devis.organisation?.identifiant_legal?.trim() ?? '',
     contact_referent: devis.organisation?.contact_referent ?? '',
     // Ligne 1 : la formation
     intitule: devis.formation?.intitule ?? '',
