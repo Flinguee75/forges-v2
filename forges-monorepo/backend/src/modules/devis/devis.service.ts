@@ -37,11 +37,9 @@ export class DevisService {
     if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
     if (!formation) throw new Error('FORMATION_NOT_FOUND');
 
-    if (dto.session_id) {
-      const session = await this.prisma.session.findUnique({ where: { id: dto.session_id } });
-      if (!session || session.formation_id !== dto.formation_id) {
-        throw new Error('SESSION_INVALIDE');
-      }
+    const session = await this.prisma.session.findUnique({ where: { id: dto.session_id } });
+    if (!session || session.formation_id !== dto.formation_id) {
+      throw new Error('SESSION_INVALIDE');
     }
 
     const annee = new Date().getFullYear();
@@ -104,15 +102,13 @@ export class DevisService {
     if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
     if (!formation) throw new Error('FORMATION_NOT_FOUND');
 
-    const session = devis.session_id
-      ? await this.prisma.session.findUnique({ where: { id: devis.session_id } })
-      : undefined;
+    const session = await this.prisma.session.findUnique({ where: { id: devis.session_id } });
 
     const buffer = await genererPdfDevis({
       devis: devis as any,
       organisation,
       formation,
-      session: session || undefined,
+      session,
     });
 
     return { buffer, filename: `${devis.numero_devis}.pdf` };
@@ -247,10 +243,33 @@ export class DevisService {
     const devis = await this.devisRepository.findById(devisId);
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
 
-    return this.prisma.voucherOrganisation.findMany({
+    const vouchers = await this.prisma.voucherOrganisation.findMany({
       where: { devis_id: devisId },
       orderBy: { created_at: 'asc' },
     });
+
+    const organisation = await this.prisma.organisation.findUnique({
+      where: { id: devis.organisation_id },
+      select: { id: true, raison_sociale: true, email: true },
+    });
+
+    const formation = await this.prisma.formation.findUnique({
+      where: { id: devis.formation_id },
+      select: { id: true, intitule: true },
+    });
+
+    return vouchers.map((voucher) => ({
+      ...voucher,
+      organisation: organisation && voucher.organisation_id === organisation.id ? organisation : null,
+      formation: formation && voucher.formation_id === formation.id ? formation : null,
+      devis: {
+        id: devis.id,
+        numero_devis: devis.numero_devis,
+        organisation_id: devis.organisation_id,
+        formation_id: devis.formation_id,
+        nb_places: devis.nb_places,
+      },
+    }));
   }
 
   async annulerDevis(id: string, adminId: string, notes_admin?: string) {
@@ -288,6 +307,9 @@ export class DevisService {
     if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
     if (!formation) throw new Error('FORMATION_NOT_FOUND');
 
+    const session = await this.prisma.session.findUnique({ where: { id: devis.session_id } });
+    if (!session) throw new Error('SESSION_NOT_FOUND');
+
     const langue = organisation.langue_preferee || 'FR';
 
     let pdfBuffer: Buffer | undefined;
@@ -296,6 +318,7 @@ export class DevisService {
         devis: devis as any,
         organisation,
         formation,
+        session,
       });
     } catch {
       // envoi sans pièce jointe si génération PDF échoue
@@ -304,7 +327,7 @@ export class DevisService {
     const emailSubject = langue === 'EN'
       ? `Your quote ${devis.numero_devis} from FORGES`
       : `Votre devis ${devis.numero_devis} — FORGES AGRÉGATEUR`;
-    const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation });
+    const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation, session });
 
     if (pdfBuffer) {
       await this.emailService.sendEmailWithAttachment({
@@ -342,11 +365,15 @@ export class DevisService {
   private buildEmailHtml(devis: any): string {
     const org = devis.organisation;
     const formation = devis.formation;
+    const session = devis.session;
     const montant = devis.montant_total_xof.toLocaleString('fr-FR');
     const tarif = devis.tarif_unitaire_xof.toLocaleString('fr-FR');
     const BLEU = '#0d1b6e';
     const OR = '#FFE500';
     const logoBase64 = getLogoBase64();
+    const sessionLabel = session?.date_debut
+      ? `${new Date(session.date_debut).toLocaleDateString('fr-FR')} au ${new Date(session.date_fin || session.date_debut).toLocaleDateString('fr-FR')}`
+      : 'Session non renseignée';
 
     return `
 <!DOCTYPE html>
@@ -400,6 +427,10 @@ export class DevisService {
               <tr style="background:#f8f9fb;">
                 <td style="padding:11px 16px;color:#666;">Nombre de places</td>
                 <td style="padding:11px 16px;font-weight:600;text-align:right;color:#333;">${devis.nb_places}</td>
+              </tr>
+              <tr>
+                <td style="padding:11px 16px;color:#666;border-top:1px solid #e2e8f0;">Session</td>
+                <td style="padding:11px 16px;font-weight:600;text-align:right;color:#333;border-top:1px solid #e2e8f0;">${sessionLabel}</td>
               </tr>
               <tr>
                 <td style="padding:11px 16px;color:#666;border-top:1px solid #e2e8f0;">Tarif unitaire</td>

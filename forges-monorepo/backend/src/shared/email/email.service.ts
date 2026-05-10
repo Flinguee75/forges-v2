@@ -593,13 +593,11 @@ export class EmailService {
         '',
         `Votre paiement pour la formation ${formation} a été confirmé.`,
         'Votre dossier peut continuer son traitement.',
-        `Langue du message: ${langue}`,
       ]),
       html: this.buildHtmlEmail(title, [
         'Bonjour,',
         `Votre paiement pour la formation <strong>${formation}</strong> a été confirmé.`,
         'Votre dossier peut continuer son traitement.',
-        `Langue du message : ${langue}`,
       ]),
     });
   }
@@ -1008,16 +1006,29 @@ export class EmailService {
     fonction?: string;
     organisation: string;
     formation: string;
+    session?: {
+      date_debut?: Date | string | null;
+      date_fin?: Date | string | null;
+      lieu?: string | null;
+    } | null;
   }): Promise<void> {
-    const { to, prenoms, nom, fonction, organisation, formation } = options;
+    const { to, prenoms, nom, fonction, organisation, formation, session } = options;
     const nomComplet = `${prenoms} ${nom}`;
     const fonctionLine = fonction
       ? `<p style="margin:0;color:#666;font-size:13px;">${fonction} — ${organisation}</p>`
       : `<p style="margin:0;color:#666;font-size:13px;">${organisation}</p>`;
+    const sessionLine = session
+      ? [
+          session.date_debut && session.date_fin
+            ? `<p style="margin:0 0 4px;font-size:13px;color:#555;"><strong>Session :</strong> du ${new Date(session.date_debut).toLocaleDateString('fr-FR')} au ${new Date(session.date_fin).toLocaleDateString('fr-FR')}</p>`
+            : null,
+          session.lieu ? `<p style="margin:0;font-size:13px;color:#555;"><strong>Lieu :</strong> ${session.lieu}</p>` : null,
+        ].filter(Boolean).join('')
+      : '';
 
     await this.sendEmail({
       to,
-      subject: `Votre pré-inscription Masterclass GWU/CCDL confirmée — FORGES`,
+      subject: `Votre inscription Masterclass GWU/CCDL confirmée — FORGES`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;">
           <div style="background:#1a1a2e;padding:24px 32px;border-radius:8px 8px 0 0;">
@@ -1030,16 +1041,12 @@ export class EmailService {
             ${fonctionLine}
             <br>
             <p style="font-size:15px;color:#333;">
-              Votre pré-inscription à la <strong>${formation}</strong> a bien été enregistrée.
-              Nous sommes ravis de vous compter parmi les participants de cette masterclass.
+              Votre inscription à la <strong>${formation}</strong> a bien été confirmée.
             </p>
 
             <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0;">
-              <p style="margin:0 0 4px;font-size:13px;color:#555;">
-                Votre participation est prise en charge par <strong>${organisation}</strong>.
-                Vous recevrez prochainement les informations de connexion à la plateforme FORGES
-                pour accéder à votre espace apprenant.
-              </p>
+              <p style="margin:0 0 8px;font-size:13px;color:#555;">Votre inscription est bien enregistrée.</p>
+              ${sessionLine}
             </div>
 
             <p style="font-size:14px;color:#555;">

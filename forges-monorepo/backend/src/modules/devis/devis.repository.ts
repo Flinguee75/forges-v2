@@ -32,7 +32,7 @@ export class DevisRepository {
     numero_devis: string;
     organisation_id: string;
     formation_id: string;
-    session_id?: string;
+    session_id: string;
     nb_places: number;
     tarif_unitaire_xof: number;
     montant_total_xof: number;

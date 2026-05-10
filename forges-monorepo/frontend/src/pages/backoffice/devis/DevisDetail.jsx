@@ -18,6 +18,18 @@ function formatMontant(value) {
   return Number(value).toLocaleString('fr-FR') + ' XOF';
 }
 
+function formatQuotaPercentage(voucher) {
+  if (!voucher) return '-';
+  const valeur = Number(voucher.valeur ?? 0);
+  return voucher.type_valeur === 'POURCENTAGE' ? `${valeur}%` : formatMontant(valeur);
+}
+
+function formatQuotaLimits(voucher) {
+  const quotaMax = Number(voucher?.quota_max ?? 0);
+  const quotaUtilise = Number(voucher?.quota_utilise ?? 0);
+  return `${quotaUtilise} / ${quotaMax || 0}`;
+}
+
 const STATUT_CONFIG = {
   CREE:   { variant: 'warning', label: 'En attente de paiement' },
   PAYE:   { variant: 'success', label: 'Payé' },
@@ -258,16 +270,34 @@ export default function DevisDetail() {
             {vouchers.map((v, i) => (
               <div
                 key={v.id}
-                className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+                className="space-y-2 rounded-lg border border-border px-4 py-3"
                 data-testid={`voucher-item-${i}`}
               >
-                <span className="font-mono text-xs text-subtext">{v.code}</span>
-                <Badge
-                  variant={VOUCHER_STATUT_CONFIG[v.statut]?.variant || 'gray'}
-                  data-testid={`voucher-statut-${i}`}
-                >
-                  {VOUCHER_STATUT_CONFIG[v.statut]?.label || v.statut}
-                </Badge>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-xs text-subtext">{v.code}</span>
+                  <Badge
+                    variant={VOUCHER_STATUT_CONFIG[v.statut]?.variant || 'gray'}
+                    data-testid={`voucher-statut-${i}`}
+                  >
+                    {VOUCHER_STATUT_CONFIG[v.statut]?.label || v.statut}
+                  </Badge>
+                </div>
+                <dl className="grid gap-2 text-xs text-subtext sm:grid-cols-3">
+                  <div>
+                    <dt className="uppercase tracking-[0.18em]">Organisation</dt>
+                    <dd className="mt-1 text-text">
+                      {v.organisation?.raison_sociale || v.devis?.organisation_id || devis.organisation?.raison_sociale || devis.organisation_id}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="uppercase tracking-[0.18em]">Réduction</dt>
+                    <dd className="mt-1 text-text">{formatQuotaPercentage(v)}</dd>
+                  </div>
+                  <div>
+                    <dt className="uppercase tracking-[0.18em]">Quota</dt>
+                    <dd className="mt-1 text-text">{formatQuotaLimits(v)}</dd>
+                  </div>
+                </dl>
               </div>
             ))}
           </div>

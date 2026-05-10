@@ -46,6 +46,13 @@ const formationFixture = {
   cout_catalogue: 200000,
 };
 
+const sessionFixture = {
+  id: 's-01',
+  formation_id: 'f-01',
+  date_debut: new Date('2026-06-01T00:00:00.000Z'),
+  date_fin: new Date('2026-06-10T00:00:00.000Z'),
+};
+
 function makeService() {
   return new DevisService(
     mockDevisRepo as any,
@@ -61,6 +68,7 @@ beforeEach(() => {
   mockEmail.sendEmailWithAttachment.mockResolvedValue(undefined);
   mockAudit.info.mockResolvedValue(undefined);
   mockPrisma.voucherOrganisation.count.mockResolvedValue(0);
+  mockPrisma.session.findUnique.mockResolvedValue(sessionFixture);
   mockPrisma.voucherOrganisation.create.mockImplementation((args: any) => ({
     id: `v-${Math.random().toString(36).slice(2)}`,
     ...args.data,
@@ -84,7 +92,7 @@ describe('DevisService — RM-149 à RM-151', () => {
 
       const service = makeService();
       const devis = await service.creerDevis(
-        { organisation_id: 'org-01', formation_id: 'f-01', nb_places: 10, tarif_unitaire_xof: 15000 },
+        { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 10, tarif_unitaire_xof: 15000 },
         'admin-01'
       );
 
@@ -102,7 +110,7 @@ describe('DevisService — RM-149 à RM-151', () => {
 
       const service = makeService();
       const devis = await service.creerDevis(
-        { organisation_id: 'org-01', formation_id: 'f-01', nb_places: 1, tarif_unitaire_xof: 10000 },
+        { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 1, tarif_unitaire_xof: 10000 },
         'admin-01'
       );
 
@@ -118,7 +126,7 @@ describe('DevisService — RM-149 à RM-151', () => {
 
       const service = makeService();
       const devis = await service.creerDevis(
-        { organisation_id: 'org-01', formation_id: 'f-01', nb_places: 1, tarif_unitaire_xof: 5000 },
+        { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 1, tarif_unitaire_xof: 5000 },
         'admin-01'
       );
 
@@ -168,7 +176,7 @@ describe('DevisService — RM-149 à RM-151', () => {
 
       const service = makeService();
       await service.creerDevis(
-        { organisation_id: 'org-01', formation_id: 'f-01', nb_places: 5, tarif_unitaire_xof: 20000 },
+        { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 5, tarif_unitaire_xof: 20000 },
         'admin-01'
       );
 
@@ -313,6 +321,32 @@ describe('DevisService — genererVouchersDevis (RM-152)', () => {
     const service = makeService();
     await expect(service.genererVouchersDevis('devis-anssi', 'admin-01')).rejects.toThrow('VOUCHERS_DEJA_GENERES');
     expect(mockPrisma.voucherOrganisation.create).not.toHaveBeenCalled();
+  });
+
+  it('enrichit les vouchers du devis avec lorganisation et la formation', async () => {
+    mockDevisRepo.findById.mockResolvedValue(devisCreeFix);
+    mockPrisma.voucherOrganisation.findMany.mockResolvedValue([
+      {
+        id: 'v-1',
+        code: 'VCH-001',
+        organisation_id: 'org-anssi',
+        formation_id: 'f-cyber',
+        devis_id: 'devis-anssi',
+      },
+    ]);
+    mockPrisma.organisation.findUnique.mockResolvedValue({ id: 'org-anssi', raison_sociale: 'ANSSI CI', email: 'contact@anssi.ci' });
+    mockPrisma.formation.findUnique.mockResolvedValue({ id: 'f-cyber', intitule: 'Cyberdefense' });
+
+    const service = makeService();
+    const vouchers = await service.listerVouchersDevis('devis-anssi');
+
+    expect(vouchers).toHaveLength(1);
+    expect(vouchers[0]).toMatchObject({
+      code: 'VCH-001',
+      organisation: { raison_sociale: 'ANSSI CI' },
+      formation: { intitule: 'Cyberdefense' },
+      devis: { id: 'devis-anssi', organisation_id: 'org-anssi', formation_id: 'f-cyber', nb_places: 3 },
+    });
   });
 });
 

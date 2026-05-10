@@ -133,14 +133,35 @@ describe('DevisDetail — section vouchers', () => {
 
   it('affiche les vouchers avec leurs statuts', async () => {
     devisApi.listerVouchers.mockResolvedValue([
-      { id: 'v1', code: 'VCH-XXXX-0001', statut: 'EN_ATTENTE' },
-      { id: 'v2', code: 'VCH-XXXX-0002', statut: 'ACTIF' },
+      {
+        id: 'v1',
+        code: 'VCH-XXXX-0001',
+        statut: 'EN_ATTENTE',
+        organisation: { raison_sociale: 'ANSSI CI' },
+        valeur: 100,
+        type_valeur: 'POURCENTAGE',
+        quota_max: 1,
+        quota_utilise: 0,
+      },
+      {
+        id: 'v2',
+        code: 'VCH-XXXX-0002',
+        statut: 'ACTIF',
+        organisation: { raison_sociale: 'ANSSI CI' },
+        valeur: 100,
+        type_valeur: 'POURCENTAGE',
+        quota_max: 1,
+        quota_utilise: 0,
+      },
     ]);
     renderComponent();
     await waitFor(() => {
       expect(screen.getByTestId('voucher-item-0')).toHaveTextContent('VCH-XXXX-0001');
       expect(screen.getByTestId('voucher-item-0')).toHaveTextContent('En attente');
       expect(screen.getByTestId('voucher-item-1')).toHaveTextContent('Actif');
+      expect(screen.getByTestId('voucher-item-0')).toHaveTextContent('ANSSI CI');
+      expect(screen.getByTestId('voucher-item-0')).toHaveTextContent('100%');
+      expect(screen.getByTestId('voucher-item-0')).toHaveTextContent('0 / 1');
     });
   });
 

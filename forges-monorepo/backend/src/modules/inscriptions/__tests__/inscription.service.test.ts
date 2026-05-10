@@ -23,6 +23,9 @@ describe('InscriptionService', () => {
     places_restantes: 5,
     nb_inscrits: 2,
     capacite: 10,
+    date_debut: new Date('2026-06-01T00:00:00.000Z'),
+    date_fin: new Date('2026-06-11T00:00:00.000Z'),
+    lieu: 'AIGF, Abidjan',
   };
 
   beforeEach(() => {
@@ -231,6 +234,11 @@ describe('InscriptionService', () => {
       nom: 'Samassi',
       organisation: 'ANSSI CI',
       formation: 'Masterclass Cyber',
+      session: {
+        date_debut: baseSession.date_debut,
+        date_fin: baseSession.date_fin,
+        lieu: baseSession.lieu,
+      },
     });
     expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith('aly@forges.test', 'Masterclass Cyber', 'FR');
     expect(mockAudit.info).toHaveBeenCalledWith('EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES', expect.objectContaining({

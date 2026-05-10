@@ -24,6 +24,9 @@ export class DevisController {
       if (error.message === 'SESSION_INVALIDE') {
         return res.status(400).json({ statusCode: 400, error: 'SESSION_INVALIDE', message: 'Session invalide ou non liée à cette formation' });
       }
+      if (error.message === 'SESSION_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'SESSION_NOT_FOUND', message: 'Session introuvable' });
+      }
       next(error);
     }
   }
@@ -109,6 +112,9 @@ export class DevisController {
       if (error.message === 'FORMATION_NOT_FOUND') {
         return res.status(404).json({ statusCode: 404, error: 'FORMATION_NOT_FOUND', message: 'Formation introuvable' });
       }
+      if (error.message === 'SESSION_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'SESSION_NOT_FOUND', message: 'Session introuvable' });
+      }
       next(error);
     }
   }
@@ -123,6 +129,9 @@ export class DevisController {
     } catch (error: any) {
       if (error.message === 'DEVIS_NOT_FOUND') {
         return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND', message: 'Devis introuvable' });
+      }
+      if (error.message === 'SESSION_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'SESSION_NOT_FOUND', message: 'Session introuvable' });
       }
       next(error);
     }
@@ -174,6 +183,9 @@ export class DevisController {
       }
       if (error.message === 'ORGANISATION_NOT_FOUND') {
         return res.status(404).json({ statusCode: 404, error: 'ORGANISATION_NOT_FOUND', message: 'Organisation introuvable' });
+      }
+      if (error.message === 'SESSION_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'SESSION_NOT_FOUND', message: 'Session introuvable' });
       }
       next(error);
     }

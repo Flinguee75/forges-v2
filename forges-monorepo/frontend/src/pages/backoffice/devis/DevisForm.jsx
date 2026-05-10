@@ -4,6 +4,7 @@ import { useApi } from '../../../hooks/useApi';
 import { useToast } from '../../../hooks/useToast';
 import devisApi from '../../../api/devis.api';
 import formationsApi from '../../../api/formations.api';
+import { sessionsApi } from '../../../api/sessions.api';
 import { organisationsApi } from '../../../api/organisations.api';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -15,6 +16,7 @@ export default function DevisForm() {
   const { execute, isLoading } = useApi();
 
   const [formations, setFormations] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [organisations, setOrganisations] = useState([]);
   const [devisCree, setDevisCree] = useState(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -42,11 +44,41 @@ export default function DevisForm() {
       onSuccess: (data) => setOrganisations(Array.isArray(data?.data) ? data.data : []),
       showErrorToast: false,
     });
+    execute(() => sessionsApi.getBackofficeList({ limit: 200 }), {
+      onSuccess: (data) => setSessions(Array.isArray(data?.data) ? data.data : []),
+      showErrorToast: false,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (field) => (e) => {
-    setFormData((f) => ({ ...f, [field]: e.target.value }));
+    const value = e.target.value;
+    setFormData((f) => ({
+      ...f,
+      [field]: value,
+      ...(field === 'formation_id' ? { session_id: '' } : {}),
+    }));
+  };
+
+  const selectedFormationSessions = useMemo(() => {
+    if (!formData.formation_id) {
+      return [];
+    }
+
+    return sessions.filter((session) => {
+      const sessionFormationId = session?.formation_id || session?.formation?.id;
+      const allowedStatuses = ['PLANIFIEE', 'OUVERTE', 'EN_COURS'];
+      return sessionFormationId === formData.formation_id && allowedStatuses.includes(session?.statut);
+    });
+  }, [formData.formation_id, sessions]);
+
+  const formatSessionLabel = (session) => {
+    if (!session) return '';
+    const debut = session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-FR') : '';
+    const fin = session.date_fin ? new Date(session.date_fin).toLocaleDateString('fr-FR') : '';
+    const periode = debut && fin ? `du ${debut} au ${fin}` : 'dates indisponibles';
+    const lieu = session.lieu ? ` • ${session.lieu}` : '';
+    return `${periode}${lieu}`;
   };
 
   const handleSubmit = async (e) => {
@@ -159,13 +191,31 @@ export default function DevisForm() {
             </select>
           </div>
 
-          <Input
-            label="ID session (optionnel)"
-            placeholder="Identifiant de la session (optionnel)"
-            value={formData.session_id}
-            onChange={handleChange('session_id')}
-            data-testid="input-session-id"
-          />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-text">Session</label>
+            <select
+              data-testid="select-session"
+              value={formData.session_id}
+              onChange={handleChange('session_id')}
+              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
+              required
+              disabled={!formData.formation_id}
+            >
+              <option value="">
+                {formData.formation_id ? 'Sélectionner une session' : 'Sélectionnez d’abord une formation'}
+              </option>
+              {selectedFormationSessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {formatSessionLabel(session)}
+                </option>
+              ))}
+            </select>
+            {formData.formation_id && selectedFormationSessions.length === 0 && (
+              <p className="mt-1 text-xs text-warning">
+                Aucune session planifiée ou ouverte n&apos;est disponible pour cette formation.
+              </p>
+            )}
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <Input

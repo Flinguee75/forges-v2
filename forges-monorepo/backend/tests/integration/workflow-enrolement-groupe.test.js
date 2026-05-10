@@ -297,6 +297,10 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
 
     const apprenants = await prisma.apprenant.findMany({ where: { organisation_id: organisationId } });
     const org = await prisma.organisation.findFirst({ where: { id: organisationId } });
+    const session = await prisma.session.findFirst({
+      where: { id: groupeConfig.masterclass.session_id },
+      select: { date_debut: true, date_fin: true, lieu: true },
+    });
 
     for (const apprenant of apprenants) {
       const destinataire = EMAIL_TEST_OVERRIDE;
@@ -309,6 +313,13 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
         fonction: appConfig?.fonction,
         organisation: org.raison_sociale,
         formation: 'Masterclass GWU/CCDL',
+        session: session
+          ? {
+              date_debut: session.date_debut,
+              date_fin: session.date_fin,
+              lieu: session.lieu || null,
+            }
+          : null,
       });
     }
 
@@ -322,6 +333,7 @@ describe('Workflow enrolement groupe — ANSSI CI', () => {
       expect(call[0].subject).toContain('FORGES');
       expect(call[0].html).toContain(groupeConfig.organisation.raison_sociale);
       expect(call[0].html).toContain('GWU/CCDL');
+      expect(call[0].html).toContain('inscription est bien enregistrée');
       // Pas de code acces dans l'email apprenant
       expect(call[0].html).not.toContain('code acces');
     });

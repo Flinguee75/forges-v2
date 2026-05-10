@@ -6,7 +6,7 @@ import Docxtemplater from 'docxtemplater';
 const TEMPLATE_PATH = path.join(__dirname, '../../../templates/devis-template.docx');
 
 function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return 'A planifier';
+  if (!date) return 'Session non renseignée';
   const d = new Date(date);
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
@@ -37,9 +37,9 @@ export function genererDocxDevis(devis: {
   const zip = new PizZip(content);
   const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
 
-  const sessionLabel = devis.session?.date_debut
-    ? `${formatDate(devis.session.date_debut)} - ${formatDate(devis.session.date_fin)}`
-    : 'A planifier';
+  const sessionLabel = devis.session?.date_debut && devis.session?.date_fin
+    ? `Du ${formatDate(devis.session.date_debut)} au ${formatDate(devis.session.date_fin)}`
+    : 'Session non renseignée';
 
   const totalLigne = devis.nb_places * devis.tarif_unitaire_xof;
 

@@ -198,7 +198,12 @@ export class InscriptionService {
         }
 
         await this.creerPaiementVoucherOrganisation(dossier.id, formation.cout_catalogue);
-        await this.notifierApprenantVoucherOrganisation(params.apprenantId, voucher.organisation_id, formation.intitule);
+        await this.notifierApprenantVoucherOrganisation(
+          params.apprenantId,
+          voucher.organisation_id,
+          formation.intitule,
+          session
+        );
       } else {
         const updatedVoucher = await this.prisma.voucherApporteur.update({
           where: { id: voucher.id },
@@ -270,7 +275,12 @@ export class InscriptionService {
   private async notifierApprenantVoucherOrganisation(
     apprenantId: string,
     organisationId: string,
-    formationIntitule: string
+    formationIntitule: string,
+    session?: {
+      date_debut?: Date;
+      date_fin?: Date;
+      lieu?: string | null;
+    }
   ) {
     const [apprenant, organisation] = await Promise.all([
       this.prisma.apprenant.findUnique({
@@ -296,6 +306,13 @@ export class InscriptionService {
       nom: apprenant.nom,
       organisation: organisation?.raison_sociale || 'votre organisation',
       formation: formationIntitule,
+      session: session
+        ? {
+            date_debut: session.date_debut,
+            date_fin: session.date_fin,
+            lieu: session.lieu || null,
+          }
+        : null,
     });
     await this.email.sendPaiementConfirme(
       apprenant.email,

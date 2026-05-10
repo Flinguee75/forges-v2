@@ -30,7 +30,7 @@ export const devisApi = {
     const response = await apiClient.post('/admin/devis', {
       organisation_id: data.organisation_id,
       formation_id: data.formation_id,
-      session_id: data.session_id || undefined,
+      session_id: data.session_id,
       nb_places: Number(data.nb_places),
       tarif_unitaire_xof: Number(data.tarif_unitaire_xof),
       notes_admin: data.notes_admin || undefined,

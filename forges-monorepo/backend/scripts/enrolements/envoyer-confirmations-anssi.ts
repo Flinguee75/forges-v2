@@ -32,6 +32,10 @@ async function main() {
   const apprenants = await prisma.apprenant.findMany({
     where: { organisation_id: org.id },
   });
+  const session = await prisma.session.findUnique({
+    where: { id: config.masterclass.session_id },
+    select: { date_debut: true, date_fin: true, lieu: true },
+  });
 
   if (apprenants.length === 0) {
     console.error('Aucun apprenant trouve pour ANSSI CI.');
@@ -53,6 +57,13 @@ async function main() {
       fonction: appConfig?.fonction,
       organisation: org.raison_sociale,
       formation: 'Masterclass GWU/CCDL',
+      session: session
+        ? {
+            date_debut: session.date_debut,
+            date_fin: session.date_fin,
+            lieu: session.lieu || null,
+          }
+        : null,
     });
 
     console.log(`Email envoye : ${apprenant.prenoms} ${apprenant.nom} -> ${destinataire}`);

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const CreerDevisSchema = z.object({
   organisation_id: z.string().uuid(),
   formation_id: z.string().min(1),
-  session_id: z.string().uuid().optional(),
+  session_id: z.string().uuid(),
   nb_places: z.number().int().min(1),
   tarif_unitaire_xof: z.number().int().min(1),
   notes_admin: z.string().max(1000).optional(),

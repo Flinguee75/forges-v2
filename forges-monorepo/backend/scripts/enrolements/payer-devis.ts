@@ -218,6 +218,11 @@ async function run() {
         nom: apprenant.nom,
         organisation: org.raison_sociale,
         formation: formation.intitule,
+        session: {
+          date_debut: session.date_debut,
+          date_fin: session.date_fin,
+          lieu: session.lieu || null,
+        },
       });
 
       // Email 2 : confirmation paiement
