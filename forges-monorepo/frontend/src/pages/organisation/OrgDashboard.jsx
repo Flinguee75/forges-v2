@@ -8,7 +8,6 @@ import Spinner from '../../components/feedback/Spinner';
 import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import ProgressBar from '../../components/ui/ProgressBar';
-import BotWidget from '../../components/bot/BotWidget';
 import {
   getB2BProgressMessage,
   getB2BProgressVariant,
@@ -421,7 +420,6 @@ export default function OrgDashboard() {
         </Link>
       </div>
       </div>
-      <BotWidget />
     </>
   );
 }

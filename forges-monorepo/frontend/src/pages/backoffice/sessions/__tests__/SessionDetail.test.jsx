@@ -91,6 +91,7 @@ describe('SessionDetail', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('Formation 1').length).toBeGreaterThan(0);
+      expect(screen.getByRole('button', { name: /Modifier/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Clôturer/i })).toBeInTheDocument();
       expect(screen.getByText('Awa Diop')).toBeInTheDocument();
     });

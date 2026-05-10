@@ -154,11 +154,9 @@ export default function SessionDetail() {
             </p>
           </div>
           <div className="flex gap-2">
-            {['BROUILLON', 'PLANIFIEE'].includes(session.statut) && (
-              <Button variant="outline" onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}>
-                Modifier
-              </Button>
-            )}
+            <Button variant="outline" onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}>
+              Modifier
+            </Button>
             {['OUVERTE', 'INSCRIPTIONS_OUVERTES'].includes(session.statut) && (
               <Button variant="warning" onClick={closeSession} loading={isLoading}>
                 Clôturer

@@ -155,15 +155,13 @@ export default function SessionsList() {
           >
             Voir
           </Button>
-          {session.statut === 'BROUILLON' && (
-            <Button
-              variant="outline"
-              size="small"
-              onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}
-            >
-              Modifier
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="small"
+            onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}
+          >
+            Modifier
+          </Button>
         </div>
       ),
     },

@@ -23,10 +23,6 @@ vi.mock('../../../hooks/useToast', () => ({
   }),
 }));
 
-vi.mock('../../../components/bot/BotWidget', () => ({
-  default: () => <button aria-label="Ouvrir le conseiller">Conseiller</button>,
-}));
-
 const mockDashboardData = {
   stats: {
     effectifs_inscrits: 25,
@@ -159,7 +155,7 @@ describe('OrgDashboard - Tests', () => {
       expect(screen.getByRole('heading', { name: 'B2B' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Vouchers' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Inscriptions' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Ouvrir le conseiller' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Ouvrir le conseiller' })).not.toBeInTheDocument();
     });
   });
 

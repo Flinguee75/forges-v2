@@ -40,10 +40,6 @@ vi.mock('../../../hooks/useToast', () => ({
   }),
 }));
 
-vi.mock('../../../components/bot/BotWidget', () => ({
-  default: () => <button aria-label="Ouvrir le conseiller">Conseiller</button>,
-}));
-
 const renderPage = () => render(
   <BrowserRouter>
     <ApprenantDashboard />
@@ -110,7 +106,7 @@ describe('ApprenantDashboard', () => {
       expect(screen.getByText('Formations disponibles')).toBeInTheDocument();
       expect(screen.getByText('Inclus')).toBeInTheDocument();
       expect(screen.getByText('Premium')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Ouvrir le conseiller' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Ouvrir le conseiller' })).not.toBeInTheDocument();
     });
   });
 });

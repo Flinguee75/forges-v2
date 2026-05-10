@@ -8,7 +8,6 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
-import BotWidget from '../../components/bot/BotWidget';
 
 function formatMoney(amount) {
   return `${Math.round(Number(amount || 0)).toLocaleString('fr-FR')} FCFA`;
@@ -319,7 +318,6 @@ export default function ApprenantDashboard() {
         </div>
 
       </div>
-      <BotWidget />
     </>
   );
 }
