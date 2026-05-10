@@ -163,15 +163,18 @@ describe('VoucherService', () => {
     } as any);
     (mockPrisma.organisation.findUnique as jest.Mock).mockResolvedValue({
       id: 'org-01',
+      raison_sociale: 'Org Test',
       email: 'org@test.ci',
       langue_preferee: 'FR',
       statut: 'ACTIF',
     } as any);
     (mockPrisma.formation.findUnique as jest.Mock).mockResolvedValue({
       id: 'formation-01',
+      intitule: 'Formation Test',
     } as any);
     (mockRepo.create as jest.Mock).mockResolvedValue({
       id: 'voucher-04',
+      code: 'V-04',
       organisation_id: 'org-01',
       formation_id: 'formation-01',
       devis_id: 'devis-01',
@@ -196,9 +199,9 @@ describe('VoucherService', () => {
     });
     expect(mockEmail.sendVouchersOrganisation).toHaveBeenCalledWith(
       'org@test.ci',
-      expect.any(Array),
-      'formation-01',
-      'FR'
+      ['V-04'],
+      'Formation Test',
+      'Org Test'
     );
   });
 });

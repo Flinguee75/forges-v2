@@ -15,8 +15,7 @@ export class VoucherService {
   async genererVouchersOrganisation(
     dto: CommanderVouchersOrgDto,
     organisation_id: string,
-    email_org: string,
-    langue: string
+    email_org: string
   ) {
     const codes = [];
 
@@ -48,7 +47,7 @@ export class VoucherService {
       email_org,
       codes.map(c => c.code),
       dto.formation_id,
-      langue
+      'Organisation'
     );
 
     return { nb_generes: codes.length, codes: codes.map(c => c.code) };

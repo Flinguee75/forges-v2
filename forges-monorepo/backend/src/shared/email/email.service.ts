@@ -430,25 +430,30 @@ export class EmailService {
   async sendVouchersOrganisation(
     email: string,
     codes: string[],
-    formationId: string,
-    langue: string
+    formationLabel: string,
+    organisationLabel?: string
   ): Promise<void> {
-    const title = 'Vos vouchers organisation FORGES';
+    const title = 'Vouchers organisation disponibles';
+    const intro = organisationLabel
+      ? `Vos vouchers pour l'organisation ${organisationLabel} sont prêts.`
+      : 'Vos vouchers organisation sont prêts.';
     await this.sendEmail({
       to: email,
       subject: title,
       text: this.buildTextEmail([
         'Bonjour,',
         '',
-        `Les vouchers liés à la formation ${formationId} sont prêts.`,
+        intro,
+        `Formation: ${formationLabel}`,
         `Codes: ${codes.join(', ')}`,
-        `Langue du message: ${langue}`,
       ]),
       html: this.buildHtmlEmail(title, [
         'Bonjour,',
-        `Les vouchers liés à la formation <strong>${formationId}</strong> sont prêts.`,
+        organisationLabel
+          ? `Vos vouchers pour l'organisation <strong>${organisationLabel}</strong> sont prêts.`
+          : 'Vos vouchers organisation sont prêts.',
+        `<strong>Formation :</strong> ${formationLabel}`,
         `<strong>Codes :</strong> ${codes.join(', ')}`,
-        `Langue du message : ${langue}`,
       ]),
     });
   }

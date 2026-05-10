@@ -231,6 +231,17 @@ describe('EmailService', () => {
       }));
     });
 
+    it('sendVouchersOrganisation envoie un message simple et pro', async () => {
+      await service.sendVouchersOrganisation('org@test.ci', ['V-1', 'V-2'], 'Formation 1', 'Org Test');
+      expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
+        subject: 'Vouchers organisation disponibles',
+        text: expect.stringContaining('Vos vouchers pour l\'organisation Org Test sont prêts.'),
+      }));
+      expect(sendMail).not.toHaveBeenCalledWith(expect.objectContaining({
+        text: expect.stringContaining('Langue du message'),
+      }));
+    });
+
     it('sendResetPassword inclut un lien de réinitialisation explicite', async () => {
       await service.sendResetPassword('a@test.ci', 'reset-token', 'FR');
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({

@@ -106,12 +106,12 @@ export class VoucherService {
 
     if (dto.devis_id && organisation.email) {
       const formationLabel = formation.intitule || dto.formation_id;
-      const langue = organisation.langue_preferee || 'FR';
+      const organisationLabel = organisation.raison_sociale || 'Organisation';
       this.email.sendVouchersOrganisation(
         organisation.email,
         [voucher.code],
         formationLabel,
-        langue
+        organisationLabel
       ).catch((error) => {
         console.error('[VoucherService] Email voucher organisation non bloquant:', (error as Error).message);
       });
