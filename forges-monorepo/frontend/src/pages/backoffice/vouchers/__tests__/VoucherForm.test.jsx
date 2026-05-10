@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import VoucherForm from '../VoucherForm';
 import vouchersApi from '../../../../api/vouchers.api';
 import formationsApi from '../../../../api/formations.api';
+import devisApi from '../../../../api/devis.api';
 
 const state = vi.hoisted(() => ({
   showToast: vi.fn(),
@@ -32,6 +33,12 @@ vi.mock('../../../../api/formations.api', () => ({
   },
 }));
 
+vi.mock('../../../../api/devis.api', () => ({
+  default: {
+    getAll: vi.fn(),
+  },
+}));
+
 vi.mock('../../../../api/vouchers.api', () => ({
   default: {
     createPromotionnel: vi.fn(),
@@ -44,6 +51,17 @@ describe('VoucherForm', () => {
     vi.clearAllMocks();
     formationsApi.getAllBackoffice.mockResolvedValue({
       data: [{ id: 'f-1', titre: 'Formation 1' }],
+      meta: { total: 1, page: 1, totalPages: 1 },
+    });
+    devisApi.getAll.mockResolvedValue({
+      data: [
+        {
+          id: 'devis-1',
+          numero_devis: 'FORGES-DEVIS-2026-001',
+          organisation: { raison_sociale: 'Org Test' },
+          formation: { intitule: 'Formation 1' },
+        },
+      ],
       meta: { total: 1, page: 1, totalPages: 1 },
     });
     vouchersApi.createPromotionnel.mockResolvedValue({
@@ -63,8 +81,8 @@ describe('VoucherForm', () => {
 
     render(<BrowserRouter><VoucherForm /></BrowserRouter>);
 
-    await waitFor(() => expect(screen.getByText('Formation 1')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /Créer le voucher/i }));
+    await waitFor(() => expect(screen.getAllByText('Formation 1').length).toBeGreaterThan(0));
+    await user.click(screen.getByRole('button', { name: /Créer un voucher/i }));
 
     await waitFor(() => {
       expect(vouchersApi.createPromotionnel).toHaveBeenCalled();
@@ -76,10 +94,10 @@ describe('VoucherForm', () => {
 
     render(<BrowserRouter><VoucherForm /></BrowserRouter>);
 
-    await waitFor(() => expect(screen.getByText('Formation 1')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('Formation 1').length).toBeGreaterThan(0));
     await user.selectOptions(screen.getByLabelText(/Type de création/i), 'ORGANISATION');
-    await user.type(screen.getByLabelText(/ID du devis/i), 'devis-1');
-    await user.click(screen.getByRole('button', { name: /Créer le voucher organisation/i }));
+    await user.selectOptions(screen.getByLabelText(/Devis source du voucher/i), 'devis-1');
+    await user.click(screen.getByRole('button', { name: /Créer un voucher/i }));
 
     await waitFor(() => {
       expect(vouchersApi.createOrganisation).toHaveBeenCalledWith(

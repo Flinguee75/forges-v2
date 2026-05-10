@@ -4,6 +4,7 @@ import { useApi } from '../../../hooks/useApi';
 import { useToast } from '../../../hooks/useToast';
 import vouchersApi from '../../../api/vouchers.api';
 import formationsApi from '../../../api/formations.api';
+import devisApi from '../../../api/devis.api';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
@@ -21,6 +22,7 @@ export default function VoucherForm() {
   const { execute, isLoading } = useApi();
 
   const [formations, setFormations] = useState([]);
+  const [devisList, setDevisList] = useState([]);
   const [modeCreation, setModeCreation] = useState('PROMOTIONNEL');
   const [formData, setFormData] = useState({
     formation_id: '',
@@ -33,11 +35,22 @@ export default function VoucherForm() {
   const [createdVoucher, setCreatedVoucher] = useState(null);
 
   useEffect(() => {
-    execute(() => formationsApi.getAllBackoffice({ limit: 100 }), {
-      onSuccess: (data) => {
-        setFormations(Array.isArray(data?.data) ? data.data : []);
-        if (!formData.formation_id && Array.isArray(data?.data) && data.data[0]?.id) {
-          setFormData((current) => ({ ...current, formation_id: data.data[0].id }));
+    execute(async () => {
+      const [formationsData, devisData] = await Promise.all([
+        formationsApi.getAllBackoffice({ limit: 100 }),
+        devisApi.getAll({ statut: 'CREE', limit: 100 }),
+      ]);
+      return { formationsData, devisData };
+    }, {
+      onSuccess: ({ formationsData, devisData }) => {
+        const formationsItems = Array.isArray(formationsData?.data) ? formationsData.data : [];
+        const devisItems = Array.isArray(devisData?.data) ? devisData.data : [];
+
+        setFormations(formationsItems);
+        setDevisList(devisItems);
+
+        if (!formData.formation_id && formationsItems[0]?.id) {
+          setFormData((current) => ({ ...current, formation_id: formationsItems[0].id }));
         }
       },
       showErrorToast: false,
@@ -71,9 +84,11 @@ export default function VoucherForm() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="rounded-lg bg-white p-6 shadow">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">Formulaire voucher</p>
-        <h2 className="mt-3 text-2xl font-semibold text-primary">Création promotionnelle</h2>
+        <h2 className="mt-3 text-2xl font-semibold text-primary">Création de voucher</h2>
         <p className="mt-2 text-subtext">
-          Crée un voucher promotionnel ou un voucher organisation lié à un devis.
+          {modeCreation === 'ORGANISATION'
+            ? 'Crée un voucher organisation lié à un devis existant.'
+            : 'Crée un voucher promotionnel pour une formation donnée.'}
         </p>
       </div>
 
@@ -135,29 +150,85 @@ export default function VoucherForm() {
 
             {modeCreation === 'ORGANISATION' && (
               <div>
-                <Input
-                  type="text"
-                  label="ID du devis"
+                <label htmlFor="voucher-devis" className="mb-1.5 block text-sm font-medium text-text">
+                  Devis source du voucher
+                </label>
+                <select
+                  id="voucher-devis"
                   value={formData.devis_id}
                   onChange={(e) => setFormData((current) => ({ ...current, devis_id: e.target.value }))}
-                  placeholder="devis_id"
-                />
+                  className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text"
+                  required
+                >
+                  <option value="">Sélectionner un devis</option>
+                  {devisList.map((devis) => (
+                    <option key={devis.id} value={devis.id}>
+                      {devis.numero_devis} - {devis.organisation?.raison_sociale || devis.organisation_id} - {devis.formation?.intitule || devis.formation?.titre || 'Formation'}
+                    </option>
+                  ))}
+                </select>
                 <p className="mt-1 text-xs text-subtext">
-                  Obligatoire pour rattacher le voucher au devis de l'organisation.
+                  Choisis un devis existant pour rattacher le voucher organisation.
                 </p>
               </div>
             )}
 
+            <div className="rounded-lg border border-border bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-primary">Récapitulatif avant création</p>
+              <div className="mt-3 grid gap-2 text-sm text-text md:grid-cols-2">
+                <div>
+                  <span className="text-subtext">Type</span>
+                  <div className="font-medium">
+                    {modeCreation === 'ORGANISATION' ? 'Voucher organisation' : 'Voucher promotionnel'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-subtext">Formation</span>
+                  <div className="font-medium">
+                    {formationOptions.find((formation) => formation.id === formData.formation_id)?.titre
+                      || formationOptions.find((formation) => formation.id === formData.formation_id)?.intitule
+                      || 'Non sélectionnée'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-subtext">Réduction</span>
+                  <div className="font-medium">
+                    {formData.type_valeur === 'POURCENTAGE'
+                      ? `${formData.valeur}%`
+                      : `${Number(formData.valeur || 0).toLocaleString('fr-FR')} FCFA`}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-subtext">Quota max</span>
+                  <div className="font-medium">{formData.quota_max}</div>
+                </div>
+                <div>
+                  <span className="text-subtext">Expiration</span>
+                  <div className="font-medium">
+                    {formData.date_expiration ? new Date(formData.date_expiration).toLocaleDateString('fr-FR') : 'N/A'}
+                  </div>
+                </div>
+                {modeCreation === 'ORGANISATION' && (
+                  <div>
+                    <span className="text-subtext">Devis source</span>
+                    <div className="font-medium">
+                      {devisList.find((devis) => devis.id === formData.devis_id)?.numero_devis || 'Non sélectionné'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <Input
                 type="number"
-                label="Valeur"
+                label={formData.type_valeur === 'POURCENTAGE' ? 'Taux de réduction (%)' : 'Montant de réduction'}
                 value={formData.valeur}
                 onChange={(e) => setFormData((current) => ({ ...current, valeur: e.target.value }))}
               />
               <div>
                 <label htmlFor="voucher-type-valeur" className="mb-1.5 block text-sm font-medium text-text">
-                  Type de valeur
+                  Type de réduction
                 </label>
                 <select
                   id="voucher-type-valeur"
@@ -168,13 +239,18 @@ export default function VoucherForm() {
                   <option value="POURCENTAGE">Pourcentage</option>
                   <option value="MONTANT">Montant fixe</option>
                 </select>
+                <p className="mt-1 text-xs text-subtext">
+                  {formData.type_valeur === 'POURCENTAGE'
+                    ? 'Exemple : 10 = réduction de 10 % sur le catalogue.'
+                    : 'Exemple : 5000 = réduction fixe de 5 000 FCFA.'}
+                </p>
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <Input
                 type="number"
-                label="Quota max"
+                label="Nombre maximum d'utilisations"
                 value={formData.quota_max}
                 onChange={(e) => setFormData((current) => ({ ...current, quota_max: e.target.value }))}
               />
@@ -185,13 +261,16 @@ export default function VoucherForm() {
                 onChange={(e) => setFormData((current) => ({ ...current, date_expiration: e.target.value }))}
               />
             </div>
+            <p className="text-xs text-subtext">
+              Le nombre maximum d'utilisations correspond au nombre de bénéficiaires ou de passages autorisés par le voucher.
+            </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => navigate('/backoffice/vouchers')}>
                 Annuler
               </Button>
               <Button type="submit" loading={isLoading}>
-                {modeCreation === 'ORGANISATION' ? 'Créer le voucher organisation' : 'Créer le voucher promo'}
+                Créer un voucher
               </Button>
             </div>
           </form>
