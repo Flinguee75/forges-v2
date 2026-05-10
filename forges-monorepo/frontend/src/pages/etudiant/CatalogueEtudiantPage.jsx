@@ -53,6 +53,7 @@ export default function CatalogueEtudiantPage() {
 
         const enrollmentMap = dossiers.reduce((acc, dossier) => {
           if (!dossier?.formation?.id) return acc;
+          if (dossier.statut === 'ANNULE') return acc;
 
           const attestationAvailable = dossier.statut === 'PAYE' && dossier.session?.statut === 'CLOTUREE';
           acc[dossier.formation.id] = {
