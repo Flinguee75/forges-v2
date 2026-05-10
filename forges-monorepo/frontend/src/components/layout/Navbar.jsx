@@ -243,12 +243,15 @@ export default function Navbar({
                 <img src={logoForges} alt="FORGES" className="h-8 w-auto shrink-0" />
               </picture>
               <div className="min-w-0">
-              <p className="truncate text-xs font-semibold uppercase tracking-[0.24em] text-primary/55">
-                {roleLabel}
-              </p>
-              <h1 className="truncate text-lg font-semibold text-text sm:text-xl">
-                {title}
-              </h1>
+                <p className="truncate text-xs font-semibold uppercase tracking-[0.24em] text-primary/55">
+                  {roleLabel}
+                </p>
+                <h1 className="truncate text-lg font-semibold text-text sm:text-xl">
+                  {title}
+                </h1>
+                <div className="mt-2">
+                  <StatusBadge />
+                </div>
               </div>
             </div>
           )}
@@ -300,8 +303,6 @@ export default function Navbar({
               </span>
               <span className="font-mono text-text">{formatTimeParts(now)}</span>
             </div>
-
-            <StatusBadge />
 
             <Button variant="outline" type="button" onClick={onLogout} className="shrink-0">
               {privateCopy.logout}
