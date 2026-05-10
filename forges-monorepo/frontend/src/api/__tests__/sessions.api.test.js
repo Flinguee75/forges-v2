@@ -14,13 +14,27 @@ vi.mock('../client', () => ({
 describe('sessions.api', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    apiClient.get.mockResolvedValue({ data: [] });
+    apiClient.get.mockResolvedValue({ data: { statusCode: 200, data: [] } });
     apiClient.post.mockResolvedValue({ data: {} });
     apiClient.patch.mockResolvedValue({ data: {} });
     apiClient.delete.mockResolvedValue({ data: {} });
   });
 
   it('appelle les routes runtime backoffice pour la liste, le détail et le CRUD', async () => {
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        statusCode: 200,
+        data: [
+          {
+            id: 's-1',
+            formation: { id: 'f-1', intitule: 'Formation Test' },
+            statut: 'PLANIFIEE',
+          },
+        ],
+        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+      },
+    });
+
     await sessionsApi.getBackofficeList({ search: 'Alpha', limit: 10 });
     await sessionsApi.getById('s-1');
     await sessionsApi.create({ formation_id: 'f-1' });
@@ -41,6 +55,32 @@ describe('sessions.api', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/backoffice/sessions/bulk', { formation_id: 'f-1' });
     expect(apiClient.get).toHaveBeenCalledWith('/backoffice/sessions/s-1/dossiers', {
       params: { statut: 'GRIS' },
+    });
+  });
+
+  it('déplie la réponse backoffice avec data/meta', async () => {
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        statusCode: 200,
+        data: [
+          {
+            id: 's-1',
+            formation: { id: 'f-1', intitule: 'Formation Test' },
+            statut: 'INSCRIPTIONS_OUVERTES',
+          },
+        ],
+        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+      },
+    });
+
+    const result = await sessionsApi.getBackofficeList();
+
+    expect(result.meta).toEqual({ total: 1, page: 1, limit: 20, totalPages: 1 });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]).toMatchObject({
+      id: 's-1',
+      formation: { titre: 'Formation Test' },
+      statut: 'INSCRIPTIONS_OUVERTES',
     });
   });
 

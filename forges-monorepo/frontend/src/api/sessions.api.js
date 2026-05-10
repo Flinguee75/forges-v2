@@ -28,11 +28,12 @@ function normalizeSession(session) {
 }
 
 function normalizeBackofficeResponse(response) {
+  const payload = response?.data ?? response;
+  const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+
   return {
-    ...response,
-    data: Array.isArray(response?.data)
-      ? response.data.map(normalizeSession)
-      : normalizeSession(response?.data),
+    ...(payload || {}),
+    data: items.map(normalizeSession),
   };
 }
 
