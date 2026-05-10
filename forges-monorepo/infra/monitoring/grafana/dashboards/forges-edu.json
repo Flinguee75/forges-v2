@@ -372,6 +372,70 @@
         "enableLogDetails": true,
         "sortOrder": "Descending"
       }
+    },
+    {
+      "title": "Clics utilisateurs",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 82 }
+    },
+    {
+      "title": "Flux de clics — temps reel",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 83 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "title": "Clics par element (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 93 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (element) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{element}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Clics par page (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 93 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (page) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{page}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "unit": "short"
+        }
+      }
     }
   ],
   "schemaVersion": 39,

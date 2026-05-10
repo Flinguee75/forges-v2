@@ -177,12 +177,14 @@ import paiementRoutes from './modules/paiements/paiement.routes'; // ✅ SPRINT 
 import voucherRoutes from './modules/vouchers/voucher.routes'; // ✅ SPRINT 1 SEMAINE 2
 import devisRoutes from './modules/devis/devis.routes'; // RM-149 à RM-151
 import proxyAccesRoutes from './modules/acces/proxy-acces.routes'; // RM-152 à RM-154
+import analyticsRoutes from './modules/analytics/analytics.routes';
 import abonnementAliasRoutes from './modules/abonnements/abonnement-alias.routes';
 import backofficeRoutes from './modules/dashboard/backoffice.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import backofficeApprenantsRoutes from './modules/backoffice-apprenants/backoffice-apprenants.routes';
 import backofficeOrganisationsRoutes from './modules/backoffice-organisations/backoffice-organisations.routes';
 
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/comptes', comptesRoutes);
 // ✅ SPRINT 1: Aliases pour routes apprenants et organisations
