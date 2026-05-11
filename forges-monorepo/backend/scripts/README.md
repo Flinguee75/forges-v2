@@ -18,6 +18,7 @@ Répertoire des scripts manuels, de seed et d'enrôlement.
 5. Tu veux confirmer un paiement et activer les vouchers: `scripts/enrolements/payer-devis.ts`.
 6. Tu veux envoyer un rappel J-7: `scripts/enrolements/rappel-j7.ts`.
 7. Tu veux créer/réutiliser des apprenants depuis un CSV et leur envoyer une facture PDF personnalisée: `scripts/enrolements/creer-apprenants-et-devis.ts`.
+8. Tu veux faire la même chose pour un lot d'étudiants avec un CSV dédié: `scripts/enrolements/creer-apprenants-etudiants.ts`.
 
 ## Scripts repères
 
@@ -31,6 +32,7 @@ Répertoire des scripts manuels, de seed et d'enrôlement.
 | Paiement d'un devis organisation | `scripts/enrolements/payer-devis.ts` |
 | Rappel J-7 | `scripts/enrolements/rappel-j7.ts` |
 | Workflow CSV apprenants + facture PDF personnalisée | `scripts/enrolements/creer-apprenants-et-devis.ts` |
+| Workflow CSV apprenants étudiants + facture PDF personnalisée | `scripts/enrolements/creer-apprenants-etudiants.ts` |
 
 ## Commande standard
 

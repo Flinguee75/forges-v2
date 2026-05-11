@@ -4,6 +4,7 @@ import { getMissingHeaders, normalizeXofAmount, parseCsvTable } from '../csv-par
 
 describe('csv-parser', () => {
   const fixturePath = path.resolve(__dirname, 'fixtures/apprenants-individuels-test.csv');
+  const etudiantsFixturePath = path.resolve(__dirname, 'fixtures/apprenants_etudiants.csv');
 
   it('parse le CSV apprenants attendu', () => {
     const csvContent = fs.readFileSync(fixturePath, 'utf-8');
@@ -28,6 +29,33 @@ describe('csv-parser', () => {
       pays_residence: 'Côte d’Ivoire',
       pays_nationalite: 'Côte d’Ivoire',
       tarif_xof: '3000000',
+    });
+  });
+
+  it('parse le CSV étudiants attendu', () => {
+    const csvContent = fs.readFileSync(etudiantsFixturePath, 'utf-8');
+    const table = parseCsvTable(csvContent);
+
+    expect(table.headers).toEqual([
+      'nom',
+      'prenom',
+      'email',
+      'organisation',
+      'secteur_activite',
+      'pays_residence',
+      'pays_nationalite',
+      'type_apprenant',
+      'niveau_etude',
+      'tarif_xof',
+    ]);
+    expect(table.rows).toHaveLength(4);
+    expect(table.rows[0]).toMatchObject({
+      nom: 'N’GUESSAN',
+      prenom: 'SAMIRA GRACE ARIELLE',
+      email: 'samira.nguessan@eburtis.ci',
+      type_apprenant: 'ETUDIANT',
+      niveau_etude: 'Bac+2',
+      tarif_xof: '2000000',
     });
   });
 
