@@ -341,11 +341,11 @@ export class PaiementController {
   // POST /api/paiements/fineo/initier — Initier un paiement FineoPay (APPRENANT)
   async initierPaiementFineo(req: Request, res: Response, next: NextFunction) {
     try {
-      const { dossier_id } = req.body;
+      const { dossier_id, clientAccount, canal } = req.body;
       if (!dossier_id) {
         return res.status(400).json({ statusCode: 400, error: 'VALIDATION_ERROR', message: 'dossier_id requis' });
       }
-      const result = await this.paiementService.initierPaiementFineo(dossier_id, req.user!.userId);
+      const result = await this.paiementService.initierPaiementFineo(dossier_id, req.user!.userId, clientAccount, canal);
       return res.status(201).json({ statusCode: 201, data: result });
     } catch (error: any) {
       if (error.message === 'DOSSIER_NOT_FOUND') {

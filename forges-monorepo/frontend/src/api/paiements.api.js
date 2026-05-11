@@ -42,8 +42,8 @@ export const paiementsApi = {
     return apiClient.post('/paiements/initier', data);
   },
 
-  initierFineo: (dossier_id) => {
-    return apiClient.post('/paiements/fineo/initier', { dossier_id });
+  initierFineo: (dossier_id, clientAccount, canal) => {
+    return apiClient.post('/paiements/fineo/initier', { dossier_id, clientAccount, canal });
   },
 
   /**

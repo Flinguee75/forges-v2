@@ -41,8 +41,8 @@ export class PaiementService {
   }
 
   // FineoPay — top 1
-  async initierPaiementFineo(dossierId: string, apprenantId: string) {
-    return this.paiementFineoService.initierPaiement(dossierId, apprenantId);
+  async initierPaiementFineo(dossierId: string, apprenantId: string, clientAccount?: string, canal?: string) {
+    return this.paiementFineoService.initierPaiement(dossierId, apprenantId, clientAccount, canal);
   }
 
   async traiterCallbackFineo(payload: FineoCbPayload) {

@@ -13,7 +13,7 @@ export class PaiementFineoService {
     private readonly audit: AuditLogger
   ) {}
 
-  async initierPaiement(dossierId: string, apprenantId: string) {
+  async initierPaiement(dossierId: string, apprenantId: string, clientAccount?: string, canal?: string) {
     const dossier = await this.prisma.dossier.findUnique({
       where: { id: dossierId },
       include: { formation: true, session: true },
@@ -57,16 +57,24 @@ export class PaiementFineoService {
       ? `${process.env.FRONTEND_URL}/paiement/retour`
       : 'http://localhost:5173/paiement/retour';
 
+    const inputs: Array<{ key: string; type: string; label: string; required: boolean; defaultValue?: string }> = [
+      { key: 'apprenant_nom', type: 'text', label: 'Votre nom complet', required: false },
+      { key: 'apprenant_email', type: 'email', label: 'Votre email', required: false },
+    ];
+    if (clientAccount) {
+      inputs.unshift({ key: 'clientAccount', type: 'tel', label: 'Numero Mobile Money', required: false, defaultValue: clientAccount });
+    }
+    if (canal) {
+      inputs.unshift({ key: 'canal', type: 'text', label: 'Operateur', required: false, defaultValue: canal });
+    }
+
     const fineoClient = this.getFineoClient();
     const checkout = await fineoClient.createCheckoutLink({
       title: `Inscription — ${dossier.formation.intitule}`,
       amount: montantFinal,
       callbackUrl,
       syncRef,
-      inputs: [
-        { key: 'apprenant_nom', type: 'text', label: 'Votre nom complet', required: false },
-        { key: 'apprenant_email', type: 'email', label: 'Votre email', required: false },
-      ],
+      inputs,
     });
 
     const fineoData = {
