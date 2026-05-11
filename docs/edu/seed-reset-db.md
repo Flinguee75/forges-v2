@@ -2,6 +2,54 @@
 
 Ce guide explique comment initialiser ou remettre à zéro la base de données edu.
 
+## Journal d'exécution réel
+
+Ce document reflète aussi le run réel effectué sur le VPS `edu` le 2026-05-11.
+
+### Ce qui a été vérifié
+
+- le backend `edu` tourne dans le conteneur Docker `forges-backend-edu`
+- la base PostgreSQL `edu` est portée par `forges-postgres-edu`
+- le bon fichier d'environnement n'est pas le `.env` local du repo, mais `/var/www/vhosts/edu.forges-group.com/httpdocs/.env`
+- ce fichier contient bien les valeurs `edu` attendues:
+  - `APP_ENV=edu`
+  - `DATABASE_URL=postgresql://forges_edu:...@postgres:5432/forges_edu`
+  - `FRONTEND_URL=https://edu.forges-group.com`
+  - `SMTP_HOST=smtp.office365.com`
+  - `SMTP_USER=contact@forges-group.com`
+  - `SMTP_PASS=...`
+
+### Problème rencontré puis corrigé
+
+- un `source` brut du fichier `.env` VPS échouait à cause d'une ligne non exécutable
+- la solution retenue a été de ne charger que les lignes `KEY=VALUE` valides
+- le seed a ensuite été lancé avec:
+  - `DATABASE_URL` construit sur l'IP du conteneur `forges-postgres-edu`
+  - `FRONTEND_URL=https://edu.forges-group.com`
+
+### Seed `Point Focal`
+
+Le script `scripts/admin/script_organisations_point_focal.ts` a été testé sur le VPS avec:
+
+- organisation:
+  - `Point Focal`
+  - email référent: `redfoo923@gmail.com`
+- apprenant:
+  - `TidianeCisse9@outlook.fr`
+
+Résultat du run réel:
+
+- organisation créée
+- apprenant créé
+- voucher organisation créé
+- devis créé et envoyé
+- email de mot de passe temporaire envoyé à l'organisation
+- email de mot de passe temporaire envoyé à l'apprenant
+
+Le log de seed a été enregistré dans:
+
+- `/home/forgesadmin/forges-v2/forges-monorepo/backend/scripts/admin/enrolement_organisations_log.json`
+
 ---
 
 ## Quand en avoir besoin
@@ -42,6 +90,19 @@ PG_PASS_ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$PG_PAS
 cd ~/forges-v2/forges-monorepo/backend
 DATABASE_URL="postgresql://forges_edu:${PG_PASS_ENC}@${PG_IP}:5432/forges_edu" \
   node -r ts-node/register/transpile-only scripts/admin/reset-edu.ts
+```
+
+Version exacte utilisée pendant le run réel:
+
+```bash
+while IFS= read -r line; do export "$line"; done < <(grep -E '^[A-Z0-9_]+=' /var/www/vhosts/edu.forges-group.com/httpdocs/.env)
+PG_IP=$(docker inspect forges-postgres-edu --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' | head -1)
+PG_PASS=$(docker exec forges-postgres-edu printenv POSTGRES_PASSWORD)
+PG_PASS_ENC=$(printf "%s" "$PG_PASS" | python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read().strip(), safe=\"\"))")
+cd ~/forges-v2/forges-monorepo/backend
+DATABASE_URL="postgresql://forges_edu:${PG_PASS_ENC}@${PG_IP}:5432/forges_edu" \
+  FRONTEND_URL=https://edu.forges-group.com \
+  node -r ts-node/register/transpile-only scripts/admin/script_organisations_point_focal.ts
 ```
 
 ---
@@ -99,3 +160,12 @@ cd ~/forges-v2/forges-monorepo/backend
 DATABASE_URL="postgresql://forges_dev:${PG_PASS_ENC}@${PG_IP}:5432/forges_dev" \
   node -r ts-node/register/transpile-only scripts/admin/reset-dev.ts
 ```
+
+---
+
+## Notes utiles
+
+- le reset `edu` doit toujours être lancé depuis le VPS, jamais depuis la machine locale
+- le seed `Point Focal` doit pointer vers `edu` en frontend, sinon les liens d'email retombent sur le mauvais contexte
+- les erreurs SMTP `535` observées auparavant venaient d'un mauvais environnement chargé, pas du workflow métier lui-même
+- la DB locale et la DB `edu` sont distinctes; ne pas confondre les deux lors des tests
