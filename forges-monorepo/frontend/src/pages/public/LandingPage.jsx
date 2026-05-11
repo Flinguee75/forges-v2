@@ -167,7 +167,7 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
               <span className="inline-block bg-white bg-opacity-20 text-white text-xs font-bold uppercase tracking-widest px-4 py-1 rounded-full mb-4">
-                Formation vedette
+                Formation Bientôt Disponible
               </span>
               <h2 className="text-3xl md:text-4xl font-bold mb-3">
                 Masterclass GWU/CCDL — Cybersécurité & IA
