@@ -400,7 +400,7 @@ export class DevisService {
       // d'envoi, le même PDF et le même template officiel.
       const draft = this.buildDraftDevis(draftOptions);
       const pdfBuffer = await genererPdfDevis(draft as any);
-      const emailSubject = `Votre devis ${draftOptions.numeroDevis} — FORGES AGRÉGATEUR`;
+      const emailSubject = `Votre facture ${draftOptions.numeroDevis} — FORGES AGRÉGATEUR`;
       const emailHtml = this.buildEmailHtml(draft.devis as any);
 
       await this.emailService.sendEmailWithAttachment({
@@ -408,7 +408,7 @@ export class DevisService {
         subject: emailSubject,
         html: emailHtml,
         attachment: {
-          filename: draftOptions.attachmentFilename || `${draftOptions.numeroDevis}.pdf`,
+          filename: draftOptions.attachmentFilename || `${draftOptions.numeroDevis.replace('DEVIS', 'FACTURE')}.pdf`,
           content: pdfBuffer,
           contentType: 'application/pdf',
         },
@@ -440,8 +440,8 @@ export class DevisService {
     });
 
     const emailSubject = langue === 'EN'
-      ? `Your quote ${devis.numero_devis} from FORGES`
-      : `Votre devis ${devis.numero_devis} — FORGES AGRÉGATEUR`;
+      ? `Your invoice ${devis.numero_devis} from FORGES`
+      : `Votre facture ${devis.numero_devis} — FORGES AGRÉGATEUR`;
     const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation, session });
 
     await this.emailService.sendEmailWithAttachment({
@@ -449,7 +449,7 @@ export class DevisService {
       subject: emailSubject,
       html: emailHtml,
       attachment: {
-        filename: `${devis.numero_devis}.pdf`,
+        filename: `${devis.numero_devis.replace('DEVIS', 'FACTURE')}.pdf`,
         content: pdfBuffer,
         contentType: 'application/pdf',
       },
@@ -504,7 +504,7 @@ export class DevisService {
                 </td>
                 <td align="right" valign="middle">
                   <div style="background:${OR};color:${BLEU};padding:8px 16px;border-radius:6px;font-weight:700;font-size:12px;text-align:center;letter-spacing:0.5px;">
-                    DEVIS<br>
+                    FACTURE<br>
                     <span style="font-size:10px;font-weight:400;">${devis.numero_devis}</span>
                   </div>
                 </td>
@@ -553,9 +553,9 @@ export class DevisService {
             <p style="margin:20px 0 0;font-size:13px;color:#888;font-style:italic;border-left:3px solid ${OR};padding-left:12px;">${devis.notes_admin}</p>
             ` : ''}
 
-          <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
-              Apres validation, notre equipe vous communiquera les acces a la plateforme FORGES.
-            </p>
+	          <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
+	              Merci de bien vouloir regler dans les plus brefs delais.
+	            </p>
           </td>
         </tr>
 

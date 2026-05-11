@@ -124,7 +124,7 @@ async function main() {
       subject: sujet,
       html,
       attachment: {
-        filename: `${devis.numero_devis}.pdf`,
+        filename: `${devis.numero_devis.replace('DEVIS', 'FACTURE')}.pdf`,
         content: pdfBuffer,
         contentType: 'application/pdf',
       },
@@ -216,10 +216,10 @@ function buildEmailHtml(devis: any): string {
             <p style="margin:20px 0 0;font-size:13px;color:#888;font-style:italic;border-left:3px solid ${OR};padding-left:12px;">${devis.notes_admin}</p>
             ` : ''}
 
-            <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
-              La facture est jointe a cet email au format PDF.<br>
-              Apres validation, notre equipe vous communiquera les acces a la plateforme FORGES.
-            </p>
+	            <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
+	              La facture est jointe a cet email au format PDF.<br>
+	              Merci de bien vouloir regler dans les plus brefs delais.
+	            </p>
 
           </td>
         </tr>

@@ -113,10 +113,10 @@ function generateTempPassword() {
   return `FORGES-${crypto.randomUUID().slice(0, 8).toUpperCase()}!`;
 }
 
-function buildNumeroDevis(index: number, nomComplet: string) {
+function buildNumeroFacture(index: number, nomComplet: string) {
   const year = new Date().getFullYear();
   const nameSlug = slugify(nomComplet).slice(0, 24).toUpperCase().replace(/-/g, '');
-  return `FORGES-DEVIS-${year}-${nameSlug}-${String(index + 1).padStart(3, '0')}`;
+  return `FORGES-FACTURE-${year}-${nameSlug}-${String(index + 1).padStart(3, '0')}`;
 }
 
 async function main() {
@@ -239,7 +239,7 @@ async function main() {
         }
       }
 
-      const numeroDevis = buildNumeroDevis(index, nomComplet);
+      const numeroFacture = buildNumeroFacture(index, nomComplet);
       const tarifUnitaire = Math.round(formation.cout_catalogue / 100);
       const montantTotal = tarifUnitaire;
       const sessionDates = {
@@ -249,7 +249,7 @@ async function main() {
 
       if (dryRun) {
         log('INFO', '[DRY-RUN] Enverrait devis PDF personnalisé', {
-          numero_devis: numeroDevis,
+          numero_facture: numeroFacture,
           destinataire: resolvedEmail,
           recipient_label: nomComplet,
           organisation_label: config.devis.organisation_label,
@@ -265,7 +265,7 @@ async function main() {
           recipientLabel: nomComplet,
           organisationLabel: config.devis.organisation_label,
           formationLabel: formation.intitule,
-          numeroDevis,
+          numeroDevis: numeroFacture,
           nbPlaces: 1,
           tarifUnitaireXof: tarifUnitaire,
           montantTotalXof: montantTotal,
@@ -273,10 +273,10 @@ async function main() {
           session: sessionDates,
           notesAdmin: config.devis.notes_admin || null,
           identifiantLegal: config.devis.identifiant_legal || null,
-          attachmentFilename: `${numeroDevis}-${slugify(nomComplet)}.pdf`,
+          attachmentFilename: `${numeroFacture}-${slugify(nomComplet)}.pdf`,
         });
         log('INFO', 'Devis PDF envoyé', {
-          numero_devis: numeroDevis,
+          numero_facture: numeroFacture,
           destinataire: resolvedEmail,
           recipient_label: nomComplet,
           formation: formation.intitule,
