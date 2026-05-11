@@ -35,7 +35,7 @@ export class PaiementController {
         return res.status(409).json({ statusCode: 409, error: 'PAIEMENT_DEJA_VALIDE', message: 'Un paiement validé existe déjà pour ce dossier (RM-06).' });
       }
       if (error.message === 'DOSSIER_STATUT_INVALIDE') {
-        return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE', message: 'Le dossier doit être RETENU ou PAYE_DIRECTEMENT' });
+        return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE', message: 'Le dossier doit être EN_ATTENTE_PAIEMENT, RETENU ou PAYE_DIRECTEMENT' });
       }
       next(error);
     }
@@ -67,7 +67,7 @@ export class PaiementController {
         return res.status(409).json({ statusCode: 409, error: 'PAIEMENT_DEJA_VALIDE', message: 'Un paiement validé existe déjà pour ce dossier (RM-06).' });
       }
       if (error.message === 'DOSSIER_STATUT_INVALIDE') {
-        return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE', message: 'Le dossier doit être RETENU ou PAYE_DIRECTEMENT' });
+        return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE', message: 'Le dossier doit être EN_ATTENTE_PAIEMENT, RETENU ou PAYE_DIRECTEMENT' });
       }
       next(error);
     }

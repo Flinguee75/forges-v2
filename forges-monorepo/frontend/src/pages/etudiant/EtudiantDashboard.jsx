@@ -45,7 +45,7 @@ export default function EtudiantDashboard() {
 
           setStats({
             dossiersEnAttente: dossiers.filter((d) => d.statut === 'EN_ATTENTE').length,
-            dossiersRetenus: dossiers.filter((d) => d.statut === 'RETENU').length,
+            dossiersRetenus: dossiers.filter((d) => ['RETENU', 'EN_ATTENTE_PAIEMENT', 'PAYE_DIRECTEMENT'].includes(d.statut)).length,
             dossiersConfirmes: dossiers.filter((d) => d.statut === 'CONFIRME').length,
             formationsEnCours: formations.filter(
               (f) => f.session?.statut === 'EN_COURS'
@@ -67,6 +67,7 @@ export default function EtudiantDashboard() {
   const getStatutBadge = (statut) => {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
+      EN_ATTENTE_PAIEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
       RETENU: { variant: 'success', label: 'Retenu' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       REFUSE: { variant: 'danger', label: 'Refusé' },

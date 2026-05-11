@@ -1,12 +1,14 @@
 # `creer-apprenants-et-devis.ts`
 
-Script de test pour créer ou réutiliser un petit lot d'apprenants, leur envoyer leur mail d'accès, puis envoyer un devis PDF personnalisé à chaque apprenant.
+Script de test pour créer ou réutiliser un petit lot d'apprenants, créer ou réutiliser leur dossier métier en attente de paiement, leur envoyer leur mail d'accès, puis envoyer un devis PDF personnalisé à chaque apprenant.
 
 ## But
 
 Ce script sert à rejouer un scénario simple sans passer par le workflow organisation complet:
 
 - création/réutilisation de comptes apprenants,
+- création/réutilisation du dossier d'inscription via `InscriptionService`,
+- dossier créé en `EN_ATTENTE_PAIEMENT` pour le flux non abonné différé,
 - envoi du mot de passe temporaire via `EmailService.sendTempPassword(...)`,
 - envoi du devis PDF via `DevisService.envoyerEmailDevis(...)`,
 - personnalisation du template devis pour afficher le nom et prénom de l'apprenant dans le bloc destinataire.
@@ -81,6 +83,8 @@ Variables utiles:
 - Sinon, le compte est créé avec un mot de passe temporaire.
 - Le mail d'accès part via `sendTempPassword(...)`, comme dans le script source.
 - Le devis PDF est généré par le service devis existant, sans créer de ligne `Devis` persistée.
+- Le dossier d'inscription est créé ou réutilisé via le flux métier d'inscription, sans écriture manuelle dans `Dossier`.
+- Le statut cible pour ce flux de test est `EN_ATTENTE_PAIEMENT`.
 - Le bloc destinataire du devis utilise le nom et prénom de l'apprenant.
 - La formation, le tarif unitaire et les dates de session sont lus en base à partir des IDs fournis.
 
@@ -89,6 +93,7 @@ Variables utiles:
 À vérifier après exécution:
 
 - les 2 apprenants ont bien été créés ou réutilisés,
+- les dossiers ont bien été créés ou réutilisés avec le statut `EN_ATTENTE_PAIEMENT`,
 - les emails d'accès ont bien été envoyés,
 - le devis PDF a bien été envoyé à chaque apprenant,
 - le rendu du devis garde le template officiel.

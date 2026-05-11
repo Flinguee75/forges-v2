@@ -174,6 +174,23 @@ describe('PaiementService', () => {
       expect(diff).toBeLessThan(73 * 3600 * 1000);
     });
 
+    it('ne crée pas de date limite pour un dossier EN_ATTENTE_PAIEMENT', async () => {
+      mockPrisma.dossier.findUnique.mockResolvedValue({
+        ...dossierStandard,
+        statut: 'EN_ATTENTE_PAIEMENT',
+      });
+      mockPaiementRepo.findByDossierId.mockResolvedValue(null);
+      mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
+      mockPaiementRepo.create.mockResolvedValue({ id: 'p-new', montant_final: 100000 } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.initierPaiement({ dossier_id: 'd-01', methode: 'MOBILE_MONEY' }, 'a-01');
+
+      const createCall = mockPaiementRepo.create.mock.calls[0][0];
+      expect(createCall.expires_at).toBeNull();
+      expect(createCall.dossier_id).toBe('d-01');
+    });
+
     it('annule les dossiers avec paiements expirés', async () => {
       const paiementExpire = {
         id: 'p-expired',

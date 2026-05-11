@@ -147,16 +147,19 @@ export class InscriptionService {
 
     const montant_apres_reduction = montant_total - montant_reduction;
 
-    // Statut dossier selon le mode de financement (RM-140, RM-41)
+    // Statut dossier selon le mode de financement
     // - Voucher ORGANISATION → PAYE (l'org couvre le paiement — RM-41)
     // - Premium+Retail → EN_ATTENTE_VERIFICATION (RM-140)
-    // - Tous les autres (paiement direct) → PAYE_DIRECTEMENT (RM-140)
+    // - Paiement différé non abonné → EN_ATTENTE_PAIEMENT
+    // - Tous les autres (paiement direct) → PAYE_DIRECTEMENT
     let statutDossier: string;
     if (voucher?.type === 'ORGANISATION' || voucherPromo) {
       // Voucher organisation ou promotionnel : paiement couvert, pas d'action requise
       statutDossier = 'PAYE';
     } else if (estPremiumEtRetail) {
       statutDossier = 'EN_ATTENTE_VERIFICATION';
+    } else if (params.mode_paiement === 'DIFFERE') {
+      statutDossier = 'EN_ATTENTE_PAIEMENT';
     } else {
       statutDossier = 'PAYE_DIRECTEMENT';
     }

@@ -25,11 +25,13 @@ export class PaiementRepository {
     montant_final: number;
     reduction_appliquee: number;
     methode: string;
-    expires_at: Date;
+    expires_at?: Date | null;
   }) {
-    return this.prisma.paiement.create({
-      data: { ...data, statut: 'EN_ATTENTE', tentatives: 0 }
-    });
+    const payload: any = { ...data, statut: 'EN_ATTENTE', tentatives: 0 };
+    if (!data.expires_at) {
+      delete payload.expires_at;
+    }
+    return this.prisma.paiement.create({ data: payload });
   }
 
   async incrementerTentatives(id: string) {
@@ -66,12 +68,12 @@ export class PaiementRepository {
   }
 
   async findPaiementsExpires() {
-    // RM-07 : paiements EN_ATTENTE depuis > PAIEMENT_EXPIRATION_HEURES
+    // RM-07 : paiements EN_ATTENTE expirables depuis > PAIEMENT_EXPIRATION_HEURES
     const limite = new Date(Date.now() - getDelaiPaiementMs());
     return this.prisma.paiement.findMany({
       where: {
         statut: 'EN_ATTENTE',
-        expires_at: { lt: new Date() }
+        expires_at: { lt: limite }
       },
       include: { dossier: true }
     });

@@ -21,6 +21,7 @@ function formatDate(dateValue) {
 const DOSSIER_STATUT_LABEL = {
   EN_ATTENTE: 'En attente',
   EN_ATTENTE_VERIFICATION: 'Verification',
+  EN_ATTENTE_PAIEMENT: 'Paiement à effectuer',
   RETENU: 'Retenu',
   PAYE_DIRECTEMENT: 'A payer',
   PAYE: 'Paye',
@@ -31,6 +32,7 @@ const DOSSIER_STATUT_LABEL = {
 const DOSSIER_STATUT_VARIANT = {
   EN_ATTENTE: 'warning',
   EN_ATTENTE_VERIFICATION: 'warning',
+  EN_ATTENTE_PAIEMENT: 'warning',
   RETENU: 'info',
   PAYE_DIRECTEMENT: 'warning',
   PAYE: 'success',
@@ -88,7 +90,7 @@ export default function ApprenantDashboard() {
     inclus: formations.filter((f) => f.inclus_abonnement).length,
     premium: formations.filter((f) => f.type_formation === 'PREMIUM').length,
     dossiersActifs: dossiers.filter((d) =>
-      ['EN_ATTENTE', 'EN_ATTENTE_VERIFICATION', 'RETENU', 'PAYE_DIRECTEMENT'].includes(d.statut)
+      ['EN_ATTENTE', 'EN_ATTENTE_VERIFICATION', 'EN_ATTENTE_PAIEMENT', 'RETENU', 'PAYE_DIRECTEMENT'].includes(d.statut)
     ).length,
     dossiersTotal: dossiers.length,
   }), [formations, dossiers]);

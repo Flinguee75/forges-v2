@@ -12,6 +12,7 @@ import Modal from '../../components/ui/Modal';
 const STATUT_COLORS = {
   EN_ATTENTE: 'warning',
   EN_ATTENTE_VERIFICATION: 'warning',
+  EN_ATTENTE_PAIEMENT: 'warning',
   RETENU: 'success',
   PAYE: 'success',
   PAYE_DIRECTEMENT: 'warning',
@@ -27,6 +28,7 @@ const STATUT_COLORS = {
 const STATUT_LABELS = {
   EN_ATTENTE: 'En attente',
   EN_ATTENTE_VERIFICATION: 'En vérification',
+  EN_ATTENTE_PAIEMENT: 'Paiement à effectuer',
   RETENU: 'Retenu',
   PAYE: 'Payé',
   PAYE_DIRECTEMENT: 'Paiement à effectuer',
@@ -43,6 +45,7 @@ const STATUS_FILTERS = [
   { value: '', label: 'Tous' },
   { value: 'EN_ATTENTE', label: 'En attente' },
   { value: 'EN_ATTENTE_VERIFICATION', label: 'En vérification' },
+  { value: 'EN_ATTENTE_PAIEMENT', label: 'Paiement à effectuer' },
   { value: 'RETENU', label: 'Retenu' },
   { value: 'PAYE_DIRECTEMENT', label: 'Paiement à effectuer' },
   { value: 'PAYE', label: 'Payé' },
@@ -196,8 +199,8 @@ export default function MesDossiersPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 items-end">
-                  {/* Bandeau warning paiement requis pour PAYE_DIRECTEMENT */}
-                  {dossier.statut === 'PAYE_DIRECTEMENT' && (
+                  {/* Bandeau warning paiement requis */}
+                  {(dossier.statut === 'PAYE_DIRECTEMENT' || dossier.statut === 'EN_ATTENTE_PAIEMENT') && (
                     <div className="rounded-lg border-2 border-warning bg-warning/10 p-3 max-w-xs">
                       <div className="flex items-start gap-2">
                         <svg className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -213,7 +216,7 @@ export default function MesDossiersPage() {
                     </div>
                   )}
 
-                  {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT') && dossier.source_financement !== 'VOUCHER' && (
+                  {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT' || dossier.statut === 'EN_ATTENTE_PAIEMENT') && dossier.source_financement !== 'VOUCHER' && (
                     <Button
                       variant="primary"
                       size="medium"

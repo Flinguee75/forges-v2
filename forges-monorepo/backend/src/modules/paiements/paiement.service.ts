@@ -83,7 +83,7 @@ export class PaiementService {
     }
 
     // Vérifier statut dossier UNIQUEMENT si pas de paiement existant
-    if (!['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier.statut)) {
+    if (!['RETENU', 'PAYE_DIRECTEMENT', 'EN_ATTENTE_PAIEMENT'].includes(dossier.statut)) {
       throw new Error('DOSSIER_STATUT_INVALIDE');
     }
 
@@ -92,14 +92,16 @@ export class PaiementService {
     const reduction = dossier.formation.cout_catalogue - montantFinal;
 
     // Création paiement
-    const expires_at = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000); // RM-07
+    const expires_at = dossier.statut === 'EN_ATTENTE_PAIEMENT'
+      ? null
+      : new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000); // RM-07
     const paiement = await this.paiementRepo.create({
       dossier_id: dto.dossier_id,
       montant_catalogue: dossier.formation.cout_catalogue,
       montant_final: montantFinal,
       reduction_appliquee: reduction,
       methode: dto.methode,
-      expires_at,
+      ...(expires_at ? { expires_at } : { expires_at: null }),
     });
 
     await this.audit.info('PAIEMENT_INITIE', {

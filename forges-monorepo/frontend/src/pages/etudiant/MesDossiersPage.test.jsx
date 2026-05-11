@@ -111,6 +111,7 @@ describe('MesDossiersPage', () => {
     etudiantApi.getMesDossiers.mockResolvedValue({
       data: [
         createDossier({ id: '1', statut: 'EN_ATTENTE_VERIFICATION' }),
+        createDossier({ id: '1b', statut: 'EN_ATTENTE_PAIEMENT' }),
         createDossier({ id: '2', statut: 'PAYE_DIRECTEMENT' }),
         createDossier({ id: '3', statut: 'PAYE' }),
         createDossier({ id: '4', statut: 'REJETE' }),
@@ -127,6 +128,7 @@ describe('MesDossiersPage', () => {
     const rejeteBadge = screen.getAllByText('Rejete').at(-1);
     const listeGriseBadge = screen.getAllByText('Liste grise').at(-1);
 
+    expect(screen.getAllByText('Paiement à effectuer')).toHaveLength(2);
     expect(paiementDirectBadge).toBeInTheDocument();
     expect(payeBadge).toBeInTheDocument();
     expect(rejeteBadge).toBeInTheDocument();

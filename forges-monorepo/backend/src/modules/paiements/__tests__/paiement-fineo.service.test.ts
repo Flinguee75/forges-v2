@@ -161,6 +161,20 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
       expect(paiement?.order_ngser).toBe(result.sync_ref);
     });
 
+    it('doit créer un paiement FineoPay sans échéance pour EN_ATTENTE_PAIEMENT', async () => {
+      const dossierId = 'D-FINEO-INIT-ENATTENTE';
+      await creerDossier(dossierId, 'EN_ATTENTE_PAIEMENT');
+
+      const result = await service.initierPaiement(dossierId, TEST_IDS.apprenant);
+
+      expect(result.checkout_link).toBe('https://demo.fineopay.com/checkout/test-link');
+      expect(result.montant_initie).toBe(MONTANT_XOF);
+
+      const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
+      expect(paiement?.expires_at).toBeNull();
+      expect(paiement?.statut).toBe('PENDING');
+    });
+
     it('doit reprendre un paiement FINEO existant sans rappeler FineoPay', async () => {
       const dossierId = 'D-FINEO-INIT-02';
       await creerDossier(dossierId);

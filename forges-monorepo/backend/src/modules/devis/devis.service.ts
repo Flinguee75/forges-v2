@@ -552,10 +552,6 @@ export class DevisService {
             ${devis.notes_admin ? `
             <p style="margin:20px 0 0;font-size:13px;color:#888;font-style:italic;border-left:3px solid ${OR};padding-left:12px;">${devis.notes_admin}</p>
             ` : ''}
-
-          <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
-              Apres validation, notre equipe vous communiquera les acces a la plateforme FORGES.
-            </p>
           </td>
         </tr>
 

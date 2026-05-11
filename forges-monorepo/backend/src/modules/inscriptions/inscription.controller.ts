@@ -15,6 +15,7 @@ export class InscriptionController {
         session_id: req.body.session_id,
         apprenantId: req.user!.userId,
         source_financement: req.body.source_financement,
+        mode_paiement: req.body.mode_paiement,
         voucher_code: req.body.voucher_code,
         code_apporteur: req.body.code_apporteur
       };
@@ -42,6 +43,7 @@ export class InscriptionController {
         session_id: req.params.id,
         apprenantId: req.user!.userId,
         source_financement: req.body.source_financement,
+        mode_paiement: req.body.mode_paiement,
         voucher_code: req.body.voucher_code,
         code_apporteur: req.body.code_apporteur
       };
