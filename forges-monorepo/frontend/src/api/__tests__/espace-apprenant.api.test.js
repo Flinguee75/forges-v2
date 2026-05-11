@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apprenantApi } from '../espace-apprenant.api';
 import { apiClient } from '../client';
+import { getAccessToken } from '../../utils/authStorage';
 
 vi.mock('../client', () => ({
   apiClient: {
@@ -12,9 +13,14 @@ vi.mock('../client', () => ({
   },
 }));
 
+vi.mock('../../utils/authStorage', () => ({
+  getAccessToken: vi.fn(),
+}));
+
 describe('espace-apprenant.api', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getAccessToken.mockReturnValue('test-access-token');
     apiClient.get.mockImplementation((url) => {
       if (url === '/abonnements/retail/formations-incluses') {
         return Promise.resolve({
@@ -80,5 +86,14 @@ describe('espace-apprenant.api', () => {
     );
     expect(apiClient.post).toHaveBeenCalledWith('/formations/f-1/acceder');
     expect(apiClient.post).toHaveBeenCalledWith('/sessions/s-1/inscrire', { source_financement: 'RETAIL' });
+  });
+
+  it('évite l’appel retail/me quand aucun access token n’est présent', async () => {
+    getAccessToken.mockReturnValueOnce(null);
+
+    const abonnement = await apprenantApi.getMonAbonnementRetail();
+
+    expect(abonnement).toBeNull();
+    expect(apiClient.get).not.toHaveBeenCalledWith('/abonnements/retail/me');
   });
 });

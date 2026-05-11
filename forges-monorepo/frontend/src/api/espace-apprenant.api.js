@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { getAccessToken } from '../utils/authStorage';
 
 function cleanQueryParams(params = {}) {
   return Object.fromEntries(
@@ -28,7 +29,13 @@ export const apprenantApi = {
   }),
   annulerDossier: (dossierId) => apiClient.delete(`/espace-apprenant/dossiers/${dossierId}`),
 
-  getMonAbonnementRetail: async () => unwrapData(await apiClient.get('/abonnements/retail/me')),
+  getMonAbonnementRetail: async () => {
+    if (!getAccessToken()) {
+      return null;
+    }
+
+    return unwrapData(await apiClient.get('/abonnements/retail/me'));
+  },
   souscrireAbonnementRetail: async (data) => {
     // Retourne { abonnement, montant_premier_mois, payment_url, order_ngser }
     return unwrapData(await apiClient.post('/abonnements/retail', data));
