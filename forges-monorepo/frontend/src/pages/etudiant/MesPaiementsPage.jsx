@@ -142,9 +142,24 @@ export default function MesPaiementsPage() {
           return <span className="text-subtext">À régler pour confirmer</span>;
         }
         if (dossier.statut === 'EN_ATTENTE_PAIEMENT') {
-          return <span className="text-subtext">Aucune échéance</span>;
+          return <span className="text-subtext">Paiement à effectuer</span>;
         }
-        return <span className="text-subtext">Aucune échéance</span>;
+        const dateRetenu = new Date(dossier.updated_at || dossier.updatedAt || dossier.created_at);
+        const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
+        const isExpired = dateLimite < new Date();
+
+        return (
+          <div>
+            <div className={isExpired ? 'text-danger' : 'text-text'}>
+              {formatDate(dateLimite)}
+            </div>
+            {isExpired && (
+              <Badge variant="danger" size="small">
+                Expiré
+              </Badge>
+            )}
+          </div>
+        );
       },
     },
     {
@@ -173,7 +188,8 @@ export default function MesPaiementsPage() {
 
       <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
         <p className="text-sm text-warning">
-          Les dossiers “Paiement à effectuer” apparaissent ici pour consultation et règlement. Aucun délai de 72 heures n’est affiché pour le workflow apprenant.
+          Les dossiers “Paiement à effectuer” ne sont pas encore payés. Ils seront confirmés uniquement après validation du paiement.
+          Pour un dossier “Retenu”, le délai de règlement reste de 72 heures.
         </p>
       </div>
 

@@ -199,32 +199,38 @@ export default function MesDossiersPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 items-end">
-                  {dossier.statut === 'EN_ATTENTE_PAIEMENT' ? (
-                    <div className="rounded-lg border border-info bg-info/10 p-3 max-w-xs">
-                      <div className="text-sm">
-                        <p className="font-semibold text-info">Dossier enregistré</p>
-                        <p className="text-gray-700 mt-1">
-                          Votre inscription est bien prise en compte. Vous pourrez consulter la suite du parcours depuis l'espace paiements.
-                        </p>
+                  {/* Bandeau warning paiement requis */}
+                  {(dossier.statut === 'PAYE_DIRECTEMENT' || dossier.statut === 'EN_ATTENTE_PAIEMENT') && (
+                    <div className="rounded-lg border-2 border-warning bg-warning/10 p-3 max-w-xs">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <div className="text-sm">
+                          <p className="font-semibold text-warning">Paiement à effectuer</p>
+                          <p className="text-gray-700 mt-1">
+                            Votre dossier est accepté, mais l'inscription ne sera confirmée qu'après validation du paiement.
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  ) : (
-                    (dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT') && dossier.source_financement !== 'VOUCHER' && (
-                      <Button
-                        variant="primary"
-                        size="medium"
-                        className="w-full min-w-[200px] font-semibold shadow-lg"
-                        onClick={() => navigate(`/apprenant/paiements/initier/${dossier.id}`)}
-                        data-testid={`btn-payer-${dossier.id}`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          Payer maintenant
-                        </span>
-                      </Button>
-                    )
+                  )}
+
+                  {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT' || dossier.statut === 'EN_ATTENTE_PAIEMENT') && dossier.source_financement !== 'VOUCHER' && (
+                    <Button
+                      variant="primary"
+                      size="medium"
+                      className="w-full min-w-[200px] font-semibold shadow-lg"
+                      onClick={() => navigate(`/apprenant/paiements/initier/${dossier.id}`)}
+                      data-testid={`btn-payer-${dossier.id}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Payer maintenant
+                      </span>
+                    </Button>
                   )}
                   <Button
                     variant="outline"
@@ -258,37 +264,50 @@ export default function MesDossiersPage() {
             </div>
           </div>
 
-          {newDossierInfo?.statut === 'EN_ATTENTE_PAIEMENT' ? (
-            <div className="rounded-lg border border-info bg-info/5 p-4">
-              <p className="font-semibold text-info">Votre dossier est enregistré</p>
-              <p className="mt-2 text-sm text-gray-700">
-                Vous pourrez retrouver les informations utiles dans l'espace paiements lorsque vous souhaiterez poursuivre.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-lg border-2 border-warning bg-warning/5 p-4">
-              <div className="flex items-start gap-3">
-                <svg className="w-6 h-6 text-warning flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <div>
-                  <p className="font-semibold text-warning text-lg">Paiement encore à effectuer</p>
-                  <p className="mt-2 text-gray-700">
-                    Votre dossier est créé, mais l'inscription ne sera confirmée qu'après <strong>paiement validé</strong>.
+          <div className="rounded-lg border-2 border-warning bg-warning/5 p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-warning flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-semibold text-warning text-lg">Paiement encore à effectuer</p>
+                <p className="mt-2 text-gray-700">
+                  Votre dossier est créé, mais l'inscription ne sera confirmée qu'après <strong>paiement validé</strong>.
+                </p>
+                <div className="mt-3 p-3 bg-white rounded border border-warning">
+                  <p className="font-semibold text-warning">Prochaine étape</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Lancez le paiement sécurisé. Le dossier passera en payé uniquement après confirmation du paiement.
                   </p>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              variant="primary"
+              size="large"
+              className="w-full"
+              onClick={() => {
+                setShowSuccessModal(false);
+                navigate(`/apprenant/paiements/initier/${newDossierInfo?.dossierId}`);
+              }}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Payer maintenant
+              </span>
+            </Button>
             <Button
               variant="outline"
               size="medium"
-              className="w-full sm:w-auto"
+              className="w-full"
               onClick={() => setShowSuccessModal(false)}
             >
-              Fermer
+              Payer plus tard (je comprends le risque)
             </Button>
           </div>
         </div>

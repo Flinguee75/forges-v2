@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { etudiantApi } from '../../api/espace-etudiant.api';
-import { trackClick } from '../../utils/analytics';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -173,16 +172,16 @@ export default function EtudiantDashboard() {
             <Icon name="exclamationCircle" size={24} className="text-warning flex-shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold text-warning">
-                Paiements en attente
+                Action requise : Paiement en attente
               </h3>
               <p className="mt-1 text-sm text-warning">
-                Vous avez {stats.dossiersRetenus} dossier(s) en attente de règlement.
-                Consultez l'espace paiements pour poursuivre lorsque vous êtes prêt.
+                Vous avez {stats.dossiersRetenus} dossier(s) retenu(s). Effectuez votre
+                paiement dans les 72h pour confirmer votre inscription.
               </p>
             </div>
-            <Link to="/apprenant/paiements" className="flex-shrink-0" onClick={() => trackClick('btn-consulter-paiements', { dossiersRetenus: stats.dossiersRetenus })}>
+            <Link to="/apprenant/paiements" className="flex-shrink-0">
               <Button variant="warning" size="small">
-                Voir mes paiements
+                Payer maintenant
               </Button>
             </Link>
           </div>
@@ -266,7 +265,6 @@ export default function EtudiantDashboard() {
                   {item.statut === 'CONFIRME' && (
                     <Link
                       to={`/apprenant/attestations?dossier=${item.id}`}
-                      onClick={() => trackClick('link-attestation-pdf', { dossierId: item.id })}
                       className="mt-2 inline-block text-xs text-primary hover:underline"
                     >
                       Télécharger l'attestation →
@@ -280,7 +278,7 @@ export default function EtudiantDashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <Link to="/apprenant/catalogue" className="block" onClick={() => trackClick('nav-catalogue')}>
+        <Link to="/apprenant/catalogue" className="block">
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="bookOpen" size={28} className="text-primary flex-shrink-0" />
@@ -294,7 +292,7 @@ export default function EtudiantDashboard() {
           </Card>
         </Link>
 
-        <Link to="/apprenant/dossiers" className="block" onClick={() => trackClick('nav-dossiers')}>
+        <Link to="/apprenant/dossiers" className="block">
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="clipboardList" size={28} className="text-primary flex-shrink-0" />
@@ -308,7 +306,7 @@ export default function EtudiantDashboard() {
           </Card>
         </Link>
 
-        <Link to="/apprenant/attestations" className="block" onClick={() => trackClick('nav-attestations')}>
+        <Link to="/apprenant/attestations" className="block">
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="document" size={28} className="text-primary flex-shrink-0" />

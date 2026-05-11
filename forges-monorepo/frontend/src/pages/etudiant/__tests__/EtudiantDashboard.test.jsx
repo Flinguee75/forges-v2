@@ -119,9 +119,9 @@ describe('EtudiantDashboard - Checklist Tests', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Paiements en attente/)).toBeInTheDocument();
-      expect(screen.getByText(/Vous avez 1 dossier\(s\) en attente de règlement/)).toBeInTheDocument();
-      expect(screen.getByText('Voir mes paiements')).toBeInTheDocument();
+      expect(screen.getByText(/Action requise : Paiement en attente/)).toBeInTheDocument();
+      expect(screen.getByText(/Vous avez 1 dossier\(s\) retenu\(s\)/)).toBeInTheDocument();
+      expect(screen.getByText('Payer maintenant')).toBeInTheDocument();
     });
   });
 
