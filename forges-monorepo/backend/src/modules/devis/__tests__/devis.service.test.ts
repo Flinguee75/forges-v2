@@ -273,6 +273,40 @@ describe('DevisService — RM-149 à RM-151', () => {
         })
       );
     });
+
+    it('peut envoyer un devis temporaire a un apprenant sans devis en base', async () => {
+      const service = makeService();
+
+      await service.envoyerEmailDevis('draft-apprenant-1', 'script-test', {
+        recipientEmail: 'apprenant@test.ci',
+        recipientLabel: 'Tidiane Cisse',
+        organisationLabel: 'Lot test apprenants',
+        formationLabel: 'Formation pilote',
+        numeroDevis: 'FORGES-DEVIS-2026-APP-001',
+        nbPlaces: 1,
+        tarifUnitaireXof: 15000,
+        montantTotalXof: 15000,
+        createdAt: new Date('2026-05-10T00:00:00.000Z'),
+        session: {
+          date_debut: new Date('2026-06-01T00:00:00.000Z'),
+          date_fin: new Date('2026-06-05T00:00:00.000Z'),
+        },
+        attachmentFilename: 'FORGES-DEVIS-2026-APP-001-Tidiane-Cisse.pdf',
+      });
+
+      expect(mockDevisRepo.findById).not.toHaveBeenCalled();
+      expect(mockEmail.sendEmailWithAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'apprenant@test.ci',
+          subject: 'Votre devis FORGES-DEVIS-2026-APP-001 — FORGES AGRÉGATEUR',
+          attachment: expect.objectContaining({
+            filename: 'FORGES-DEVIS-2026-APP-001-Tidiane-Cisse.pdf',
+            contentType: 'application/pdf',
+          }),
+          html: expect.stringContaining('Tidiane Cisse'),
+        })
+      );
+    });
   });
 
   describe('annulerDevis — RM-151', () => {

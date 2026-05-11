@@ -29,6 +29,64 @@ export class DevisService {
     private readonly emailService: EmailService
   ) {}
 
+  private buildDraftOrganisation(
+    recipientLabel: string,
+    organisationLabel: string,
+    identifiantLegal?: string | null
+  ) {
+    // Le template devise attend une "organisation", mais pour ce script on
+    // injecte le nom de l'apprenant dans le champ email_organisation.
+    return {
+      raison_sociale: organisationLabel,
+      email: recipientLabel,
+      adresse: null,
+      pays: null,
+      identifiant_legal: identifiantLegal || null,
+      contact_referent: recipientLabel,
+    };
+  }
+
+  private buildDraftDevis(options: {
+    numeroDevis: string;
+    createdAt?: Date;
+    nbPlaces: number;
+    tarifUnitaireXof: number;
+    montantTotalXof: number;
+    organisationLabel: string;
+    recipientLabel: string;
+    formationLabel: string;
+    identifiantLegal?: string | null;
+    session?: { date_debut?: Date | string | null; date_fin?: Date | string | null } | null;
+    notesAdmin?: string | null;
+  }) {
+    const createdAt = options.createdAt || new Date();
+    const organisation = this.buildDraftOrganisation(
+      options.recipientLabel,
+      options.organisationLabel,
+      options.identifiantLegal
+    );
+    const formation = { intitule: options.formationLabel };
+    const session = options.session || null;
+
+    return {
+      devis: {
+        id: options.numeroDevis,
+        numero_devis: options.numeroDevis,
+        created_at: createdAt,
+        nb_places: options.nbPlaces,
+        tarif_unitaire_xof: options.tarifUnitaireXof,
+        montant_total_xof: options.montantTotalXof,
+        organisation,
+        formation,
+        session,
+        notes_admin: options.notesAdmin || null,
+      },
+      organisation,
+      formation,
+      session,
+    };
+  }
+
   async creerDevis(dto: CreerDevisDto, adminId: string) {
     const [organisation, formation] = await Promise.all([
       this.prisma.organisation.findUnique({ where: { id: dto.organisation_id } }),
@@ -318,7 +376,47 @@ export class DevisService {
     return this.devisRepository.findAll({ organisation_id: organisationId });
   }
 
-  async envoyerEmailDevis(id: string, adminId: string) {
+  async envoyerEmailDevis(
+    id: string,
+    adminId: string,
+    draftOptions?: {
+      recipientEmail: string;
+      recipientLabel: string;
+      organisationLabel: string;
+      formationLabel: string;
+      numeroDevis: string;
+      nbPlaces: number;
+      tarifUnitaireXof: number;
+      montantTotalXof: number;
+      createdAt?: Date;
+      session?: { date_debut?: Date | string | null; date_fin?: Date | string | null } | null;
+      notesAdmin?: string | null;
+      attachmentFilename?: string;
+    }
+  ) {
+    if (draftOptions) {
+      // Mode "draft" utilisé par le script apprenants + devis:
+      // aucun enregistrement Devis en base, mais on réutilise le même service
+      // d'envoi, le même PDF et le même template officiel.
+      const draft = this.buildDraftDevis(draftOptions);
+      const pdfBuffer = await genererPdfDevis(draft as any);
+      const emailSubject = `Votre devis ${draftOptions.numeroDevis} — FORGES AGRÉGATEUR`;
+      const emailHtml = this.buildEmailHtml(draft.devis as any);
+
+      await this.emailService.sendEmailWithAttachment({
+        to: draftOptions.recipientEmail,
+        subject: emailSubject,
+        html: emailHtml,
+        attachment: {
+          filename: draftOptions.attachmentFilename || `${draftOptions.numeroDevis}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      });
+
+      return { sent: true, to: draftOptions.recipientEmail, draft: true };
+    }
+
     const devis = await this.devisRepository.findById(id);
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
 
@@ -455,8 +553,7 @@ export class DevisService {
             <p style="margin:20px 0 0;font-size:13px;color:#888;font-style:italic;border-left:3px solid ${OR};padding-left:12px;">${devis.notes_admin}</p>
             ` : ''}
 
-            <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
-              Le devis est joint a cet email au format PDF.<br>
+          <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
               Apres validation, notre equipe vous communiquera les acces a la plateforme FORGES.
             </p>
           </td>

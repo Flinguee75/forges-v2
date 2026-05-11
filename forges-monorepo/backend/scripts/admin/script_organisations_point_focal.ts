@@ -38,7 +38,6 @@ const LOG_FILE = path.join(__dirname, 'enrolement_organisations_log.json');
 const FORMATION_ID = 'frm-masterclass-gwu-ccdl-2026';
 const SESSION_ID = 'ses-gwu-ccdl-juin-2026';
 const ANNEE = new Date().getFullYear();
-const TEMP_PASSWORD = process.env.ORG_TEMP_PASSWORD || 'Forges@2026!';
 const BCRYPT_ROUNDS = 12;
 const VOUCHER_EXPIRATION_DAYS = 90;
 
@@ -73,14 +72,14 @@ const ORGANISATIONS: OrganisationSeed[] = [
     tarif: 2000000,
     referent: {
       nom: 'Hassan Cissé',
-      email_org: 'redfoo923@gmail.com',
+      email_org: 'hassan.cisse@pointfocal.ci',
     },
     membres: [
       {
         nom: 'Cisse',
         prenoms: 'Tidiane',
-        email_pro: 'redfoo923@gmail.com',
-        email_perso: 'TidianeCisse9@outlook.fr',
+        email_pro: 'hassan.cisse@pointfocal.ci',
+        email_perso: 'cisseha@gmail.com',
         poste: 'Directeur Général',
         secteur: 'TECHNOLOGIE_INFORMATIQUE',
       },
@@ -110,7 +109,7 @@ const ORGANISATIONS: OrganisationSeed[] = [
 ];
 
 const dbUrl = process.env.DATABASE_URL || '';
-if (!process.env.FRONTEND_URL && dbUrl.includes('forges_edu')) {
+if (!process.env.FRONTEND_URL) {
   process.env.FRONTEND_URL = 'https://edu.forges-group.com';
 }
 const prisma = new PrismaClient({
@@ -148,6 +147,14 @@ function genDevisNum(sequence: number) {
 
 function genVoucherCode(orgCode: string, idx: number) {
   return `VCH-${orgCode}-${ANNEE}-${String(idx + 1).padStart(3, '0')}`;
+}
+
+function generateOrganisationTempPassword() {
+  return `${crypto.randomBytes(6).toString('hex').toUpperCase()}!${crypto.randomBytes(3).toString('hex')}`;
+}
+
+function generateApprenantTempPassword() {
+  return `FORGES-${crypto.randomUUID().slice(0, 8).toUpperCase()}!`;
 }
 
 async function hashPassword(plain: string) {
@@ -249,7 +256,6 @@ async function main() {
     }
     log('INFO', `Session trouvée : ${session.date_debut} → ${session.date_fin}`, { id: SESSION_ID });
 
-    const passwordHash = await hashPassword(TEMP_PASSWORD);
     const existingDevises = await prisma.devis.findMany({
       where: {
         numero_devis: {
@@ -294,6 +300,8 @@ async function main() {
           pays: org.pays,
         });
       } else {
+        const orgTempPassword = generateOrganisationTempPassword();
+        const orgPasswordHash = await hashPassword(orgTempPassword);
         const created = await prisma.organisation.create({
           data: {
             raison_sociale: org.nom,
@@ -305,14 +313,14 @@ async function main() {
             langue_preferee: 'FR',
             statut: 'ACTIF',
             sous_types: [],
-            password_hash: passwordHash,
+            password_hash: orgPasswordHash,
             token_confirmation: null,
             token_expiration: null,
           },
         });
         organisationId = created.id;
         log('INFO', 'Organisation créée', { raison_sociale: org.nom, id: organisationId });
-        await emailService.sendTempPassword(orgEmail, TEMP_PASSWORD, 'FR', 'ORGANISATION');
+        await emailService.sendTempPassword(orgEmail, orgTempPassword, 'FR', 'ORGANISATION');
         log('INFO', 'Email mot de passe temporaire envoyé', {
           email: orgEmail,
           nom: org.referent.nom,
@@ -416,10 +424,12 @@ async function main() {
             organisation_id: organisationId,
           });
         } else {
+          const apprenantTempPassword = generateApprenantTempPassword();
+          const apprenantPasswordHash = await hashPassword(apprenantTempPassword);
           const createdApprenant = await prisma.apprenant.create({
             data: {
               email: apprenantEmail,
-              password_hash: passwordHash,
+              password_hash: apprenantPasswordHash,
               nom: membre.nom,
               prenoms: membre.prenoms || membre.nom,
               type_apprenant: 'PROFESSIONNEL',
@@ -441,7 +451,7 @@ async function main() {
           });
           apprenantId = createdApprenant.id;
           log('INFO', 'Apprenant créé', { email: apprenantEmail, id: apprenantId });
-          await emailService.sendTempPassword(apprenantEmail, TEMP_PASSWORD, 'FR', 'APPRENANT');
+          await emailService.sendTempPassword(apprenantEmail, apprenantTempPassword, 'FR', 'APPRENANT');
           log('INFO', 'Email mot de passe temporaire envoyé', {
             email: apprenantEmail,
             nom: `${membre.prenoms} ${membre.nom}`,
