@@ -1,16 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { paiementsApi } from '../../api/paiements.api';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/feedback/Spinner';
-
-const CANAUX = [
-  { value: 'orange', label: 'Orange Money', prefix: '07 / 05' },
-  { value: 'mtn', label: 'MTN Money', prefix: '07 / 05' },
-  { value: 'wave', label: 'Wave', prefix: '00' },
-  { value: 'moov', label: 'Moov Money', prefix: '01' },
-];
 
 const ERROR_MESSAGES = {
   FORBIDDEN: "Vous n'etes pas autorise a payer ce dossier.",
@@ -29,137 +22,82 @@ function getErrorMessage(err) {
 export default function PaiementInitiation() {
   const { dossierId } = useParams();
   const navigate = useNavigate();
-
-  const [canal, setCanal] = useState('orange');
-  const [telephone, setTelephone] = useState('');
-  const [step, setStep] = useState('form'); // 'form' | 'redirecting' | 'error'
+  const [status, setStatus] = useState('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const [paymentUrl, setPaymentUrl] = useState('');
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setStep('redirecting');
+  useEffect(() => {
+    let isMounted = true;
 
-    // Ouvrir le nouvel onglet immediatement (dans le handler sync) pour eviter le blocage popup
-    const newTab = window.open('', '_blank', 'noopener,noreferrer');
-
-    try {
-      const response = await paiementsApi.initierFineo(dossierId, telephone.trim(), canal);
-      const data = response?.data || response;
-      newTab.location.href = data.checkout_link;
-      setStep('form');
-    } catch (fineoErr) {
-      const fineoCode = fineoErr?.response?.data?.error || fineoErr?.message || '';
-      const isBlocking = ['FORBIDDEN', 'DOSSIER_NOT_FOUND', 'PAIEMENT_DEJA_VALIDE', 'DOSSIER_STATUT_INVALIDE'].includes(fineoCode);
-
-      if (isBlocking) {
-        newTab.close();
-        setStep('error');
-        setErrorMessage(getErrorMessage(fineoErr));
-        return;
-      }
-
-      // Fallback NGSER
+    async function initier() {
       try {
-        const response = await paiementsApi.initierNgser({ dossier_id: dossierId });
+        const response = await paiementsApi.initierFineo(dossierId);
         const data = response?.data || response;
-        newTab.location.href = data.payment_url;
-        setStep('form');
-      } catch (ngserErr) {
-        newTab.close();
-        setStep('error');
-        setErrorMessage(getErrorMessage(ngserErr));
+        if (!isMounted) return;
+        setPaymentUrl(data.checkout_link);
+        window.location.assign(data.checkout_link);
+      } catch (fineoErr) {
+        const fineoCode = fineoErr?.response?.data?.error || fineoErr?.message || '';
+        const isBlocking = ['FORBIDDEN', 'DOSSIER_NOT_FOUND', 'PAIEMENT_DEJA_VALIDE', 'DOSSIER_STATUT_INVALIDE'].includes(fineoCode);
+
+        if (isBlocking) {
+          if (!isMounted) return;
+          setStatus('error');
+          setErrorMessage(getErrorMessage(fineoErr));
+          return;
+        }
+
+        // Fallback NGSER
+        try {
+          const response = await paiementsApi.initierNgser({ dossier_id: dossierId });
+          const data = response?.data || response;
+          if (!isMounted) return;
+          setPaymentUrl(data.payment_url);
+          window.location.assign(data.payment_url);
+        } catch (ngserErr) {
+          if (!isMounted) return;
+          setStatus('error');
+          setErrorMessage(getErrorMessage(ngserErr));
+        }
       }
     }
-  }
 
-  const canalInfo = CANAUX.find((c) => c.value === canal);
+    initier();
+    return () => { isMounted = false; };
+  }, [dossierId]);
 
   return (
     <div className="mx-auto max-w-xl">
-      <Card className="space-y-6">
+      <Card className="space-y-6 text-center">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Paiement Mobile Money</h1>
+          <h1 className="text-2xl font-semibold text-primary">Paiement securise</h1>
           <p className="mt-2 text-sm text-subtext">
-            Renseignez votre operateur et votre numero. Vous serez redirige vers la page de confirmation securisee.
+            Vous allez etre redirige vers la page de paiement securisee (carte bancaire ou Mobile Money).
           </p>
         </div>
 
-        {step === 'form' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-text" htmlFor="canal">
-                Operateur
-              </label>
-              <select
-                id="canal"
-                data-testid="select-canal"
-                value={canal}
-                onChange={(e) => setCanal(e.target.value)}
-                className="w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              >
-                {CANAUX.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-text" htmlFor="telephone">
-                Numero Mobile Money
-                {canalInfo && (
-                  <span className="ml-2 text-xs text-subtext">(commence par {canalInfo.prefix})</span>
-                )}
-              </label>
-              <input
-                id="telephone"
-                data-testid="input-telephone"
-                type="tel"
-                value={telephone}
-                onChange={(e) => setTelephone(e.target.value)}
-                placeholder="Ex : 0701234567"
-                className="w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-text placeholder:text-subtext focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-                minLength={8}
-                maxLength={15}
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-              <Button type="submit" variant="primary" data-testid="btn-payer" className="flex-1">
-                Continuer vers le paiement
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/apprenant/paiements')}>
-                Annuler
-              </Button>
-            </div>
-          </form>
-        )}
-
-        {step === 'redirecting' && (
-          <div className="flex flex-col items-center gap-4 py-8">
+        {status === 'loading' && (
+          <div className="flex justify-center py-8">
             <Spinner size="large" />
-            <p className="text-sm text-subtext">Redirection en cours...</p>
           </div>
         )}
 
-        {step === 'error' && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-danger bg-danger-soft p-4 text-sm text-danger">
-              {errorMessage}
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button variant="primary" onClick={() => setStep('form')}>
-                Reessayer
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/apprenant/paiements')}>
-                Retour aux paiements
-              </Button>
-            </div>
+        {status === 'error' && (
+          <div className="rounded-lg border border-danger bg-danger-soft p-4 text-sm text-danger">
+            {errorMessage}
           </div>
         )}
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+          {paymentUrl && (
+            <Button variant="primary" onClick={() => window.location.assign(paymentUrl)}>
+              Continuer vers le paiement
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => navigate('/apprenant/paiements')}>
+            Retour
+          </Button>
+        </div>
       </Card>
     </div>
   );
