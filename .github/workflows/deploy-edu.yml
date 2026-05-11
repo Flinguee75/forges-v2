@@ -92,11 +92,19 @@ jobs:
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} \
             "find ${{ secrets.EDU_FRONTEND_DEPLOY_PATH }} -not -path '*/.env' -not -path '*/infra/*' -not -path '*/uploads/*' -type f -exec chmod 644 {} \; && find ${{ secrets.EDU_FRONTEND_DEPLOY_PATH }} -type d -exec chmod 755 {} \;"
 
-      - name: Transferer docker-compose edu (rsync)
+      - name: Transferer docker-compose edu et scripts (rsync)
         run: |
           rsync -avz --mkpath \
             infra/docker/docker-compose.edu.deploy.yml \
             ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra/docker/
+          rsync -avz --mkpath \
+            infra/scripts/backup-edu.sh \
+            infra/scripts/restore-edu.sh \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra/scripts/
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} \
+            "chmod +x ${{ secrets.DEV_DEPLOY_PATH }}/infra/scripts/backup-edu.sh \
+                      ${{ secrets.DEV_DEPLOY_PATH }}/infra/scripts/restore-edu.sh"
 
       - name: Lire image precedente (base rollback)
         id: prev-image
@@ -130,6 +138,23 @@ jobs:
               fi
               docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
               echo "Pull OK: ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
+          ENDSSH
+
+      - name: Backup pre-deploy (forges_edu)
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" bash -s << 'ENDSSH'
+              set -euo pipefail
+              SCRIPT="$DEPLOY_PATH/infra/scripts/backup-edu.sh"
+              if [ -f "$SCRIPT" ]; then
+                bash "$SCRIPT" --pre-deploy
+              else
+                echo "[backup-edu] Script absent (premier deploy) — backup ignore"
+              fi
           ENDSSH
 
       - name: Deployer nouvelle version

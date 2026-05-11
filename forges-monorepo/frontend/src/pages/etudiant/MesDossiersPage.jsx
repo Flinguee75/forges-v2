@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { etudiantApi } from '../../api/espace-etudiant.api';
+import { trackClick } from '../../utils/analytics';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
@@ -144,6 +145,7 @@ export default function MesDossiersPage() {
         <div className="flex flex-col gap-1">
           <Link
             to={`/apprenant/dossiers/${dossier.id}`}
+            onClick={() => trackClick('link-dossier-detail', { dossierId: dossier.id, statut: dossier.statut })}
             className="text-sm text-primary hover:underline"
           >
             Voir détails
@@ -151,6 +153,7 @@ export default function MesDossiersPage() {
           {isPaiementConfirme(dossier) && (
             <Link
               to={`/apprenant/attestations?dossier=${dossier.id}`}
+              onClick={() => trackClick('link-attestation-pdf', { dossierId: dossier.id })}
               className="text-sm text-success hover:underline"
             >
               Attestation
@@ -159,6 +162,7 @@ export default function MesDossiersPage() {
           {canPay(dossier) && (
             <Link
               to="/apprenant/paiements"
+              onClick={() => trackClick('btn-payer', { dossierId: dossier.id, statut: dossier.statut })}
               className="text-sm text-warning hover:underline"
             >
               Payer
@@ -186,9 +190,10 @@ export default function MesDossiersPage() {
             </label>
             <select
               value={filters.statut}
-              onChange={(e) =>
-                setFilters({ ...filters, statut: e.target.value, page: 1 })
-              }
+              onChange={(e) => {
+                trackClick('filter-statut', { statut: e.target.value });
+                setFilters({ ...filters, statut: e.target.value, page: 1 });
+              }}
               className="w-full rounded-lg border border-border px-3 py-2 focus:border-primary focus:outline-none"
             >
               <option value="">Tous les statuts</option>

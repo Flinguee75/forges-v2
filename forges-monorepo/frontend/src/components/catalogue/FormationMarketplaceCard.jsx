@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../../utils/currency';
+import { trackClick } from '../../utils/analytics';
 
 const coverThemes = [
   {
@@ -154,6 +155,7 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
   return (
     <Link
       to={nextPath}
+      onClick={() => trackClick('card-formation', { formationId: formationData.id, intitule: formationData.titre, context })}
       className="group block h-full rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 hover:border-slate-400 hover:shadow-md"
     >
       <div className="flex h-full flex-col">

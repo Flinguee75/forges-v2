@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { formationsApi } from '../../api/formations.api';
 import { etudiantApi } from '../../api/espace-etudiant.api';
+import { trackClick } from '../../utils/analytics';
 import Button from '../../components/ui/Button';
 import Pagination from '../../components/ui/Pagination';
 import Spinner from '../../components/feedback/Spinner';
@@ -84,6 +85,7 @@ export default function CatalogueEtudiantPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    trackClick('filter-search', { search: filters.search });
     setFilters({ ...filters, page: 1 });
   };
 
@@ -110,9 +112,10 @@ export default function CatalogueEtudiantPage() {
           <div className="min-w-[150px]">
             <select
               value={filters.niveau}
-              onChange={(e) =>
-                setFilters({ ...filters, niveau: e.target.value, page: 1 })
-              }
+              onChange={(e) => {
+                trackClick('filter-niveau', { niveau: e.target.value });
+                setFilters({ ...filters, niveau: e.target.value, page: 1 });
+              }}
               className="w-full rounded-lg border border-border px-3 py-2 focus:border-primary focus:outline-none"
             >
               <option value="">Tous les niveaux</option>

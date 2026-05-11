@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { authApi } from '../../api/auth.api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { trackClick } from '../../utils/analytics';
 
 const TEST_ACCOUNTS = [
   {
@@ -107,6 +108,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    trackClick('btn-login');
     await submitLogin({ email, password });
   };
 
@@ -206,6 +208,7 @@ export default function LoginPage() {
                 </Link>
                 <Link
                   to="/reset-password"
+                  onClick={() => trackClick('link-mot-de-passe-oublie')}
                   className="flex min-h-[54px] items-center justify-center rounded-xl border border-border bg-white px-4 text-center font-medium text-primary transition-colors hover:border-primary/30 hover:bg-primary/[0.03]"
                 >
                   Mot de passe oublie

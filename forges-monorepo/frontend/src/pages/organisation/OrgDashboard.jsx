@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { organisationApi } from '../../api/espace-organisation.api';
+import { trackClick } from '../../utils/analytics';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/feedback/Spinner';
@@ -157,7 +158,7 @@ export default function OrgDashboard() {
                 </div>
                 <div className="flex flex-col items-end gap-3">
                   <Badge variant={orgStatusMeta.variant} size="small">{orgStatusMeta.label}</Badge>
-                  <Link to="/organisation/abonnement/souscrire">
+                  <Link to="/organisation/abonnement/souscrire" onClick={() => trackClick('btn-souscrire', { statut: orgSubscription?.statut })}>
                     <Button variant="primary" size="small">Souscrire maintenant</Button>
                   </Link>
                 </div>
@@ -363,7 +364,7 @@ export default function OrgDashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <Link to="/organisation/abonnement" className="block">
+        <Link to="/organisation/abonnement" className="block" onClick={() => trackClick('nav-abonnement')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="creditCard" size={28} className="text-primary flex-shrink-0" />
@@ -377,7 +378,7 @@ export default function OrgDashboard() {
           </Card>
         </Link>
 
-        <Link to="/organisation/b2b" className="block">
+        <Link to="/organisation/b2b" className="block" onClick={() => trackClick('nav-b2b')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="folder" size={28} className="text-primary flex-shrink-0" />
@@ -391,7 +392,7 @@ export default function OrgDashboard() {
           </Card>
         </Link>
 
-        <Link to="/organisation/vouchers" className="block">
+        <Link to="/organisation/vouchers" className="block" onClick={() => trackClick('nav-vouchers')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="ticket" size={28} className="text-primary flex-shrink-0" />
@@ -405,7 +406,7 @@ export default function OrgDashboard() {
           </Card>
         </Link>
 
-        <Link to="/organisation/inscriptions" className="block">
+        <Link to="/organisation/inscriptions" className="block" onClick={() => trackClick('nav-inscriptions')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="clipboardList" size={28} className="text-primary flex-shrink-0" />

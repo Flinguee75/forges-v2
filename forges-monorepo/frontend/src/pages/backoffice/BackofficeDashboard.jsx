@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { dashboardApi } from '../../api/dashboard.api';
+import { trackClick } from '../../utils/analytics';
 import RuntimeUnavailable from '../../components/feedback/RuntimeUnavailable';
 import Spinner from '../../components/feedback/Spinner';
 import Badge from '../../components/ui/Badge';
@@ -96,6 +97,7 @@ export default function BackofficeDashboard() {
   }, [user?.role]);
 
   const handleExport = async (format) => {
+    trackClick(`btn-export-${format}`, { role: user?.role });
     try {
       if (format === 'csv') {
         setIsExportingCsv(true);
@@ -231,6 +233,7 @@ export default function BackofficeDashboard() {
             <Link
               key={link.to}
               to={link.to}
+              onClick={() => trackClick(`nav-backoffice-${link.label.toLowerCase().replace(/\s+/g, '-')}`, { role })}
               className="rounded-lg border border-border bg-white p-4 transition-colors hover:border-primary/30 hover:bg-bg"
             >
               <p className="font-semibold text-primary">{link.label}</p>
