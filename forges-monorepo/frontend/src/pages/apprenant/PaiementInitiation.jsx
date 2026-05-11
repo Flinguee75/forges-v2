@@ -10,7 +10,7 @@ const ERROR_MESSAGES = {
   DOSSIER_NOT_FOUND: 'Dossier introuvable.',
   DOSSIER_STATUT_INVALIDE: "Ce dossier ne peut pas etre paye dans son etat actuel.",
   PAIEMENT_DEJA_VALIDE: 'Ce dossier a deja ete paye.',
-  PAYMENT_EXPIRED: 'Le delai de paiement de 72h est depasse.',
+  PAYMENT_EXPIRED: 'Le delai de paiement est depasse.',
   TOO_MANY_ATTEMPTS: 'Trop de tentatives. Contactez le support.',
 };
 

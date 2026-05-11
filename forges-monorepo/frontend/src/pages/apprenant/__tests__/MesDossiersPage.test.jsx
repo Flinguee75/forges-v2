@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import MesDossiersPage from '../MesDossiersPage';
 import apprenantApi from '../../../api/espace-apprenant.api';
@@ -54,6 +54,35 @@ describe('MesDossiersPage', () => {
     });
 
     expect(apprenantApi.getMesDossiers).toHaveBeenCalledWith();
+  });
+
+  it('n’affiche pas de CTA de paiement direct pour un dossier EN_ATTENTE_PAIEMENT', async () => {
+    apprenantApi.getMesDossiers.mockResolvedValue([
+      {
+        id: 'd-1',
+        statut: 'EN_ATTENTE_PAIEMENT',
+        created_at: '2026-04-01T00:00:00.000Z',
+        source_financement: 'RETAIL',
+        session: {
+          date_debut: '2026-05-01T00:00:00.000Z',
+          date_fin: '2026-05-15T00:00:00.000Z',
+          formation: { titre: 'Formation attente paiement' },
+        },
+      },
+    ]);
+
+    render(
+      <BrowserRouter>
+        <MesDossiersPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      const card = screen.getByTestId('dossier-card-d-1');
+      expect(within(card).getByText('Formation attente paiement')).toBeInTheDocument();
+      expect(within(card).getByText('Paiement à effectuer')).toBeInTheDocument();
+      expect(within(card).queryByText('Payer maintenant')).not.toBeInTheDocument();
+    });
   });
 
   it('affiche l’état vide quand aucun dossier n’est présent', async () => {
