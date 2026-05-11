@@ -33,6 +33,7 @@ import { DevisService } from '../../src/modules/devis/devis.service';
 import { AuditLogger } from '../../src/shared/audit/audit.logger';
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const CAPTURE_TEMP_PASSWORDS = process.argv.includes('--capture-temp-passwords');
 const LOG_FILE = path.join(__dirname, 'enrolement_organisations_log.json');
 
 const FORMATION_ID = 'frm-masterclass-gwu-ccdl-2026';
@@ -72,14 +73,14 @@ const ORGANISATIONS: OrganisationSeed[] = [
     tarif: 2000000,
     referent: {
       nom: 'Hassan Cissé',
-      email_org: 'hassan.cisse@pointfocal.ci',
+      email_org: 'redfoo923@gmail.com',
     },
     membres: [
       {
         nom: 'Cisse',
         prenoms: 'Tidiane',
         email_pro: 'hassan.cisse@pointfocal.ci',
-        email_perso: 'cisseha@gmail.com',
+        email_perso: 'TidianeCiss9@outlook.fr',
         poste: 'Directeur Général',
         secteur: 'TECHNOLOGIE_INFORMATIQUE',
       },
@@ -109,9 +110,7 @@ const ORGANISATIONS: OrganisationSeed[] = [
 ];
 
 const dbUrl = process.env.DATABASE_URL || '';
-if (!process.env.FRONTEND_URL) {
-  process.env.FRONTEND_URL = 'https://edu.forges-group.com';
-}
+process.env.FRONTEND_URL = 'https://edu.forges-group.com';
 const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl.includes('connection_limit') ? dbUrl : `${dbUrl}?connection_limit=3` } },
 });
@@ -290,6 +289,7 @@ async function main() {
           id: organisationId,
         });
       } else if (DRY_RUN) {
+        const orgTempPassword = generateOrganisationTempPassword();
         organisationId = `DRY-ORG-${org.code}`;
         log('INFO', '[DRY-RUN] Créerait Organisation', {
           id: organisationId,
@@ -298,6 +298,8 @@ async function main() {
           email: orgEmail,
           contact_referent: org.referent.nom,
           pays: org.pays,
+          mot_de_passe_temporaire: orgTempPassword,
+          frontend_url: process.env.FRONTEND_URL,
         });
       } else {
         const orgTempPassword = generateOrganisationTempPassword();
@@ -325,6 +327,7 @@ async function main() {
           email: orgEmail,
           nom: org.referent.nom,
           type_compte: 'ORGANISATION',
+          ...(CAPTURE_TEMP_PASSWORDS ? { mot_de_passe_temporaire: orgTempPassword } : {}),
         });
       }
 
@@ -413,6 +416,7 @@ async function main() {
             });
           }
         } else if (DRY_RUN) {
+          const apprenantTempPassword = generateApprenantTempPassword();
           apprenantId = `DRY-APP-${org.code}-${voucherIdx + 1}`;
           log('INFO', '[DRY-RUN] Créerait Apprenant', {
             id: apprenantId,
@@ -422,6 +426,8 @@ async function main() {
             type_apprenant: 'PROFESSIONNEL',
             secteur_activite: membre.secteur || null,
             organisation_id: organisationId,
+            mot_de_passe_temporaire: apprenantTempPassword,
+            frontend_url: process.env.FRONTEND_URL,
           });
         } else {
           const apprenantTempPassword = generateApprenantTempPassword();
@@ -456,6 +462,7 @@ async function main() {
             email: apprenantEmail,
             nom: `${membre.prenoms} ${membre.nom}`,
             type_compte: 'APPRENANT',
+            ...(CAPTURE_TEMP_PASSWORDS ? { mot_de_passe_temporaire: apprenantTempPassword } : {}),
           });
         }
 

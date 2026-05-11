@@ -24,14 +24,8 @@ Exemple:
     "session_id": "ses-gwu-ccdl-juin-2026",
     "organisation_label": "Groupe test apprenants",
     "contact_referent": "Equipe FORGES",
-    "formation_label": "Masterclass GWU/CCDL — Cybersécurité & IA",
     "identifiant_legal": "",
-    "tarif_unitaire_xof": 15000,
-    "notes_admin": "Lot initial de test avec 2 apprenants",
-    "session": {
-      "date_debut": "2026-06-01T00:00:00.000Z",
-      "date_fin": "2026-06-05T00:00:00.000Z"
-    }
+    "notes_admin": "Lot initial de test avec 2 apprenants"
   },
   "apprenants": [
     {
@@ -56,9 +50,8 @@ Champs requis:
 
 - `devis.organisation_label`
 - `devis.contact_referent`
-- `devis.formation_label`
-- `devis.formation_id` et `devis.session_id` sont recommandés pour rattacher le devis à la formation GWU/CCDL du reset `edu`
-- `devis.tarif_unitaire_xof`
+- `devis.formation_id`
+- `devis.session_id`
 - `devis.identifiant_legal` est optionnel et peut rester vide si ce n'est pas une vraie organisation
 - `apprenants[]`
 - `apprenants[].email`
@@ -89,7 +82,7 @@ Variables utiles:
 - Le mail d'accès part via `sendTempPassword(...)`, comme dans le script source.
 - Le devis PDF est généré par le service devis existant, sans créer de ligne `Devis` persistée.
 - Le bloc destinataire du devis utilise le nom et prénom de l'apprenant.
-- La formation et la session sont résolues depuis les IDs du reset `edu` si disponibles.
+- La formation, le tarif unitaire et les dates de session sont lus en base à partir des IDs fournis.
 
 ## Vérification
 

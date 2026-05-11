@@ -17,8 +17,12 @@ export class AuthService {
     return statut === 'ACTIF' || statut === 'ACTIVE';
   }
 
+  private normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
   async login(email: string, password: string, ip: string) {
-    const user = await this.userRepo.findByEmail(email);
+    const user = await this.userRepo.findByEmail(this.normalizeEmail(email));
     if (!user || !user.password_hash || !this.isAccountActive(user.statut)) throw new Error('INVALID_CREDENTIALS');
     const valid = await compare(password, user.password_hash);
     if (!valid) throw new Error('INVALID_CREDENTIALS');
@@ -53,7 +57,7 @@ export class AuthService {
   }
 
   async forgotPassword(email: string, ip: string) {
-    const user = await this.userRepo.findByEmail(email);
+    const user = await this.userRepo.findByEmail(this.normalizeEmail(email));
 
     if (
       !user ||

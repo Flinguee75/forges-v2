@@ -29,8 +29,6 @@ const fileFlag = args.indexOf('--file');
 const dryRun = args.includes('--dry-run') || process.env.DRY_RUN === 'true';
 const EMAIL_OVERRIDE = process.env.EMAIL_TEST_OVERRIDE || null;
 const BCRYPT_ROUNDS = 12;
-const FORMATION_ID = 'frm-masterclass-gwu-ccdl-2026';
-const SESSION_ID = 'ses-gwu-ccdl-juin-2026';
 
 if (fileFlag === -1 || !args[fileFlag + 1]) {
   console.error('Usage: creer-apprenants-et-devis.ts --file <chemin/vers/fichier.json> [--dry-run]');
@@ -39,8 +37,6 @@ if (fileFlag === -1 || !args[fileFlag + 1]) {
 
 const inputPath = path.resolve(__dirname, args[fileFlag + 1]);
 const LOG_FILE = path.join(__dirname, 'creer_apprenants_et_devis_log.json');
-
-type ApprobationDate = string | Date | null | undefined;
 
 type ApprenantSeed = {
   email: string;
@@ -55,18 +51,12 @@ type ApprenantSeed = {
 
 type ScriptConfig = {
   devis: {
-    formation_id?: string;
-    session_id?: string;
+    formation_id: string;
+    session_id: string;
     organisation_label: string;
     contact_referent: string;
-    formation_label: string;
-    tarif_unitaire_xof: number;
     identifiant_legal?: string | null;
     notes_admin?: string;
-    session?: {
-      date_debut?: ApprobationDate;
-      date_fin?: ApprobationDate;
-    };
   };
   apprenants: ApprenantSeed[];
 };
@@ -77,9 +67,7 @@ if (!dbUrl) {
   process.exit(1);
 }
 
-if (!process.env.FRONTEND_URL) {
-  process.env.FRONTEND_URL = 'https://edu.forges-group.com';
-}
+process.env.FRONTEND_URL = 'https://edu.forges-group.com';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl.includes('connection_limit') ? dbUrl : `${dbUrl}?connection_limit=3` } },
@@ -125,12 +113,6 @@ function generateTempPassword() {
   return `FORGES-${crypto.randomUUID().slice(0, 8).toUpperCase()}!`;
 }
 
-function parseDate(value: ApprobationDate): Date | null {
-  if (!value) return null;
-  const parsed = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function buildNumeroDevis(index: number) {
   const year = new Date().getFullYear();
   return `FORGES-DEVIS-${year}-APP-${String(index + 1).padStart(3, '0')}`;
@@ -144,8 +126,8 @@ async function main() {
 
   const config: ScriptConfig = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
 
-  if (!config?.devis?.organisation_label || !config?.devis?.contact_referent || !config?.devis?.formation_label) {
-    console.error('Le JSON doit contenir devis.organisation_label, contact_referent et formation_label.');
+  if (!config?.devis?.organisation_label || !config?.devis?.contact_referent || !config?.devis?.formation_id || !config?.devis?.session_id) {
+    console.error('Le JSON doit contenir devis.organisation_label, contact_referent, formation_id et session_id.');
     process.exit(1);
   }
 
@@ -164,30 +146,21 @@ async function main() {
   try {
     const results: Array<{ email: string; status: 'CREATED' | 'REUSED' | 'DRY_RUN'; id: string }> = [];
 
-    const formationId = config.devis.formation_id || FORMATION_ID;
-    const sessionId = config.devis.session_id || SESSION_ID;
-    let formation: { id: string; intitule: string } | null = null;
-    let session: { id: string; date_debut: Date; date_fin: Date } | null = null;
-
-    if (!dryRun) {
-      formation = await prisma.formation.findUnique({ where: { id: formationId } });
-      session = await prisma.session.findUnique({ where: { id: sessionId } });
-    }
+    const formation = await prisma.formation.findUnique({
+      where: { id: config.devis.formation_id },
+      select: { id: true, intitule: true, cout_catalogue: true },
+    });
+    const session = await prisma.session.findUnique({
+      where: { id: config.devis.session_id },
+      select: { id: true, date_debut: true, date_fin: true },
+    });
 
     if (!formation) {
-      if (dryRun) {
-        log('WARN', 'Formation introuvable, fallback JSON en dry-run', { formation_id: formationId });
-      } else {
-        throw new Error(`Formation introuvable: ${formationId}`);
-      }
+      throw new Error(`Formation introuvable: ${config.devis.formation_id}`);
     }
 
     if (!session) {
-      if (dryRun) {
-        log('WARN', 'Session introuvable, fallback JSON en dry-run', { session_id: sessionId });
-      } else {
-        throw new Error(`Session introuvable: ${sessionId}`);
-      }
+      throw new Error(`Session introuvable: ${config.devis.session_id}`);
     }
 
     for (const [index, apprenantSeed] of config.apprenants.entries()) {
@@ -266,10 +239,11 @@ async function main() {
       }
 
       const numeroDevis = buildNumeroDevis(index);
-      const montantTotal = config.devis.tarif_unitaire_xof;
+      const tarifUnitaire = Math.round(formation.cout_catalogue / 100);
+      const montantTotal = tarifUnitaire;
       const sessionDates = {
-        date_debut: parseDate(config.devis.session?.date_debut) || session?.date_debut || null,
-        date_fin: parseDate(config.devis.session?.date_fin) || session?.date_fin || null,
+        date_debut: session.date_debut,
+        date_fin: session.date_fin,
       };
 
       if (dryRun) {
@@ -278,18 +252,21 @@ async function main() {
           destinataire: resolvedEmail,
           recipient_label: nomComplet,
           organisation_label: config.devis.organisation_label,
-          formation: formation?.intitule || config.devis.formation_label,
-          session_id: session?.id || sessionId,
+          formation: formation.intitule,
+          session_id: session.id,
+          tarif_unitaire_xof: tarifUnitaire,
+          date_debut_session: session.date_debut,
+          date_fin_session: session.date_fin,
         });
       } else {
         await devisService.envoyerEmailDevis(`draft-${slugify(email)}`, 'script_creer_apprenants_et_devis', {
           recipientEmail: resolvedEmail,
           recipientLabel: nomComplet,
           organisationLabel: config.devis.organisation_label,
-          formationLabel: formation?.intitule || config.devis.formation_label,
+          formationLabel: formation.intitule,
           numeroDevis,
           nbPlaces: 1,
-          tarifUnitaireXof: config.devis.tarif_unitaire_xof,
+          tarifUnitaireXof: tarifUnitaire,
           montantTotalXof: montantTotal,
           createdAt: new Date(),
           session: sessionDates,
@@ -301,8 +278,11 @@ async function main() {
           numero_devis: numeroDevis,
           destinataire: resolvedEmail,
           recipient_label: nomComplet,
-          formation: formation?.intitule || config.devis.formation_label,
-          session_id: session?.id || sessionId,
+          formation: formation.intitule,
+          session_id: session.id,
+          tarif_unitaire_xof: tarifUnitaire,
+          date_debut_session: session.date_debut,
+          date_fin_session: session.date_fin,
         });
       }
     }
