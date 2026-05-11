@@ -265,7 +265,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" | metadata_error != \"INVALID_CREDENTIALS\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" | metadata_error != \"INVALID_CREDENTIALS\" | metadata_health_probe != \"true\"",
           "refId": "A",
           "legendFormat": "Warnings reels"
         }
@@ -293,7 +293,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\"",
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\" | metadata_health_probe != \"true\"",
           "refId": "A"
         }
       ],
@@ -320,7 +320,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\" [5m]))",
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\" | metadata_health_probe != \"true\" [5m]))",
           "refId": "A",
           "legendFormat": "login KO/s"
         }

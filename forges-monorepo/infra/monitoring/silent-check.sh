@@ -47,6 +47,7 @@ check_auth_rejects_bad_creds() {
   status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
     -X POST "${BASE_URL}/api/auth/login" \
     -H "Content-Type: application/json" \
+    -H "X-Health-Probe: true" \
     -d '{"email":"monitor-probe@forges-check.invalid","password":"wrongpassword"}')
   # Expect 401 — if 200 or 500 something is wrong
   case "$status" in

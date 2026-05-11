@@ -122,6 +122,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
           request_id: res.locals.requestId,
           user_id: (req as any).user?.userId ?? null,
           referer: req.headers.referer ?? req.headers['x-page'] ?? null,
+          ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? null,
+          health_probe: req.headers['x-health-probe'] === 'true' ? true : undefined,
         },
         timestamp: new Date().toISOString(),
       };
