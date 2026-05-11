@@ -2,8 +2,8 @@
  * FORGES — Script de test apprenants + facture personnalise
  *
  * Usage:
- *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-test.csv --context groupes/apprenants-individuels-context.json
- *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-test.csv --context groupes/apprenants-individuels-context.json --dry-run
+ *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-final.csv --context groupes/apprenants-individuels-context.json
+ *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-final.csv --context groupes/apprenants-individuels-context.json --dry-run
  *
  * Variables d'environnement:
  *   DATABASE_URL           Obligatoire.

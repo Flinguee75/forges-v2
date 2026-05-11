@@ -9,7 +9,7 @@ Scripts métier liés aux flux d'enrôlement organisation, paiement de devis et 
 | `import-groupe.ts` | Enrôlement complet d'une organisation | Cas standard de production |
 | `payer-devis.ts` | Confirmation du paiement et activation des vouchers | À réception du virement |
 | `rappel-j7.ts` | Email de rappel J-7 | 7 jours avant la session |
-| `creer-apprenants-et-devis.ts` | Création/réutilisation d'apprenants depuis CSV + facture PDF personnalisée | Cas test apprenants individuels |
+| `creer-apprenants-et-devis.ts` | Création/réutilisation d'apprenants depuis CSV + facture PDF personnalisée | Cas final apprenants individuels |
 
 ## Scripts d'envoi annexes
 
@@ -24,7 +24,7 @@ Scripts métier liés aux flux d'enrôlement organisation, paiement de devis et 
 - Si tu veux faire le flux standard, commence par `import-groupe.ts`.
 - Si tu veux confirmer un paiement, passe par `payer-devis.ts`.
 - Si tu veux juste un rappel pratique avant la session, utilise `rappel-j7.ts`.
-- Si tu veux créer/réutiliser des apprenants depuis un CSV et leur envoyer une facture PDF personnalisée, utilise `creer-apprenants-et-devis.ts`.
+- Si tu veux créer/réutiliser des apprenants depuis un CSV et leur envoyer une facture PDF personnalisée, utilise `creer-apprenants-et-devis.ts` avec `groupes/apprenants-individuels-final.csv`.
 
 ## Doc détaillée
 

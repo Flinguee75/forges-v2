@@ -62,8 +62,8 @@ Champs requis du contexte:
 Depuis `backend/`:
 
 ```bash
-node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-test.csv --context groupes/apprenants-individuels-context.json --dry-run
-node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-test.csv --context groupes/apprenants-individuels-context.json
+node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-final.csv --context groupes/apprenants-individuels-context.json --dry-run
+node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-final.csv --context groupes/apprenants-individuels-context.json
 ```
 
 Variables utiles:
