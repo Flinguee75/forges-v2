@@ -44,23 +44,21 @@ export class PaiementNgserService {
       };
     }
 
-    if (!['RETENU', 'PAYE_DIRECTEMENT', 'EN_ATTENTE_PAIEMENT'].includes(dossier.statut)) {
+    if (!['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier.statut)) {
       throw new Error('DOSSIER_STATUT_INVALIDE');
     }
 
     const montantFinal = await this.calculerMontantFinal(dossier, apprenantId);
     const orderNgser = await this.generateUniqueOrderNgser();
     const session = await this.createNgserSession(orderNgser, montantFinal);
-    const expiresAt = dossier.statut === 'EN_ATTENTE_PAIEMENT'
-      ? null
-      : new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
+    const expiresAt = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
 
     const ngserData = {
       provider: NGSER_PROVIDER,
       payment_token_ngser: session.payment_token,
       order_ngser: orderNgser,
       montant_initie: montantFinal,
-      ...(expiresAt ? { expires_at: expiresAt } : { expires_at: null }),
+      expires_at: expiresAt,
       ngser_payload_last: {
         mode: this.isMockMode() ? 'MOCK' : 'REAL',
         payment_url: session.payment_url,

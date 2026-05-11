@@ -42,16 +42,14 @@ export class PaiementFineoService {
       };
     }
 
-    if (!['RETENU', 'PAYE_DIRECTEMENT', 'EN_ATTENTE_PAIEMENT'].includes(dossier.statut)) {
+    if (!['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier.statut)) {
       throw new Error('DOSSIER_STATUT_INVALIDE');
     }
 
     const montantCatalogueXof = this.toXof(dossier.formation.cout_catalogue);
     const montantFinal = await this.calculerMontantFinal(dossier, apprenantId, montantCatalogueXof);
     const syncRef = this.generateSyncRef();
-    const expiresAt = dossier.statut === 'EN_ATTENTE_PAIEMENT'
-      ? null
-      : new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
+    const expiresAt = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
 
     const callbackUrl = process.env.FINEO_CALLBACK_URL ||
       `${process.env.BACKEND_URL || 'http://localhost:3000'}/webhooks/fineo`;
@@ -83,7 +81,7 @@ export class PaiementFineoService {
       provider: FINEO_PROVIDER,
       order_ngser: syncRef,
       montant_initie: montantFinal,
-      ...(expiresAt ? { expires_at: expiresAt } : { expires_at: null }),
+      expires_at: expiresAt,
       ngser_payload_last: {
         checkout_link: checkout.checkoutLink,
         return_url: returnUrl,

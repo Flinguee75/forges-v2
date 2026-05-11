@@ -23,13 +23,6 @@ import { EmailService } from '../../src/shared/email/email.service';
 import { DevisRepository } from '../../src/modules/devis/devis.repository';
 import { DevisService } from '../../src/modules/devis/devis.service';
 import { AuditLogger } from '../../src/shared/audit/audit.logger';
-import { InscriptionService } from '../../src/modules/inscriptions/inscription.service';
-import { DossierRepository } from '../../src/modules/inscriptions/dossier.repository';
-import { SessionRepository } from '../../src/modules/sessions/session.repository';
-import { FormationRepository } from '../../src/modules/formations/formation.repository';
-import { VoucherRepository } from '../../src/modules/vouchers/voucher.repository';
-import { VoucherValidationService } from '../../src/modules/vouchers/voucher-validation.service';
-import { AbonnementRetailRepository } from '../../src/modules/abonnements/retail/abonnement-retail.repository';
 
 const args = process.argv.slice(2);
 const fileFlag = args.indexOf('--file');
@@ -81,16 +74,6 @@ const prisma = new PrismaClient({
 });
 
 const emailService = new EmailService();
-const inscriptionService = new InscriptionService(
-  new DossierRepository(prisma),
-  new SessionRepository(prisma),
-  new FormationRepository(prisma),
-  new VoucherValidationService(new VoucherRepository(prisma)),
-  new AbonnementRetailRepository(prisma),
-  new AuditLogger(prisma),
-  emailService,
-  prisma
-);
 const devisService = new DevisService(
   new DevisRepository(prisma),
   prisma,
@@ -186,7 +169,6 @@ async function main() {
       const nomComplet = `${apprenantSeed.prenoms} ${apprenantSeed.nom}`.trim();
       const resolvedEmail = resolveEmail(email);
       const tempPassword = generateTempPassword();
-      let apprenantId: string | null = null;
 
       console.log(`\n${'─'.repeat(52)}`);
       console.log(`  Apprenant : ${nomComplet}`);
@@ -195,7 +177,6 @@ async function main() {
 
       if (dryRun) {
         const fakeId = `DRY-APP-${slugify(email)}`;
-        apprenantId = fakeId;
         results.push({ email, id: fakeId, status: 'DRY_RUN' });
         log('INFO', '[DRY-RUN] Créerait apprenant', {
           id: fakeId,
@@ -210,7 +191,6 @@ async function main() {
         const existing = await prisma.apprenant.findUnique({ where: { email } });
 
         if (existing) {
-          apprenantId = existing.id;
           results.push({ email, id: existing.id, status: 'REUSED' });
           log('WARN', 'Apprenant déjà en base — réutilisation', {
             email,
@@ -242,7 +222,6 @@ async function main() {
             },
           });
 
-          apprenantId = created.id;
           results.push({ email, id: created.id, status: 'CREATED' });
           log('INFO', 'Apprenant créé', {
             email,
@@ -269,13 +248,6 @@ async function main() {
       };
 
       if (dryRun) {
-        log('INFO', '[DRY-RUN] Créerait dossier en attente de paiement', {
-          email,
-          apprenant_id: apprenantId,
-          session_id: session.id,
-          formation_id: formation.id,
-          statut: 'EN_ATTENTE_PAIEMENT',
-        });
         log('INFO', '[DRY-RUN] Enverrait devis PDF personnalisé', {
           numero_devis: numeroDevis,
           destinataire: resolvedEmail,
@@ -286,52 +258,8 @@ async function main() {
           tarif_unitaire_xof: tarifUnitaire,
           date_debut_session: session.date_debut,
           date_fin_session: session.date_fin,
-          dossier_id: `DRY-DOSSIER-${slugify(email)}`,
-          dossier_statut: 'EN_ATTENTE_PAIEMENT',
         });
       } else {
-        const dossierExistant = await prisma.dossier.findFirst({
-          where: {
-            apprenant_id: apprenantId || undefined,
-            session_id: session.id,
-            statut: { notIn: ['REJETE', 'ANNULE'] },
-          },
-          orderBy: { created_at: 'desc' },
-        });
-
-        let dossierId: string;
-        let dossierStatut: string;
-
-        if (dossierExistant) {
-          dossierId = dossierExistant.id;
-          dossierStatut = dossierExistant.statut;
-          log('WARN', 'Dossier déjà existant — réutilisation', {
-            email,
-            apprenant_id: apprenantId,
-            dossier_id: dossierId,
-            statut: dossierStatut,
-            session_id: session.id,
-            formation_id: formation.id,
-          });
-        } else {
-          const inscription = await inscriptionService.inscrire({
-            session_id: session.id,
-            apprenantId: apprenantId as string,
-            source_financement: 'RETAIL',
-            mode_paiement: 'DIFFERE',
-          });
-          dossierId = inscription.id;
-          dossierStatut = inscription.statut;
-          log('INFO', 'Dossier créé via inscription métier', {
-            email,
-            apprenant_id: apprenantId,
-            dossier_id: dossierId,
-            statut: dossierStatut,
-            session_id: session.id,
-            formation_id: formation.id,
-          });
-        }
-
         await devisService.envoyerEmailDevis(`draft-${slugify(email)}`, 'script_creer_apprenants_et_devis', {
           recipientEmail: resolvedEmail,
           recipientLabel: nomComplet,
@@ -356,8 +284,6 @@ async function main() {
           tarif_unitaire_xof: tarifUnitaire,
           date_debut_session: session.date_debut,
           date_fin_session: session.date_fin,
-          dossier_id: dossierId,
-          dossier_statut: dossierStatut,
         });
       }
     }

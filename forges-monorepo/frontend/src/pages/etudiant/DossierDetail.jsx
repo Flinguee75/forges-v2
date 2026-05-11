@@ -36,7 +36,6 @@ export default function DossierDetail() {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
       EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En attente de vérification' },
-      EN_ATTENTE_PAIEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
       RETENU: { variant: 'success', label: 'Retenu' },
       PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
       PAYE: { variant: 'success', label: 'Payé' },
@@ -84,7 +83,7 @@ export default function DossierDetail() {
     dossier?.paiement?.statut === 'CONFIRME' || dossier?.statut === 'PAYE';
 
   const needsPayment = (dossier) =>
-    ['RETENU', 'PAYE_DIRECTEMENT', 'EN_ATTENTE_PAIEMENT'].includes(dossier?.statut) && !isPaiementConfirme(dossier);
+    ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && !isPaiementConfirme(dossier);
 
   const getPaiementLabel = (paiement) => {
     const mapping = {
@@ -153,24 +152,6 @@ export default function DossierDetail() {
               <h3 className="font-semibold text-warning">Action requise : paiement à effectuer</h3>
               <p className="mt-1 text-sm text-warning">
                 Votre dossier est accepté sans vérification manuelle. Il reste à régler le montant pour confirmer définitivement votre inscription.
-              </p>
-            </div>
-            <Link to="/apprenant/paiements">
-              <Button variant="warning" size="small">
-                Payer maintenant
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {dossier.statut === 'EN_ATTENTE_PAIEMENT' && needsPayment(dossier) && (
-        <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
-              <h3 className="font-semibold text-warning">Action requise : paiement à effectuer</h3>
-              <p className="mt-1 text-sm text-warning">
-                Votre dossier est en attente de paiement. Vous pouvez régler votre inscription dès que vous êtes prêt.
               </p>
             </div>
             <Link to="/apprenant/paiements">

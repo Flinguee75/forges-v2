@@ -71,7 +71,7 @@ export default function MesPaiementsPage() {
   };
 
   const isPayableDossier = (dossier) =>
-    ['RETENU', 'PAYE_DIRECTEMENT', 'EN_ATTENTE_PAIEMENT'].includes(dossier?.statut) && dossier?.paiement?.statut !== 'CONFIRME';
+    ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && dossier?.paiement?.statut !== 'CONFIRME';
 
   const getPaymentStatusBadge = (dossier) => {
     if (dossier.paiement?.statut === 'PENDING') {
@@ -82,9 +82,6 @@ export default function MesPaiementsPage() {
     }
     if (dossier.paiement?.statut === 'ECHOUE') {
       return <Badge variant="danger" size="small">Paiement échoué</Badge>;
-    }
-    if (dossier.statut === 'EN_ATTENTE_PAIEMENT') {
-      return <Badge variant="warning" size="small">Paiement à effectuer</Badge>;
     }
     if (dossier.statut === 'RETENU') {
       return <Badge variant="info" size="small">Retenu, paiement requis</Badge>;
@@ -141,9 +138,6 @@ export default function MesPaiementsPage() {
         if (dossier.statut === 'PAYE_DIRECTEMENT') {
           return <span className="text-subtext">À régler pour confirmer</span>;
         }
-        if (dossier.statut === 'EN_ATTENTE_PAIEMENT') {
-          return <span className="text-subtext">Paiement à effectuer</span>;
-        }
         const dateRetenu = new Date(dossier.updated_at || dossier.updatedAt || dossier.created_at);
         const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
         const isExpired = dateLimite < new Date();
@@ -189,7 +183,7 @@ export default function MesPaiementsPage() {
       <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
         <p className="text-sm text-warning">
           Les dossiers “Paiement à effectuer” ne sont pas encore payés. Ils seront confirmés uniquement après validation du paiement.
-          Pour un dossier “Retenu”, le délai de règlement reste de 72 heures.
+          Pour un dossier “Retenu”, le délai de règlement est de 72 heures.
         </p>
       </div>
 

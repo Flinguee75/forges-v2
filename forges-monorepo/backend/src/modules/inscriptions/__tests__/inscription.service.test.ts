@@ -146,31 +146,6 @@ describe('InscriptionService', () => {
     expect(result).toMatchObject({ id: 'dossier-01', statut: 'PAYE_DIRECTEMENT', montant_total: 100000, montant_apres_reduction: 100000 });
   });
 
-  it('crée un dossier en attente de paiement pour le mode différé non abonné', async () => {
-    mockSessionRepo.findById.mockResolvedValue(baseSession as any);
-    mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
-    mockPrisma.dossier.count.mockResolvedValue(2);
-    mockFormationRepo.findById.mockResolvedValue({ id: 'formation-01', type_formation: 'STANDARD', cout_catalogue: 100000 } as any);
-    mockDossierRepo.create.mockResolvedValue({ id: 'dossier-03', statut: 'EN_ATTENTE_PAIEMENT' } as any);
-    mockAudit.info.mockResolvedValue(undefined);
-
-    const result = await service.inscrire({
-      session_id: 'session-01',
-      apprenantId: 'app-01',
-      source_financement: 'RETAIL',
-      mode_paiement: 'DIFFERE',
-      voucher_code: null,
-      code_apporteur: null,
-    });
-
-    expect(mockDossierRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-      apprenant_id: 'app-01',
-      statut: 'EN_ATTENTE_PAIEMENT',
-      type_fenetre: 'NORMAL',
-    }));
-    expect(result).toMatchObject({ id: 'dossier-03', statut: 'EN_ATTENTE_PAIEMENT' });
-  });
-
   it('crée un dossier en attente et notifie le responsable pour une premium retail', async () => {
     // Pour EXCEPTION: (nbActifs + 1) / capacite > 1.10
     // Avec capacite=10, il faut nbActifs >= 11 → (11+1)/10 = 120% > 110%
