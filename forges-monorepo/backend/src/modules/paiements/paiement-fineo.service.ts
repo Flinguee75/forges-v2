@@ -46,7 +46,8 @@ export class PaiementFineoService {
       throw new Error('DOSSIER_STATUT_INVALIDE');
     }
 
-    const montantFinal = await this.calculerMontantFinal(dossier, apprenantId);
+    const montantCatalogueXof = this.toXof(dossier.formation.cout_catalogue);
+    const montantFinal = await this.calculerMontantFinal(dossier, apprenantId, montantCatalogueXof);
     const syncRef = this.generateSyncRef();
     const expiresAt = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
 
@@ -84,9 +85,9 @@ export class PaiementFineoService {
       : await this.prisma.paiement.create({
           data: {
             dossier_id: dossierId,
-            montant_catalogue: dossier.formation.cout_catalogue,
+            montant_catalogue: montantCatalogueXof,
             montant_final: montantFinal,
-            reduction_appliquee: dossier.formation.cout_catalogue - montantFinal,
+            reduction_appliquee: montantCatalogueXof - montantFinal,
             methode: 'MOBILE_MONEY',
             statut: 'PENDING',
             tentatives: 0,
@@ -110,8 +111,8 @@ export class PaiementFineoService {
     };
   }
 
-  private async calculerMontantFinal(dossier: any, apprenantId: string): Promise<number> {
-    const montant = dossier.formation.cout_catalogue;
+  private async calculerMontantFinal(dossier: any, apprenantId: string, montantCatalogueXof: number): Promise<number> {
+    const montant = montantCatalogueXof;
 
     if (dossier.voucher_code) {
       const voucher = await this.voucherRepo.findByCode(dossier.voucher_code);
@@ -129,6 +130,10 @@ export class PaiementFineoService {
     }
 
     return montant;
+  }
+
+  private toXof(montantCentimes: number): number {
+    return Math.round(montantCentimes / 100);
   }
 
   private generateSyncRef(): string {

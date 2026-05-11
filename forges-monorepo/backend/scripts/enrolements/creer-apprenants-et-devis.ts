@@ -113,9 +113,10 @@ function generateTempPassword() {
   return `FORGES-${crypto.randomUUID().slice(0, 8).toUpperCase()}!`;
 }
 
-function buildNumeroDevis(index: number) {
+function buildNumeroDevis(index: number, nomComplet: string) {
   const year = new Date().getFullYear();
-  return `FORGES-DEVIS-${year}-APP-${String(index + 1).padStart(3, '0')}`;
+  const nameSlug = slugify(nomComplet).slice(0, 24).toUpperCase().replace(/-/g, '');
+  return `FORGES-DEVIS-${year}-${nameSlug}-${String(index + 1).padStart(3, '0')}`;
 }
 
 async function main() {
@@ -238,7 +239,7 @@ async function main() {
         }
       }
 
-      const numeroDevis = buildNumeroDevis(index);
+      const numeroDevis = buildNumeroDevis(index, nomComplet);
       const tarifUnitaire = Math.round(formation.cout_catalogue / 100);
       const montantTotal = tarifUnitaire;
       const sessionDates = {

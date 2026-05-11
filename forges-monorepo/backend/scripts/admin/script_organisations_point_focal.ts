@@ -80,7 +80,7 @@ const ORGANISATIONS: OrganisationSeed[] = [
         nom: 'Cisse',
         prenoms: 'Tidiane',
         email_pro: 'hassan.cisse@pointfocal.ci',
-        email_perso: 'TidianeCiss9@outlook.fr',
+        email_perso: 'TidianeCisse9@outlook.fr',
         poste: 'Directeur Général',
         secteur: 'TECHNOLOGIE_INFORMATIQUE',
       },

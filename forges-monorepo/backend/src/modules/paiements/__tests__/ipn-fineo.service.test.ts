@@ -10,7 +10,8 @@ const prisma = new PrismaClient();
 const audit = new AuditLogger(prisma);
 const commissionService = new CommissionService(prisma, audit);
 
-const MONTANT = 50000;
+const MONTANT_CENTIMES = 50000;
+const MONTANT_XOF = Math.round(MONTANT_CENTIMES / 100);
 
 const TEST_IDS = {
   apprenant: 'test-fineo-apprenant',
@@ -66,13 +67,13 @@ describe('IpnFineoService — callback FineoPay', () => {
 
     await prisma.formation.upsert({
       where: { id: TEST_IDS.formation },
-      update: { cout_catalogue: MONTANT, statut: 'ACTIVE' },
+      update: { cout_catalogue: MONTANT_CENTIMES, statut: 'ACTIVE' },
       create: {
         id: TEST_IDS.formation,
         intitule: 'Formation Fineo Test',
         description_courte: 'Fixture IPN FineoPay',
         duree_jours: 1,
-        cout_catalogue: MONTANT,
+        cout_catalogue: MONTANT_CENTIMES,
         responsable_id: 'test-responsable',
         type_formation: 'STANDARD',
         mode_formation: 'AVEC_SESSION',
@@ -136,9 +137,9 @@ describe('IpnFineoService — callback FineoPay', () => {
     await prisma.paiement.create({
       data: {
         dossier_id: dossierId,
-        montant_catalogue: MONTANT,
-        montant_final: MONTANT,
-        montant_initie: MONTANT,
+        montant_catalogue: MONTANT_XOF,
+        montant_final: MONTANT_XOF,
+        montant_initie: MONTANT_XOF,
         methode: 'MOBILE_MONEY',
         statut: 'PENDING',
         tentatives: 0,
@@ -159,7 +160,7 @@ describe('IpnFineoService — callback FineoPay', () => {
 
       mockGetTransaction.mockResolvedValue({
         reference,
-        amount: MONTANT,
+        amount: MONTANT_XOF,
         status: 'success',
         canal: 'orange',
         fees: 500,
@@ -170,7 +171,7 @@ describe('IpnFineoService — callback FineoPay', () => {
 
       const result = await service.traiterCallback({
         reference,
-        amount: MONTANT,
+        amount: MONTANT_XOF,
         status: 'success',
         syncRef,
       });
@@ -197,7 +198,7 @@ describe('IpnFineoService — callback FineoPay', () => {
 
       mockGetTransaction.mockResolvedValue({
         reference,
-        amount: MONTANT,
+        amount: MONTANT_XOF,
         status: 'failed',
         canal: 'mtn',
         fees: 0,
@@ -208,7 +209,7 @@ describe('IpnFineoService — callback FineoPay', () => {
 
       const result = await service.traiterCallback({
         reference,
-        amount: MONTANT,
+        amount: MONTANT_XOF,
         status: 'failed',
         syncRef,
       });
@@ -225,7 +226,7 @@ describe('IpnFineoService — callback FineoPay', () => {
       await expect(
         service.traiterCallback({
           reference: 'REF-FORGEE',
-          amount: MONTANT,
+          amount: MONTANT_XOF,
           status: 'success',
           syncRef: 'FRG-FNO-2026-001-FAKE',
         })
@@ -235,7 +236,7 @@ describe('IpnFineoService — callback FineoPay', () => {
     it('doit rejeter si syncRef manquante', async () => {
       mockGetTransaction.mockResolvedValue({
         reference: 'REF-001',
-        amount: MONTANT,
+        amount: MONTANT_XOF,
         status: 'success',
         canal: 'orange',
         fees: 0,
@@ -247,7 +248,7 @@ describe('IpnFineoService — callback FineoPay', () => {
       await expect(
         service.traiterCallback({
           reference: 'REF-001',
-          amount: MONTANT,
+          amount: MONTANT_XOF,
           status: 'success',
         })
       ).rejects.toThrow('FINEO_CB_SYNCREF_MANQUANTE');
@@ -257,7 +258,7 @@ describe('IpnFineoService — callback FineoPay', () => {
       await expect(
         service.traiterCallback({
           reference: '',
-          amount: MONTANT,
+          amount: MONTANT_XOF,
           status: 'success',
         })
       ).rejects.toThrow('FINEO_CB_REFERENCE_MANQUANTE');
@@ -280,7 +281,7 @@ describe('IpnFineoService — callback FineoPay', () => {
 
       mockGetTransaction.mockResolvedValue({
         reference,
-        amount: MONTANT,
+        amount: MONTANT_XOF,
         status: 'success',
         canal: 'orange',
         fees: 0,
@@ -291,7 +292,7 @@ describe('IpnFineoService — callback FineoPay', () => {
 
       const result = await service.traiterCallback({
         reference,
-        amount: MONTANT,
+        amount: MONTANT_XOF,
         status: 'success',
         syncRef,
       });

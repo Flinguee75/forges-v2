@@ -10,7 +10,8 @@ const prisma = new PrismaClient();
 const audit = new AuditLogger(prisma);
 const voucherRepo = new VoucherRepository(prisma);
 
-const MONTANT = 80000;
+const MONTANT_CENTIMES = 80000;
+const MONTANT_XOF = Math.round(MONTANT_CENTIMES / 100);
 
 const TEST_IDS = {
   apprenant: 'test-fineo-initier-apprenant',
@@ -63,13 +64,13 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
 
     await prisma.formation.upsert({
       where: { id: TEST_IDS.formation },
-      update: { cout_catalogue: MONTANT, statut: 'ACTIVE' },
+      update: { cout_catalogue: MONTANT_CENTIMES, statut: 'ACTIVE' },
       create: {
         id: TEST_IDS.formation,
         intitule: 'Formation Fineo Initier Test',
         description_courte: 'Fixture initiation FineoPay',
         duree_jours: 1,
-        cout_catalogue: MONTANT,
+        cout_catalogue: MONTANT_CENTIMES,
         responsable_id: 'test-responsable',
         type_formation: 'STANDARD',
         mode_formation: 'AVEC_SESSION',
@@ -141,12 +142,12 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
 
       expect(result.checkout_link).toBe('https://demo.fineopay.com/checkout/test-link');
       expect(result.sync_ref).toMatch(/^FRG-FNO-/);
-      expect(result.montant_initie).toBe(MONTANT);
+      expect(result.montant_initie).toBe(MONTANT_XOF);
       expect(result.paiement_id).toBeDefined();
 
       expect(mockCreateCheckoutLink).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: MONTANT,
+          amount: MONTANT_XOF,
           syncRef: result.sync_ref,
         })
       );
@@ -154,6 +155,9 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
       const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
       expect(paiement?.provider).toBe('FINEO');
       expect(paiement?.statut).toBe('PENDING');
+      expect(paiement?.montant_catalogue).toBe(MONTANT_XOF);
+      expect(paiement?.montant_final).toBe(MONTANT_XOF);
+      expect(paiement?.reduction_appliquee).toBe(0);
       expect(paiement?.order_ngser).toBe(result.sync_ref);
     });
 
