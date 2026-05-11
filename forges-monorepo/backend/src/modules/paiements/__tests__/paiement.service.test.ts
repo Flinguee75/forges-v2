@@ -535,6 +535,7 @@ describe('PaiementService', () => {
         commissionPartenaire: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
         commissionApporteur: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
         paiement: { delete: jest.fn().mockResolvedValue({ id: 'p-delete-01' }) },
+        dossier: { delete: jest.fn().mockResolvedValue({ id: 'd-01' }) },
       };
       mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(tx));
       mockAudit.info.mockResolvedValue(undefined);
@@ -544,8 +545,9 @@ describe('PaiementService', () => {
       expect(tx.commissionPartenaire.deleteMany).toHaveBeenCalledWith({ where: { paiement_id: 'p-delete-01' } });
       expect(tx.commissionApporteur.deleteMany).toHaveBeenCalledWith({ where: { paiement_id: 'p-delete-01' } });
       expect(tx.paiement.delete).toHaveBeenCalledWith({ where: { id: 'p-delete-01' } });
+      expect(tx.dossier.delete).toHaveBeenCalledWith({ where: { id: 'd-01' } });
       expect(mockAudit.info).toHaveBeenCalledWith(
-        'PAIEMENT_SUPPRIME',
+        'PAIEMENT_ET_DOSSIER_SUPPRIMES',
         expect.objectContaining({
           paiement_id: 'p-delete-01',
           dossier_id: 'd-01',

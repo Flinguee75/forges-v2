@@ -504,10 +504,12 @@ export class PaiementService {
     const deleted = await this.prisma.$transaction(async (tx) => {
       await tx.commissionPartenaire.deleteMany({ where: { paiement_id: paiementId } });
       await tx.commissionApporteur.deleteMany({ where: { paiement_id: paiementId } });
-      return tx.paiement.delete({ where: { id: paiementId } });
+      const paiementSupprime = await tx.paiement.delete({ where: { id: paiementId } });
+      await tx.dossier.delete({ where: { id: paiement.dossier_id } });
+      return paiementSupprime;
     });
 
-    await this.audit.info('PAIEMENT_SUPPRIME', {
+    await this.audit.info('PAIEMENT_ET_DOSSIER_SUPPRIMES', {
       paiement_id: paiementId,
       dossier_id: paiement.dossier_id,
       admin_id: adminId,

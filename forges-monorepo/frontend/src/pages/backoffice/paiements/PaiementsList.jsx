@@ -62,7 +62,7 @@ export default function PaiementsList() {
 
   const handleDeletePaiement = async (paiement) => {
     const confirmed = window.confirm(
-      `Supprimer le paiement ${paiement.reference || paiement.id.slice(0, 8)} ?`
+      `Supprimer le dossier et le paiement ${paiement.reference || paiement.id.slice(0, 8)} ? Cette action est définitive.`
     );
 
     if (!confirmed) {
@@ -169,7 +169,7 @@ export default function PaiementsList() {
               size="small"
               onClick={() => handleDeletePaiement(paiement)}
             >
-              Supprimer
+              Supprimer dossier
             </Button>
           )}
         </div>
