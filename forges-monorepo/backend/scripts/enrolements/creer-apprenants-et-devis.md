@@ -1,6 +1,6 @@
 # `creer-apprenants-et-devis.ts`
 
-Script de test pour créer ou réutiliser un petit lot d'apprenants, leur envoyer leur mail d'accès, puis envoyer un devis PDF personnalisé à chaque apprenant.
+Script de test pour lire un CSV d'apprenants, créer ou réutiliser leurs comptes, leur envoyer leur mail d'accès, puis envoyer une facture PDF personnalisée à chaque apprenant.
 
 ## But
 
@@ -8,65 +8,63 @@ Ce script sert à rejouer un scénario simple sans passer par le workflow organi
 
 - création/réutilisation de comptes apprenants,
 - envoi du mot de passe temporaire via `EmailService.sendTempPassword(...)`,
-- envoi du devis PDF via `DevisService.envoyerEmailDevis(...)`,
-- personnalisation du template devis pour afficher le nom et prénom de l'apprenant dans le bloc destinataire.
+- envoi de la facture PDF via `DevisService.envoyerEmailDevis(...)`,
+- personnalisation du template facture pour afficher le nom et prénom de l'apprenant dans le bloc destinataire.
 
-## Fichier d'entrée
+## Fichiers d'entrée
 
-Le script lit un JSON via `--file`.
+Le script lit:
+
+- un CSV apprenants via `--file`
+- un JSON contexte via `--context`
 
 Exemple:
 
 ```json
 {
-  "devis": {
-    "formation_id": "frm-masterclass-gwu-ccdl-2026",
-    "session_id": "ses-gwu-ccdl-juin-2026",
-    "organisation_label": "Groupe test apprenants",
-    "contact_referent": "Equipe FORGES",
-    "identifiant_legal": "",
-    "notes_admin": "Lot initial de test avec 2 apprenants"
-  },
-  "apprenants": [
-    {
-      "email": "redfoo923@gmail.com",
-      "nom": "Test",
-      "prenoms": "Redfoo",
-      "pays_residence": "CI",
-      "pays_nationalite": "CI"
-    },
-    {
-      "email": "Tidianecisse9@outlook.fr",
-      "nom": "Cisse",
-      "prenoms": "Tidiane",
-      "pays_residence": "CI",
-      "pays_nationalite": "CI"
-    }
-  ]
+  "formation_id": "frm-masterclass-gwu-ccdl-2026",
+  "session_id": "ses-gwu-ccdl-juin-2026",
+  "contact_referent": "Equipe FORGES",
+  "identifiant_legal": "",
+  "notes_admin": "Test CSV apprenants individuels"
 }
 ```
 
-Champs requis:
+Exemple de CSV:
 
-- `devis.organisation_label`
-- `devis.contact_referent`
-- `devis.formation_id`
-- `devis.session_id`
-- `devis.identifiant_legal` est optionnel et peut rester vide si ce n'est pas une vraie organisation
-- `apprenants[]`
-- `apprenants[].email`
-- `apprenants[].nom`
-- `apprenants[].prenoms`
-- `apprenants[].pays_residence`
-- `apprenants[].pays_nationalite`
+```csv
+nom,prenom,email,organisation,secteur_activite,pays_residence,pays_nationalite,tarif_xof
+DOGBA,Benjamin Belotte,redfoo923@gmail.com,Ministère de l’Intérieur et de la Sécurité,,Côte d’Ivoire,Côte d’Ivoire,3000000
+DJE,HIBA HABIB,tidianecisse9@outlook.fr,Talentys SA,,Côte d’Ivoire,Côte d’Ivoire,3000000
+DOE,KOUASSI EZECHIEL,hassancisse@pointfocal.com,BARNOIN INFORMATIQUE,,Côte d’Ivoire,Côte d’Ivoire,3000000
+```
+
+Champs requis du CSV:
+
+- `nom`
+- `prenom`
+- `email`
+- `organisation`
+- `secteur_activite`
+- `pays_residence`
+- `pays_nationalite`
+- `tarif_xof`
+
+Champs requis du contexte:
+
+- `formation_id`
+- `session_id`
+- `contact_referent`
+- `identifiant_legal` est optionnel et peut rester vide si ce n'est pas une vraie organisation
+- `notes_admin` est optionnel
 
 ## Commandes
 
 Depuis `backend/`:
 
 ```bash
-node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-devis-test.json --dry-run
-node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-devis-test.json
+node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-test.csv --context groupes/apprenants-individuels-context.json --dry-run
+node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-et-devis.ts --file groupes/apprenants-individuels-test.csv --context groupes/apprenants-individuels-context.json
 ```
 
 Variables utiles:
@@ -80,9 +78,10 @@ Variables utiles:
 - Si l'apprenant existe déjà par email, il est réutilisé.
 - Sinon, le compte est créé avec un mot de passe temporaire.
 - Le mail d'accès part via `sendTempPassword(...)`, comme dans le script source.
-- Le devis PDF est généré par le service devis existant, sans créer de ligne `Devis` persistée.
-- Le bloc destinataire du devis utilise le nom et prénom de l'apprenant.
-- La formation, le tarif unitaire et les dates de session sont lus en base à partir des IDs fournis.
+- La facture PDF est générée par le service devis existant, sans créer de ligne persistée.
+- Le bloc destinataire de la facture utilise le nom et prénom de l'apprenant.
+- La formation et les dates de session sont lues en base à partir du contexte.
+- Le tarif unitaire et le total viennent du CSV, colonne `tarif_xof`, sans conversion supplémentaire.
 
 ## Vérification
 
@@ -90,5 +89,6 @@ Variables utiles:
 
 - les 2 apprenants ont bien été créés ou réutilisés,
 - les emails d'accès ont bien été envoyés,
-- le devis PDF a bien été envoyé à chaque apprenant,
-- le rendu du devis garde le template officiel.
+- la facture PDF a bien été envoyée à chaque apprenant,
+- le rendu de la facture garde le template officiel,
+- le montant affiché correspond à `tarif_xof` du CSV.

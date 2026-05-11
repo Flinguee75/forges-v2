@@ -17,7 +17,7 @@ Répertoire des scripts manuels, de seed et d'enrôlement.
 4. Tu veux rejouer le scénario complet standard d'organisation: `scripts/enrolements/import-groupe.ts`.
 5. Tu veux confirmer un paiement et activer les vouchers: `scripts/enrolements/payer-devis.ts`.
 6. Tu veux envoyer un rappel J-7: `scripts/enrolements/rappel-j7.ts`.
-7. Tu veux créer/réutiliser des apprenants et leur envoyer un devis PDF personnalisé: `scripts/enrolements/creer-apprenants-et-devis.ts`.
+7. Tu veux créer/réutiliser des apprenants depuis un CSV et leur envoyer une facture PDF personnalisée: `scripts/enrolements/creer-apprenants-et-devis.ts`.
 
 ## Scripts repères
 
@@ -30,7 +30,7 @@ Répertoire des scripts manuels, de seed et d'enrôlement.
 | Workflow standard d'organisation | `scripts/enrolements/import-groupe.ts` |
 | Paiement d'un devis organisation | `scripts/enrolements/payer-devis.ts` |
 | Rappel J-7 | `scripts/enrolements/rappel-j7.ts` |
-| Workflow JSON apprenants + devis PDF personnalisé | `scripts/enrolements/creer-apprenants-et-devis.ts` |
+| Workflow CSV apprenants + facture PDF personnalisée | `scripts/enrolements/creer-apprenants-et-devis.ts` |
 
 ## Commande standard
 
