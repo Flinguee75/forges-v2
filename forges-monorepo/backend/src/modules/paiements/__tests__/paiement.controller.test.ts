@@ -18,6 +18,7 @@ describe('PaiementController', () => {
       annulerPaiementsExpires: jest.fn(),
       traiterIpnNgser: jest.fn(),
       reconcilierPaiementsPendingNgser: jest.fn(),
+      supprimerPaiement: jest.fn(),
     } as any;
 
     controller = new PaiementController(mockService);
@@ -221,6 +222,48 @@ describe('PaiementController', () => {
 
     expect(res.json).toHaveBeenCalledWith({ nb_reversements: 2 });
     expect(res.json).toHaveBeenCalledWith({ annules: 3 });
+  });
+
+  it('supprime un paiement admin', async () => {
+    const req = createMockReq({
+      params: { id: 'pay-01' },
+      body: { motif: 'Nettoyage test' },
+      user: { userId: 'admin-01' },
+    });
+    const res = createMockRes();
+    const next = createNext();
+    mockService.supprimerPaiement.mockResolvedValue({
+      statut: 'SUPPRIME',
+      paiement_id: 'pay-01',
+      dossier_id: 'dos-01',
+    } as any);
+
+    await controller.supprimerPaiement(req, res, next);
+
+    expect(mockService.supprimerPaiement).toHaveBeenCalledWith('pay-01', 'admin-01', 'Nettoyage test');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 200,
+      data: {
+        statut: 'SUPPRIME',
+        paiement_id: 'pay-01',
+        dossier_id: 'dos-01',
+      },
+    });
+  });
+
+  it('mappe les erreurs de suppression de paiement', async () => {
+    const req = createMockReq({ params: { id: 'pay-01' }, user: { userId: 'admin-01' } });
+    const res = createMockRes();
+    const next = createNext();
+
+    mockService.supprimerPaiement.mockRejectedValueOnce(new Error('PAIEMENT_NOT_FOUND'));
+    await controller.supprimerPaiement(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(404);
+
+    mockService.supprimerPaiement.mockRejectedValueOnce(new Error('PAIEMENT_SUPPRESSION_INTERDITE'));
+    await controller.supprimerPaiement(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(422);
   });
 
   describe('traiterIpnNgser — RM-158', () => {

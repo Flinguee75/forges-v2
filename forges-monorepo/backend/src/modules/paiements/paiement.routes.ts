@@ -111,4 +111,9 @@ router.patch('/admin/paiements/:id/rembourser', authenticate, authorize('ADMIN')
   paiementController.rembourserPaiement(req, res, next);
 });
 
+// DELETE /api/admin/paiements/:id — Suppression manuelle d'un paiement (ADMIN)
+router.delete('/admin/paiements/:id', authenticate, authorize('ADMIN'), (req, res, next) => {
+  paiementController.supprimerPaiement(req, res, next);
+});
+
 export default router;

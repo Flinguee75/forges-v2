@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
+import { useAuth } from '../../../hooks/useAuth';
 import { paiementsApi } from '../../../api/paiements.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
@@ -19,6 +20,7 @@ import Pagination from '../../../components/ui/Pagination';
  */
 export default function PaiementsList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [paiements, setPaiements] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [filters, setFilters] = useState({
@@ -56,6 +58,24 @@ export default function PaiementsList() {
 
   const handleStatutChange = (e) => {
     setFilters({ ...filters, statut: e.target.value });
+  };
+
+  const handleDeletePaiement = async (paiement) => {
+    const confirmed = window.confirm(
+      `Supprimer le paiement ${paiement.reference || paiement.id.slice(0, 8)} ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await execute(() => paiementsApi.deleteAdmin(paiement.id), {
+      showSuccessToast: true,
+      successMessage: 'Paiement supprimé',
+      onSuccess: async () => {
+        await loadPaiements(meta.page);
+      },
+    });
   };
 
   const getStatutBadge = (statut) => {
@@ -143,6 +163,15 @@ export default function PaiementsList() {
           >
             Voir
           </Button>
+          {user?.role === 'ADMIN' && paiement.statut !== 'CONFIRME' && paiement.statut !== 'REMBOURSE' && (
+            <Button
+              variant="danger"
+              size="small"
+              onClick={() => handleDeletePaiement(paiement)}
+            >
+              Supprimer
+            </Button>
+          )}
         </div>
       ),
     },

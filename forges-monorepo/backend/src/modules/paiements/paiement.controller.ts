@@ -191,6 +191,28 @@ export class PaiementController {
     }
   }
 
+  // DELETE /api/admin/paiements/:id — ADMIN
+  async supprimerPaiement(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const motif = typeof req.body?.motif === 'string' ? req.body.motif : undefined;
+      const result = await this.paiementService.supprimerPaiement(id, req.user!.userId, motif);
+      res.status(200).json({ statusCode: 200, data: result });
+    } catch (error: any) {
+      if (error.message === 'PAIEMENT_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'PAIEMENT_NOT_FOUND' });
+      }
+      if (error.message === 'PAIEMENT_SUPPRESSION_INTERDITE') {
+        return res.status(422).json({
+          statusCode: 422,
+          error: 'PAIEMENT_SUPPRESSION_INTERDITE',
+          message: 'Un paiement confirmé ou remboursé ne peut pas être supprimé.',
+        });
+      }
+      next(error);
+    }
+  }
+
   // POST /webhooks/paiement — IPN NGSER (RM-158/160)
   async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
     try {

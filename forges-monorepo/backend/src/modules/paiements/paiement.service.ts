@@ -491,4 +491,34 @@ export class PaiementService {
 
     return { statut: 'REMBOURSE', motif };
   }
+
+  // Suppression manuelle par admin pour nettoyer un paiement de test ou invalide
+  async supprimerPaiement(paiementId: string, adminId: string, motif?: string) {
+    const paiement = await this.paiementRepo.findById(paiementId);
+    if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
+
+    if (['CONFIRME', 'REMBOURSE'].includes(paiement.statut)) {
+      throw new Error('PAIEMENT_SUPPRESSION_INTERDITE');
+    }
+
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      await tx.commissionPartenaire.deleteMany({ where: { paiement_id: paiementId } });
+      await tx.commissionApporteur.deleteMany({ where: { paiement_id: paiementId } });
+      return tx.paiement.delete({ where: { id: paiementId } });
+    });
+
+    await this.audit.info('PAIEMENT_SUPPRIME', {
+      paiement_id: paiementId,
+      dossier_id: paiement.dossier_id,
+      admin_id: adminId,
+      motif: motif || null,
+      statut: paiement.statut,
+    });
+
+    return {
+      statut: 'SUPPRIME',
+      paiement_id: deleted.id,
+      dossier_id: paiement.dossier_id,
+    };
+  }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
+import { useAuth } from '../../../hooks/useAuth';
 import { paiementsApi } from '../../../api/paiements.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
@@ -17,6 +18,7 @@ import Spinner from '../../../components/feedback/Spinner';
 export default function PaiementDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [paiement, setPaiement] = useState(null);
 
   const { execute, isLoading } = useApi();
@@ -59,6 +61,24 @@ export default function PaiementDetail() {
 
     const config = mapping[methode] || { label: methode };
     return <Badge variant="info">{config.label}</Badge>;
+  };
+
+  const handleDeletePaiement = async () => {
+    const confirmed = window.confirm(
+      `Supprimer le paiement ${paiement.reference || paiement.id.slice(0, 8)} ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await execute(() => paiementsApi.deleteAdmin(paiement.id), {
+      showSuccessToast: true,
+      successMessage: 'Paiement supprimé',
+      onSuccess: () => {
+        navigate('/backoffice/paiements');
+      },
+    });
   };
 
   if (isLoading && !paiement) {
@@ -106,6 +126,14 @@ export default function PaiementDetail() {
             >
               Retour à la liste
             </Button>
+            {user?.role === 'ADMIN' && paiement.statut !== 'CONFIRME' && paiement.statut !== 'REMBOURSE' && (
+              <Button
+                variant="danger"
+                onClick={handleDeletePaiement}
+              >
+                Supprimer
+              </Button>
+            )}
           </div>
         </div>
       </div>

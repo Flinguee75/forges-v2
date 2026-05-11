@@ -6,6 +6,7 @@ vi.mock('../client', () => ({
   apiClient: {
     get: vi.fn(),
     post: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -50,5 +51,15 @@ describe('paiementsApi', () => {
 
     expect(apiClient.get).toHaveBeenCalledWith('/backoffice/paiements');
     expect(result).toEqual({ id: 'pay-2' });
+  });
+
+  it('supprime un paiement admin avec motif optionnel', async () => {
+    apiClient.delete.mockResolvedValue({ statusCode: 200, data: { statut: 'SUPPRIME' } });
+
+    await paiementsApi.deleteAdmin('pay-3', 'Nettoyage test');
+
+    expect(apiClient.delete).toHaveBeenCalledWith('/admin/paiements/pay-3', {
+      data: { motif: 'Nettoyage test' },
+    });
   });
 });

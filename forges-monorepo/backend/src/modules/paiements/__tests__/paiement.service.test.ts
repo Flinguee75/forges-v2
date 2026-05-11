@@ -73,6 +73,7 @@ describe('PaiementService', () => {
       session: { update: jest.fn() },
       abonnementRetail: { findFirst: jest.fn() },
       apporteur: { findFirst: jest.fn() },
+      $transaction: jest.fn(),
       paiement: {
         findMany: jest.fn(),
         // PaiementFineoService et PaiementNgserService (appelés via appelAgregateur) utilisent
@@ -461,8 +462,7 @@ describe('PaiementService', () => {
       expect(mockVoucherRepo.utiliser).toHaveBeenCalledWith('voucher-01');
       expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith(
         'test@test.ci',
-        'Formation Test',
-        'FR'
+        'Formation Test'
       );
 
       calculerCommissionsSpy.mockRestore();
@@ -520,6 +520,57 @@ describe('PaiementService', () => {
         include: { dossier: { include: { apprenant: true, formation: true } } },
         orderBy: { created_at: 'desc' },
       });
+    });
+  });
+
+  describe('Suppression admin de paiement', () => {
+    it('supprime un paiement non confirmé et nettoie les commissions', async () => {
+      mockPaiementRepo.findById.mockResolvedValueOnce({
+        id: 'p-delete-01',
+        dossier_id: 'd-01',
+        statut: 'PENDING',
+      } as any);
+
+      const tx = {
+        commissionPartenaire: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        commissionApporteur: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        paiement: { delete: jest.fn().mockResolvedValue({ id: 'p-delete-01' }) },
+      };
+      mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(tx));
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.supprimerPaiement('p-delete-01', 'admin-01', 'Test cleanup');
+
+      expect(tx.commissionPartenaire.deleteMany).toHaveBeenCalledWith({ where: { paiement_id: 'p-delete-01' } });
+      expect(tx.commissionApporteur.deleteMany).toHaveBeenCalledWith({ where: { paiement_id: 'p-delete-01' } });
+      expect(tx.paiement.delete).toHaveBeenCalledWith({ where: { id: 'p-delete-01' } });
+      expect(mockAudit.info).toHaveBeenCalledWith(
+        'PAIEMENT_SUPPRIME',
+        expect.objectContaining({
+          paiement_id: 'p-delete-01',
+          dossier_id: 'd-01',
+          admin_id: 'admin-01',
+          motif: 'Test cleanup',
+          statut: 'PENDING',
+        })
+      );
+      expect(result).toEqual({
+        statut: 'SUPPRIME',
+        paiement_id: 'p-delete-01',
+        dossier_id: 'd-01',
+      });
+    });
+
+    it('refuse de supprimer un paiement confirmé', async () => {
+      mockPaiementRepo.findById.mockResolvedValueOnce({
+        id: 'p-delete-02',
+        dossier_id: 'd-01',
+        statut: 'CONFIRME',
+      } as any);
+
+      await expect(
+        service.supprimerPaiement('p-delete-02', 'admin-01')
+      ).rejects.toThrow('PAIEMENT_SUPPRESSION_INTERDITE');
     });
   });
 });

@@ -101,4 +101,18 @@ export const paiementsApi = {
       return response;
     });
   },
+
+  /**
+   * Supprime un paiement côté admin.
+   * DELETE /api/admin/paiements/:id
+   */
+  deleteAdmin: (id, motif) => {
+    if (motif) {
+      return apiClient.delete(`/admin/paiements/${id}`, {
+        data: { motif },
+      });
+    }
+
+    return apiClient.delete(`/admin/paiements/${id}`);
+  },
 };
