@@ -163,7 +163,6 @@ function loadCsvApprenants(csvFilePath: string) {
     'pays_residence',
     'pays_nationalite',
     'type_apprenant',
-    'niveau_etude',
     'tarif_xof',
   ];
   const missingHeaders = getMissingHeaders(parsed.headers, requiredHeaders);
@@ -204,7 +203,7 @@ function loadCsvApprenants(csvFilePath: string) {
     const pays_nationalite = requireTrimmed(row.pays_nationalite, 'pays_nationalite', lineNumber);
     const type_apprenant = requireTrimmed(row.type_apprenant, 'type_apprenant', lineNumber);
     const type_apprenant_backend = normalizeTypeApprenant(type_apprenant, lineNumber);
-    const niveau_etude = requireTrimmed(row.niveau_etude, 'niveau_etude', lineNumber);
+    const niveau_etude = row.niveau_etude?.trim() || '';
     const tarif_xof = normalizeXofAmount(requireTrimmed(row.tarif_xof, 'tarif_xof', lineNumber));
 
     if (!Number.isFinite(tarif_xof) || tarif_xof <= 0) {

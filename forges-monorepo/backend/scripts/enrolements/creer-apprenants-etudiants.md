@@ -33,8 +33,9 @@ Champs requis du CSV:
 - `pays_residence`
 - `pays_nationalite`
 - `type_apprenant`
-- `niveau_etude`
 - `tarif_xof`
+
+`niveau_etude` est optionnel pour les lignes `PROFESSIONNEL` et reste requis pour les lignes `APPRENANT`.
 
 Champs requis du contexte:
 
