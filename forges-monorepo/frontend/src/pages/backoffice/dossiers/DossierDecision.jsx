@@ -168,7 +168,7 @@ export default function DossierDecision() {
 
   const formatMontant = (value) => {
     if (value === null || value === undefined) return '-';
-    return `${Number(value).toLocaleString('fr-FR')} FCFA`;
+    return `${Math.round(Number(value) / 100).toLocaleString('fr-FR')} FCFA`;
   };
 
   const getPaiementLabel = (paiementValue) => {
@@ -222,7 +222,14 @@ export default function DossierDecision() {
   const formation = dossier.formation || session.formation || {};
   const organisation = etudiant.organisation || dossier.organisation || {};
   const paiement = dossier.paiement || {};
-  const voucher = dossier.voucher_organisation || {};
+  const voucherOrganisation = dossier.voucher_organisation || dossier.voucherOrganisation || {};
+  const codeApporteur = dossier.paiement?.code_apporteur || dossier.code_apporteur || {};
+  const codeApporteurLabel =
+    typeof codeApporteur === 'string'
+      ? codeApporteur
+      : codeApporteur.code
+        ? `${codeApporteur.code}${codeApporteur.apporteur?.nom ? ` (${codeApporteur.apporteur.nom})` : ''}`
+        : '-';
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -437,34 +444,40 @@ export default function DossierDecision() {
               <div className="col-span-2">
                 <dt className="text-xs font-medium uppercase text-subtext">Voucher organisation</dt>
                 <dd className="mt-1 text-sm text-text">
-                  {voucher.code ? `${voucher.code} (${voucher.statut || '-'})` : 'Aucun'}
+                  {voucherOrganisation.code
+                    ? `${voucherOrganisation.code} (${voucherOrganisation.statut || '-'})`
+                    : 'Aucun'}
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Type</dt>
-                <dd className="mt-1 text-sm text-text">{voucher.type_valeur || '-'}</dd>
+                <dd className="mt-1 text-sm text-text">{voucherOrganisation.type_valeur || '-'}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Valeur</dt>
                 <dd className="mt-1 text-sm text-text">
-                  {voucher.valeur === null || voucher.valeur === undefined
+                  {voucherOrganisation.valeur === null || voucherOrganisation.valeur === undefined
                     ? '-'
-                    : `${voucher.valeur}${voucher.type_valeur === 'POURCENTAGE' ? '%' : ' FCFA'}`}
+                    : voucherOrganisation.type_valeur === 'POURCENTAGE'
+                      ? `${voucherOrganisation.valeur}%`
+                      : formatMontant(voucherOrganisation.valeur)}
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Quota</dt>
                 <dd className="mt-1 text-sm text-text">
-                  {voucher.code ? `${voucher.quota_utilise || 0} / ${voucher.quota_max || 0}` : '-'}
+                  {voucherOrganisation.code
+                    ? `${voucherOrganisation.quota_utilise || 0} / ${voucherOrganisation.quota_max || 0}`
+                    : '-'}
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Expiration</dt>
-                <dd className="mt-1 text-sm text-text">{formatDate(voucher.date_expiration)}</dd>
+                <dd className="mt-1 text-sm text-text">{formatDate(voucherOrganisation.date_expiration)}</dd>
               </div>
               <div className="col-span-2">
                 <dt className="text-xs font-medium uppercase text-subtext">Code apporteur</dt>
-                <dd className="mt-1 text-sm text-text">{dossier.code_apporteur || '-'}</dd>
+                <dd className="mt-1 text-sm text-text">{codeApporteurLabel}</dd>
               </div>
               <div className="col-span-2">
                 <dt className="text-xs font-medium uppercase text-subtext">Motif de refus</dt>

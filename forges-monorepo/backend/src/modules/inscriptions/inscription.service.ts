@@ -620,12 +620,34 @@ export class InscriptionService {
             transaction_id: true,
             order_ngser: true,
             provider: true,
+            code_apporteur: {
+              select: {
+                id: true,
+                code: true,
+                type: true,
+                valeur: true,
+                type_valeur: true,
+                apporteur: { select: { nom: true, code_apporteur: true } },
+              },
+            },
           },
         },
       }
     });
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
-    return dossier;
+
+    // Résoudre la raison_sociale de l'organisation via voucher_organisation.organisation_id
+    let organisationVoucherNom: string | null = null;
+    const orgId = (dossier as any).voucher_organisation?.organisation_id;
+    if (orgId) {
+      const org = await this.prisma.organisation.findUnique({
+        where: { id: orgId },
+        select: { raison_sociale: true },
+      });
+      organisationVoucherNom = org?.raison_sociale ?? null;
+    }
+
+    return { ...dossier, _organisation_voucher_nom: organisationVoucherNom };
   }
 
   // UCS08 — Traiter dossier EXCEPTION (RM-05)

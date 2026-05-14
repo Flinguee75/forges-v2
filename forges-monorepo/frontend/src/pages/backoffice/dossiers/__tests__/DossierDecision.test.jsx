@@ -80,7 +80,7 @@ describe('DossierDecision', () => {
           intitule: 'Masterclass Cyber',
           type_formation: 'PREMIUM',
           mode_formation: 'AVEC_SESSION',
-          cout_catalogue: 150000,
+          cout_catalogue: 15000000,
         },
         session: {
           date_debut: '2026-06-01T00:00:00.000Z',
@@ -101,10 +101,20 @@ describe('DossierDecision', () => {
         paiement: {
           statut: 'CONFIRME',
           methode: 'VOUCHER_ORG',
-          montant_catalogue: 150000,
-          montant_final: 150000,
+          montant_catalogue: 15000000,
+          montant_final: 15000000,
           reduction_appliquee: 0,
           confirmed_at: '2026-05-10T00:00:00.000Z',
+          code_apporteur: {
+            code: 'AP-001',
+            type: 'INDIVIDU',
+            valeur: 7500,
+            type_valeur: 'MONTANT',
+            apporteur: {
+              nom: 'Moussa Traore',
+              code_apporteur: 'AP-001',
+            },
+          },
         },
       },
     });
@@ -116,6 +126,7 @@ describe('DossierDecision', () => {
     expect(screen.getByText('Masterclass Cyber')).toBeInTheDocument();
     expect(screen.getByText('Abidjan')).toBeInTheDocument();
     expect(screen.getByText(/VCHR-001 \(ACTIF\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/AP-001 \(Moussa Traore\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/150\s?000 FCFA/i).length).toBeGreaterThan(0);
     expect(screen.getByText('15')).toBeInTheDocument();
   });
