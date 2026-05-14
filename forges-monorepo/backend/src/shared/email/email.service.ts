@@ -1243,16 +1243,14 @@ export class EmailService {
       date_fin?: Date | string | null;
       lieu?: string | null;
     } | null;
-    paymentUrl?: string;
   }): Promise<void> {
-    const { to, prenoms, nom, organisation, formation, session, paymentUrl } = options;
+    const { to, prenoms, nom, organisation, formation, session } = options;
     const { subject, text, html } = buildEnrollmentConfirmationEmail({
       prenoms,
       nom,
       organisation,
       formation,
       session,
-      paymentUrl,
     });
 
     await this.sendEmail({

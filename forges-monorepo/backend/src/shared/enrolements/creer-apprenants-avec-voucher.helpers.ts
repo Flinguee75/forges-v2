@@ -84,18 +84,3 @@ export function buildInscriptionVoucherInput(params: {
     code_apporteur: null,
   };
 }
-
-export function buildVoucherEnrollmentConfirmationEmail(params: {
-  prenom: string;
-  formationLabel: string;
-  paymentUrl: string;
-}) {
-  return buildEnrollmentConfirmationEmail({
-    prenoms: params.prenom,
-    nom: '',
-    organisation: '',
-    formation: params.formationLabel,
-    paymentUrl: params.paymentUrl,
-  });
-}
-import { buildEnrollmentConfirmationEmail } from '../email/enrollment-confirmation-email.formatter';

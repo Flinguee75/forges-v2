@@ -1,6 +1,5 @@
 import {
   buildInscriptionVoucherInput,
-  buildVoucherEnrollmentConfirmationEmail,
   parseCsvApprenantsAvecVoucher,
 } from '../creer-apprenants-avec-voucher.helpers';
 
@@ -60,22 +59,5 @@ describe('creer-apprenants-avec-voucher helpers', () => {
       voucher_code: 'VOUCHER-PROMO-01',
       code_apporteur: null,
     });
-  });
-
-  it('compose le message de confirmation avec le texte de paiement demandé', () => {
-    const email = buildVoucherEnrollmentConfirmationEmail({
-      prenom: 'Red',
-      formationLabel: 'Masterclass GWU/CCDL (1er-11 juin 2026)',
-      paymentUrl: 'https://edu.forges-group.com',
-    });
-
-    expect(email.subject).toContain('Masterclass GWU/CCDL');
-    expect(email.text).toContain('Bonjour Red,');
-    expect(email.text).toContain('Votre inscription à la Masterclass GWU/CCDL (1er-11 juin 2026) est bien enregistrée.');
-    expect(email.text).toContain('Vous pouvez finaliser votre paiement en ligne');
-    expect(email.text).toContain('https://edu.forges-group.com');
-    expect(email.text).toContain('Si vous avez déjà effectué le paiement');
-    expect(email.text).toContain('Cordialement');
-    expect(email.html).toContain('https://edu.forges-group.com');
   });
 });

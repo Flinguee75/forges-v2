@@ -250,20 +250,24 @@ describe('EmailService', () => {
       }));
     });
 
-    it('sendEnrolementConfirmationApprenant utilise le format paiement quand paymentUrl est fourni', async () => {
+    it('sendEnrolementConfirmationApprenant envoie le format confirmation standard', async () => {
       await service.sendEnrolementConfirmationApprenant({
         to: 'a@test.ci',
         prenoms: 'Red',
         nom: 'Foo',
         organisation: 'FORGES',
         formation: 'Masterclass GWU/CCDL (1er-11 juin 2026)',
-        paymentUrl: 'https://edu.forges-group.com',
+        session: {
+          date_debut: new Date('2026-06-01T00:00:00.000Z'),
+          date_fin: new Date('2026-06-11T00:00:00.000Z'),
+          lieu: 'AIGF, Abidjan',
+        },
       });
 
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        subject: 'Votre inscription à Masterclass GWU/CCDL (1er-11 juin 2026) est enregistrée — FORGES',
-        text: expect.stringContaining('Vous pouvez finaliser votre paiement en ligne'),
-        html: expect.stringContaining('https://edu.forges-group.com'),
+        subject: 'Votre inscription Masterclass GWU/CCDL confirmée — FORGES',
+        text: expect.stringContaining('Votre inscription à la Masterclass GWU/CCDL (1er-11 juin 2026) a bien été confirmée.'),
+        html: expect.stringContaining('Session :'),
       }));
     });
   });

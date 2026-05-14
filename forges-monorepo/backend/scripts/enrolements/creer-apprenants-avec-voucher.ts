@@ -2,13 +2,12 @@
  * FORGES — Script d'enrôlement apprenants avec voucher CSV
  *
  * Usage:
- *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv
- *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --row 3
- *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --limit 1 --dry-run
+ *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --formation frm-123 --session ses-456
+ *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --formation frm-123 --session ses-456 --row 3
+ *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --formation frm-123 --session ses-456 --limit 1 --dry-run
  *
  * Variables d'environnement:
  *   DATABASE_URL           Obligatoire.
- *   EMAIL_TEST_OVERRIDE    Si defini, redirige tous les emails vers cette adresse.
  *   DRY_RUN=true           Simule sans ecrire en base.
  */
 
@@ -34,44 +33,39 @@ import {
 
 const args = process.argv.slice(2);
 const fileFlag = args.indexOf('--file');
+const formationFlag = args.indexOf('--formation');
+const sessionFlag = args.indexOf('--session');
 const rowFlag = args.indexOf('--row');
 const limitFlag = args.indexOf('--limit');
 const dryRun = args.includes('--dry-run') || process.env.DRY_RUN === 'true';
-const EMAIL_OVERRIDE = process.env.EMAIL_TEST_OVERRIDE || null;
 
 if (fileFlag === -1 || !args[fileFlag + 1]) {
-  console.error('Usage: creer-apprenants-avec-voucher.ts --file <chemin/vers/fichier.csv> [--row <ligne>] [--limit <n>] [--dry-run]');
+  console.error('Usage: creer-apprenants-avec-voucher.ts --file <chemin/vers/fichier.csv> --formation <id> --session <id> [--row <ligne>] [--limit <n>] [--dry-run]');
+  process.exit(1);
+}
+
+if (formationFlag === -1 || !args[formationFlag + 1]) {
+  console.error('Usage: creer-apprenants-avec-voucher.ts --file <chemin/vers/fichier.csv> --formation <id> --session <id> [--row <ligne>] [--limit <n>] [--dry-run]');
+  process.exit(1);
+}
+
+if (sessionFlag === -1 || !args[sessionFlag + 1]) {
+  console.error('Usage: creer-apprenants-avec-voucher.ts --file <chemin/vers/fichier.csv> --formation <id> --session <id> [--row <ligne>] [--limit <n>] [--dry-run]');
   process.exit(1);
 }
 
 const inputPath = path.resolve(__dirname, args[fileFlag + 1]);
+const targetFormationId = args[formationFlag + 1];
+const targetSessionId = args[sessionFlag + 1];
 const selectedRow = rowFlag !== -1 ? Number(args[rowFlag + 1]) : null;
 const selectedLimit = limitFlag !== -1 ? Number(args[limitFlag + 1]) : null;
 const LOG_FILE = path.join(__dirname, 'creer_apprenants_avec_voucher_log.json');
-
-type TargetFormation = {
-  id: string;
-  intitule: string;
-  type_formation: string;
-};
-
-type TargetSession = {
-  id: string;
-  date_debut: Date | null;
-  date_fin: Date | null;
-  lieu: string | null;
-};
-
-const FALLBACK_FORMATION_ID = 'frm-masterclass-gwu-ccdl-2026';
-const FALLBACK_SESSION_ID = 'ses-gwu-ccdl-juin-2026';
 
 const dbUrl = process.env.DATABASE_URL || '';
 if (!dbUrl) {
   console.error('DATABASE_URL requis');
   process.exit(1);
 }
-
-process.env.FRONTEND_URL = 'https://edu.forges-group.com';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl.includes('connection_limit') ? dbUrl : `${dbUrl}?connection_limit=3` } },
@@ -110,86 +104,11 @@ function saveLogs() {
   console.log(`\n📄 Log sauvegardé : ${LOG_FILE}`);
 }
 
-function resolveEmail(email: string) {
-  return EMAIL_OVERRIDE || email;
-}
-
 function loadCsvApprenants(csvFilePath: string) {
   const csvContent = fs.readFileSync(csvFilePath, 'utf-8');
   return parseCsvApprenantsAvecVoucher(csvContent);
 }
 
-async function resolveFormationAndSession(): Promise<{ formation: TargetFormation; session: TargetSession }> {
-  const formationById = await prisma.formation.findUnique({
-    where: { id: FALLBACK_FORMATION_ID },
-    select: { id: true, intitule: true, type_formation: true },
-  });
-
-  if (formationById) {
-    const sessionById = await prisma.session.findUnique({
-      where: { id: FALLBACK_SESSION_ID },
-      select: { id: true, date_debut: true, date_fin: true, lieu: true },
-    });
-
-    if (sessionById && sessionById.id === FALLBACK_SESSION_ID) {
-      return { formation: formationById, session: sessionById };
-    }
-  }
-
-  const formations = await prisma.formation.findMany({
-    where: {
-      OR: [
-        { intitule: { contains: 'GWU/CCDL', mode: 'insensitive' } },
-        { intitule: { contains: 'CCDL', mode: 'insensitive' } },
-        { description_courte: { contains: 'GWU/CCDL', mode: 'insensitive' } },
-      ],
-    },
-    select: { id: true, intitule: true, type_formation: true },
-    orderBy: { created_at: 'desc' },
-  });
-
-  if (formations.length === 0) {
-    throw new Error('FORMATION_GWU_CCDL_INTRouvable');
-  }
-
-  const exactMatch = formations.find((formation) => formation.intitule.toLowerCase().includes('gwu/ccdl'));
-  const formation = exactMatch || formations[0];
-
-  const session = await prisma.session.findFirst({
-    where: {
-      OR: [
-        { id: FALLBACK_SESSION_ID },
-        { formation_id: formation.id },
-      ],
-    },
-    select: { id: true, date_debut: true, date_fin: true, lieu: true },
-    orderBy: [
-      { date_debut: 'asc' },
-      { created_at: 'asc' },
-    ],
-  });
-
-  if (!session) {
-    throw new Error(`SESSION_INTRouvable pour la formation ${formation.id}`);
-  }
-
-  return {
-    formation,
-    session,
-  };
-}
-
-async function sendConfirmationEmail(apprenant: { email: string; prenoms: string }) {
-  const sessionLabel = 'Masterclass GWU/CCDL (1er-11 juin 2026)';
-  await emailService.sendEnrolementConfirmationApprenant({
-    to: resolveEmail(apprenant.email),
-    prenoms: apprenant.prenoms,
-    nom: '',
-    organisation: '',
-    formation: sessionLabel,
-    paymentUrl: process.env.FRONTEND_URL || 'https://edu.forges-group.com',
-  });
-}
 
 async function main() {
   if (!fs.existsSync(inputPath)) {
@@ -219,7 +138,27 @@ async function main() {
     process.exit(1);
   }
 
-  const { formation, session } = await resolveFormationAndSession();
+  const formation = await prisma.formation.findUnique({
+    where: { id: targetFormationId },
+    select: { id: true, intitule: true, type_formation: true },
+  });
+
+  if (!formation) {
+    throw new Error(`FORMATION_INTRouvable: ${targetFormationId}`);
+  }
+
+  const session = await prisma.session.findUnique({
+    where: { id: targetSessionId },
+    select: { id: true, date_debut: true, date_fin: true, lieu: true, formation_id: true },
+  });
+
+  if (!session) {
+    throw new Error(`SESSION_INTRouvable: ${targetSessionId}`);
+  }
+
+  if (session.formation_id !== formation.id) {
+    throw new Error(`SESSION_NON_ASSOCIEE_A_LA_FORMATION: session=${session.id} formation=${formation.id}`);
+  }
 
   console.log('\n' + '═'.repeat(72));
   console.log('  FORGES — Script apprenants avec voucher CSV');
@@ -228,7 +167,6 @@ async function main() {
   console.log(`  Formation cible : ${formation.intitule} (${formation.id})`);
   console.log(`  Session cible    : ${session.id}`);
   console.log(`  Lignes retenues  : ${rows.length}`);
-  if (EMAIL_OVERRIDE) console.log(`  Email override   : tous les emails -> ${EMAIL_OVERRIDE}`);
   if (selectedRow !== null) console.log(`  Ligne ciblée     : ${selectedRow}`);
   if (selectedLimit !== null) console.log(`  Limite           : ${selectedLimit}`);
   console.log('═'.repeat(72) + '\n');
@@ -238,7 +176,6 @@ async function main() {
     skippedExisting: 0,
     skippedMissing: 0,
     errors: 0,
-    mailed: 0,
   };
 
   for (const row of rows) {
@@ -311,18 +248,6 @@ async function main() {
         montant_total: inscription.montant_total,
         montant_apres_reduction: inscription.montant_apres_reduction,
       });
-
-      if (!dryRun) {
-        await sendConfirmationEmail({
-          email: apprenant.email,
-          prenoms: apprenant.prenoms,
-        });
-        summary.mailed += 1;
-        log('OK', 'Email de confirmation envoyé', {
-          line: row.lineNumber,
-          to: resolveEmail(apprenant.email),
-        });
-      }
     } catch (error: any) {
       summary.errors += 1;
       log('ERROR', 'Erreur pendant l’enrôlement', {
@@ -339,7 +264,6 @@ async function main() {
   console.log(`Déjà existants     : ${summary.skippedExisting}`);
   console.log(`Apprenants absents : ${summary.skippedMissing}`);
   console.log(`Erreurs            : ${summary.errors}`);
-  console.log(`Emails envoyés     : ${summary.mailed}`);
 
   if (dryRun) {
     console.log('\n[DRY-RUN] Aucune donnée écrite en base.');
