@@ -101,6 +101,7 @@ export default function PaiementsList() {
       CARTE: { label: 'Carte bancaire' },
       VIREMENT: { label: 'Virement' },
       VOUCHER_ORG: { label: 'Voucher Org' },
+      VOUCHER_PROMO: { label: 'Voucher Promo' },
     };
 
     const config = mapping[canal] || { label: canal || '-' };

@@ -192,6 +192,10 @@ describe('InscriptionService', () => {
       quota_utilise: 0,
     } as any);
     mockDossierRepo.create.mockResolvedValue({ id: 'dossier-voucher', statut: 'PAYE_DIRECTEMENT' } as any);
+    mockPrisma.paiement.create.mockResolvedValue({
+      id: 'paiement-voucher',
+      statut: 'EN_ATTENTE',
+    } as any);
     mockPrisma.voucherApporteur.update.mockResolvedValue({
       id: 'voucher-promo-01',
       quota_max: 5,
@@ -212,7 +216,17 @@ describe('InscriptionService', () => {
       source_financement: 'RETAIL',
       voucher_code: 'PROMO-001',
     }));
-    expect(mockPrisma.paiement.create).not.toHaveBeenCalled();
+    expect(mockPrisma.paiement.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        dossier_id: 'dossier-voucher',
+        montant_catalogue: 150000,
+        montant_final: 135000,
+        reduction_appliquee: 15000,
+        methode: 'VOUCHER_PROMO',
+        statut: 'EN_ATTENTE',
+        expires_at: expect.any(Date),
+      }),
+    }));
     expect(result).toMatchObject({ id: 'dossier-voucher', statut: 'PAYE_DIRECTEMENT' });
   });
 
@@ -318,6 +332,10 @@ describe('InscriptionService', () => {
       quota_utilise: 0,
     } as any);
     mockDossierRepo.create.mockResolvedValue({ id: 'dossier-promo', statut: 'PAYE' } as any);
+    mockPrisma.paiement.create.mockResolvedValue({
+      id: 'paiement-promo',
+      statut: 'EN_ATTENTE',
+    } as any);
     mockPrisma.voucherApporteur.update.mockResolvedValue({
       id: 'voucher-promo-01',
       quota_max: 5,

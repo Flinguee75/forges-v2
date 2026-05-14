@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const InitierPaiementSchema = z.object({
   dossier_id: z.string().min(1),
-  methode: z.enum(['MOBILE_MONEY', 'CARTE', 'VIREMENT', 'VOUCHER_ORG']),
+  methode: z.enum(['MOBILE_MONEY', 'CARTE', 'VIREMENT', 'VOUCHER_ORG', 'VOUCHER_PROMO']),
   numero_mobile: z.string().optional(), // Pour Mobile Money
 });
 

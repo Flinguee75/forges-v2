@@ -684,6 +684,7 @@ enum MethodePaiement {
   CARTE
   VIREMENT
   VOUCHER_ORG
+  VOUCHER_PROMO
 }
 
 enum StatutPaiement {
