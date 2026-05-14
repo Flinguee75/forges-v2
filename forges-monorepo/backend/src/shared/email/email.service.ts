@@ -149,6 +149,12 @@ export class EmailService {
         t_days_elapsed_label: emailTranslations.days_elapsed_label || '',
         t_action_required: emailTranslations.action_required || '',
         t_escalation_notice: emailTranslations.escalation_notice || '',
+        // Toutes les clés du template courant (permet aux nouveaux templates d'ajouter des t_ sans modifier ce fichier)
+        ...Object.fromEntries(
+          Object.entries(emailTranslations)
+            .filter(([k]) => k !== 'subject')
+            .map(([k, v]) => [`t_${k}`, String(v || '')])
+        ),
         // Variables dynamiques fournies
         ...variables,
       };
