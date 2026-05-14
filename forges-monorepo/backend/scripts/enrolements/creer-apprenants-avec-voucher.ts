@@ -231,7 +231,7 @@ async function main() {
       const inscription = dryRun
         ? {
             id: `DRY-DOSSIER-${apprenant.id.slice(-6)}`,
-            statut: row.voucher ? 'PAYE' : 'PAYE_DIRECTEMENT',
+            statut: 'PAYE_DIRECTEMENT',
             montant_total: 0,
             montant_apres_reduction: 0,
           }

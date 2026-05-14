@@ -149,12 +149,16 @@ export class InscriptionService {
 
     // Statut dossier selon le mode de financement (RM-140, RM-41)
     // - Voucher ORGANISATION → PAYE (l'org couvre le paiement — RM-41)
+    // - Voucher PROMOTIONNEL → PAYE_DIRECTEMENT (réduction appliquée, paiement à initier)
     // - Premium+Retail → EN_ATTENTE_VERIFICATION (RM-140)
     // - Tous les autres (paiement direct) → PAYE_DIRECTEMENT (RM-140)
     let statutDossier: string;
-    if (voucher?.type === 'ORGANISATION' || voucherPromo) {
-      // Voucher organisation ou promotionnel : paiement couvert, pas d'action requise
+    if (voucher?.type === 'ORGANISATION') {
+      // Voucher organisation : paiement couvert, pas d'action requise
       statutDossier = 'PAYE';
+    } else if (voucherPromo) {
+      // Voucher promo : réduction appliquée, paiement reste à initier
+      statutDossier = 'PAYE_DIRECTEMENT';
     } else if (estPremiumEtRetail) {
       statutDossier = 'EN_ATTENTE_VERIFICATION';
     } else {
@@ -347,7 +351,7 @@ export class InscriptionService {
     }
 
     // RM-05 : Transition EN_ATTENTE_VERIFICATION → RETENU (irréversible)
-    const updated = await this.dossierRepo.updateStatut(dossierId, 'RETENU');
+    await this.dossierRepo.updateStatut(dossierId, 'RETENU');
 
     // RM-07 : Déclencher délai 72h pour paiement
     await this.dossierRepo.setDelaiPaiement(dossierId, new Date(Date.now() + getDelaiPaiementMs()));

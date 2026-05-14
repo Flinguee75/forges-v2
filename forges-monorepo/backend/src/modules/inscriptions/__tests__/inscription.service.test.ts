@@ -172,7 +172,7 @@ describe('InscriptionService', () => {
     expect(mockEmail.notifyResponsable).toHaveBeenCalledWith('NOUVEAU_DOSSIER_A_VERIFIER', { dossier_id: 'dossier-02' });
   });
 
-  it('crée dossier PAYE, paiement CONFIRME et emails quand l’apprenant utilise un voucher organisation', async () => {
+  it('crée un dossier PAYE_DIRECTEMENT quand l’apprenant utilise un voucher promotionnel', async () => {
     mockSessionRepo.findById.mockResolvedValue(baseSession as any);
     mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
     mockPrisma.dossier.count.mockResolvedValue(2);
@@ -182,69 +182,38 @@ describe('InscriptionService', () => {
       type_formation: 'STANDARD',
       cout_catalogue: 150000,
     } as any);
-    mockVoucherValidation.validerVoucher.mockResolvedValue({
-      id: 'voucher-org-01',
-      code: 'ORG-001',
-      type: 'ORGANISATION',
-      organisation_id: 'org-01',
+    mockPrisma.voucherApporteur.findFirst.mockResolvedValue({
+      id: 'voucher-promo-01',
+      code: 'PROMO-001',
+      type: 'PROMOTIONNEL',
+      type_valeur: 'MONTANT',
+      valeur: 15000,
+      quota_max: 5,
+      quota_utilise: 0,
     } as any);
-    mockDossierRepo.create.mockResolvedValue({ id: 'dossier-voucher', statut: 'PAYE' } as any);
-    mockPrisma.voucherOrganisation.update.mockResolvedValueOnce({
-      id: 'voucher-org-01',
-      quota_max: 1,
+    mockDossierRepo.create.mockResolvedValue({ id: 'dossier-voucher', statut: 'PAYE_DIRECTEMENT' } as any);
+    mockPrisma.voucherApporteur.update.mockResolvedValue({
+      id: 'voucher-promo-01',
+      quota_max: 5,
       quota_utilise: 1,
-    });
-    mockPrisma.voucherOrganisation.update.mockResolvedValueOnce({});
-    mockPrisma.paiement.create.mockResolvedValue({ id: 'paiement-voucher', statut: 'CONFIRME' });
-    mockPrisma.apprenant.findUnique.mockResolvedValue({
-      email: 'aly@forges.test',
-      nom: 'Samassi',
-      prenoms: 'Aly',
-      langue_preferee: 'FR',
-    });
-    mockPrisma.organisation.findUnique.mockResolvedValue({ raison_sociale: 'ANSSI CI' });
+    } as any);
 
     const result = await service.inscrire({
       session_id: 'session-01',
       apprenantId: 'app-01',
-      source_financement: 'VOUCHER',
-      voucher_code: 'ORG-001',
+      source_financement: 'RETAIL',
+      voucher_code: 'PROMO-001',
       code_apporteur: null,
     });
 
     expect(mockDossierRepo.create).toHaveBeenCalledWith(expect.objectContaining({
       apprenant_id: 'app-01',
-      statut: 'PAYE',
-      source_financement: 'VOUCHER',
-      voucher_organisation_id: 'voucher-org-01',
-      voucher_code: 'ORG-001',
+      statut: 'PAYE_DIRECTEMENT',
+      source_financement: 'RETAIL',
+      voucher_code: 'PROMO-001',
     }));
-    expect(mockPrisma.paiement.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        dossier_id: 'dossier-voucher',
-        montant_catalogue: 150000,
-        montant_final: 150000,
-        methode: 'VOUCHER_ORG',
-        statut: 'CONFIRME',
-      }),
-    });
-    expect(mockEmail.sendEnrolementConfirmationApprenant).toHaveBeenCalledWith({
-      to: 'aly@forges.test',
-      prenoms: 'Aly',
-      nom: 'Samassi',
-      organisation: 'ANSSI CI',
-      formation: 'Masterclass Cyber',
-      session: {
-        date_debut: baseSession.date_debut,
-        date_fin: baseSession.date_fin,
-        lieu: baseSession.lieu,
-      },
-    });
-    expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith('aly@forges.test', 'Masterclass Cyber');
-    expect(mockAudit.info).toHaveBeenCalledWith('EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES', expect.objectContaining({
-      apprenant_id: 'app-01',
-    }));
-    expect(result).toMatchObject({ id: 'dossier-voucher', statut: 'PAYE' });
+    expect(mockPrisma.paiement.create).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ id: 'dossier-voucher', statut: 'PAYE_DIRECTEMENT' });
   });
 
   it('retourne les dossiers d une session via le repository', async () => {
@@ -366,7 +335,7 @@ describe('InscriptionService', () => {
 
     // montant_remise doit etre 15000 centimes (la valeur stockée, issue du frontend converti en centimes)
     expect(mockDossierRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-      statut: 'PAYE',
+      statut: 'PAYE_DIRECTEMENT',
       montant_remise: 15000,
     }));
     // montant_apres_reduction = 100000 - 15000 = 85000 centimes = 850 FCFA
