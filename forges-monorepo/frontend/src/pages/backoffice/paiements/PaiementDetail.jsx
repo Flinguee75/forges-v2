@@ -122,6 +122,14 @@ export default function PaiementDetail() {
             </p>
           </div>
           <div className="flex gap-2">
+            {paiement.dossier_id && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/backoffice/dossiers/${paiement.dossier_id}`)}
+              >
+                Voir le dossier
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => navigate('/backoffice/paiements')}
@@ -279,17 +287,10 @@ export default function PaiementDetail() {
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
-                Dossier
+                Référence dossier
               </dt>
               <dd className="mt-1 text-sm text-text">
-                <button
-                  onClick={() =>
-                    navigate(`/backoffice/dossiers/${paiement.dossier_id}`)
-                  }
-                  className="text-primary hover:underline"
-                >
-                  Voir le dossier
-                </button>
+                {paiement.dossier_id ? paiement.dossier_id.slice(0, 8).toUpperCase() : '-'}
               </dd>
             </div>
           </dl>

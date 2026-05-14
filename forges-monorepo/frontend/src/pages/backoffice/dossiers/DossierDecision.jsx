@@ -264,6 +264,14 @@ export default function DossierDecision() {
             </p>
           </div>
           <div className="flex gap-2">
+            {paiement.id && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/backoffice/paiements/${paiement.id}`)}
+              >
+                Voir le paiement
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => navigate('/backoffice/dossiers')}
@@ -275,13 +283,96 @@ export default function DossierDecision() {
       </div>
 
       <div className="grid gap-6">
+        {canTakeDecision && (
+          <Card title="Prendre une décision">
+            {dossier.statut === 'RETENU' && (
+              <div className="mb-4 rounded-lg border-l-4 border-warning bg-warning/10 p-4">
+                <p className="text-sm font-medium text-warning">
+                  Ce dossier a déjà été retenu et ne peut plus être refusé.
+                  L'étudiant dispose de 72h pour effectuer son paiement.
+                </p>
+              </div>
+            )}
+
+            {isException && (
+              <div className="mb-4 rounded-lg border-l-4 border-danger bg-danger/10 p-4">
+                <p className="text-sm font-medium text-danger">
+                  Ce dossier est en EXCEPTION (capacité dépassée de plus de 10%). Une
+                  décision manuelle est requise.
+                </p>
+              </div>
+            )}
+
+            {(canRefuser || isException) && (
+              <div className="mb-6">
+                <label className="mb-1 block text-sm font-medium text-text">
+                  Motif de refus (optionnel pour RETENIR, obligatoire pour REFUSER)
+                </label>
+                <textarea
+                  value={motifRefus}
+                  onChange={(e) => setMotifRefus(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-lg border border-border px-4 py-2 text-sm focus:border-primary focus:outline-none"
+                  placeholder="Saisissez le motif du refus si vous choisissez de refuser ce dossier..."
+                />
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              {canRetenir && !isException && (
+                <Button variant="success" onClick={handleRetenir}>
+                  Retenir le candidat
+                </Button>
+              )}
+
+              {canRefuser && !isException && (
+                <Button variant="danger" onClick={handleRefuser}>
+                  Refuser le candidat
+                </Button>
+              )}
+
+              {isException && (
+                <>
+                  <Button variant="success" onClick={() => handleTraiterException('RETENU')}>
+                    Accepter malgré l'exception
+                  </Button>
+                  <Button variant="danger" onClick={() => handleTraiterException('REFUSE')}>
+                    Refuser définitivement
+                  </Button>
+                </>
+              )}
+
+              {!canRetenir && !canRefuser && !isException && (
+                <p className="text-sm text-subtext">
+                  Aucune action disponible pour ce statut.
+                </p>
+              )}
+            </div>
+
+            {canRefuser && (
+              <p className="mt-3 text-xs text-subtext">
+                Note: Une fois un dossier retenu, il ne pourra plus être refusé.
+              </p>
+            )}
+          </Card>
+        )}
+
+        {!canTakeDecision && (
+          <Card>
+            <p className="text-sm text-subtext">
+              Vous n'avez pas les permissions nécessaires pour prendre une décision
+              sur ce dossier.
+            </p>
+          </Card>
+        )}
+
         <Card title="Informations du dossier">
           <dl className="grid grid-cols-2 gap-4">
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
-                Formation
+                Code formation
               </dt>
-              <dd className="mt-1 text-sm text-text">{formation.titre || formation.intitule}</dd>
+              <dd className="mt-1 text-sm text-text">{formation.code || formation.code_formation || '-'}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
@@ -524,100 +615,6 @@ export default function DossierDecision() {
           </Card>
         )}
 
-        {canTakeDecision && (
-          <Card title="Prendre une décision">
-            {/* Message RM-05 si le dossier est déjà RETENU */}
-            {dossier.statut === 'RETENU' && (
-              <div className="mb-4 rounded-lg border-l-4 border-warning bg-warning/10 p-4">
-                <p className="text-sm font-medium text-warning">
-                  <span className="mr-2">⚠</span>
-                  Ce dossier a déjà été retenu et ne peut plus être refusé.
-                  L'étudiant dispose de 72h pour effectuer son paiement.
-                </p>
-              </div>
-            )}
-
-            {/* Message pour dossiers EXCEPTION */}
-            {isException && (
-              <div className="mb-4 rounded-lg border-l-4 border-danger bg-danger/10 p-4">
-                <p className="text-sm font-medium text-danger">
-                  <span className="mr-2">⚠</span>
-                  Ce dossier est en EXCEPTION (capacité dépassée de plus de 10%). Une
-                  décision manuelle est requise.
-                </p>
-              </div>
-            )}
-
-            {/* Champ motif de refus */}
-            {(canRefuser || isException) && (
-              <div className="mb-6">
-                <label className="mb-1 block text-sm font-medium text-text">
-                  Motif de refus (optionnel pour RETENIR, obligatoire pour REFUSER)
-                </label>
-                <textarea
-                  value={motifRefus}
-                  onChange={(e) => setMotifRefus(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-border px-4 py-2 text-sm focus:border-primary focus:outline-none"
-                  placeholder="Saisissez le motif du refus si vous choisissez de refuser ce dossier..."
-                />
-              </div>
-            )}
-
-            {/* Boutons de décision */}
-            <div className="flex gap-3">
-              {canRetenir && !isException && (
-                <Button variant="success" onClick={handleRetenir}>
-                  Retenir le candidat
-                </Button>
-              )}
-
-              {canRefuser && !isException && (
-                <Button variant="danger" onClick={handleRefuser}>
-                  Refuser le candidat
-                </Button>
-              )}
-
-              {isException && (
-                <>
-                  <Button
-                    variant="success"
-                    onClick={() => handleTraiterException('RETENU')}
-                  >
-                    Accepter malgré l'exception
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => handleTraiterException('REFUSE')}
-                  >
-                    Refuser définitivement
-                  </Button>
-                </>
-              )}
-
-              {!canRetenir && !canRefuser && !isException && (
-                <p className="text-sm text-subtext">
-                  Aucune action disponible pour ce statut.
-                </p>
-              )}
-            </div>
-
-            {canRefuser && (
-              <p className="mt-3 text-xs text-subtext">
-                Note: Une fois un dossier retenu, il ne pourra plus être refusé.
-              </p>
-            )}
-          </Card>
-        )}
-
-        {!canTakeDecision && (
-          <Card>
-            <p className="text-sm text-subtext">
-              Vous n'avez pas les permissions nécessaires pour prendre une décision
-              sur ce dossier.
-            </p>
-          </Card>
-        )}
       </div>
 
       <Modal
