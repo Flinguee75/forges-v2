@@ -76,6 +76,12 @@ export function initSentry(): void {
   const environment = process.env.NODE_ENV || "development";
   const config = sentryConfig[environment] || sentryConfig.development;
 
+  // Monitoring désactivé pour dev et demo.
+  if (environment === "development" || environment === "demo") {
+    console.warn(`⚠️  Sentry disabled for ${environment} environment`);
+    return;
+  }
+
   // Ignorer l'initialisation si DSN n'est pas défini
   if (!config.dsn) {
     console.warn(`⚠️  Sentry DSN not configured for ${environment}`);

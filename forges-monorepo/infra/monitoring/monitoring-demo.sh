@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.monitoring.demo.yml"
 PROJECT_NAME="forges-monitoring-demo"
+MONITORING_DISABLED=true
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -25,108 +26,57 @@ check_docker() {
   fi
 }
 
-cmd_start() {
-  check_docker
-  log_info "Starting FORGES monitoring stack (demo)..."
-
-  if ! docker network inspect forges-demo &> /dev/null 2>&1; then
-    log_warn "Network 'forges-demo' does not exist. Creating it..."
-    docker network create forges-demo
-  fi
-
-  docker compose -f "${COMPOSE_FILE}" up -d
-  log_info "Monitoring stack started."
+disabled_notice() {
   echo ""
-  cmd_status
+  log_warn "Monitoring is disabled for the demo environment."
+  echo "  - Start/restart/health/logs are no-ops"
+  echo "  - Stop/cleanup still remove any existing containers or volumes"
+  echo ""
+}
+
+cmd_start() {
+  log_warn "Demo monitoring has been disabled."
+  cmd_stop
+  disabled_notice
 }
 
 cmd_stop() {
   log_info "Stopping FORGES monitoring stack..."
+  if ! command -v docker &> /dev/null || ! docker info &> /dev/null; then
+    log_warn "Docker is unavailable; nothing to stop."
+    return 0
+  fi
   docker compose -f "${COMPOSE_FILE}" down
   log_info "Monitoring stack stopped."
 }
 
 cmd_restart() {
   cmd_stop
-  cmd_start
+  disabled_notice
 }
 
 cmd_status() {
+  disabled_notice
   echo "============================================"
   echo "  FORGES Monitoring - Demo Environment"
   echo "============================================"
   echo ""
-  docker compose -f "${COMPOSE_FILE}" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+  if command -v docker &> /dev/null && docker info &> /dev/null; then
+    docker compose -f "${COMPOSE_FILE}" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" || true
+  fi
   echo ""
-  echo "-------------------------------------------"
-  echo "  Access URLs:"
-  echo "    Grafana:     http://localhost:3050"
-  echo "    Uptime Kuma: http://localhost:3001"
-  echo "    Loki API:    http://localhost:3100"
-  echo "-------------------------------------------"
 }
 
 cmd_health() {
-  log_info "Checking health of monitoring services..."
-  echo ""
-
-  local all_healthy=true
-
-  if curl -sf http://localhost:3100/ready > /dev/null 2>&1; then
-    echo -e "  Loki:        ${GREEN}HEALTHY${NC}"
-  else
-    echo -e "  Loki:        ${RED}UNHEALTHY${NC}"
-    all_healthy=false
-  fi
-
-  if curl -sf http://localhost:3050/api/health > /dev/null 2>&1; then
-    echo -e "  Grafana:     ${GREEN}HEALTHY${NC}"
-  else
-    echo -e "  Grafana:     ${RED}UNHEALTHY${NC}"
-    all_healthy=false
-  fi
-
-  if curl -sf http://localhost:3001/api/entry-page > /dev/null 2>&1; then
-    echo -e "  Uptime Kuma: ${GREEN}HEALTHY${NC}"
-  else
-    echo -e "  Uptime Kuma: ${RED}UNHEALTHY${NC}"
-    all_healthy=false
-  fi
-
-  echo ""
-  if [ "${all_healthy}" = true ]; then
-    log_info "All services are healthy."
-  else
-    log_warn "Some services are unhealthy. Run './monitoring-demo.sh logs' for details."
-  fi
+  disabled_notice
 }
 
 cmd_logs() {
-  local service="${1:-}"
-  if [ -n "${service}" ]; then
-    docker compose -f "${COMPOSE_FILE}" logs -f --tail=100 "${service}"
-  else
-    docker compose -f "${COMPOSE_FILE}" logs -f --tail=50
-  fi
+  disabled_notice
 }
 
 cmd_backup() {
-  local backup_dir="${SCRIPT_DIR}/backups/$(date +%Y%m%d_%H%M%S)"
-  mkdir -p "${backup_dir}"
-
-  log_info "Backing up monitoring data to ${backup_dir}..."
-
-  docker run --rm \
-    -v forges-grafana-demo:/data \
-    -v "${backup_dir}":/backup \
-    alpine tar czf /backup/grafana-data.tar.gz -C /data .
-
-  docker run --rm \
-    -v forges-loki-demo:/data \
-    -v "${backup_dir}":/backup \
-    alpine tar czf /backup/loki-data.tar.gz -C /data .
-
-  log_info "Backup complete: ${backup_dir}"
+  disabled_notice
 }
 
 cmd_cleanup() {
@@ -134,6 +84,10 @@ cmd_cleanup() {
   read -r confirm
   if [[ "${confirm}" =~ ^[Yy]$ ]]; then
     cmd_stop
+    if ! command -v docker &> /dev/null || ! docker info &> /dev/null; then
+      log_warn "Docker is unavailable; skipping volume cleanup."
+      return 0
+    fi
     docker volume rm forges-loki-demo forges-grafana-demo forges-uptime-demo 2>/dev/null || true
     log_info "Cleanup complete."
   else
@@ -145,13 +99,13 @@ cmd_help() {
   echo "Usage: $0 <command> [args]"
   echo ""
   echo "Commands:"
-  echo "  start       Start the monitoring stack"
-  echo "  stop        Stop the monitoring stack"
-  echo "  restart     Restart the monitoring stack"
-  echo "  status      Show container status and URLs"
-  echo "  health      Check health of all services"
-  echo "  logs [svc]  View logs (optionally for a specific service)"
-  echo "  backup      Backup Grafana and Loki data"
+  echo "  start       Disabled for demo"
+  echo "  stop        Stop any existing monitoring containers"
+  echo "  restart     Disabled for demo"
+  echo "  status      Show disabled notice and container status"
+  echo "  health      Disabled for demo"
+  echo "  logs [svc]  Disabled for demo"
+  echo "  backup      Disabled for demo"
   echo "  cleanup     Remove all monitoring data (destructive)"
   echo "  help        Show this help message"
 }

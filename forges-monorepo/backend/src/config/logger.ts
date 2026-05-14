@@ -80,8 +80,8 @@ export class BetterStackLogger {
         ...data,
       };
 
-      // En développement, logger localement au lieu d'envoyer
-      if (this.environment === "dev") {
+      // En développement et demo, logger localement au lieu d'envoyer
+      if (this.environment === "dev" || this.environment === "demo") {
         console.log(JSON.stringify(payload, null, 2));
         return;
       }
