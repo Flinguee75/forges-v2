@@ -11,12 +11,28 @@ export class VoucherRepository {
     return this.prisma.voucherApporteur; // PROMOTIONNEL also uses voucherApporteur
   }
 
+  private async hydrateOrganisationVoucher(voucher: any) {
+    if (!voucher?.organisation_id) {
+      return voucher;
+    }
+
+    const organisation = await this.prisma.organisation.findUnique({
+      where: { id: voucher.organisation_id },
+      select: { id: true, raison_sociale: true, statut: true },
+    });
+
+    return {
+      ...voucher,
+      organisation,
+    };
+  }
+
   async findByCode(code: string) {
     // Chercher d'abord dans VoucherOrganisation
     const voucherOrg = await this.prisma.voucherOrganisation.findUnique({
       where: { code },
     });
-    if (voucherOrg) return voucherOrg;
+    if (voucherOrg) return this.hydrateOrganisationVoucher(voucherOrg);
 
     // Si pas trouvé, chercher dans VoucherApporteur
     return this.prisma.voucherApporteur.findUnique({
@@ -30,10 +46,11 @@ export class VoucherRepository {
 
   async findById(id: string, type?: VoucherType) {
     if (type === 'ORGANISATION') {
-      return this.prisma.voucherOrganisation.findUnique({
+      const voucher = await this.prisma.voucherOrganisation.findUnique({
         where: { id },
         include: { formation: { select: { id: true, intitule: true, statut: true } } },
       });
+      return this.hydrateOrganisationVoucher(voucher);
     }
     if (type === 'APPORTEUR' || type === 'PROMOTIONNEL') {
       return this.prisma.voucherApporteur.findUnique({
@@ -46,7 +63,7 @@ export class VoucherRepository {
       where: { id },
       include: { formation: { select: { id: true, intitule: true, statut: true } } },
     });
-    if (org) return org;
+    if (org) return this.hydrateOrganisationVoucher(org);
     return this.prisma.voucherApporteur.findUnique({
       where: { id },
       include: { formation: { select: { id: true, intitule: true, statut: true } }, apporteur: { select: { id: true, nom: true, email: true, code_apporteur: true, statut: true } } },
@@ -109,16 +126,25 @@ export class VoucherRepository {
 
     // Enrichir les voucherOrganisation avec les données de formation (jointure manuelle)
     const formationIds = [...new Set(orgItems.map((v: any) => v.formation_id).filter(Boolean))];
+    const organisationIds = [...new Set(orgItems.map((v: any) => v.organisation_id).filter(Boolean))];
     const formations = formationIds.length > 0
       ? await this.prisma.formation.findMany({
           where: { id: { in: formationIds as string[] } },
           select: { id: true, intitule: true, statut: true },
         })
       : [];
+    const organisations = organisationIds.length > 0
+      ? await this.prisma.organisation.findMany({
+          where: { id: { in: organisationIds as string[] } },
+          select: { id: true, raison_sociale: true, statut: true },
+        })
+      : [];
     const formationMap = new Map(formations.map((f) => [f.id, f]));
+    const organisationMap = new Map(organisations.map((o) => [o.id, o]));
     const orgItemsWithFormation = orgItems.map((v: any) => ({
       ...v,
       formation: v.formation_id ? (formationMap.get(v.formation_id) ?? null) : null,
+      organisation: v.organisation_id ? (organisationMap.get(v.organisation_id) ?? null) : null,
     }));
 
     const allItems = [...apporteurItems, ...orgItemsWithFormation].sort(
