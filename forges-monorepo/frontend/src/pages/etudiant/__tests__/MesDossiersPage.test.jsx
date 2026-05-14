@@ -19,12 +19,9 @@ const mockDossiersResponse = {
       id: '1',
       statut: 'EN_ATTENTE',
       created_at: '2025-01-01',
-      montant_remise: 0,
+      paiement: { montant_final: 50000, reduction_appliquee: 0 },
       session: {
-        formation: {
-          titre: 'Formation JavaScript',
-          tarif: 50000,
-        },
+        formation: { titre: 'Formation JavaScript', tarif: 50000 },
         date_debut: '2025-02-01',
       },
     },
@@ -32,12 +29,9 @@ const mockDossiersResponse = {
       id: '2',
       statut: 'RETENU',
       created_at: '2025-01-02',
-      montant_remise: 10000,
+      paiement: { montant_final: 50000, reduction_appliquee: 10000 },
       session: {
-        formation: {
-          titre: 'Formation React',
-          tarif: 60000,
-        },
+        formation: { titre: 'Formation React', tarif: 60000 },
         date_debut: '2025-02-15',
       },
     },
@@ -45,12 +39,9 @@ const mockDossiersResponse = {
       id: '3',
       statut: 'REFUSE',
       created_at: '2025-01-03',
-      montant_remise: 0,
+      paiement: { montant_final: 55000, reduction_appliquee: 0 },
       session: {
-        formation: {
-          titre: 'Formation Vue.js',
-          tarif: 55000,
-        },
+        formation: { titre: 'Formation Vue.js', tarif: 55000 },
         date_debut: '2025-03-01',
       },
     },
@@ -58,12 +49,9 @@ const mockDossiersResponse = {
       id: '4',
       statut: 'CONFIRME',
       created_at: '2025-01-04',
-      montant_remise: 0,
+      paiement: { montant_final: 65000, reduction_appliquee: 0 },
       session: {
-        formation: {
-          titre: 'Formation Node.js',
-          tarif: 65000,
-        },
+        formation: { titre: 'Formation Node.js', tarif: 65000 },
         date_debut: '2025-03-15',
       },
     },

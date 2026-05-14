@@ -121,9 +121,8 @@ export default function MesDossiersPage() {
       key: 'montant',
       label: 'Montant',
       render: (_, dossier) => {
-        const montant = getFormationTarif(dossier);
-        const remise = dossier.montant_remise || 0;
-        const final = montant - remise;
+        const final = dossier.paiement?.montant_final ?? getFormationTarif(dossier);
+        const remise = dossier.paiement?.reduction_appliquee || 0;
         return (
           <div>
             <div className="font-medium">

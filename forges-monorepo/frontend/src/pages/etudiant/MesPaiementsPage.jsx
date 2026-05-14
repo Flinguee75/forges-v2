@@ -65,9 +65,8 @@ export default function MesPaiementsPage() {
   };
 
   const calculateMontantFinal = (dossier) => {
-    const tarif = getFormationTarif(dossier);
-    const remise = dossier.montant_remise || 0;
-    return tarif - remise;
+    if (dossier.paiement?.montant_final != null) return dossier.paiement.montant_final;
+    return getFormationTarif(dossier);
   };
 
   const isPayableDossier = (dossier) =>
@@ -114,9 +113,9 @@ export default function MesPaiementsPage() {
             <div className="font-semibold text-primary">
               {formatCurrency(montant)}
             </div>
-            {dossier.montant_remise > 0 && (
+            {dossier.paiement?.reduction_appliquee > 0 && (
               <div className="text-xs text-success">
-                Remise: -{formatCurrency(dossier.montant_remise)}
+                Remise: -{formatCurrency(dossier.paiement?.reduction_appliquee)}
               </div>
             )}
           </div>
@@ -227,10 +226,10 @@ export default function MesPaiementsPage() {
                   <span className="text-subtext">Prix:</span>
                   <span>{formatCurrency(getFormationTarif(selectedDossier))}</span>
                 </div>
-                {selectedDossier.montant_remise > 0 && (
+                {selectedDossier.paiement?.reduction_appliquee > 0 && (
                   <div className="flex justify-between text-success">
                     <span>Remise:</span>
-                    <span>-{formatCurrency(selectedDossier.montant_remise)}</span>
+                    <span>-{formatCurrency(selectedDossier.paiement?.reduction_appliquee)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-border pt-2 font-semibold text-primary">
