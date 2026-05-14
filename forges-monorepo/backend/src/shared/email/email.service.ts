@@ -228,7 +228,8 @@ export class EmailService {
     attachment: EmailAttachment
   ): Promise<void> {
     try {
-      let { subject, html } = this.loadTemplate(templateName, langue, variables);
+      const { subject, html: rawHtml } = this.loadTemplate(templateName, langue, variables);
+      let html = rawHtml;
 
       // Blocs conditionnels {{#if_xxx}}...{{/if_xxx}}
       Object.entries(conditionals).forEach(([key, show]) => {
