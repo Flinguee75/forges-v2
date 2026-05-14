@@ -50,8 +50,9 @@ export default function BackofficeLayout() {
     {
       title: 'Utilisateurs',
       items: [
-        { name: 'Utilisateurs', href: '/backoffice/apprenants', icon: 'user', roles: ['ADMIN', 'SUPERVISEUR'] },
+        { name: 'Apprenants', href: '/backoffice/apprenants', icon: 'user', roles: ['ADMIN', 'SUPERVISEUR'] },
         { name: 'Organisations', href: '/backoffice/organisations', icon: 'building', roles: ['ADMIN', 'SUPERVISEUR'] },
+        { name: 'Equipe backoffice', href: '/backoffice/utilisateurs', icon: 'users', roles: ['ADMIN'] },
       ],
     },
     {
@@ -86,7 +87,6 @@ export default function BackofficeLayout() {
     {
       title: 'Administration',
       items: [
-        { name: 'Utilisateurs backoffice', href: '/backoffice/utilisateurs', icon: 'users', roles: ['ADMIN'] },
         { name: 'Configuration', href: '/backoffice/config', icon: 'cog', roles: ['ADMIN'] },
       ],
     },
