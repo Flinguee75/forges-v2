@@ -111,8 +111,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const originalJson = res.json.bind(res);
   res.json = (body: any) => {
     if (res.statusCode >= 400) {
+      const isHealthProbe = req.headers['x-health-probe'] === 'true';
       const entry = {
-        level: res.statusCode >= 500 ? 'ERROR' : 'WARN',
+        level: res.statusCode >= 500 ? 'ERROR' : (isHealthProbe && res.statusCode < 500 ? 'INFO' : 'WARN'),
         action: 'HTTP_ERROR',
         metadata: {
           method: req.method,
@@ -123,7 +124,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
           user_id: (req as any).user?.userId ?? null,
           referer: req.headers.referer ?? req.headers['x-page'] ?? null,
           ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? null,
-          health_probe: req.headers['x-health-probe'] === 'true' ? true : undefined,
+          health_probe: isHealthProbe ? true : undefined,
         },
         timestamp: new Date().toISOString(),
       };
