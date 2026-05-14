@@ -359,6 +359,135 @@ export class EmailService {
     });
   }
 
+  async sendTempPasswordBackoffice(
+    email: string,
+    nom: string,
+    tempPassword: string,
+    role: 'ADMIN' | 'SUPERVISEUR' | 'RESPONSABLE' | 'AGENT' | 'GESTIONNAIRE',
+  ): Promise<void> {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+
+    const roleConfig: Record<string, { label: string; description: string; permissions: string[] }> = {
+      SUPERVISEUR: {
+        label: 'Superviseur',
+        description: "Vous supervisez l'ensemble des activités de la plateforme : formations, sessions, dossiers apprenants, organisations et tableau de bord analytique.",
+        permissions: [
+          'Consulter et gérer toutes les formations et sessions',
+          'Accéder aux dossiers et inscriptions de tous les apprenants',
+          'Visualiser les tableaux de bord et statistiques',
+          'Superviser les partenaires et organisations',
+          'Consulter les reversements et commissions',
+        ],
+      },
+      AGENT: {
+        label: 'Agent comptable',
+        description: "Vous gérez la partie financière et commerciale de FORGES : devis, factures, paiements et suivi des règlements.",
+        permissions: [
+          'Créer et gérer les devis et factures (B2B et individuels)',
+          'Suivre les paiements et reversements partenaires',
+          'Marquer les devis comme payés',
+          'Accéder aux rapports financiers',
+          'Envoyer les factures par email aux organisations et apprenants',
+        ],
+      },
+      RESPONSABLE: {
+        label: 'Responsable pédagogique',
+        description: "Vous validez les dossiers apprenants et les formations soumises par les partenaires.",
+        permissions: [
+          'Valider ou rejeter les dossiers en attente',
+          'Valider les formations soumises par les partenaires',
+          'Accéder aux informations apprenants de votre périmètre',
+        ],
+      },
+      ADMIN: {
+        label: 'Administrateur',
+        description: "Vous avez un accès complet à toutes les fonctionnalités de la plateforme FORGES.",
+        permissions: [
+          'Accès complet à tous les modules',
+          'Gestion des comptes et des rôles',
+          'Configuration de la plateforme',
+        ],
+      },
+      GESTIONNAIRE: {
+        label: 'Gestionnaire',
+        description: "Vous gérez les opérations courantes de la plateforme.",
+        permissions: ['Gestion des formations et sessions', 'Suivi des apprenants'],
+      },
+    };
+
+    const config = roleConfig[role] || roleConfig.GESTIONNAIRE;
+    const subject = `Bienvenue sur FORGES — Votre compte ${config.label} est prêt`;
+
+    const permissionsHtml = config.permissions
+      .map(p => `<li style="margin:6px 0;color:#1C2833;">${p}</li>`)
+      .join('');
+
+    const permissionsText = config.permissions.map(p => `  • ${p}`).join('\n');
+
+    await this.sendEmail({
+      to: email,
+      subject,
+      text: this.buildTextEmail([
+        `Bonjour ${nom},`,
+        '',
+        `Votre compte ${config.label} FORGES vient d'être créé.`,
+        '',
+        config.description,
+        '',
+        'Ce que vous pouvez faire sur la plateforme :',
+        permissionsText,
+        '',
+        'Vos identifiants de connexion :',
+        `  Email : ${email}`,
+        `  Mot de passe temporaire : ${tempPassword}`,
+        '',
+        `Connectez-vous ici : ${loginUrl}`,
+        '',
+        'IMPORTANT : Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
+        '',
+        "Pour toute question, contactez-nous : contact@forges-group.com",
+        '',
+        "L'equipe FORGES",
+      ]),
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#1C2833;line-height:1.6;max-width:600px;">
+          <h2 style="color:#1B4F72;margin-bottom:4px;">Bienvenue sur FORGES</h2>
+          <p style="color:#566573;margin-top:0;font-size:14px;">Votre espace <strong>${config.label}</strong> est prêt</p>
+
+          <p>Bonjour <strong>${nom}</strong>,</p>
+          <p>${config.description}</p>
+
+          <div style="background:#EBF5FB;border-left:4px solid #1B4F72;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;">
+            <p style="margin:0 0 10px;font-weight:bold;color:#1B4F72;">Ce que vous pouvez faire sur FORGES :</p>
+            <ul style="margin:0;padding-left:20px;">
+              ${permissionsHtml}
+            </ul>
+          </div>
+
+          <div style="background:#F9F9F9;border:1px solid #E8E8E8;border-radius:8px;padding:16px 20px;margin:20px 0;">
+            <p style="margin:0 0 8px;font-weight:bold;color:#1B4F72;">Vos identifiants de connexion</p>
+            <p style="margin:4px 0;">Email : <strong>${email}</strong></p>
+            <p style="margin:4px 0;">Mot de passe temporaire : <code style="background:#F0F0F0;padding:3px 8px;border-radius:4px;font-size:14px;">${tempPassword}</code></p>
+          </div>
+
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${loginUrl}" style="display:inline-block;background:#1B4F72;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Accéder à mon espace FORGES</a>
+          </p>
+          <p style="font-size:12px;color:#888;text-align:center;">Si le bouton ne fonctionne pas : <a href="${loginUrl}" style="color:#1B4F72;">${loginUrl}</a></p>
+
+          <p style="background:#FEF9E7;border:1px solid #F9E79F;border-radius:6px;padding:12px 16px;font-size:13px;">
+            <strong>Important :</strong> Ce mot de passe est temporaire. Vous devrez le modifier des votre premiere connexion.
+          </p>
+
+          <p style="color:#566573;font-size:12px;margin-top:24px;border-top:1px solid #EEE;padding-top:16px;">
+            Pour toute question, contactez-nous : <a href="mailto:contact@forges-group.com" style="color:#1B4F72;">contact@forges-group.com</a><br>
+            &copy; 2026 FORGES AGREGATEUR
+          </p>
+        </div>
+      `,
+    });
+  }
+
   async sendResetPassword(email: string, token: string, langue: string): Promise<void> {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${token}`;
     const title = 'Réinitialisation de mot de passe FORGES';

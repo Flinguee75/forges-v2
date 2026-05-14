@@ -43,7 +43,7 @@ export class AdminService {
     });
 
     await this.audit.info('UTILISATEUR_CREE', { user_id: user.id, role: dto.role, admin_id: adminId });
-    await this.email.sendTempPassword(dto.email, tempPassword, 'FR');
+    await this.email.sendTempPasswordBackoffice(dto.email, dto.prenoms || dto.nom, tempPassword, dto.role as any);
 
     return user;
   }
