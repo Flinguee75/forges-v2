@@ -93,7 +93,7 @@ export default function PaiementDetail() {
 
   const montant =
     paiement.montant_final ?? paiement.montant_initie ?? paiement.montant ?? paiement.montant_catalogue ?? 0;
-  const montantFCFA = montant / 100;
+  const montantFCFA = Math.round(montant / 100);
   const etudiant = paiement.dossier?.apprenant || paiement.dossier?.etudiant || {};
   const session = paiement.dossier?.session || {};
   const formation = paiement.dossier?.formation || session.formation || {};

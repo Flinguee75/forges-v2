@@ -521,10 +521,14 @@ export default function DossierDecision() {
                 <dt className="text-xs font-medium uppercase text-subtext">Montant final</dt>
                 <dd className="mt-1 text-sm text-text">{formatMontant(paiement.montant_final)}</dd>
               </div>
-              <div>
-                <dt className="text-xs font-medium uppercase text-subtext">Réduction</dt>
-                <dd className="mt-1 text-sm text-text">{formatMontant(paiement.reduction_appliquee)}</dd>
-              </div>
+              {paiement.reduction_appliquee > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Réduction</dt>
+                  <dd className="mt-1 text-sm font-medium text-success">
+                    -{formatMontant(paiement.reduction_appliquee)}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Confirmé le</dt>
                 <dd className="mt-1 text-sm text-text">{formatDate(paiement.confirmed_at)}</dd>
