@@ -9,6 +9,59 @@ import Input from '../../../components/ui/Input';
 import Badge from '../../../components/ui/Badge';
 import Spinner from '../../../components/feedback/Spinner';
 
+const STATUT_LABELS = {
+  ACTIF: 'Actif',
+  BROUILLON: 'Brouillon',
+  EN_ATTENTE: 'En attente',
+  EPUISE: 'Epuise',
+  EXPIRE: 'Expire',
+  REFUSE: 'Refuse',
+};
+
+const TYPE_LABELS = {
+  ORGANISATION: 'Organisation',
+  APPORTEUR: 'Apporteur',
+  PROMOTIONNEL: 'Promotionnel',
+};
+
+const REDUCTION_LABELS = {
+  POURCENTAGE: 'Pourcentage',
+  MONTANT: 'Montant fixe',
+};
+
+function formatDate(value) {
+  if (!value) return '-';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('fr-FR', { dateStyle: 'long' });
+  }
+  return new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' });
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
+}
+
+function formatReductionValue(voucher) {
+  if (!voucher) return '-';
+  const value = Number(voucher.valeur ?? 0);
+  if (voucher.type_valeur === 'MONTANT') {
+    return `${value.toLocaleString('fr-FR')} FCFA`;
+  }
+  return `${value}%`;
+}
+
+function getLinkedEntityLabel(voucher) {
+  if (voucher?.organisation) {
+    return voucher.organisation.raison_sociale || voucher.organisation.id || '-';
+  }
+  if (voucher?.apporteur) {
+    return voucher.apporteur.nom || voucher.apporteur.code_apporteur || voucher.apporteur.id || '-';
+  }
+  return '-';
+}
+
 export default function VoucherDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -64,6 +117,10 @@ export default function VoucherDetail() {
   }
 
   const canModerate = voucher.type === 'PROMOTIONNEL' && voucher.statut === 'BROUILLON';
+  const quotaMax = Number(voucher.quota_max ?? 0);
+  const quotaUtilise = Number(voucher.quota_utilise ?? 0);
+  const quotaRestant = Number(voucher.quota_restant ?? Math.max(0, quotaMax - quotaUtilise));
+  const reductionTypeLabel = REDUCTION_LABELS[voucher.type_valeur] || voucher.type_valeur || '-';
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -72,32 +129,102 @@ export default function VoucherDetail() {
         <h2 className="mt-3 text-2xl font-semibold text-primary">{voucher.code}</h2>
         <div className="mt-3 flex flex-wrap gap-3">
           <Badge variant={voucher.statut === 'ACTIF' ? 'success' : voucher.statut === 'BROUILLON' ? 'warning' : 'gray'}>
-            {voucher.statut}
+            {STATUT_LABELS[voucher.statut] || voucher.statut}
           </Badge>
-          <Badge variant="info">{voucher.type}</Badge>
+          <Badge variant="info">{TYPE_LABELS[voucher.type] || voucher.type}</Badge>
+          {voucher.type_valeur && (
+            <Badge variant={voucher.type_valeur === 'POURCENTAGE' ? 'success' : 'warning'}>
+              {reductionTypeLabel}
+            </Badge>
+          )}
         </div>
       </div>
 
-      <Card>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtext">Formation</p>
-            <p className="mt-2 text-text">{voucher.formation?.titre || voucher.formation?.intitule || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtext">Statut</p>
-            <p className="mt-2 text-text">{voucher.statut}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtext">Quota</p>
-            <p className="mt-2 text-text">{voucher.quota_utilise || 0} / {voucher.quota_max || 0}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtext">Expiration</p>
-            <p className="mt-2 text-text">{voucher.date_expiration ? new Date(voucher.date_expiration).toLocaleDateString('fr-FR') : 'N/A'}</p>
-          </div>
-        </div>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">Informations générales</h3>
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Formation</dt>
+              <dd className="mt-1 text-sm text-text">{voucher.formation?.titre || voucher.formation?.intitule || '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Type de réduction</dt>
+              <dd className="mt-1 text-sm text-text">{reductionTypeLabel}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Valeur de réduction</dt>
+              <dd className="mt-1 text-sm text-text">{formatReductionValue(voucher)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Statut</dt>
+              <dd className="mt-1 text-sm text-text">{STATUT_LABELS[voucher.statut] || voucher.statut}</dd>
+            </div>
+          </dl>
+        </Card>
+
+        <Card>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">Quota et dates</h3>
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Quota utilisé</dt>
+              <dd className="mt-1 text-sm text-text">{quotaUtilise}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Quota maximum</dt>
+              <dd className="mt-1 text-sm text-text">{quotaMax || '∞'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Quota restant</dt>
+              <dd className="mt-1 text-sm text-text">{quotaRestant}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Expiration</dt>
+              <dd className="mt-1 text-sm text-text">{formatDate(voucher.date_expiration)}</dd>
+            </div>
+          </dl>
+        </Card>
+
+        <Card>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">Traçabilité</h3>
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Organisation / apporteur</dt>
+              <dd className="mt-1 text-sm text-text">{getLinkedEntityLabel(voucher)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Devis source</dt>
+              <dd className="mt-1 text-sm text-text">{voucher.devis_id || '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Créé le</dt>
+              <dd className="mt-1 text-sm text-text">{formatDateTime(voucher.created_at)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Créé par</dt>
+              <dd className="mt-1 text-sm text-text">{voucher.cree_par || '-'}</dd>
+            </div>
+          </dl>
+        </Card>
+
+        <Card>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">Validation</h3>
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Validé par</dt>
+              <dd className="mt-1 text-sm text-text">{voucher.valide_par || '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Validé le</dt>
+              <dd className="mt-1 text-sm text-text">{formatDateTime(voucher.valide_le)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Motif de refus</dt>
+              <dd className="mt-1 text-sm text-text">{voucher.motif_refus || '-'}</dd>
+            </div>
+          </dl>
+        </Card>
+      </div>
 
       {canModerate && (
         <Card>
