@@ -774,12 +774,12 @@ La question centrale est “quelle preuve avons-nous que le comportement respect
 
 ### Issue tracker
 
-Issues live in GitHub Issues (`Flinguee75/forges-v2`), managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues for `Flinguee75/forges-v2`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Default canonical label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+Default canonical label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context repo — one `CONTEXT.md` + `docs/adr/` at the root. See `docs/agents/domain.md`.
+Single-context repo: one `CONTEXT.md` plus `docs/adr/` at the root. See `docs/agents/domain.md`.
