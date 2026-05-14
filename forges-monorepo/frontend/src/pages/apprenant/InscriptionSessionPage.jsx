@@ -83,16 +83,12 @@ export default function InscriptionSessionPage() {
     await executeInscription(() => apprenantApi.inscrireSession(selectedSessionId, payload), {
       onSuccess: (data) => {
         const dossier = data?.data || data;
-        navigate('/apprenant/dossiers', {
-          state: {
-            dossierCree: {
-              dossierId: dossier?.id,
-              formationTitre: formation?.intitule || formation?.titre,
-              montant: dossier?.montant_total,
-              delaiPaiement: '72 heures'
-            }
-          },
-        });
+        // Paiement direct si RETAIL/STANDARD — pas de détour par la liste des dossiers
+        if (dossier?.id && sourceFinancement === 'RETAIL') {
+          navigate(`/apprenant/paiements/initier/${dossier.id}`);
+        } else {
+          navigate('/apprenant/dossiers');
+        }
       },
       onError: (err) => {
         const code = err?.message || '';
