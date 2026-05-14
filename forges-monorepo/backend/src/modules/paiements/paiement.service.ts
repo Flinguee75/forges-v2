@@ -199,13 +199,6 @@ export class PaiementService {
       // Calcul commissions
       await this.calculerCommissions(paiement, webhookData.dossier_id);
 
-      // Utiliser le voucher si présent (incrémenter quota)
-      const dossier = await this.prisma.dossier.findUnique({ where: { id: webhookData.dossier_id } });
-      if (dossier?.voucher_code) {
-        const voucher = await this.voucherRepo.findByCode(dossier.voucher_code);
-        if (voucher) await this.voucherRepo.utiliser(voucher.id);
-      }
-
       await this.audit.info('PAIEMENT_CONFIRME', {
         paiement_id: paiement.id,
         transaction_id: webhookData.transaction_id,

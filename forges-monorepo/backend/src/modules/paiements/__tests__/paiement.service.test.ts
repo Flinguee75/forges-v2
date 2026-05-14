@@ -422,8 +422,6 @@ describe('PaiementService', () => {
           apprenant: { email: 'test@test.ci', langue_preferee: 'FR' },
           formation: { intitule: 'Formation Test' },
         } as any);
-      mockVoucherRepo.findByCode.mockResolvedValueOnce({ id: 'voucher-01' } as any);
-      mockVoucherRepo.utiliser.mockResolvedValueOnce({} as any);
       mockPrisma.apporteur.findFirst.mockResolvedValueOnce({
         id: 'apt-01',
         taux_commission_pct: 5,
@@ -459,7 +457,7 @@ describe('PaiementService', () => {
         montant_commission: 5000,
       });
       expect(calculerCommissionsSpy).toHaveBeenCalledWith({ id: 'p-01', dossier_id: 'd-01', montant_final: 100000 }, 'd-01');
-      expect(mockVoucherRepo.utiliser).toHaveBeenCalledWith('voucher-01');
+      expect(mockVoucherRepo.utiliser).not.toHaveBeenCalled();
       expect(mockEmail.sendPaiementConfirme).toHaveBeenCalledWith(
         'test@test.ci',
         'Formation Test'
