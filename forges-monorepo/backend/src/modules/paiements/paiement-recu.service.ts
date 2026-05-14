@@ -36,7 +36,10 @@ function formatDate(d: Date | null): string {
 }
 
 function formatMontant(centimes: number): string {
-  return Math.round(centimes / 100).toLocaleString('fr-FR');
+  return Math.round(centimes / 100)
+    .toLocaleString('fr-FR')
+    .replace(/\u202f/g, ' ')
+    .replace(/\u00a0/g, ' ');
 }
 
 function genNumeroRecu(paiementId: string, confirmedAt: Date | null): string {
@@ -71,6 +74,9 @@ function genererPdfRecu(data: RecuData): Promise<Buffer> {
     const numeroRecu = genNumeroRecu(data.paiementId, data.confirmedAt);
     const nomComplet = [data.apprenantPrenom, data.apprenantNom].filter(Boolean).join(' ');
     const datePaiement = formatDate(data.confirmedAt || new Date());
+    const providerLabel = data.provider === 'FINEO' ? 'Fineo' : data.provider;
+    const commandeLabel = data.provider === 'FINEO' ? 'Commande Fineo' : 'Référence commande';
+    const transactionLabel = data.provider === 'FINEO' ? 'Transaction Fineo' : 'Référence transaction';
 
     // ─── EN-TETE ───────────────────────────────────────────────
     const headerH = 85;
@@ -188,9 +194,9 @@ function genererPdfRecu(data: RecuData): Promise<Buffer> {
     const paiementRows: [string, string][] = [
       ['Statut', 'CONFIRME'],
       ['Reference recu', numeroRecu],
-      ['Reference transaction', data.transactionId || '-'],
-      ['Ordre FORGES', data.orderNgser || '-'],
-      ['Moyen de paiement', data.wallet || data.provider],
+      [transactionLabel, data.transactionId || '-'],
+      [commandeLabel, data.orderNgser || '-'],
+      ['Moyen de paiement', data.wallet || providerLabel],
       ['Date de confirmation', datePaiement],
     ];
     drawTable(paiementRows);
@@ -338,8 +344,10 @@ export class PaiementRecuService {
         lieu: !!data.sessionLieu,
       };
 
+      const destinataire = process.env.EMAIL_TEST_OVERRIDE || dossier.apprenant.email;
+
       await (this.emailService as any).sendEmailFromTemplateWithAttachment(
-        dossier.apprenant.email,
+        destinataire,
         'paiement-confirme',
         'FR',
         variables,
@@ -354,7 +362,7 @@ export class PaiementRecuService {
       await this.audit.info('RECU_PAIEMENT_ENVOYE', {
         dossier_id: dossierId,
         paiement_id: paiement.id,
-        email: dossier.apprenant.email,
+        email: destinataire,
         numero_recu: numeroRecu,
       });
     } catch (err: any) {

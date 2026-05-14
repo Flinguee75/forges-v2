@@ -1,25 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
 import { DevisRepository } from './devis.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { CreerDevisDto } from './dto/devis.dto';
 import { genererDocxDevis } from './devis-docx.service';
 import { genererPdfDevis } from './devis-pdf.service';
-
-const LOGO_PATH = path.join(__dirname, '../../../../frontend/src/assets/logo_forges.png');
 const SESSION_DEVIS_AUTORISEES = ['PLANIFIEE', 'A_VENIR', 'INSCRIPTIONS_OUVERTES', 'OUVERTE', 'EN_COURS'];
-
-function getLogoBase64(): string {
-  try {
-    if (!fs.existsSync(LOGO_PATH)) return '';
-    return `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString('base64')}`;
-  } catch {
-    return '';
-  }
-}
 
 export class DevisService {
   constructor(
@@ -495,18 +482,25 @@ export class DevisService {
   }
 
   private formatMontant(montant: number): string {
-    return montant.toLocaleString('fr-FR') + ' XOF';
+    return `${montant
+      .toLocaleString('fr-FR')
+      .replace(/\u202f/g, ' ')
+      .replace(/\u00a0/g, ' ')} XOF`;
   }
 
   private buildEmailHtml(devis: any): string {
     const org = devis.organisation;
     const formation = devis.formation;
     const session = devis.session;
-    const montant = devis.montant_total_xof.toLocaleString('fr-FR');
-    const tarif = devis.tarif_unitaire_xof.toLocaleString('fr-FR');
-    const BLEU = '#0d1b6e';
-    const OR = '#FFE500';
-    const logoBase64 = getLogoBase64();
+    const montant = this.formatMontant(devis.montant_total_xof).replace(' XOF', '');
+    const tarif = this.formatMontant(devis.tarif_unitaire_xof).replace(' XOF', '');
+    const PRIMARY = '#1B4F72';
+    const SECONDARY = '#2E86C1';
+    const SUCCESS = '#148F77';
+    const BG = '#F4F6F7';
+    const TEXT = '#1C2833';
+    const SUBTEXT = '#566573';
+    const BORDER = '#D5D8DC';
     const sessionLabel = session?.date_debut
       ? `${new Date(session.date_debut).toLocaleDateString('fr-FR')} au ${new Date(session.date_fin || session.date_debut).toLocaleDateString('fr-FR')}`
       : 'Session non renseignée';
@@ -515,24 +509,21 @@ export class DevisService {
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f0f2f8;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f8;padding:32px 0;">
+<body style="margin:0;padding:0;background:${BG};font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${BG};padding:32px 0;">
     <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(4,26,159,0.12);">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#FFFFFF;">
 
         <tr>
-          <td style="background:${BLEU};padding:28px 32px;">
+          <td style="background:${PRIMARY};padding:28px 32px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td width="72" valign="middle">
-                  ${logoBase64 ? `<img src="${logoBase64}" alt="FORGES" width="60" height="60" style="display:block;border-radius:8px;" />` : ''}
-                </td>
-                <td valign="middle" style="padding-left:16px;">
+                <td valign="middle">
                   <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">FORGES AGRÉGATEUR</div>
-                  <div style="color:${OR};font-size:13px;margin-top:4px;font-weight:600;">Plateforme de formations certifiantes</div>
+                  <div style="color:${SECONDARY};font-size:13px;margin-top:4px;font-weight:600;">Plateforme de formations certifiantes</div>
                 </td>
                 <td align="right" valign="middle">
-                  <div style="background:${OR};color:${BLEU};padding:8px 16px;border-radius:6px;font-weight:700;font-size:12px;text-align:center;letter-spacing:0.5px;">
+                  <div style="background:${SECONDARY};color:#ffffff;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12px;text-align:center;letter-spacing:0.5px;">
                     FACTURE<br>
                     <span style="font-size:10px;font-weight:400;">${devis.numero_devis}</span>
                   </div>
@@ -542,44 +533,44 @@ export class DevisService {
           </td>
         </tr>
 
-        <tr><td style="background:${OR};height:4px;"></td></tr>
+        <tr><td style="background:${SUCCESS};height:4px;"></td></tr>
 
         <tr>
-          <td style="background:#ffffff;padding:36px 32px;">
-            <p style="margin:0 0 8px;font-size:15px;color:#333;">
+          <td style="background:#ffffff;padding:36px 32px;color:${TEXT};">
+            <p style="margin:0 0 8px;font-size:15px;color:${TEXT};">
               Bonjour <strong>${org.contact_referent || org.raison_sociale}</strong>,
             </p>
-            <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
-              Veuillez trouver ci-jointe la facture <strong style="color:${BLEU};">${devis.numero_devis}</strong>
+            <p style="margin:0 0 24px;font-size:14px;color:${SUBTEXT};line-height:1.6;">
+              Veuillez trouver ci-jointe la facture <strong style="color:${PRIMARY};">${devis.numero_devis}</strong>
               etablie pour <strong>${org.raison_sociale}</strong> concernant la formation
               <strong>${formation.intitule}</strong>.
             </p>
 
-            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:14px;">
-              <tr style="background:${BLEU};">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${BORDER};border-radius:8px;overflow:hidden;font-size:14px;">
+              <tr style="background:${PRIMARY};">
                 <td style="padding:12px 16px;color:#ffffff;font-weight:700;">Formation</td>
-                <td style="padding:12px 16px;color:${OR};font-weight:700;text-align:right;">${formation.intitule}</td>
+                <td style="padding:12px 16px;color:${SECONDARY};font-weight:700;text-align:right;">${formation.intitule}</td>
               </tr>
-              <tr style="background:#f8f9fb;">
-                <td style="padding:11px 16px;color:#666;">Nombre de places</td>
-                <td style="padding:11px 16px;font-weight:600;text-align:right;color:#333;">${devis.nb_places}</td>
-              </tr>
-              <tr>
-                <td style="padding:11px 16px;color:#666;border-top:1px solid #e2e8f0;">Session</td>
-                <td style="padding:11px 16px;font-weight:600;text-align:right;color:#333;border-top:1px solid #e2e8f0;">${sessionLabel}</td>
+              <tr style="background:${BG};">
+                <td style="padding:11px 16px;color:${SUBTEXT};">Nombre de places</td>
+                <td style="padding:11px 16px;font-weight:600;text-align:right;color:${TEXT};">${devis.nb_places}</td>
               </tr>
               <tr>
-                <td style="padding:11px 16px;color:#666;border-top:1px solid #e2e8f0;">Tarif unitaire</td>
-                <td style="padding:11px 16px;font-weight:600;text-align:right;color:#333;border-top:1px solid #e2e8f0;">${tarif} FCFA</td>
+                <td style="padding:11px 16px;color:${SUBTEXT};border-top:1px solid ${BORDER};">Session</td>
+                <td style="padding:11px 16px;font-weight:600;text-align:right;color:${TEXT};border-top:1px solid ${BORDER};">${sessionLabel}</td>
               </tr>
-              <tr style="background:${BLEU};">
+              <tr>
+                <td style="padding:11px 16px;color:${SUBTEXT};border-top:1px solid ${BORDER};">Tarif unitaire</td>
+                <td style="padding:11px 16px;font-weight:600;text-align:right;color:${TEXT};border-top:1px solid ${BORDER};">${tarif} FCFA</td>
+              </tr>
+              <tr style="background:${SUCCESS};">
                 <td style="padding:14px 16px;color:#ffffff;font-weight:700;font-size:15px;">MONTANT TOTAL</td>
-                <td style="padding:14px 16px;color:${OR};font-weight:700;font-size:18px;text-align:right;">${montant} FCFA</td>
+                <td style="padding:14px 16px;color:#ffffff;font-weight:700;font-size:18px;text-align:right;">${montant} FCFA</td>
               </tr>
             </table>
 
             ${devis.notes_admin ? `
-            <p style="margin:20px 0 0;font-size:13px;color:#888;font-style:italic;border-left:3px solid ${OR};padding-left:12px;">${devis.notes_admin}</p>
+            <p style="margin:20px 0 0;font-size:13px;color:${SUBTEXT};font-style:italic;border-left:3px solid ${SECONDARY};padding-left:12px;">${devis.notes_admin}</p>
             ` : ''}
 
 	          <p style="margin:28px 0 0;font-size:14px;color:#555;line-height:1.6;">
@@ -589,16 +580,16 @@ export class DevisService {
         </tr>
 
         <tr>
-          <td style="background:${BLEU};padding:20px 32px;">
+          <td style="background:${PRIMARY};padding:20px 32px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="color:#a0b0e0;font-size:12px;">
+                <td style="color:#B0C4D8;font-size:12px;">
                   <strong style="color:#ffffff;">FORGES AGRÉGATEUR</strong><br>
                   contact@forges-group.com &nbsp;|&nbsp; +225 05 04 08 43 84<br>
-                  <a href="https://edu.forges-group.com" style="color:#a0b0e0;text-decoration:none;">edu.forges-group.com</a>
+                  <a href="https://edu.forges-group.com" style="color:#B0C4D8;text-decoration:none;">edu.forges-group.com</a>
                 </td>
                 <td align="right">
-                  <div style="width:8px;height:8px;background:${OR};border-radius:50%;display:inline-block;"></div>
+                  <div style="width:8px;height:8px;background:${SECONDARY};border-radius:50%;display:inline-block;"></div>
                 </td>
               </tr>
             </table>

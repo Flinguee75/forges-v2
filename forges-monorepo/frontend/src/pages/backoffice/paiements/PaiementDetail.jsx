@@ -102,6 +102,10 @@ export default function PaiementDetail() {
   const session = paiement.dossier?.session || {};
   const formation = paiement.dossier?.formation || session.formation || {};
   const canalPaiement = paiement.provider || paiement.methode_paiement || paiement.methode;
+  const isFineo = canalPaiement === 'FINEO';
+  const commandeLabel = isFineo ? 'Commande Fineo' : 'Référence commande';
+  const transactionLabel = isFineo ? 'Transaction Fineo' : 'Référence transaction';
+  const statutProviderLabel = isFineo ? 'Statut Fineo' : 'Statut paiement';
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -200,7 +204,7 @@ export default function PaiementDetail() {
               {paiement.order_ngser && (
                 <div>
                   <dt className="text-xs font-medium uppercase text-subtext">
-                    Commande NGSER
+                    {commandeLabel}
                   </dt>
                   <dd className="mt-1 text-sm text-text">{paiement.order_ngser}</dd>
                 </div>
@@ -208,7 +212,7 @@ export default function PaiementDetail() {
               {paiement.transaction_id && (
                 <div>
                   <dt className="text-xs font-medium uppercase text-subtext">
-                    Transaction NGSER
+                    {transactionLabel}
                   </dt>
                   <dd className="mt-1 text-sm text-text">{paiement.transaction_id}</dd>
                 </div>
@@ -216,7 +220,7 @@ export default function PaiementDetail() {
               {paiement.status_ngser && (
                 <div>
                   <dt className="text-xs font-medium uppercase text-subtext">
-                    Statut NGSER
+                    {statutProviderLabel}
                   </dt>
                   <dd className="mt-1 text-sm text-text">{paiement.status_ngser}</dd>
                 </div>

@@ -191,72 +191,20 @@ jobs:
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://demo.forges-group.com/health || echo "000")
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
-      - name: Start monitoring + notify team
+      - name: Disable monitoring stack
         env:
           DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
           SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
           SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
-          COMMIT_SHA: ${{ github.sha }}
-          ACTOR: ${{ github.actor }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
             DEPLOY_PATH="$DEPLOY_PATH" \
-            COMMIT_SHA="$COMMIT_SHA" \
-            ACTOR="$ACTOR" \
             'bash -s' <<'ENDSSH'
           set -euo pipefail
-          cd "$DEPLOY_PATH"
-
-          # Source le .env du VPS (contient SMTP_HOST, SMTP_PASS, ALERT_EMAIL_RECIPIENTS, etc.)
-          set -a
-          source .env
-          set +a
-
-          # --- Start monitoring stack ---
           cd "$DEPLOY_PATH/infra/monitoring"
           chmod +x monitoring-demo.sh
-          docker network inspect forges-demo >/dev/null 2>&1 || docker network create forges-demo
-          docker compose -f docker-compose.monitoring.demo.yml --env-file "$DEPLOY_PATH/.env" up -d --remove-orphans
-
-          echo "Attente Grafana healthcheck..."
-          for i in $(seq 1 12); do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-grafana-demo 2>/dev/null || echo "starting")
-            echo "  [$i/12] Grafana: $STATUS"
-            [ "$STATUS" = "healthy" ] && break
-            sleep 5
-          done
-          echo "Monitoring stack running."
-
-          # --- Send notification email ---
-          GRAFANA_URL="http://$(hostname -I | awk '{print $1}'):3050"
-          GRAFANA_PWD="${GRAFANA_ADMIN_PASSWORD:-forges2026}"
-          RECIPIENTS="${ALERT_EMAIL_RECIPIENTS:-$SMTP_USER}"
-          MAILFILE=$(mktemp)
-          printf "From: FORGES Monitoring <%s>\r\n" "$SMTP_USER" > "$MAILFILE"
-          printf "To: %s\r\n" "$RECIPIENTS" >> "$MAILFILE"
-          printf "Subject: [FORGES] Deploy DEMO OK + Grafana Access\r\n" >> "$MAILFILE"
-          printf "Content-Type: text/plain; charset=UTF-8\r\n\r\n" >> "$MAILFILE"
-          printf "Deploiement DEMO reussi.\n\n" >> "$MAILFILE"
-          printf "--- Application ---\n" >> "$MAILFILE"
-          printf "URL: https://demo.forges-group.com\n" >> "$MAILFILE"
-          printf "Commit: %s\n" "$COMMIT_SHA" >> "$MAILFILE"
-          printf "Par: %s\n\n" "$ACTOR" >> "$MAILFILE"
-          printf "--- Grafana Monitoring ---\n" >> "$MAILFILE"
-          printf "URL: %s\n" "$GRAFANA_URL" >> "$MAILFILE"
-          printf "Login: admin\n" >> "$MAILFILE"
-          printf "Password: %s\n\n" "$GRAFANA_PWD" >> "$MAILFILE"
-          printf "--- Alertes configurees ---\n" >> "$MAILFILE"
-          printf "- High Error Rate (>3 erreurs/min pendant 2min)\n" >> "$MAILFILE"
-          printf "- Backend Down (0 logs pendant 3min)\n" >> "$MAILFILE"
-          printf "Les alertes crash sont envoyees a: %s\n" "$RECIPIENTS" >> "$MAILFILE"
-          curl --ssl-reqd \
-            --url "smtps://${SMTP_HOST}:${SMTP_PORT:-465}" \
-            --user "${SMTP_USER}:${SMTP_PASS}" \
-            --mail-from "$SMTP_USER" \
-            --mail-rcpt "$RECIPIENTS" \
-            -T "$MAILFILE" || echo "WARN: Email send failed (non-blocking)"
-          rm -f "$MAILFILE"
-          echo "Notification email sent to ${RECIPIENTS}"
+          printf 'y\n' | ./monitoring-demo.sh cleanup
+          echo "Monitoring stack disabled and cleaned up."
           ENDSSH
 
       - name: Résumé
@@ -266,10 +214,8 @@ jobs:
           echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| URL | https://demo.forges-group.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| Grafana | http://VPS_IP:3050 (admin/\*\*\*) |" >> $GITHUB_STEP_SUMMARY
           echo "| Image | ${{ env.IMAGE_NAME }}:demo-${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Déployé par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Alertes email | (from VPS .env) |" >> $GITHUB_STEP_SUMMARY
 
       - name: Nettoyer clé SSH
         if: always()

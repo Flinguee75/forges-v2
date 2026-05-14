@@ -10,6 +10,7 @@
     "test:coverage": "jest --coverage --runInBand",
     "test:integration": "jest --config jest.integration.config.js --runInBand",
     "test:rm": "node ./scripts/run-rm-tests.mjs",
+    "test:recu-email": "node -r ts-node/register/transpile-only scripts/test-recu-email.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:seed:e2e": "ts-node prisma/seed.e2e.ts",

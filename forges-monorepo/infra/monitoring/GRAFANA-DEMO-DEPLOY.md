@@ -1,6 +1,6 @@
 # Grafana Demo — Deploiement et acces
 
-Stack de monitoring pour l'environnement demo : Grafana + Loki + Promtail + Uptime Kuma.
+Stack de monitoring pour l'environnement demo, maintenant désactivé par défaut.
 Acces en SSH tunnel uniquement (non expose publiquement).
 
 ---
@@ -17,9 +17,9 @@ Acces en SSH tunnel uniquement (non expose publiquement).
 | `promtail-config.yml` | Collecteur de logs Docker (tags par environnement) |
 | `grafana/provisioning/datasources/loki.yml` | Datasource Loki auto-provisionnee |
 | `grafana/provisioning/dashboards/dashboards.yml` | Provisionnement dashboards depuis fichiers JSON |
-| `grafana/provisioning/alerting/rules.yml` | Regles d'alerte (error rate, backend down) |
-| `grafana/provisioning/alerting/contactpoints.yml` | Destination alertes email |
-| `grafana/provisioning/alerting/policies.yml` | Politique de routage des alertes |
+| `grafana/provisioning/alerting/rules.yml` | Regles d'alerte conservees pour edu, non actives sur demo |
+| `grafana/provisioning/alerting/contactpoints.yml` | Destination alertes email conservee pour edu |
+| `grafana/provisioning/alerting/policies.yml` | Politique de routage des alertes conservee pour edu |
 | `grafana/dashboards/forges-demo.json` | Dashboard principal (logs, erreurs, volumes) |
 
 ---
@@ -98,12 +98,9 @@ cd ~/forges-v2/forges-monorepo/infra/monitoring
 
 ---
 
-## Alertes configurees
+## Alertes
 
-| Alerte | Condition | Destinataire |
-|---|---|---|
-| DEMO - High Error Rate | > 0.05 erreurs/s sur 2 min | TidianeCisse9@outlook.fr |
-| DEMO - Backend Container Down | Aucun log depuis 5 min | TidianeCisse9@outlook.fr |
+Les alertes Grafana sont desactivees sur demo. Aucun email n'est envoye depuis cette stack.
 
 ---
 

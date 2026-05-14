@@ -49,14 +49,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3051}
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/forges-dev.json
-      GF_SMTP_ENABLED: "true"
-      GF_SMTP_HOST: ${SMTP_HOST:-smtp.forges-group.com}:${SMTP_PORT:-587}
-      GF_SMTP_USER: ${SMTP_USER:-noreply@forges-group.com}
-      GF_SMTP_PASSWORD: ${SMTP_PASS}
-      GF_SMTP_FROM_ADDRESS: ${SMTP_USER:-noreply@forges-group.com}
-      GF_SMTP_FROM_NAME: FORGES Monitoring
-      GF_SMTP_SKIP_VERIFY: "false"
-      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_UNIFIED_ALERTING_ENABLED: "false"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro

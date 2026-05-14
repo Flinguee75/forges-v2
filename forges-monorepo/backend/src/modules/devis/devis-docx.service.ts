@@ -13,7 +13,10 @@ function formatDate(date: Date | string | null | undefined): string {
 
 function formatMontant(n: number | null | undefined): string {
   if (n == null) return '0';
-  return n.toLocaleString('fr-FR');
+  return n
+    .toLocaleString('fr-FR')
+    .replace(/\u202f/g, ' ')
+    .replace(/\u00a0/g, ' ');
 }
 
 function formatApprovalDate(date = new Date()): string {
