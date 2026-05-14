@@ -11,6 +11,7 @@ Scripts métier liés aux flux d'enrôlement organisation, paiement de devis et 
 | `rappel-j7.ts` | Email de rappel J-7 | 7 jours avant la session |
 | `creer-apprenants-et-devis.ts` | Création/réutilisation d'apprenants depuis CSV + facture PDF personnalisée | Cas final apprenants individuels |
 | `creer-apprenants-etudiants.ts` | Création/réutilisation d'apprenants étudiants depuis CSV + facture PDF personnalisée | Cas lot étudiants |
+| `creer-apprenants-avec-voucher.ts` | Enrôlement CSV d'apprenants existants avec voucher optionnel | Cas CSV apprenants + voucher promo |
 
 ## Scripts d'envoi annexes
 
@@ -29,6 +30,7 @@ Scripts métier liés aux flux d'enrôlement organisation, paiement de devis et 
 - Si tu veux créer/réutiliser des apprenants depuis un CSV et leur envoyer une facture PDF personnalisée, utilise `creer-apprenants-et-devis.ts` avec `groupes/apprenants-individuels-final.csv`.
 - Si tu veux faire la même chose pour le lot étudiants, utilise `creer-apprenants-etudiants.ts` avec `groupes/apprenants_etudiants.csv`.
 - Pour un test rapide sur 3 lignes, utilise `groupes/apprenants_etudiants_test.csv`.
+- Si tu veux enrôler des apprenants déjà créés depuis un CSV avec une colonne `voucher`, utilise `creer-apprenants-avec-voucher.ts`.
 
 ## Doc détaillée
 

@@ -19,7 +19,8 @@ Répertoire des scripts manuels, de seed et d'enrôlement.
 6. Tu veux envoyer un rappel J-7: `scripts/enrolements/rappel-j7.ts`.
 7. Tu veux créer/réutiliser des apprenants depuis un CSV et leur envoyer une facture PDF personnalisée: `scripts/enrolements/creer-apprenants-et-devis.ts`.
 8. Tu veux faire la même chose pour un lot d'étudiants avec un CSV dédié: `scripts/enrolements/creer-apprenants-etudiants.ts`.
-9. Tu veux tester l'envoi du reçu PDF de paiement vers un dossier confirmé: `scripts/test-recu-email.ts`.
+9. Tu veux enrôler des apprenants déjà créés depuis un CSV avec une colonne voucher: `scripts/enrolements/creer-apprenants-avec-voucher.ts`.
+10. Tu veux tester l'envoi du reçu PDF de paiement vers un dossier confirmé: `scripts/test-recu-email.ts`.
 
 ## Scripts repères
 
@@ -34,6 +35,7 @@ Répertoire des scripts manuels, de seed et d'enrôlement.
 | Rappel J-7 | `scripts/enrolements/rappel-j7.ts` |
 | Workflow CSV apprenants + facture PDF personnalisée | `scripts/enrolements/creer-apprenants-et-devis.ts` |
 | Workflow CSV apprenants étudiants + facture PDF personnalisée | `scripts/enrolements/creer-apprenants-etudiants.ts` |
+| Workflow CSV apprenants avec voucher | `scripts/enrolements/creer-apprenants-avec-voucher.ts` |
 | Test reçu PDF paiement par email | `scripts/test-recu-email.ts` |
 
 ## Commande standard

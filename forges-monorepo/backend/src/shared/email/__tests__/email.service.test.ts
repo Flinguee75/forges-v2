@@ -227,7 +227,7 @@ describe('EmailService', () => {
     it('sendCodeApporteur délègue correctement', async () => {
       await service.sendCodeApporteur('a@test.ci', 'code', 'FR');
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        subject: 'Votre code apporteur FORGES',
+        subject: 'Bienvenue sur FORGES — Votre compte Apporteur est activé',
       }));
     });
 
@@ -247,6 +247,23 @@ describe('EmailService', () => {
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
         subject: 'Réinitialisation de mot de passe FORGES',
         text: expect.stringContaining('/reset-password/reset-token'),
+      }));
+    });
+
+    it('sendEnrolementConfirmationApprenant utilise le format paiement quand paymentUrl est fourni', async () => {
+      await service.sendEnrolementConfirmationApprenant({
+        to: 'a@test.ci',
+        prenoms: 'Red',
+        nom: 'Foo',
+        organisation: 'FORGES',
+        formation: 'Masterclass GWU/CCDL (1er-11 juin 2026)',
+        paymentUrl: 'https://edu.forges-group.com',
+      });
+
+      expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
+        subject: 'Votre inscription à Masterclass GWU/CCDL (1er-11 juin 2026) est enregistrée — FORGES',
+        text: expect.stringContaining('Vous pouvez finaliser votre paiement en ligne'),
+        html: expect.stringContaining('https://edu.forges-group.com'),
       }));
     });
   });
