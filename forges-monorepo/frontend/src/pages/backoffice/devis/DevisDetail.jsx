@@ -174,9 +174,22 @@ export default function DevisDetail() {
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">Informations</h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-xs text-subtext">Organisation</dt>
+              <dt className="text-xs text-subtext">
+                {devis.organisation_id ? 'Organisation' : 'Apprenant individuel'}
+              </dt>
               <dd className="mt-1 text-sm text-text">
-                {devis.organisation?.raison_sociale || devis.organisation_id}
+                {devis.organisation_id
+                  ? (devis.organisation?.raison_sociale || devis.organisation_id)
+                  : (
+                    <span className="space-y-0.5">
+                      <span className="block font-medium">{devis.destinataire_nom}</span>
+                      <span className="block text-subtext">{devis.destinataire_email}</span>
+                      {devis.destinataire_organisation && (
+                        <span className="block text-subtext">{devis.destinataire_organisation}</span>
+                      )}
+                    </span>
+                  )
+                }
               </dd>
             </div>
             <div>

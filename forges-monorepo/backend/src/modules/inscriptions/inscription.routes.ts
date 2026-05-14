@@ -66,7 +66,7 @@ router.get('/dossiers', authenticate, authorize('APPRENANT', 'ORGANISATION', 'GE
   inscriptionController.getAllDossiers(req, res, next);
 });
 
-router.get('/backoffice/dossiers', authenticate, authorize('RESPONSABLE', 'ADMIN'), (req, res, next) => {
+router.get('/backoffice/dossiers', authenticate, authorize('RESPONSABLE', 'ADMIN', 'SUPERVISEUR'), (req, res, next) => {
   inscriptionController.getBackofficeDossiers(req, res, next);
 });
 

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { FormationService } from './formation.service';
-import { CreateFormationSchema, AssignerTypeFormationSchema, UpdateFormationSchema } from './dto/formation.dto';
+import { CreateFormationSchema, AssignerTypeFormationSchema, LierPartenaireSchema, UpdateFormationSchema } from './dto/formation.dto';
 
 export class FormationController {
   constructor(private readonly formationService: FormationService) {}
@@ -146,6 +146,23 @@ export class FormationController {
     } catch (error: any) {
       if (error.name === 'ZodError') return res.status(400).json({ error: 'VALIDATION_ERROR', details: error.errors });
       if (error.message === 'FORMATION_NOT_FOUND') return res.status(404).json({ error: 'FORMATION_NOT_FOUND' });
+      next(error);
+    }
+  }
+
+  // PATCH /api/formations/backoffice/:id/lier-partenaire — ADMIN
+  async lierPartenaire(req: Request, res: Response, next: NextFunction) {
+    try {
+      const dto = LierPartenaireSchema.parse(req.body);
+      const result = await this.formationService.lierPartenaire(req.params.id, dto, req.user!.userId);
+      res.status(200).json({ statusCode: 200, data: result });
+    } catch (error: any) {
+      if (error.name === 'ZodError') return res.status(400).json({ error: 'VALIDATION_ERROR', details: error.errors });
+      if (error.message === 'FORMATION_NOT_FOUND') return res.status(404).json({ error: 'FORMATION_NOT_FOUND' });
+      if (error.message === 'PARTENAIRE_NOT_FOUND') return res.status(404).json({ error: 'PARTENAIRE_NOT_FOUND' });
+      if (error.message === 'FORMATION_ARCHIVEE') return res.status(403).json({ error: 'FORMATION_ARCHIVEE', message: 'Une formation archivée ne peut pas être liée.' });
+      if (error.message === 'FORMATION_DEJA_LIEE') return res.status(409).json({ error: 'FORMATION_DEJA_LIEE', message: 'Cette formation est déjà liée à un partenaire.' });
+      if (error.message === 'PARTENAIRE_INACTIF') return res.status(409).json({ error: 'PARTENAIRE_INACTIF', message: 'Le partenaire doit être actif pour être lié à une formation.' });
       next(error);
     }
   }

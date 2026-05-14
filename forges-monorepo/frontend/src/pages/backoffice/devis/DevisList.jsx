@@ -119,7 +119,16 @@ export default function DevisList() {
                   <tr key={devis.id} className="border-b border-border hover:bg-gray-50">
                     <td className="py-5 pr-6 font-mono text-sm text-text">{devis.numero_devis}</td>
                     <td className="py-5 pr-6 text-sm text-text">
-                      {devis.organisation?.raison_sociale || devis.organisation_id}
+                      {devis.organisation_id ? (
+                        <span>{devis.organisation?.raison_sociale || devis.organisation_id}</span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            Individuel
+                          </span>
+                          <span>{devis.destinataire_nom || '-'}</span>
+                        </span>
+                      )}
                     </td>
                     <td className="py-5 pr-6 text-sm text-text">
                       {devis.formation?.intitule || devis.formation_id}

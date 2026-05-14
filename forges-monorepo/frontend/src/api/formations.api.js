@@ -160,6 +160,22 @@ export const formationsApi = {
   },
 
   /**
+   * Lie une formation existante a un partenaire depuis le backoffice
+   * @param {string} id - ID de la formation
+   * @param {Object} data - Données de liaison
+   * @param {string} data.partenaire_id - ID du partenaire
+   * @param {number} [data.prix_coutant_soumis] - Prix coûtant proposé
+   * @returns {Promise} Résultat de liaison
+   */
+  lierPartenaireBackoffice: async (id, data) => {
+    return apiClient.patch(`/formations/backoffice/${id}/lier-partenaire`, data);
+  },
+
+  getBackofficePartenaires: async () => {
+    return apiClient.get('/formations/backoffice/partenaires');
+  },
+
+  /**
    * Supprime une formation (seulement si BROUILLON)
    * Note: Cette fonctionnalité n'existe pas dans le backend actuel
    * @param {string} _id - ID de la formation (unused until backend implementation)

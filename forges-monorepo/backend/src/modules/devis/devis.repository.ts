@@ -30,7 +30,10 @@ export class DevisRepository {
 
   async create(data: {
     numero_devis: string;
-    organisation_id: string;
+    organisation_id: string | null;
+    destinataire_nom?: string | null;
+    destinataire_email?: string | null;
+    destinataire_organisation?: string | null;
     formation_id: string;
     session_id: string;
     nb_places: number;

@@ -6,6 +6,7 @@ describe('FormationService', () => {
   let service: FormationService;
   let mockRepo: jest.Mocked<FormationRepository>;
   let mockAudit: jest.Mocked<AuditLogger>;
+  let mockPrisma: any;
 
   const baseFormation = {
     id: 'f-01',
@@ -35,7 +36,15 @@ describe('FormationService', () => {
       annulerDossiersEnAttente: jest.fn(),
     } as any;
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
-    service = new FormationService(mockRepo, mockAudit);
+    mockPrisma = {
+      partenaire: { findUnique: jest.fn() },
+      formationPartenaire: { findUnique: jest.fn(), create: jest.fn() },
+      formation: { update: jest.fn() },
+      paiement: { count: jest.fn() },
+      dossier: { updateMany: jest.fn() },
+      accesFormationDemande: { findFirst: jest.fn(), create: jest.fn() },
+    };
+    service = new FormationService(mockRepo, mockAudit, mockPrisma);
   });
 
   // RM-102 : calcul inclus_abonnement
@@ -161,6 +170,53 @@ describe('FormationService', () => {
 
       expect(mockRepo.assignerType).toHaveBeenCalledWith('f-01', 'PREMIUM', 'B2B');
       expect(result.type_formation).toBe('PREMIUM');
+    });
+  });
+
+  describe('Rattachement partenaire', () => {
+    it('lie une formation existante a un partenaire et crée le dossier de validation', async () => {
+      mockRepo.findById.mockResolvedValue({
+        ...baseFormation,
+        partenaire: null,
+      } as any);
+      mockPrisma.partenaire.findUnique.mockResolvedValue({
+        id: 'part-01',
+        statut: 'ACTIF',
+        responsable_designe_id: 'resp-01',
+      } as any);
+      mockPrisma.formationPartenaire.findUnique.mockResolvedValue(null);
+      mockPrisma.formationPartenaire.create.mockResolvedValue({ id: 'fp-01' } as any);
+      mockPrisma.formation.update.mockResolvedValue({
+        ...baseFormation,
+        partenaire_id: 'part-01',
+        statut: 'EN_ATTENTE_VALIDATION',
+      } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.lierPartenaire('f-01', {
+        partenaire_id: 'part-01',
+        prix_coutant_soumis: 80000,
+      }, 'admin-01');
+
+      expect(mockPrisma.formationPartenaire.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          formation_id: 'f-01',
+          partenaire_id: 'part-01',
+          responsable_validateur_id: 'resp-01',
+          prix_coutant_soumis: 80000,
+          statut_validation: 'EN_ATTENTE',
+          version: 1,
+        }),
+      });
+      expect(mockPrisma.formation.update).toHaveBeenCalledWith({
+        where: { id: 'f-01' },
+        data: {
+          partenaire_id: 'part-01',
+          statut: 'EN_ATTENTE_VALIDATION',
+        },
+      });
+      expect(result.partenaire_id).toBe('part-01');
+      expect(result.fp_id).toBe('fp-01');
     });
   });
 

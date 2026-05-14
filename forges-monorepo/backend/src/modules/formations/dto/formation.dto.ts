@@ -31,6 +31,11 @@ export const AssignerTypeFormationSchema = z.object({
   pilier_abonnement: z.enum(['RETAIL', 'B2B', 'INSTITUTIONNEL', 'TOUS']),
 });
 
+export const LierPartenaireSchema = z.object({
+  partenaire_id: z.string().min(1, 'Partenaire obligatoire'),
+  prix_coutant_soumis: z.number().int().min(0, 'Prix coûtant invalide').optional(),
+});
+
 export const UpdateFormationSchema = CreateFormationSchema.partial().omit({
   type_formation: true, // RM-86 : non modifiable via update standard
 }).extend({
@@ -41,4 +46,5 @@ export const UpdateFormationSchema = CreateFormationSchema.partial().omit({
 
 export type CreateFormationDto = z.infer<typeof CreateFormationSchema>;
 export type AssignerTypeFormationDto = z.infer<typeof AssignerTypeFormationSchema>;
+export type LierPartenaireDto = z.infer<typeof LierPartenaireSchema>;
 export type UpdateFormationDto = z.infer<typeof UpdateFormationSchema>;

@@ -31,7 +31,7 @@ const apporteurController = new ApporteurController(apporteurService);
 // ============================================
 
 // GET /api/agent/reversements/partenaires - Liste reversements partenaires en attente
-router.get('/reversements/partenaires', authenticate, authorize('AGENT', 'ADMIN'), async (req, res, next) => {
+router.get('/reversements/partenaires', authenticate, authorize('AGENT', 'ADMIN', 'SUPERVISEUR'), async (req, res, next) => {
   try {
     const result = await partenaireService.getReversementsEnAttente(req.user!.userId);
     res.status(200).json({ statusCode: 200, data: result });

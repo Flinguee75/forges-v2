@@ -677,7 +677,7 @@ const router = createBrowserRouter([
       {
         path: 'devis/new',
         element: (
-          <RoleGuard allowedRoles={['ADMIN']}>
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
             {withSuspense(<DevisForm />)}
           </RoleGuard>
         ),
@@ -709,7 +709,7 @@ const router = createBrowserRouter([
       {
         path: 'bot/enquetes-catalogue',
         element: (
-          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+          <RoleGuard allowedRoles={['ADMIN']}>
             {withSuspense(<EnquetesCatalogue />)}
           </RoleGuard>
         ),
@@ -717,7 +717,7 @@ const router = createBrowserRouter([
       {
         path: 'bot/feedbacks',
         element: (
-          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR', 'RESPONSABLE']}>
+          <RoleGuard allowedRoles={['ADMIN', 'RESPONSABLE']}>
             {withSuspense(<FeedbacksAdmin />)}
           </RoleGuard>
         ),

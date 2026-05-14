@@ -1,6 +1,6 @@
 import { FormationRepository } from './formation.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
-import { CreateFormationDto, AssignerTypeFormationDto, UpdateFormationDto } from './dto/formation.dto';
+import { CreateFormationDto, AssignerTypeFormationDto, LierPartenaireDto, UpdateFormationDto } from './dto/formation.dto';
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '../../shared/prisma/prisma.client';
 import { chiffrerUrl } from '../../shared/crypto/crypto.service';
@@ -10,9 +10,10 @@ export class FormationService {
 
   constructor(
     private readonly formationRepo: FormationRepository,
-    private readonly audit: AuditLogger
+    private readonly audit: AuditLogger,
+    prismaClient: PrismaClient = prisma
   ) {
-    this.prisma = prisma;
+    this.prisma = prismaClient;
   }
 
   // UCS04 — Création formation interne (Admin/Responsable)
@@ -145,6 +146,68 @@ export class FormationService {
     });
 
     return updated;
+  }
+
+  // Backoffice — rattacher une formation existante à un partenaire
+  async lierPartenaire(id: string, dto: LierPartenaireDto, userId: string) {
+    const formation = await this.formationRepo.findById(id);
+    if (!formation) throw new Error('FORMATION_NOT_FOUND');
+    if (formation.statut === 'ARCHIVEE') throw new Error('FORMATION_ARCHIVEE');
+    if (formation.partenaire_id) throw new Error('FORMATION_DEJA_LIEE');
+
+    const partenaire = await this.prisma.partenaire.findUnique({
+      where: { id: dto.partenaire_id },
+      select: {
+        id: true,
+        statut: true,
+        responsable_designe_id: true,
+      }
+    });
+
+    if (!partenaire) throw new Error('PARTENAIRE_NOT_FOUND');
+    if (partenaire.statut !== 'ACTIF') throw new Error('PARTENAIRE_INACTIF');
+
+    const alreadyLinked = await this.prisma.formationPartenaire.findUnique({
+      where: { formation_id: id }
+    });
+    if (alreadyLinked) throw new Error('FORMATION_DEJA_LIEE');
+
+    const prixCoutantSoumis = dto.prix_coutant_soumis ?? formation.cout_catalogue;
+
+    const fp = await this.prisma.formationPartenaire.create({
+      data: {
+        formation_id: id,
+        partenaire_id: dto.partenaire_id,
+        responsable_validateur_id: partenaire.responsable_designe_id || undefined,
+        prix_coutant_soumis: prixCoutantSoumis,
+        statut_validation: 'EN_ATTENTE',
+        version: 1,
+        date_soumission: new Date(),
+        inclus_abonnement: formation.inclus_abonnement ?? false,
+      }
+    });
+
+    const updated = await this.prisma.formation.update({
+      where: { id },
+      data: {
+        partenaire_id: dto.partenaire_id,
+        statut: 'EN_ATTENTE_VALIDATION',
+      }
+    });
+
+    await this.audit.info('FORMATION_PARTENAIRE_LIEE', {
+      formation_id: id,
+      partenaire_id: dto.partenaire_id,
+      fp_id: fp.id,
+      user_id: userId
+    });
+
+    return {
+      formation_id: id,
+      partenaire_id: dto.partenaire_id,
+      fp_id: fp.id,
+      statut: updated.statut,
+    };
   }
 
   // UCS04 — Catalogue public avec pagination

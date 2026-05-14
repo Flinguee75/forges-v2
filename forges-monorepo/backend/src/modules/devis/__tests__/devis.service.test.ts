@@ -192,6 +192,58 @@ describe('DevisService — RM-149 à RM-151', () => {
       ).rejects.toThrow('SESSION_NON_ELIGIBLE_DEVIS');
     });
 
+    it('crée un devis apprenant sans organisation_id', async () => {
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      mockDevisRepo.countParAnnee.mockResolvedValue(2);
+      mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-apprenant-01', ...data }));
+
+      const service = makeService();
+      const devis = await service.creerDevis(
+        {
+          destinataire_nom: 'Koné Mamadou',
+          destinataire_email: 'mamadou.kone@example.com',
+          destinataire_organisation: 'ACME CI',
+          formation_id: 'f-01',
+          session_id: 's-01',
+          tarif_unitaire_xof: 150000,
+        },
+        'admin-01'
+      );
+
+      expect(mockPrisma.organisation.findUnique).not.toHaveBeenCalled();
+      expect(mockDevisRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organisation_id: null,
+          destinataire_nom: 'Koné Mamadou',
+          destinataire_email: 'mamadou.kone@example.com',
+          destinataire_organisation: 'ACME CI',
+          nb_places: 1,
+          montant_total_xof: 150000,
+        })
+      );
+      expect(devis.organisation_id).toBeNull();
+    });
+
+    it('force nb_places à 1 pour un devis apprenant', async () => {
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      mockDevisRepo.countParAnnee.mockResolvedValue(0);
+      mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-02', ...data }));
+
+      const service = makeService();
+      const devis = await service.creerDevis(
+        {
+          destinataire_nom: 'Diallo Fatoumata',
+          destinataire_email: 'fatoumata@example.com',
+          formation_id: 'f-01',
+          session_id: 's-01',
+          tarif_unitaire_xof: 100000,
+        },
+        'admin-01'
+      );
+
+      expect(devis.nb_places).toBe(1);
+    });
+
     it('logue DEVIS_CREE sans envoyer de mail à la création', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
@@ -266,7 +318,7 @@ describe('DevisService — RM-149 à RM-151', () => {
         expect.objectContaining({
           to: 'contact@acme.ci',
           attachment: expect.objectContaining({
-            filename: 'FORGES-DEVIS-2026-001.pdf',
+            filename: 'FORGES-FACTURE-2026-001.pdf',
             contentType: 'application/pdf',
           }),
           html: expect.stringContaining('+225 05 04 08 43 84'),
@@ -298,7 +350,7 @@ describe('DevisService — RM-149 à RM-151', () => {
       expect(mockEmail.sendEmailWithAttachment).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'apprenant@test.ci',
-          subject: 'Votre devis FORGES-DEVIS-2026-APP-001 — FORGES AGRÉGATEUR',
+          subject: 'Votre facture FORGES-DEVIS-2026-APP-001 — FORGES AGRÉGATEUR',
           attachment: expect.objectContaining({
             filename: 'FORGES-DEVIS-2026-APP-001-Tidiane-Cisse.pdf',
             contentType: 'application/pdf',

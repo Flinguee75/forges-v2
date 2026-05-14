@@ -79,8 +79,8 @@ export default function BackofficeLayout() {
     {
       title: 'Bot admin',
       items: [
-        { name: 'Enquêtes catalogue', href: '/backoffice/bot/enquetes-catalogue', icon: 'clipboardList', roles: ['ADMIN', 'SUPERVISEUR'] },
-        { name: 'Feedbacks formations', href: '/backoffice/bot/feedbacks', icon: 'chartBar', roles: ['ADMIN', 'SUPERVISEUR', 'RESPONSABLE'] },
+        { name: 'Enquêtes catalogue', href: '/backoffice/bot/enquetes-catalogue', icon: 'clipboardList', roles: ['ADMIN'] },
+        { name: 'Feedbacks formations', href: '/backoffice/bot/feedbacks', icon: 'chartBar', roles: ['ADMIN', 'RESPONSABLE'] },
       ],
     },
     {

@@ -88,12 +88,16 @@ export class DevisService {
   }
 
   async creerDevis(dto: CreerDevisDto, adminId: string) {
-    const [organisation, formation] = await Promise.all([
-      this.prisma.organisation.findUnique({ where: { id: dto.organisation_id } }),
-      this.prisma.formation.findUnique({ where: { id: dto.formation_id } }),
-    ]);
+    const estApprenantIndividuel = 'destinataire_nom' in dto && !!dto.destinataire_nom;
 
-    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    let organisation: { id: string; raison_sociale: string; email: string; langue_preferee: string } | null = null;
+
+    if (!estApprenantIndividuel) {
+      organisation = await this.prisma.organisation.findUnique({ where: { id: (dto as any).organisation_id } });
+      if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    }
+
+    const formation = await this.prisma.formation.findUnique({ where: { id: dto.formation_id } });
     if (!formation) throw new Error('FORMATION_NOT_FOUND');
 
     const session = await this.prisma.session.findUnique({ where: { id: dto.session_id } });
@@ -109,15 +113,19 @@ export class DevisService {
     const sequence = String(count + 1).padStart(3, '0');
     const numero_devis = `FORGES-DEVIS-${annee}-${sequence}`;
 
+    const nb_places = estApprenantIndividuel ? 1 : (dto as any).nb_places;
     // RM-150: montant calculé par le backend, jamais par le client
-    const montant_total_xof = dto.nb_places * dto.tarif_unitaire_xof;
+    const montant_total_xof = nb_places * dto.tarif_unitaire_xof;
 
     const devis = await this.devisRepository.create({
       numero_devis,
-      organisation_id: dto.organisation_id,
+      organisation_id: estApprenantIndividuel ? null : (dto as any).organisation_id,
+      destinataire_nom: estApprenantIndividuel ? (dto as any).destinataire_nom : null,
+      destinataire_email: estApprenantIndividuel ? (dto as any).destinataire_email : null,
+      destinataire_organisation: estApprenantIndividuel ? ((dto as any).destinataire_organisation ?? null) : null,
       formation_id: dto.formation_id,
       session_id: dto.session_id,
-      nb_places: dto.nb_places,
+      nb_places,
       tarif_unitaire_xof: dto.tarif_unitaire_xof,
       montant_total_xof,
       notes_admin: dto.notes_admin,
@@ -127,7 +135,8 @@ export class DevisService {
     await this.audit.info('DEVIS_CREE', {
       devis_id: devis.id,
       numero_devis,
-      organisation_id: dto.organisation_id,
+      organisation_id: estApprenantIndividuel ? null : (dto as any).organisation_id,
+      destinataire_email: estApprenantIndividuel ? (dto as any).destinataire_email : null,
       montant_total_xof,
       created_by: adminId,
     });
@@ -420,32 +429,52 @@ export class DevisService {
     const devis = await this.devisRepository.findById(id);
     if (!devis) throw new Error('DEVIS_NOT_FOUND');
 
+    const estApprenantIndividuel = !devis.organisation_id;
+
     const [organisation, formation] = await Promise.all([
-      this.prisma.organisation.findUnique({ where: { id: devis.organisation_id } }),
+      estApprenantIndividuel
+        ? Promise.resolve(null)
+        : this.prisma.organisation.findUnique({ where: { id: devis.organisation_id! } }),
       this.prisma.formation.findUnique({ where: { id: devis.formation_id } }),
     ]);
 
-    if (!organisation) throw new Error('ORGANISATION_NOT_FOUND');
+    if (!estApprenantIndividuel && !organisation) throw new Error('ORGANISATION_NOT_FOUND');
     if (!formation) throw new Error('FORMATION_NOT_FOUND');
 
     const session = await this.prisma.session.findUnique({ where: { id: devis.session_id } });
     if (!session) throw new Error('SESSION_NOT_FOUND');
 
-    const langue = organisation.langue_preferee || 'FR';
+    const destinataireEmail = estApprenantIndividuel
+      ? (devis as any).destinataire_email
+      : organisation!.email;
+
     const pdfBuffer = await genererPdfDevis({
       devis: devis as any,
-      organisation,
+      organisation: estApprenantIndividuel
+        ? this.buildDraftOrganisation(
+            (devis as any).destinataire_nom,
+            (devis as any).destinataire_organisation || ''
+          )
+        : organisation!,
       formation,
       session,
     });
 
-    const emailSubject = langue === 'EN'
-      ? `Your invoice ${devis.numero_devis} from FORGES`
-      : `Votre facture ${devis.numero_devis} — FORGES AGRÉGATEUR`;
-    const emailHtml = this.buildEmailHtml({ ...devis, organisation, formation, session });
+    const emailSubject = `Votre facture ${devis.numero_devis} — FORGES AGRÉGATEUR`;
+    const emailHtml = this.buildEmailHtml({
+      ...devis,
+      organisation: estApprenantIndividuel
+        ? this.buildDraftOrganisation(
+            (devis as any).destinataire_nom,
+            (devis as any).destinataire_organisation || ''
+          )
+        : organisation!,
+      formation,
+      session,
+    });
 
     await this.emailService.sendEmailWithAttachment({
-      to: organisation.email,
+      to: destinataireEmail,
       subject: emailSubject,
       html: emailHtml,
       attachment: {
@@ -458,11 +487,11 @@ export class DevisService {
     await this.audit.info('DEVIS_EMAIL_RENVOYE', {
       devis_id: id,
       numero_devis: devis.numero_devis,
-      to: organisation.email,
+      to: destinataireEmail,
       admin_id: adminId,
     });
 
-    return { sent: true, to: organisation.email };
+    return { sent: true, to: destinataireEmail };
   }
 
   private formatMontant(montant: number): string {

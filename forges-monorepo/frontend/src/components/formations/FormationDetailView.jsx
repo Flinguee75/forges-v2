@@ -137,13 +137,10 @@ export default function FormationDetailView({ formation, showStatut = false, act
 
       {showStatut && formation.description_longue && (
         <Card title="Description détaillée">
-          <div className="space-y-3 text-sm text-subtext leading-relaxed">
-            {formation.description_longue
-              .split(/\n{2,}/)
-              .map((para) => para.trim())
-              .filter(Boolean)
-              .map((para, idx) => <p key={idx}>{para}</p>)}
-          </div>
+          <div
+            className="prose prose-sm max-w-none text-subtext leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: formation.description_longue }}
+          />
         </Card>
       )}
 
