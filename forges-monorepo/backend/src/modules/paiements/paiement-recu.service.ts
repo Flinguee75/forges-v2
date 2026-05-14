@@ -186,7 +186,7 @@ export class PaiementRecuService {
           apprenant: true,
           formation: true,
           session: true,
-          voucher_organisation: { include: { organisation: true } },
+          voucher_organisation: true,
           paiement: true,
         },
       }) as any;
@@ -202,7 +202,15 @@ export class PaiementRecuService {
         return;
       }
 
-      const organisationNom: string | null = dossier.voucher_organisation?.organisation?.nom ?? null;
+      // Récupérer l'organisation via voucher si applicable
+      let organisationNom: string | null = null;
+      if (dossier.voucher_organisation?.organisation_id) {
+        const org = await (this.prisma as any).organisation.findUnique({
+          where: { id: dossier.voucher_organisation.organisation_id },
+          select: { nom: true },
+        }) as any;
+        organisationNom = org?.nom ?? null;
+      }
 
       const data: RecuData = {
         paiementId: paiement.id,
