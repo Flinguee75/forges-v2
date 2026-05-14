@@ -1,4 +1,6 @@
 import PDFDocument from 'pdfkit';
+import path from 'path';
+import fs from 'fs';
 import type { PrismaClient } from '@prisma/client';
 import { EmailService } from '../../shared/email/email.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
@@ -43,126 +45,187 @@ function genNumeroRecu(paiementId: string, confirmedAt: Date | null): string {
   return `FORGES-RECU-${year}-${short}`;
 }
 
+const LOGO_PATH = path.join(__dirname, '../../../templates/logo_forges.png');
+
 function genererPdfRecu(data: RecuData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const doc = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true });
     const chunks: Buffer[] = [];
-
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const BLUE = '#1B4F72';
+    const DARK_BLUE = '#1B4F72';
     const GREEN = '#148F77';
     const GRAY = '#566573';
     const LIGHT = '#F4F6F7';
     const BLACK = '#1C2833';
+    const WHITE = '#FFFFFF';
+    const BLUE_LIGHT = '#B0C4D8';
+
+    const M = 50; // marge gauche/droite
+    const W = doc.page.width;
+    const CONTENT_W = W - M * 2;
+    const COL_LABEL = 160; // largeur colonne label dans les tables
 
     const numeroRecu = genNumeroRecu(data.paiementId, data.confirmedAt);
     const nomComplet = [data.apprenantPrenom, data.apprenantNom].filter(Boolean).join(' ');
+    const datePaiement = formatDate(data.confirmedAt || new Date());
 
-    // En-tete
-    doc.rect(0, 0, doc.page.width, 90).fill(BLUE);
-    doc.fillColor('white').fontSize(22).font('Helvetica-Bold')
-      .text('FORGES', 50, 28);
-    doc.fontSize(10).font('Helvetica')
-      .text('Plateforme de formations certifiantes', 50, 54);
-    doc.fontSize(14).font('Helvetica-Bold')
-      .text('RECU DE PAIEMENT', 0, 35, { align: 'right', width: doc.page.width - 50 });
+    // ─── EN-TETE ───────────────────────────────────────────────
+    const headerH = 85;
+    doc.rect(0, 0, W, headerH).fill(DARK_BLUE);
 
-    doc.moveDown(4);
-
-    // Numero et date
-    doc.fillColor(GRAY).fontSize(10).font('Helvetica')
-      .text(`Reference : ${numeroRecu}`, { align: 'right' });
-    doc.text(`Date : ${formatDate(data.confirmedAt || new Date())}`, { align: 'right' });
-
-    doc.moveDown(1.5);
-
-    // Bloc apprenant
-    doc.fillColor(BLUE).fontSize(12).font('Helvetica-Bold').text('APPRENANT');
-    doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor(GREEN).lineWidth(1.5).stroke();
-    doc.moveDown(0.4);
-
-    doc.fillColor(BLACK).fontSize(11).font('Helvetica-Bold').text(nomComplet);
-    doc.font('Helvetica').fillColor(GRAY).fontSize(10).text(data.apprenantEmail);
-    if (data.organisationNom && (data.sourceFinancement === 'B2B' || data.sourceFinancement === 'VOUCHER')) {
-      doc.text(`Organisation : ${data.organisationNom}`);
+    // Logo FORGES
+    if (fs.existsSync(LOGO_PATH)) {
+      doc.image(LOGO_PATH, M, 15, { height: 45 });
+    } else {
+      doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(22)
+        .text('FORGES', M, 22, { lineBreak: false });
+      doc.fillColor(BLUE_LIGHT).font('Helvetica').fontSize(9)
+        .text('Plateforme de formations certifiantes', M, 50);
     }
 
-    doc.moveDown(1.5);
+    // Titre recu (droite)
+    doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(15)
+      .text('RECU DE PAIEMENT', M, 20, { align: 'right', width: CONTENT_W });
+    doc.fillColor(BLUE_LIGHT).font('Helvetica').fontSize(9)
+      .text(numeroRecu, M, 44, { align: 'right', width: CONTENT_W });
+    doc.text(`Emis le ${datePaiement}`, M, 57, { align: 'right', width: CONTENT_W });
 
-    // Bloc formation
-    doc.fillColor(BLUE).fontSize(12).font('Helvetica-Bold').text('FORMATION');
-    doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor(GREEN).lineWidth(1.5).stroke();
-    doc.moveDown(0.4);
+    let y = headerH + 20;
 
-    doc.fillColor(BLACK).fontSize(11).font('Helvetica-Bold').text(data.formationIntitule);
-    if (data.formationTypeFormation) {
-      doc.font('Helvetica').fillColor(GRAY).fontSize(10).text(`Type : ${data.formationTypeFormation}`);
-    }
-    if (data.sessionDateDebut && data.sessionDateFin) {
-      doc.text(`Session : ${formatDate(data.sessionDateDebut)} — ${formatDate(data.sessionDateFin)}`);
-    }
-    if (data.sessionLieu) {
-      doc.text(`Lieu : ${data.sessionLieu}`);
-    }
+    // ─── EMETTEUR / DESTINATAIRE ──────────────────────────────
+    const halfW = (CONTENT_W - 10) / 2;
 
-    doc.moveDown(1.5);
+    // En-tetes bleus
+    doc.rect(M, y, halfW, 22).fill(DARK_BLUE);
+    doc.rect(M + halfW + 10, y, halfW, 22).fill(DARK_BLUE);
+    doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(10)
+      .text('EMETTEUR', M, y + 6, { width: halfW, align: 'center' });
+    doc.text('DESTINATAIRE', M + halfW + 10, y + 6, { width: halfW, align: 'center' });
 
-    // Bloc paiement
-    doc.fillColor(BLUE).fontSize(12).font('Helvetica-Bold').text('PAIEMENT');
-    doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor(GREEN).lineWidth(1.5).stroke();
-    doc.moveDown(0.4);
+    // Ligne verte sous les en-tetes
+    doc.rect(M, y + 22, halfW, 2).fill(GREEN);
+    doc.rect(M + halfW + 10, y + 22, halfW, 2).fill(GREEN);
 
-    const rows: [string, string][] = [
-      ['Statut', 'CONFIRME'],
-      ['Montant', `${formatMontant(data.montantFinal)} XOF`],
-      ['Reference transaction', data.transactionId || data.orderNgser || '-'],
-      ['Ordre FORGES', data.orderNgser || '-'],
-      ['Moyen de paiement', data.wallet || data.provider],
-      ['Date de confirmation', formatDate(data.confirmedAt)],
+    y += 30;
+
+    const emetteurLines = [
+      { text: 'FORGES AGREGATEUR', bold: true },
+      { text: 'contact@forges-group.com', bold: false },
+      { text: "08 BP 384 Abidjan 08, Cote d'Ivoire", bold: false },
+      { text: 'edu.forges.group', bold: false },
+    ];
+    const destLines = [
+      { text: nomComplet, bold: true },
+      { text: data.apprenantEmail, bold: false },
+      { text: data.organisationNom || '', bold: false },
+      { text: '', bold: false },
     ];
 
-    const colLabel = 50;
-    const colValue = 250;
-    const rowH = 22;
-    let y = doc.y;
-
-    rows.forEach(([label, value], i) => {
-      if (i % 2 === 0) {
-        doc.rect(colLabel, y, doc.page.width - 100, rowH).fill(LIGHT);
+    emetteurLines.forEach((line, i) => {
+      if (line.bold) {
+        doc.fillColor(BLACK).font('Helvetica-Bold').fontSize(10);
+      } else {
+        doc.fillColor(GRAY).font('Helvetica').fontSize(9);
       }
-      doc.fillColor(GRAY).fontSize(10).font('Helvetica')
-        .text(label, colLabel + 6, y + 6, { width: 180 });
-      doc.fillColor(BLACK).font('Helvetica-Bold')
-        .text(value, colValue, y + 6, { width: doc.page.width - colValue - 50 });
-      y += rowH;
+      doc.text(line.text, M, y, { width: halfW, lineBreak: false });
+
+      const dLine = destLines[i];
+      if (dLine.bold) {
+        doc.fillColor(BLACK).font('Helvetica-Bold').fontSize(10);
+      } else {
+        doc.fillColor(GRAY).font('Helvetica').fontSize(9);
+      }
+      doc.text(dLine.text || '', M + halfW + 10, y, { width: halfW, lineBreak: false });
+      y += 16;
     });
 
-    // Montant total encadre
-    doc.moveDown(1);
-    y = doc.y;
-    doc.rect(colLabel, y, doc.page.width - 100, 36).fill(GREEN);
-    doc.fillColor('white').fontSize(13).font('Helvetica-Bold')
-      .text('TOTAL PAYE', colLabel + 10, y + 10, { width: 180 });
-    doc.text(`${formatMontant(data.montantFinal)} XOF`, colValue, y + 10, { width: doc.page.width - colValue - 50 });
+    y += 20;
 
-    doc.moveDown(3);
+    // ─── SECTION HELPER ──────────────────────────────────────
+    const drawSectionTitle = (title: string) => {
+      doc.fillColor(DARK_BLUE).font('Helvetica-Bold').fontSize(11).text(title, M, y);
+      y += 16;
+      doc.rect(M, y, CONTENT_W, 2).fill(GREEN);
+      y += 8;
+    };
 
-    // Mention legale
-    doc.fillColor(GRAY).fontSize(9).font('Helvetica')
+    const drawTable = (rows: [string, string][]) => {
+      const rowH = 24;
+      rows.forEach(([label, value], i) => {
+        const bg = i % 2 === 0 ? LIGHT : WHITE;
+        doc.rect(M, y, CONTENT_W, rowH).fill(bg);
+        doc.rect(M, y, CONTENT_W, rowH).stroke('#EAECEE');
+
+        doc.fillColor(GRAY).font('Helvetica').fontSize(10)
+          .text(label, M + 8, y + 7, { width: COL_LABEL, lineBreak: false });
+        doc.fillColor(BLACK).font('Helvetica-Bold').fontSize(10)
+          .text(value, M + COL_LABEL + 8, y + 7, { width: CONTENT_W - COL_LABEL - 16, lineBreak: false });
+        y += rowH;
+      });
+    };
+
+    // ─── FORMATION ───────────────────────────────────────────
+    drawSectionTitle('FORMATION');
+
+    const formationRows: [string, string][] = [
+      ['Formation', data.formationIntitule],
+    ];
+    if (data.sessionDateDebut && data.sessionDateFin) {
+      formationRows.push(['Session', `${formatDate(data.sessionDateDebut)} — ${formatDate(data.sessionDateFin)}`]);
+    }
+    if (data.sessionLieu) formationRows.push(['Lieu', data.sessionLieu]);
+    if (data.formationTypeFormation) formationRows.push(['Type', data.formationTypeFormation]);
+
+    drawTable(formationRows);
+    y += 20;
+
+    // ─── PAIEMENT ────────────────────────────────────────────
+    drawSectionTitle('PAIEMENT');
+
+    const paiementRows: [string, string][] = [
+      ['Statut', 'CONFIRME'],
+      ['Reference recu', numeroRecu],
+      ['Reference transaction', data.transactionId || '-'],
+      ['Ordre FORGES', data.orderNgser || '-'],
+      ['Moyen de paiement', data.wallet || data.provider],
+      ['Date de confirmation', datePaiement],
+    ];
+    drawTable(paiementRows);
+    y += 16;
+
+    // ─── TOTAL ───────────────────────────────────────────────
+    const totalH = 40;
+    doc.rect(M, y, CONTENT_W, totalH).fill(GREEN);
+    doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(13)
+      .text('TOTAL PAYE', M + 12, y + 12, { width: COL_LABEL + 40, lineBreak: false });
+    doc.text(`${formatMontant(data.montantFinal)} XOF`, M, y + 12, { align: 'right', width: CONTENT_W - 12 });
+
+    y += totalH + 20;
+
+    // ─── MENTION LEGALE ──────────────────────────────────────
+    doc.fillColor(GRAY).font('Helvetica').fontSize(8)
       .text(
-        'Ce recu confirme votre inscription et le paiement associe. FORGES est l\'unique interlocuteur financier pour cette inscription. Conservez ce document.',
-        { align: 'center' }
+        "Ce recu confirme votre inscription et le paiement associe. " +
+        "FORGES est l'unique interlocuteur financier pour cette inscription. " +
+        "Conservez ce document.",
+        M, y, { align: 'center', width: CONTENT_W }
       );
 
-    // Pied de page
-    const footerY = doc.page.height - 60;
-    doc.moveTo(50, footerY).lineTo(doc.page.width - 50, footerY).strokeColor(LIGHT).lineWidth(1).stroke();
-    doc.fillColor(GRAY).fontSize(9)
-      .text('FORGES - contact@forges.ci | www.forges.ci', 50, footerY + 10, { align: 'center' });
-    doc.text(`Document genere le ${formatDate(new Date())}`, 50, footerY + 24, { align: 'center' });
+    // ─── PIED DE PAGE ─────────────────────────────────────────
+    const footerY = doc.page.height - 50;
+    doc.rect(M, footerY, CONTENT_W, 1).fill('#EAECEE');
+    doc.fillColor(GRAY).font('Helvetica').fontSize(8)
+      .text(
+        'FORGES AGREGATEUR  |  contact@forges-group.com  |  edu.forges.group',
+        M, footerY + 8, { align: 'center', width: CONTENT_W }
+      );
+    doc.text(
+      `Document genere le ${formatDate(new Date())}`,
+      M, footerY + 22, { align: 'center', width: CONTENT_W }
+    );
 
     doc.end();
   });
@@ -219,7 +282,7 @@ export class PaiementRecuService {
         orderNgser: paiement.order_ngser,
         montantFinal: paiement.montant_final ?? paiement.montant_initie,
         wallet: paiement.wallet_ngser ?? null,
-        confirmedAt: paiement.confirmed_at ?? null,
+        confirmedAt: paiement.confirmed_at ?? paiement.created_at ?? null,
         provider: paiement.provider,
 
         apprenantNom: dossier.apprenant.nom,
@@ -247,7 +310,7 @@ export class PaiementRecuService {
         ? `${formatDate(data.sessionDateDebut)} — ${formatDate(data.sessionDateFin)}`
         : null;
 
-      const frontendUrl = process.env.FRONTEND_URL || 'https://edu.forges-group.com';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://edu.forges.group';
       const supportEmail = process.env.EMAIL_SUPPORT || process.env.EMAIL_FROM || 'contact@forges.ci';
 
       const variables: Record<string, string> = {
