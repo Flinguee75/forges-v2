@@ -6,6 +6,7 @@ import { paiementsApi } from '../../../api/paiements.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
+import Modal from '../../../components/ui/Modal';
 import Spinner from '../../../components/feedback/Spinner';
 
 /**
@@ -20,6 +21,7 @@ export default function PaiementDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [paiement, setPaiement] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { execute, isLoading } = useApi();
 
@@ -67,14 +69,6 @@ export default function PaiementDetail() {
   };
 
   const handleDeletePaiement = async () => {
-    const confirmed = window.confirm(
-      `Supprimer le dossier et le paiement ${paiement.reference || paiement.id.slice(0, 8)} ? Cette action est définitive.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     await execute(() => paiementsApi.deleteAdmin(paiement.id), {
       showSuccessToast: true,
       successMessage: 'Paiement supprimé',
@@ -82,6 +76,7 @@ export default function PaiementDetail() {
         navigate('/backoffice/paiements');
       },
     });
+    setIsDeleteModalOpen(false);
   };
 
   if (isLoading && !paiement) {
@@ -136,9 +131,9 @@ export default function PaiementDetail() {
             {user?.role === 'ADMIN' && paiement.statut !== 'CONFIRME' && paiement.statut !== 'REMBOURSE' && (
               <Button
                 variant="danger"
-                onClick={handleDeletePaiement}
+                onClick={() => setIsDeleteModalOpen(true)}
               >
-                Supprimer dossier
+                Supprimer le paiement
               </Button>
             )}
           </div>
@@ -404,7 +399,61 @@ export default function PaiementDetail() {
             </div>
           </Card>
         )}
+        {paiement.code_apporteur?.code && (
+          <Card title="Commission apporteur">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Apporteur</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {paiement.code_apporteur.apporteur?.nom || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Code</dt>
+                <dd className="mt-1 text-sm text-text">{paiement.code_apporteur.code}</dd>
+              </div>
+              {paiement.commission_apporteur && (
+                <>
+                  <div>
+                    <dt className="text-xs font-medium uppercase text-subtext">Montant commission</dt>
+                    <dd className="mt-1 text-sm text-text">
+                      {Math.round(paiement.commission_apporteur.montant / 100).toLocaleString('fr-FR')} FCFA
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium uppercase text-subtext">Statut reversement</dt>
+                    <dd className="mt-1 text-sm text-text">
+                      {paiement.commission_apporteur.statut || '-'}
+                    </dd>
+                  </div>
+                </>
+              )}
+            </dl>
+          </Card>
+        )}
       </div>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Supprimer le paiement"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text">
+            Supprimer le paiement{' '}
+            <strong>{paiement.reference || paiement.id.slice(0, 8)}</strong> ? Cette action est
+            définitive et supprime également le dossier associé.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="danger" onClick={handleDeletePaiement} loading={isLoading}>
+              Supprimer définitivement
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

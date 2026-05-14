@@ -126,6 +126,20 @@ export default function DossierDecision() {
     setIsConfirmModalOpen(true);
   };
 
+  const getCanalBadge = (canal) => {
+    const mapping = {
+      FINEO: 'FineoPay',
+      NGSER: 'NGSER',
+      MOBILE_MONEY: 'Mobile Money',
+      CARTE: 'Carte bancaire',
+      VIREMENT: 'Virement',
+      VOUCHER_ORG: 'Voucher Organisation',
+      VOUCHER_PROMO: 'Voucher Promo',
+    };
+    const label = mapping[canal] || canal || '-';
+    return canal ? <Badge variant="info">{label}</Badge> : <span className="text-subtext">-</span>;
+  };
+
   const getStatutBadge = (statut) => {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
@@ -263,20 +277,6 @@ export default function DossierDecision() {
       <div className="grid gap-6">
         <Card title="Informations du dossier">
           <dl className="grid grid-cols-2 gap-4">
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Apprenant
-              </dt>
-              <dd className="mt-1 text-sm text-text">
-                {etudiant.nom} {etudiant.prenom || etudiant.prenoms}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Email
-              </dt>
-              <dd className="mt-1 text-sm text-text">{etudiant.email}</dd>
-            </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
                 Formation
@@ -418,7 +418,9 @@ export default function DossierDecision() {
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Canal</dt>
-                <dd className="mt-1 text-sm text-text">{paiement.provider || paiement.methode || '-'}</dd>
+                <dd className="mt-1 text-sm text-text">
+                  {getCanalBadge(paiement.provider || paiement.methode_paiement || paiement.methode)}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Montant catalogue</dt>
@@ -479,13 +481,48 @@ export default function DossierDecision() {
                 <dt className="text-xs font-medium uppercase text-subtext">Code apporteur</dt>
                 <dd className="mt-1 text-sm text-text">{codeApporteurLabel}</dd>
               </div>
-              <div className="col-span-2">
-                <dt className="text-xs font-medium uppercase text-subtext">Motif de refus</dt>
-                <dd className="mt-1 text-sm text-text">{dossier.motif_refus || '-'}</dd>
-              </div>
             </dl>
           </Card>
         </div>
+
+        {dossier.motif_refus && (
+          <Card title="Motif de refus">
+            <p className="text-sm text-danger">{dossier.motif_refus}</p>
+          </Card>
+        )}
+
+        {codeApporteur?.code && (
+          <Card title="Commission apporteur">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Apporteur</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {codeApporteur.apporteur?.nom || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Code</dt>
+                <dd className="mt-1 text-sm text-text">{codeApporteur.code}</dd>
+              </div>
+              {paiement.commission_apporteur && (
+                <>
+                  <div>
+                    <dt className="text-xs font-medium uppercase text-subtext">Montant commission</dt>
+                    <dd className="mt-1 text-sm text-text">
+                      {formatMontant(paiement.commission_apporteur.montant)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium uppercase text-subtext">Statut reversement</dt>
+                    <dd className="mt-1 text-sm text-text">
+                      {paiement.commission_apporteur.statut || '-'}
+                    </dd>
+                  </div>
+                </>
+              )}
+            </dl>
+          </Card>
+        )}
 
         {canTakeDecision && (
           <Card title="Prendre une décision">
