@@ -99,6 +99,8 @@ const ApprobationPartenaire = lazy(() => import('../pages/backoffice/partenaires
 const ValidationFormation = lazy(() => import('../pages/backoffice/partenaires/ValidationFormation'));
 const FormationsPartenaire = lazy(() => import('../pages/backoffice/partenaires/FormationsPartenaire'));
 const ReversementsPartenaires = lazy(() => import('../pages/backoffice/partenaires/ReversementsPartenaires'));
+const UtilisateursList = lazy(() => import('../pages/backoffice/utilisateurs/UtilisateursList'));
+const CreateUtilisateur = lazy(() => import('../pages/backoffice/utilisateurs/CreateUtilisateur'));
 const ApporteursList = lazy(() => import('../pages/backoffice/apporteurs/ApporteursList'));
 const CreateApporteur = lazy(() => import('../pages/backoffice/apporteurs/CreateApporteur'));
 const ApporteurDetail = lazy(() => import('../pages/backoffice/apporteurs/ApporteurDetail'));
@@ -867,6 +869,25 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR', 'AGENT']}>
             {withSuspense(<ReversementsApporteurs />)}
+          </RoleGuard>
+        ),
+      },
+      // ============================================
+      // ROUTES UTILISATEURS BACKOFFICE
+      // ============================================
+      {
+        path: 'utilisateurs',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<UtilisateursList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'utilisateurs/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<CreateUtilisateur />)}
           </RoleGuard>
         ),
       },

@@ -533,26 +533,84 @@ export class EmailService {
     });
   }
 
-  async sendCodeApporteur(email: string, code: string, langue: string): Promise<void> {
-    const title = 'Votre code apporteur FORGES';
+  async sendCodeApporteur(
+    email: string,
+    code: string,
+    langue: string,
+    nom?: string,
+    tauxCommissionPct?: number,
+  ): Promise<void> {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+    const registerUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/register?ref=${code}`;
+    const taux = tauxCommissionPct ?? 5;
+    const greeting = nom ? `Bonjour <strong>${nom}</strong>,` : 'Bonjour,';
+    const greetingText = nom ? `Bonjour ${nom},` : 'Bonjour,';
+    const subject = 'Bienvenue sur FORGES — Votre compte Apporteur est activé';
+
     await this.sendEmail({
       to: email,
-      subject: title,
+      subject,
       text: this.buildTextEmail([
-        'Bonjour,',
+        greetingText,
         '',
-        'Votre code apporteur a été activé.',
-        `Code apporteur: ${code}`,
-        'Partagez-le avec vos contacts pour suivre vos commissions.',
-        `Langue du message: ${langue}`,
+        'Votre compte Apporteur FORGES est activé. Vous pouvez désormais recommander nos formations et percevoir une commission sur chaque inscription réalisée via votre lien.',
+        '',
+        `Votre taux de commission : ${taux}%`,
+        'Ce taux s\'applique sur le montant encaissé par FORGES pour chaque inscription générée par votre code.',
+        '',
+        'Comment ça marche :',
+        '  1. Partagez votre code ou lien de parrainage à vos contacts',
+        '  2. Ils s\'inscrivent via votre lien ou saisissent votre code',
+        '  3. A chaque paiement validé, une commission est créditée sur votre compte',
+        `  4. Dès que votre cumul atteint 5 000 XOF, le reversement est traité`,
+        '',
+        `Votre code apporteur : ${code}`,
+        `Votre lien de parrainage : ${registerUrl}`,
+        '',
+        `Accédez à votre tableau de bord pour suivre vos commissions : ${loginUrl}`,
+        '',
+        'Pour toute question : contact@forges-group.com',
+        '',
+        "L'equipe FORGES",
       ]),
-      html: this.buildHtmlEmail(title, [
-        'Bonjour,',
-        'Votre code apporteur a été activé.',
-        `<strong>Code apporteur :</strong> ${code}`,
-        'Partagez-le avec vos contacts pour suivre vos commissions.',
-        `Langue du message : ${langue}`,
-      ]),
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#1C2833;line-height:1.6;max-width:600px;">
+          <h2 style="color:#6C3483;margin-bottom:4px;">Bienvenue sur FORGES</h2>
+          <p style="color:#566573;margin-top:0;font-size:14px;">Votre compte <strong>Apporteur</strong> est activé</p>
+
+          <p>${greeting}</p>
+          <p>Vous pouvez désormais recommander les formations FORGES et percevoir une commission sur chaque inscription réalisée via votre lien ou code.</p>
+
+          <div style="background:#F5EEF8;border-left:4px solid #6C3483;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;">
+            <p style="margin:0 0 10px;font-weight:bold;color:#6C3483;">Comment ça marche :</p>
+            <ol style="margin:0;padding-left:20px;color:#1C2833;">
+              <li style="margin:6px 0;">Partagez votre code ou lien de parrainage à vos contacts</li>
+              <li style="margin:6px 0;">Ils s'inscrivent via votre lien ou saisissent votre code à l'inscription</li>
+              <li style="margin:6px 0;">A chaque paiement validé, une commission est créditée sur votre compte</li>
+              <li style="margin:6px 0;">Dès que votre cumul atteint <strong>5 000 XOF</strong>, le reversement est traité</li>
+            </ol>
+          </div>
+
+          <div style="background:#F9F9F9;border:1px solid #E8E8E8;border-radius:8px;padding:16px 20px;margin:20px 0;">
+            <p style="margin:0 0 12px;font-weight:bold;color:#6C3483;">Vos informations d'apporteur</p>
+            <p style="margin:4px 0;font-size:13px;">Taux de commission : <strong style="font-size:20px;color:#6C3483;">${taux}%</strong></p>
+            <p style="margin:12px 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;">Votre code permanent</p>
+            <p style="margin:0;"><code style="background:#EEE;padding:6px 12px;border-radius:6px;font-size:13px;word-break:break-all;">${code}</code></p>
+            <p style="margin:12px 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;">Votre lien de parrainage</p>
+            <p style="margin:0;word-break:break-all;font-size:13px;"><a href="${registerUrl}" style="color:#6C3483;">${registerUrl}</a></p>
+          </div>
+
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${loginUrl}" style="display:inline-block;background:#6C3483;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Accéder à mon tableau de bord</a>
+          </p>
+          <p style="font-size:12px;color:#888;text-align:center;">Si le bouton ne fonctionne pas : <a href="${loginUrl}" style="color:#6C3483;">${loginUrl}</a></p>
+
+          <p style="color:#566573;font-size:12px;margin-top:24px;border-top:1px solid #EEE;padding-top:16px;">
+            Pour toute question : <a href="mailto:contact@forges-group.com" style="color:#6C3483;">contact@forges-group.com</a><br>
+            &copy; 2026 FORGES AGREGATEUR
+          </p>
+        </div>
+      `,
     });
   }
 

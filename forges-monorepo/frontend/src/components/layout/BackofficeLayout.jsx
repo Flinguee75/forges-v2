@@ -86,6 +86,7 @@ export default function BackofficeLayout() {
     {
       title: 'Administration',
       items: [
+        { name: 'Utilisateurs backoffice', href: '/backoffice/utilisateurs', icon: 'users', roles: ['ADMIN'] },
         { name: 'Configuration', href: '/backoffice/config', icon: 'cog', roles: ['ADMIN'] },
       ],
     },

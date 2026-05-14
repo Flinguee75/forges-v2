@@ -123,7 +123,7 @@ export class AdminService {
     });
 
     await this.audit.info('APPORTEUR_CREE', { apporteur_id: apporteur.id, admin_id: adminId });
-    await this.email.sendCodeApporteur(dto.email, code_apporteur, 'FR');
+    await this.email.sendCodeApporteur(dto.email, code_apporteur, 'FR', dto.nom, dto.taux_commission_pct);
 
     return { apporteur_id: apporteur.id, code_apporteur };
   }
