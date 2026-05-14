@@ -15,6 +15,8 @@ log_info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+MONITORING_DISABLED=true
+
 check_docker() {
   if ! command -v docker &> /dev/null; then
     log_error "Docker is not installed"
@@ -30,113 +32,57 @@ compose_cmd() {
   docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" "$@"
 }
 
-cmd_start() {
-  check_docker
-  log_info "Starting FORGES monitoring stack (edu)..."
-
-  if [ ! -f "${ENV_FILE}" ]; then
-    log_error "${ENV_FILE} is missing"
-    exit 1
-  fi
-
-  if ! docker network inspect forges-edu &> /dev/null 2>&1; then
-    log_warn "Network 'forges-edu' does not exist. Creating it..."
-    docker network create forges-edu
-  fi
-
-  compose_cmd up -d
-  log_info "Monitoring stack started."
+disabled_notice() {
   echo ""
-  cmd_status
+  log_warn "Monitoring is disabled for the edu environment."
+  echo "  - Start/restart/health/logs are no-ops"
+  echo "  - Stop/cleanup still remove any existing containers or volumes"
+  echo ""
+}
+
+cmd_start() {
+  log_warn "Edu monitoring has been disabled."
+  cmd_stop
+  disabled_notice
 }
 
 cmd_stop() {
   log_info "Stopping FORGES monitoring stack (edu)..."
+  if ! command -v docker &> /dev/null || ! docker info &> /dev/null; then
+    log_warn "Docker is unavailable; nothing to stop."
+    return 0
+  fi
   compose_cmd down
   log_info "Monitoring stack stopped."
 }
 
 cmd_restart() {
   cmd_stop
-  cmd_start
+  disabled_notice
 }
 
 cmd_status() {
+  disabled_notice
   echo "============================================"
   echo "  FORGES Monitoring - Edu Environment"
   echo "============================================"
   echo ""
-  compose_cmd ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+  if command -v docker &> /dev/null && docker info &> /dev/null; then
+    compose_cmd ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" || true
+  fi
   echo ""
-  echo "-------------------------------------------"
-  echo "  Access URLs:"
-  echo "    Grafana:     http://localhost:3052"
-  echo "    Uptime Kuma: http://localhost:3007"
-  echo "    Loki API:    http://localhost:3102"
-  echo "-------------------------------------------"
 }
 
 cmd_health() {
-  log_info "Checking health of monitoring services..."
-  echo ""
-
-  local all_healthy=true
-
-  if curl -sf http://localhost:3102/ready > /dev/null 2>&1; then
-    echo -e "  Loki:        ${GREEN}HEALTHY${NC}"
-  else
-    echo -e "  Loki:        ${RED}UNHEALTHY${NC}"
-    all_healthy=false
-  fi
-
-  if curl -sf http://localhost:3052/api/health > /dev/null 2>&1; then
-    echo -e "  Grafana:     ${GREEN}HEALTHY${NC}"
-  else
-    echo -e "  Grafana:     ${RED}UNHEALTHY${NC}"
-    all_healthy=false
-  fi
-
-  if curl -sf http://localhost:3007/api/entry-page > /dev/null 2>&1; then
-    echo -e "  Uptime Kuma: ${GREEN}HEALTHY${NC}"
-  else
-    echo -e "  Uptime Kuma: ${RED}UNHEALTHY${NC}"
-    all_healthy=false
-  fi
-
-  echo ""
-  if [ "${all_healthy}" = true ]; then
-    log_info "All services are healthy."
-  else
-    log_warn "Some services are unhealthy. Run './monitoring-edu.sh logs' for details."
-  fi
+  disabled_notice
 }
 
 cmd_logs() {
-  local service="${1:-}"
-  if [ -n "${service}" ]; then
-    compose_cmd logs -f --tail=100 "${service}"
-  else
-    compose_cmd logs -f --tail=50
-  fi
+  disabled_notice
 }
 
 cmd_backup() {
-  local backup_dir="${SCRIPT_DIR}/backups/$(date +%Y%m%d_%H%M%S)"
-  mkdir -p "${backup_dir}"
-
-  log_info "Backing up monitoring data to ${backup_dir}..."
-
-  docker run --rm \
-    -v forges-grafana-edu:/data \
-    -v "${backup_dir}":/backup \
-    alpine tar czf /backup/grafana-data.tar.gz -C /data .
-
-  docker run --rm \
-    -v forges-loki-edu:/data \
-    -v "${backup_dir}":/backup \
-    alpine tar czf /backup/loki-data.tar.gz -C /data .
-
-  log_info "Backup complete: ${backup_dir}"
+  disabled_notice
 }
 
 cmd_cleanup() {
