@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
 import { useToast } from '../../../hooks/useToast';
 import vouchersApi from '../../../api/vouchers.api';
+import { formatCurrency } from '../../../utils/currency';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
@@ -47,7 +48,7 @@ function formatReductionValue(voucher) {
   if (!voucher) return '-';
   const value = Number(voucher.valeur ?? 0);
   if (voucher.type_valeur === 'MONTANT') {
-    return `${value.toLocaleString('fr-FR')} FCFA`;
+    return formatCurrency(value);
   }
   return `${value}%`;
 }

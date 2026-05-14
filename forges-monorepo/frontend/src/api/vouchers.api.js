@@ -55,10 +55,11 @@ export const vouchersApi = {
   },
 
   createOrganisation: async (data) => {
+    const valeurCentimes = data.type_valeur === 'MONTANT' ? Number(data.valeur) * 100 : Number(data.valeur);
     const response = await apiClient.post('/vouchers/organisation', {
       formation_id: data.formation_id,
       devis_id: data.devis_id || undefined,
-      valeur: Number(data.valeur),
+      valeur: valeurCentimes,
       type_valeur: data.type_valeur,
       quota_max: Number(data.quota_max),
       date_expiration: data.date_expiration,
@@ -67,9 +68,10 @@ export const vouchersApi = {
   },
 
   createPromotionnel: async (data) => {
+    const valeurCentimes = data.type_valeur === 'MONTANT' ? Number(data.valeur) * 100 : Number(data.valeur);
     const response = await apiClient.post('/vouchers/promotionnel', {
       formation_id: data.formation_id,
-      valeur: Number(data.valeur),
+      valeur: valeurCentimes,
       type_valeur: data.type_valeur,
       quota_max: Number(data.quota_max),
       date_expiration: data.date_expiration,

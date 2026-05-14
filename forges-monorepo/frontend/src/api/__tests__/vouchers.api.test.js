@@ -49,10 +49,11 @@ describe('vouchersApi', () => {
       params: { voucher_code: 'V-1' },
     });
 
+    // MONTANT type doit etre converti en centimes (x100) avant envoi au backend
     expect(apiClient.post).toHaveBeenCalledWith('/vouchers/organisation', {
       formation_id: 'f-1',
       devis_id: 'devis-1',
-      valeur: 50000,
+      valeur: 5000000,
       type_valeur: 'MONTANT',
       quota_max: 10,
       date_expiration: '2026-01-01',
@@ -66,5 +67,35 @@ describe('vouchersApi', () => {
     });
     expect(apiClient.patch).toHaveBeenCalledWith('/vouchers/v-1/validate');
     expect(apiClient.patch).toHaveBeenCalledWith('/vouchers/v-1/reject', { motif: 'motif' });
+  });
+
+  it('convertit valeur en centimes pour MONTANT mais pas pour POURCENTAGE', async () => {
+    apiClient.post.mockResolvedValue({ data: {} });
+
+    await vouchersApi.createPromotionnel({
+      formation_id: 'f-1',
+      valeur: 5000,
+      type_valeur: 'MONTANT',
+      quota_max: 1,
+      date_expiration: '2026-01-01',
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith('/vouchers/promotionnel', expect.objectContaining({
+      valeur: 500000,
+      type_valeur: 'MONTANT',
+    }));
+
+    await vouchersApi.createPromotionnel({
+      formation_id: 'f-1',
+      valeur: 15,
+      type_valeur: 'POURCENTAGE',
+      quota_max: 1,
+      date_expiration: '2026-01-01',
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith('/vouchers/promotionnel', expect.objectContaining({
+      valeur: 15,
+      type_valeur: 'POURCENTAGE',
+    }));
   });
 });

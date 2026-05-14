@@ -105,7 +105,7 @@ describe('VoucherDetail', () => {
 
     await waitFor(() => expect(screen.getByText('V-1')).toBeInTheDocument());
     expect(screen.getAllByText('Montant fixe')).toHaveLength(2);
-    expect(screen.getByText(/5[\s\u202f]000 FCFA/)).toBeInTheDocument();
+    expect(screen.getByText('50 FCFA')).toBeInTheDocument();
   });
 
   it('valide le voucher via le runtime', async () => {
