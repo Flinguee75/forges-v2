@@ -22,10 +22,19 @@ export class AuthService {
   }
 
   async login(email: string, password: string, ip: string) {
-    const user = await this.userRepo.findByEmail(this.normalizeEmail(email));
-    if (!user || !user.password_hash || !this.isAccountActive(user.statut)) throw new Error('INVALID_CREDENTIALS');
+    const normalizedEmail = this.normalizeEmail(email);
+    const user = await this.userRepo.findByEmail(normalizedEmail);
+
+    if (!user || !user.password_hash || !this.isAccountActive(user.statut)) {
+      await this.audit.warning('LOGIN_FAILED', { email: normalizedEmail, reason: 'USER_NOT_FOUND_OR_INACTIVE', ip });
+      throw new Error('INVALID_CREDENTIALS');
+    }
+
     const valid = await compare(password, user.password_hash);
-    if (!valid) throw new Error('INVALID_CREDENTIALS');
+    if (!valid) {
+      await this.audit.warning('LOGIN_FAILED', { userId: user.id, email: normalizedEmail, reason: 'WRONG_PASSWORD', ip });
+      throw new Error('INVALID_CREDENTIALS');
+    }
 
     const tokenPayload = {
       sub: user.id,
@@ -35,7 +44,7 @@ export class AuthService {
 
     const accessToken = sign(tokenPayload, process.env.JWT_SECRET!, { expiresIn: '1h' });
     const refreshToken = sign({ sub: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' });
-    await this.audit.info('LOGIN_SUCCESS', { userId: user.id, ip });
+    await this.audit.info('LOGIN_SUCCESS', { userId: user.id, role: user.role, ip });
     return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } };
   }
 
@@ -164,5 +173,7 @@ export class AuthService {
     return { message: 'Email confirmé avec succès' };
   }
 
-  async logout(userId: string, token: string) { /* stocker token dans blacklist Redis */ }
+  async logout(userId: string, token: string) {
+    await this.audit.info('LOGOUT', { userId, ip: null });
+  }
 }

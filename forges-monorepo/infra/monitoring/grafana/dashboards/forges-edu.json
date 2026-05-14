@@ -421,15 +421,172 @@
       }
     },
     {
+      "title": "Connexions utilisateurs",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 69 }
+    },
+    {
+      "title": "Connexions reussies (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logins OK"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#27AE60" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Echecs login reels (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logins KO"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#E74C3C" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 20 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Deconnexions (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGOUT\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logouts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#3498DB" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Taux echecs / connexions (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [1h])) / (sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"LOGIN_SUCCESS|LOGIN_FAILED\" [1h])) > 0) * 100",
+          "refId": "A",
+          "legendFormat": "taux echec %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Connexions dans le temps (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 74 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [5m]))",
+          "refId": "A",
+          "legendFormat": "login OK/s"
+        },
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [5m]))",
+          "refId": "B",
+          "legendFormat": "login KO/s"
+        },
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGOUT\" [5m]))",
+          "refId": "C",
+          "legendFormat": "logout/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "unit": "reqps"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "login OK/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#27AE60" } }] },
+          { "matcher": { "id": "byName", "options": "login KO/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#E74C3C" } }] },
+          { "matcher": { "id": "byName", "options": "logout/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#3498DB" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Connexions par role (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 74 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (role) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{role}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Echecs login reels (detail)",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 82 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
       "title": "Traces Utilisateurs",
       "type": "row",
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 69
-      }
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 90 }
     },
     {
       "title": "Activite utilisateur \u2014 Audit (user_id)",
@@ -438,7 +595,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 91
       },
       "datasource": {
         "type": "loki",
@@ -472,7 +629,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 80
+        "y": 101
       },
       "datasource": {
         "type": "loki",
@@ -503,7 +660,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 80
+        "y": 101
       },
       "datasource": {
         "type": "loki",
@@ -531,7 +688,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 109
       }
     },
     {
@@ -541,7 +698,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 89
+        "y": 110
       },
       "datasource": {
         "type": "loki",
@@ -569,7 +726,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 99
+        "y": 120
       },
       "datasource": {
         "type": "loki",
@@ -600,7 +757,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 99
+        "y": 120
       },
       "datasource": {
         "type": "loki",
