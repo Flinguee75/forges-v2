@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Disable monitoring stack (edu) on the VPS
-# Run this script locally -- it copies files then stops + cleans the stack via SSH
+# Deploy monitoring stack (edu) on the VPS
+# Run this script locally -- it copies files then starts the stack via SSH
 set -euo pipefail
 
 VPS_USER="forgesadmin"
@@ -80,8 +80,8 @@ sync_files() {
 }
 
 start_stack() {
-  log_info "Stopping and cleaning edu monitoring stack on VPS..."
-  $SSH "cd ${VPS_DIR} && printf 'y\n' | ./monitoring-edu.sh cleanup"
+  log_info "Starting edu monitoring stack on VPS..."
+  $SSH "cd ${VPS_DIR} && ./monitoring-edu.sh start"
 }
 
 check_health() {
@@ -93,10 +93,19 @@ check_health() {
 print_access() {
   echo ""
   echo "============================================"
-  echo "  Monitoring stack (edu) disabled"
+  echo "  Monitoring stack (edu) deployed"
   echo "============================================"
   echo ""
-  echo "  Existing monitoring containers were stopped and volumes cleaned on the VPS."
+  echo "  SSH tunnel (all services):"
+  echo "    ssh -i ~/.ssh/id_ed25519_forges \\"
+  echo "      -L 3052:localhost:3052 \\"
+  echo "      -L 3007:localhost:3007 \\"
+  echo "      forgesadmin@92.205.164.97"
+  echo ""
+  echo "  Grafana:     http://localhost:3052  (admin / forges2026!)"
+  echo "  Uptime Kuma: http://localhost:3007"
+  echo ""
+  echo "  Note: Uptime Kuma requires one-time manual account creation on first run."
   echo "============================================"
 }
 
