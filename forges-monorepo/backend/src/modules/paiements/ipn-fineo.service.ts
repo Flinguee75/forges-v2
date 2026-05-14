@@ -165,6 +165,12 @@ export class IpnFineoService {
   }
 
   private async traiterFail(paiement: any, reference: string, transaction: any): Promise<IpnFineoResult> {
+    const MAX_TENTATIVES = 3;
+    const nouvellesTentatives = (paiement.tentatives || 0) + 1;
+    const expire = paiement.expires_at && new Date() > new Date(paiement.expires_at);
+    const epuise = nouvellesTentatives >= MAX_TENTATIVES;
+    const annulerDossier = epuise || expire;
+
     await this.prisma.$transaction(async (tx) => {
       await tx.paiement.update({
         where: { id: paiement.id },
@@ -173,20 +179,26 @@ export class IpnFineoService {
           status_ngser: 'FAIL',
           transaction_id: reference,
           ngser_payload_last: transaction,
+          tentatives: nouvellesTentatives,
         },
       });
 
-      await tx.dossier.update({
-        where: { id: paiement.dossier_id },
-        data: { statut: 'ANNULE' },
-      });
+      if (annulerDossier) {
+        await tx.dossier.update({
+          where: { id: paiement.dossier_id },
+          data: { statut: 'ANNULE' },
+        });
+      }
     });
 
     await this.audit.info('FINEO_CB_FAIL_TRAITE', {
       paiement_id: paiement.id,
       reference,
+      tentatives: nouvellesTentatives,
+      dossier_annule: annulerDossier,
     });
 
-    return { paiement_statut: 'ECHOUE', dossier_statut: 'ANNULE' };
+    const dossierStatut = annulerDossier ? 'ANNULE' : paiement.dossier?.statut;
+    return { paiement_statut: 'ECHOUE', dossier_statut: dossierStatut };
   }
 }

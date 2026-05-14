@@ -189,7 +189,7 @@ describe('IpnFineoService — callback FineoPay', () => {
   });
 
   describe('Cas FAIL', () => {
-    it('doit passer le paiement à ECHOUE et le dossier à ANNULE', async () => {
+    it('doit passer le paiement à ECHOUE mais conserver le dossier si tentatives < 3 (RM-08)', async () => {
       const dossierId = 'D-FINEO-FAIL-01';
       const syncRef = 'FRG-FNO-2026-001-FAIL01';
       const reference = 'FNO-REF-FAIL-001';
@@ -215,7 +215,90 @@ describe('IpnFineoService — callback FineoPay', () => {
       });
 
       expect(result.paiement_statut).toBe('ECHOUE');
+      // 1ère tentative : dossier reste RETENU, pas encore ANNULE
+      expect(result.dossier_statut).toBe('RETENU');
+
+      const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
+      expect(paiement?.tentatives).toBe(1);
+
+      const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } });
+      expect(dossier?.statut).toBe('RETENU');
+    });
+
+    it('doit annuler le dossier si expires_at dépassé même avant 3 tentatives (RM-07)', async () => {
+      const dossierId = 'D-FINEO-FAIL-03';
+      const syncRef = 'FRG-FNO-2026-001-FAIL03';
+      const reference = 'FNO-REF-FAIL-003';
+
+      await creerFixture(dossierId, syncRef);
+
+      // Forcer expires_at dans le passé
+      await prisma.paiement.update({
+        where: { dossier_id: dossierId },
+        data: { expires_at: new Date(Date.now() - 1000) },
+      });
+
+      mockGetTransaction.mockResolvedValue({
+        reference,
+        amount: MONTANT_XOF,
+        status: 'failed',
+        canal: 'orange',
+        fees: 0,
+        direction: 'cashin',
+        date: new Date().toISOString(),
+        syncRef,
+      });
+
+      const result = await service.traiterCallback({
+        reference,
+        amount: MONTANT_XOF,
+        status: 'failed',
+        syncRef,
+      });
+
+      expect(result.paiement_statut).toBe('ECHOUE');
       expect(result.dossier_statut).toBe('ANNULE');
+
+      const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } });
+      expect(dossier?.statut).toBe('ANNULE');
+    });
+
+    it('doit annuler le dossier après 3 échecs (RM-08)', async () => {
+      const dossierId = 'D-FINEO-FAIL-02';
+      const syncRef = 'FRG-FNO-2026-001-FAIL02';
+      const reference = 'FNO-REF-FAIL-002';
+
+      await creerFixture(dossierId, syncRef);
+
+      // Simuler déjà 2 tentatives échouées
+      await prisma.paiement.update({
+        where: { dossier_id: dossierId },
+        data: { tentatives: 2 },
+      });
+
+      mockGetTransaction.mockResolvedValue({
+        reference,
+        amount: MONTANT_XOF,
+        status: 'failed',
+        canal: 'mtn',
+        fees: 0,
+        direction: 'cashin',
+        date: new Date().toISOString(),
+        syncRef,
+      });
+
+      const result = await service.traiterCallback({
+        reference,
+        amount: MONTANT_XOF,
+        status: 'failed',
+        syncRef,
+      });
+
+      expect(result.paiement_statut).toBe('ECHOUE');
+      expect(result.dossier_statut).toBe('ANNULE');
+
+      const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } });
+      expect(dossier?.statut).toBe('ANNULE');
     });
   });
 

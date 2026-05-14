@@ -31,8 +31,18 @@ export class PaiementFineoService {
       throw new Error('PAIEMENT_DEJA_VALIDE');
     }
 
-    // Reprendre une session FineoPay existante
-    if (paiementExistant?.provider === FINEO_PROVIDER && paiementExistant.order_ngser) {
+    // RM-07 : délai 72h dépassé
+    if (paiementExistant?.expires_at && new Date() > new Date(paiementExistant.expires_at)) {
+      throw new Error('PAYMENT_EXPIRED');
+    }
+
+    // RM-08 : max 3 tentatives
+    if (paiementExistant && (paiementExistant.tentatives || 0) >= 3) {
+      throw new Error('TOO_MANY_ATTEMPTS');
+    }
+
+    // Reprendre une session FineoPay PENDING existante (sans rappeler FineoPay)
+    if (paiementExistant?.provider === FINEO_PROVIDER && paiementExistant.order_ngser && paiementExistant.statut === 'PENDING') {
       const payload = paiementExistant.ngser_payload_last as { checkout_link?: string } | null;
       return {
         paiement_id: paiementExistant.id,
@@ -90,7 +100,10 @@ export class PaiementFineoService {
     };
 
     const paiement = paiementExistant
-      ? await this.prisma.paiement.update({ where: { id: paiementExistant.id }, data: fineoData })
+      ? await this.prisma.paiement.update({
+          where: { id: paiementExistant.id },
+          data: { ...fineoData, statut: 'PENDING', transaction_id: null },
+        })
       : await this.prisma.paiement.create({
           data: {
             dossier_id: dossierId,

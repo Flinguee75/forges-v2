@@ -206,5 +206,95 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
         service.initierPaiement(dossierId, TEST_IDS.apprenant)
       ).rejects.toThrow('PAIEMENT_DEJA_VALIDE');
     });
+
+    it('RM-07 : doit rejeter si le délai de paiement 72h est dépassé', async () => {
+      const dossierId = 'D-FINEO-INIT-06';
+      await creerDossier(dossierId);
+
+      await prisma.paiement.create({
+        data: {
+          dossier_id: dossierId,
+          montant_catalogue: MONTANT_CENTIMES,
+          montant_final: MONTANT_CENTIMES,
+          montant_initie: MONTANT_CENTIMES,
+          methode: 'MOBILE_MONEY',
+          statut: 'PENDING',
+          tentatives: 0,
+          provider: 'FINEO',
+          order_ngser: 'FRG-FNO-EXPIRED-01',
+          reduction_appliquee: 0,
+          expires_at: new Date(Date.now() - 1000), // expiré il y a 1 seconde
+        },
+      });
+
+      await expect(
+        service.initierPaiement(dossierId, TEST_IDS.apprenant)
+      ).rejects.toThrow('PAYMENT_EXPIRED');
+    });
+
+    it('RM-08 : doit rejeter après 3 tentatives épuisées', async () => {
+      const dossierId = 'D-FINEO-INIT-07';
+      await creerDossier(dossierId);
+
+      await prisma.paiement.create({
+        data: {
+          dossier_id: dossierId,
+          montant_catalogue: MONTANT_CENTIMES,
+          montant_final: MONTANT_CENTIMES,
+          montant_initie: MONTANT_CENTIMES,
+          methode: 'MOBILE_MONEY',
+          statut: 'ECHOUE',
+          tentatives: 3,
+          provider: 'FINEO',
+          order_ngser: 'FRG-FNO-MAXATT-01',
+          reduction_appliquee: 0,
+          expires_at: new Date(Date.now() + 3600 * 1000),
+        },
+      });
+
+      await expect(
+        service.initierPaiement(dossierId, TEST_IDS.apprenant)
+      ).rejects.toThrow('TOO_MANY_ATTEMPTS');
+    });
+  });
+
+  describe('Retry — paiement ECHOUE', () => {
+    it('doit générer un nouveau checkout link après un échec (retry)', async () => {
+      const dossierId = 'D-FINEO-INIT-08';
+      await creerDossier(dossierId);
+
+      await prisma.paiement.create({
+        data: {
+          dossier_id: dossierId,
+          montant_catalogue: MONTANT_CENTIMES,
+          montant_final: MONTANT_CENTIMES,
+          montant_initie: MONTANT_CENTIMES,
+          methode: 'MOBILE_MONEY',
+          statut: 'ECHOUE',
+          tentatives: 1,
+          provider: 'FINEO',
+          order_ngser: 'FRG-FNO-OLD-SYNCREF',
+          transaction_id: 'FNO-REF-FAILED-001',
+          reduction_appliquee: 0,
+          expires_at: new Date(Date.now() + 3600 * 1000),
+        },
+      });
+
+      const result = await service.initierPaiement(dossierId, TEST_IDS.apprenant);
+
+      // Nouveau lien et nouvelle syncRef
+      expect(result.checkout_link).toBe('https://demo.fineopay.com/checkout/test-link');
+      expect(result.sync_ref).toMatch(/^FRG-FNO-/);
+      expect(result.sync_ref).not.toBe('FRG-FNO-OLD-SYNCREF');
+
+      // Paiement mis à jour : PENDING, nouvelle syncRef, transaction_id effacé
+      const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
+      expect(paiement?.statut).toBe('PENDING');
+      expect(paiement?.order_ngser).toBe(result.sync_ref);
+      expect(paiement?.transaction_id).toBeNull();
+
+      // createCheckoutLink appelé une fois (pas de résumé du lien précédent)
+      expect(mockCreateCheckoutLink).toHaveBeenCalledTimes(1);
+    });
   });
 });

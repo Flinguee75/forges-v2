@@ -125,14 +125,17 @@ describe('FineoClient — client HTTP FineoPay', () => {
       mockAxiosInstance.get.mockResolvedValue({
         data: {
           success: true,
+          message: 'Transaction récupérée avec succès',
           data: {
-            reference: 'REF-001',
-            amount: 50000,
-            status: 'success',
-            canal: 'orange',
-            fees: 500,
-            direction: 'cashin',
-            date: '2026-05-06T14:00:00Z',
+            transaction: {
+              reference: 'REF-001',
+              amount: 50000,
+              status: 'success',
+              canal: 'orange',
+              fees: 500,
+              direction: 'cashin',
+              date: '2026-05-06T14:00:00Z',
+            },
           },
         },
         status: 200,

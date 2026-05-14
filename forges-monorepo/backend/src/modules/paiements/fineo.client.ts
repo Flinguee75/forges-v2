@@ -126,20 +126,20 @@ export class FineoClient {
     try {
       await this.audit.info('FINEO_GET_TRANSACTION', { reference });
 
-      const response = await this.client.get<{ success: boolean; data: FineoTransaction }>(
+      const response = await this.client.get<{ success: boolean; data: { transaction: FineoTransaction } }>(
         `/transactions/${reference}`
       );
 
-      if (!response.data?.success || !response.data?.data) {
+      if (!response.data?.success || !response.data?.data?.transaction) {
         throw new Error('FINEO_INVALID_RESPONSE: transaction data missing');
       }
 
       await this.audit.info('FINEO_GET_TRANSACTION_SUCCESS', {
         reference,
-        status: response.data.data.status,
+        status: response.data.data.transaction.status,
       });
 
-      return response.data.data;
+      return response.data.data.transaction;
     } catch (error: any) {
       await this.handleFineoError(error, 'GET_TRANSACTION', reference);
       throw error;
