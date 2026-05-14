@@ -127,6 +127,15 @@ export class PaiementController {
     } catch (error) { next(error); }
   }
 
+  // GET /api/backoffice/paiements/:id — Détail paiement avec infos voucher/apporteur (ADMIN, AGENT)
+  async getPaiementById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const paiement = await this.paiementService.getPaiementById(req.params.id);
+      if (!paiement) return res.status(404).json({ statusCode: 404, error: 'NOT_FOUND' });
+      return res.status(200).json({ statusCode: 200, data: paiement });
+    } catch (error) { next(error); }
+  }
+
   // GET /api/admin/paiements/stats — ADMIN/AGENT
   async getPaiementsStats(req: Request, res: Response, next: NextFunction) {
     try {

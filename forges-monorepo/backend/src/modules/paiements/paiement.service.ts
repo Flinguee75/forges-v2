@@ -385,6 +385,40 @@ export class PaiementService {
     });
   }
 
+  async getPaiementById(id: string) {
+    const paiement = await this.prisma.paiement.findUnique({
+      where: { id },
+      include: {
+        dossier: {
+          include: {
+            apprenant: true,
+            formation: true,
+            session: true,
+            voucher_organisation: true,
+          },
+        },
+        code_apporteur: {
+          include: { apporteur: { select: { nom: true, code_apporteur: true } } },
+        },
+      },
+    });
+
+    if (!paiement) return null;
+
+    // Résoudre le nom de l'organisation via voucher_organisation.organisation_id
+    let organisationNom: string | null = null;
+    const orgId = (paiement.dossier as any)?.voucher_organisation?.organisation_id;
+    if (orgId) {
+      const org = await this.prisma.organisation.findUnique({
+        where: { id: orgId },
+        select: { raison_sociale: true },
+      });
+      organisationNom = org?.raison_sociale ?? null;
+    }
+
+    return { ...paiement, _organisation_voucher_nom: organisationNom };
+  }
+
   async getPaiementsStats(period = '24h') {
     const hoursByPeriod: Record<string, number> = {
       '1h': 1,

@@ -61,6 +61,11 @@ router.get('/paiements', authenticate, authorize('APPRENANT'), (req, res, next) 
   paiementController.getPaiementsByApprenant(req, res, next);
 });
 
+// GET /api/backoffice/paiements/:id — Détail paiement avec voucher/apporteur (ADMIN, AGENT)
+router.get('/backoffice/paiements/:id', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+  paiementController.getPaiementById(req, res, next);
+});
+
 // GET /api/backoffice/paiements — Liste tous les paiements (ADMIN, AGENT) - UCS09, RM-88
 router.get('/backoffice/paiements', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
   paiementController.getPaiements(req, res, next);

@@ -334,6 +334,55 @@ export default function PaiementDetail() {
           </dl>
         </Card>
 
+        {(paiement.reduction_appliquee > 0 || paiement.dossier?.voucher_organisation || paiement.code_apporteur) && (
+          <Card title="Réductions appliquées">
+            <dl className="grid grid-cols-2 gap-4">
+              {paiement.montant_catalogue > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Prix catalogue</dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {Math.round(paiement.montant_catalogue / 100).toLocaleString('fr-FR')} FCFA
+                  </dd>
+                </div>
+              )}
+              {paiement.reduction_appliquee > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Remise appliquée</dt>
+                  <dd className="mt-1 text-sm font-medium text-success">
+                    -{Math.round(paiement.reduction_appliquee / 100).toLocaleString('fr-FR')} FCFA
+                  </dd>
+                </div>
+              )}
+              {paiement.dossier?.voucher_organisation && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Voucher organisation</dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {paiement.dossier.voucher_organisation.code}
+                    {paiement._organisation_voucher_nom && (
+                      <span className="ml-1 text-subtext">
+                        ({paiement._organisation_voucher_nom})
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              )}
+              {paiement.code_apporteur && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Code apporteur</dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {paiement.code_apporteur.code}
+                    {paiement.code_apporteur.apporteur?.nom && (
+                      <span className="ml-1 text-subtext">
+                        ({paiement.code_apporteur.apporteur.nom})
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </Card>
+        )}
+
         {paiement.tentatives > 0 && (
           <Card title="Historique des tentatives">
             <div className="rounded-lg border border-border p-4">

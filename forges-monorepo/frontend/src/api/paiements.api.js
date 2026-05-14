@@ -64,18 +64,12 @@ export const paiementsApi = {
   },
 
   /**
-   * Récupère le détail d'un paiement depuis la liste backoffice.
+   * Récupère le détail d'un paiement backoffice (avec voucher organisation et apporteur).
+   * GET /api/backoffice/paiements/:id
    */
   getBackofficeById: async (id) => {
-    const paiements = await apiClient.get('/backoffice/paiements');
-    const list = normalizeList(paiements);
-    const paiement = list.find((item) => item.id === id);
-
-    if (!paiement) {
-      throw createUnavailableError('Paiement introuvable dans la liste backoffice.', 'NOT_FOUND');
-    }
-
-    return paiement;
+    const response = await apiClient.get(`/backoffice/paiements/${id}`);
+    return response?.data ?? response;
   },
 
   /**
