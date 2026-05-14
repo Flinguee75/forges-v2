@@ -111,9 +111,8 @@ export default function InscriptionsPage() {
       key: 'montant',
       label: 'Montant',
       render: (_, dossier) => {
-        const tarif = dossier.session?.formation?.tarif || 0;
-        const remise = dossier.montant_remise || 0;
-        return formatMontant(tarif - remise);
+        const montant = dossier.paiement?.montant_final ?? dossier.session?.formation?.tarif ?? 0;
+        return formatMontant(montant);
       },
     },
     {

@@ -216,18 +216,18 @@ export default function DossierDetail() {
               <span className="text-subtext">Prix de la formation</span>
               <span className="font-medium">{formatMontant(getFormationTarif())}</span>
             </div>
-            {dossier.montant_remise > 0 && (
+            {(dossier.paiement?.reduction_appliquee > 0) && (
               <div className="flex justify-between text-success">
                 <span>Remise appliquée</span>
                 <span className="font-medium">
-                  -{formatMontant(dossier.montant_remise)}
+                  -{formatMontant(dossier.paiement.reduction_appliquee)}
                 </span>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-3">
               <span className="font-semibold text-primary">Montant à payer</span>
               <span className="text-lg font-bold text-primary">
-                {formatMontant(getFormationTarif() - (dossier.montant_remise || 0))}
+                {formatMontant(dossier.paiement?.montant_final ?? getFormationTarif())}
               </span>
             </div>
           </div>
