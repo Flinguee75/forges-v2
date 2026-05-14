@@ -54,8 +54,8 @@ export class PaiementFineoService {
     const callbackUrl = process.env.FINEO_CALLBACK_URL ||
       `${process.env.BACKEND_URL || 'http://localhost:3000'}/webhooks/fineo`;
     const returnUrl = process.env.FRONTEND_URL
-      ? `${process.env.FRONTEND_URL}/paiement/retour`
-      : 'http://localhost:5173/paiement/retour';
+      ? `${process.env.FRONTEND_URL}/apprenant/paiements/callback`
+      : 'http://localhost:5173/apprenant/paiements/callback';
 
     const inputs: Array<{ key: string; type: string; label: string; required: boolean; defaultValue?: string }> = [
       { key: 'apprenant_nom', type: 'text', label: 'Votre nom complet', required: false },
