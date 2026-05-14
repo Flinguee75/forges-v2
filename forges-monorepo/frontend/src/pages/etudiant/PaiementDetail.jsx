@@ -74,7 +74,11 @@ export default function PaiementDetail() {
   const formationTitre = formation?.titre || formation?.intitule || 'N/A';
   const montantPaiement =
     paiement?.montant_final ?? paiement?.montant_initie ?? paiement?.montant ?? paiement?.montant_catalogue ?? 0;
-  const methodePaiement = paiement?.methode || paiement?.methode_paiement || paiement?.provider || 'Mobile Money';
+  const methodePaiementLabel = paiement?.methode
+    ? getMethodeLabel(paiement.methode)
+    : paiement?.methode_paiement
+      ? getMethodeLabel(paiement.methode_paiement)
+      : paiement?.provider || '-';
   const confirmedAt = paiement?.confirmed_at || paiement?.date_confirmation;
   const tentatives = paiement?.tentatives ?? paiement?.tentatives_echouees ?? 0;
 
@@ -140,7 +144,7 @@ export default function PaiementDetail() {
             </div>
             <div className="flex justify-between">
               <span className="text-subtext">Méthode de paiement</span>
-              <span className="font-medium">{getMethodeLabel(methodePaiement)}</span>
+              <span className="font-medium">{methodePaiementLabel}</span>
             </div>
             {paiement.order_ngser && (
               <div className="flex justify-between">

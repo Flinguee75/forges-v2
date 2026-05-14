@@ -137,9 +137,9 @@ describe('IpnFineoService — callback FineoPay', () => {
     await prisma.paiement.create({
       data: {
         dossier_id: dossierId,
-        montant_catalogue: MONTANT_XOF,
-        montant_final: MONTANT_XOF,
-        montant_initie: MONTANT_XOF,
+        montant_catalogue: MONTANT_CENTIMES,
+        montant_final: MONTANT_CENTIMES,
+        montant_initie: MONTANT_CENTIMES,
         methode: 'MOBILE_MONEY',
         statut: 'PENDING',
         tentatives: 0,

@@ -410,8 +410,8 @@ export default function DossierDecision() {
                 <dd className="mt-1 text-sm text-text">{getPaiementLabel(paiement)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase text-subtext">Methode</dt>
-                <dd className="mt-1 text-sm text-text">{paiement.methode || '-'}</dd>
+                <dt className="text-xs font-medium uppercase text-subtext">Canal</dt>
+                <dd className="mt-1 text-sm text-text">{paiement.provider || paiement.methode || '-'}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Montant catalogue</dt>

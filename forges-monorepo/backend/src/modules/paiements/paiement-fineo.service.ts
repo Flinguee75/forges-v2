@@ -38,7 +38,7 @@ export class PaiementFineoService {
         paiement_id: paiementExistant.id,
         sync_ref: paiementExistant.order_ngser,
         checkout_link: payload?.checkout_link || '',
-        montant_initie: paiementExistant.montant_initie,
+        montant_initie: this.toXof(paiementExistant.montant_initie || 0),
       };
     }
 
@@ -46,8 +46,9 @@ export class PaiementFineoService {
       throw new Error('DOSSIER_STATUT_INVALIDE');
     }
 
-    const montantCatalogueXof = this.toXof(dossier.formation.cout_catalogue);
-    const montantFinal = await this.calculerMontantFinal(dossier, apprenantId, montantCatalogueXof);
+    const montantCatalogueCentimes = dossier.formation.cout_catalogue;
+    const montantFinalCentimes = await this.calculerMontantFinal(dossier, apprenantId, montantCatalogueCentimes);
+    const montantFinalXof = this.toXof(montantFinalCentimes);
     const syncRef = this.generateSyncRef();
     const expiresAt = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
 
@@ -71,7 +72,7 @@ export class PaiementFineoService {
     const fineoClient = this.getFineoClient();
     const checkout = await fineoClient.createCheckoutLink({
       title: `Inscription — ${dossier.formation.intitule}`,
-      amount: montantFinal,
+      amount: montantFinalXof,
       callbackUrl,
       syncRef,
       inputs,
@@ -80,7 +81,7 @@ export class PaiementFineoService {
     const fineoData = {
       provider: FINEO_PROVIDER,
       order_ngser: syncRef,
-      montant_initie: montantFinal,
+      montant_initie: montantFinalCentimes,
       expires_at: expiresAt,
       ngser_payload_last: {
         checkout_link: checkout.checkoutLink,
@@ -93,9 +94,9 @@ export class PaiementFineoService {
       : await this.prisma.paiement.create({
           data: {
             dossier_id: dossierId,
-            montant_catalogue: montantCatalogueXof,
-            montant_final: montantFinal,
-            reduction_appliquee: montantCatalogueXof - montantFinal,
+            montant_catalogue: montantCatalogueCentimes,
+            montant_final: montantFinalCentimes,
+            reduction_appliquee: montantCatalogueCentimes - montantFinalCentimes,
             methode: 'MOBILE_MONEY',
             statut: 'PENDING',
             tentatives: 0,
@@ -108,19 +109,19 @@ export class PaiementFineoService {
       dossier_id: dossierId,
       provider: FINEO_PROVIDER,
       sync_ref: syncRef,
-      montant_initie: montantFinal,
+      montant_initie: montantFinalXof,
     });
 
     return {
       paiement_id: paiement.id,
       sync_ref: syncRef,
       checkout_link: checkout.checkoutLink,
-      montant_initie: montantFinal,
+      montant_initie: montantFinalXof,
     };
   }
 
-  private async calculerMontantFinal(dossier: any, apprenantId: string, montantCatalogueXof: number): Promise<number> {
-    const montant = montantCatalogueXof;
+  private async calculerMontantFinal(dossier: any, apprenantId: string, montantCatalogueCentimes: number): Promise<number> {
+    const montant = montantCatalogueCentimes;
 
     if (dossier.voucher_code) {
       const voucher = await this.voucherRepo.findByCode(dossier.voucher_code);

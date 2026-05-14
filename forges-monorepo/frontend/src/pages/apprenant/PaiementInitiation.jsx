@@ -72,7 +72,7 @@ export default function PaiementInitiation() {
         <div>
           <h1 className="text-2xl font-semibold text-primary">Paiement securise</h1>
           <p className="mt-2 text-sm text-subtext">
-            Vous allez etre redirige vers la page de paiement securisee (carte bancaire ou Mobile Money).
+            Vous allez etre redirige vers la page de paiement securisee.
           </p>
         </div>
 

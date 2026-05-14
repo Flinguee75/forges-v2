@@ -240,11 +240,8 @@ export default function MesPaiementsPage() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-text">Moyen de paiement</label>
-              <div className="rounded-lg border border-border bg-bg p-3 text-sm text-subtext">
-                Vous serez redirigé vers une page de paiement sécurisée.
-              </div>
+            <div className="rounded-lg border border-border bg-bg p-3 text-sm text-subtext">
+              Vous serez redirigé vers une page de paiement sécurisée.
             </div>
 
             <div className="flex gap-3">

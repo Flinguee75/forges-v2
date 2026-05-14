@@ -93,15 +93,17 @@ export default function PaiementsList() {
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
-  const getMethodeBadge = (methode) => {
+  const getCanalBadge = (canal) => {
     const mapping = {
+      FINEO: { label: 'FineoPay' },
+      NGSER: { label: 'NGSER' },
       MOBILE_MONEY: { label: 'Mobile Money' },
       CARTE: { label: 'Carte bancaire' },
       VIREMENT: { label: 'Virement' },
       VOUCHER_ORG: { label: 'Voucher Org' },
     };
 
-    const config = mapping[methode] || { label: methode };
+    const config = mapping[canal] || { label: canal || '-' };
     return <Badge variant="info" size="small">{config.label}</Badge>;
   };
 
@@ -137,9 +139,9 @@ export default function PaiementsList() {
       },
     },
     {
-      key: 'methode',
-      label: 'Méthode',
-      render: (value, paiement) => getMethodeBadge(value || paiement.methode_paiement || paiement.provider || 'NGSER'),
+      key: 'provider',
+      label: 'Canal',
+      render: (_value, paiement) => getCanalBadge(paiement.provider || paiement.methode_paiement || paiement.methode),
     },
     {
       key: 'statut',

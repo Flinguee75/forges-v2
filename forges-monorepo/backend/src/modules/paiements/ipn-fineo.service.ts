@@ -94,10 +94,11 @@ export class IpnFineoService {
     }
 
     // Contrôle montant (FineoPay envoie en XOF directement)
-    if (transactionVerifiee.amount !== undefined && transactionVerifiee.amount !== paiement.montant_initie) {
+    const montantInitieXof = Math.round((paiement.montant_initie || 0) / 100);
+    if (transactionVerifiee.amount !== undefined && transactionVerifiee.amount !== montantInitieXof) {
       await this.audit.error('FINEO_CB_MONTANT_MISMATCH', {
         syncRef,
-        montant_initie: paiement.montant_initie,
+        montant_initie_xof: montantInitieXof,
         montant_verifie: transactionVerifiee.amount,
       });
       throw new Error('MONTANT_MISMATCH');

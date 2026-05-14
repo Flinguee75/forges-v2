@@ -155,8 +155,8 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
       const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
       expect(paiement?.provider).toBe('FINEO');
       expect(paiement?.statut).toBe('PENDING');
-      expect(paiement?.montant_catalogue).toBe(MONTANT_XOF);
-      expect(paiement?.montant_final).toBe(MONTANT_XOF);
+      expect(paiement?.montant_catalogue).toBe(MONTANT_CENTIMES);
+      expect(paiement?.montant_final).toBe(MONTANT_CENTIMES);
       expect(paiement?.reduction_appliquee).toBe(0);
       expect(paiement?.order_ngser).toBe(result.sync_ref);
     });

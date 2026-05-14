@@ -51,15 +51,17 @@ export default function PaiementDetail() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getMethodeBadge = (methode) => {
+  const getCanalBadge = (canal) => {
     const mapping = {
+      FINEO: { label: 'FineoPay' },
+      NGSER: { label: 'NGSER' },
       MOBILE_MONEY: { label: 'Mobile Money' },
       CARTE: { label: 'Carte bancaire' },
       VIREMENT: { label: 'Virement' },
       VOUCHER_ORG: { label: 'Voucher Organisation' },
     };
 
-    const config = mapping[methode] || { label: methode };
+    const config = mapping[canal] || { label: canal || '-' };
     return <Badge variant="info">{config.label}</Badge>;
   };
 
@@ -99,7 +101,7 @@ export default function PaiementDetail() {
   const etudiant = paiement.dossier?.apprenant || paiement.dossier?.etudiant || {};
   const session = paiement.dossier?.session || {};
   const formation = paiement.dossier?.formation || session.formation || {};
-  const methodePaiement = paiement.methode || paiement.methode_paiement || paiement.provider || 'NGSER';
+  const canalPaiement = paiement.provider || paiement.methode_paiement || paiement.methode;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -167,10 +169,10 @@ export default function PaiementDetail() {
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
-                Méthode de paiement
+                Canal de paiement
               </dt>
               <dd className="mt-1 text-sm text-text">
-                {getMethodeBadge(methodePaiement)}
+                {getCanalBadge(canalPaiement)}
               </dd>
             </div>
             <div>
