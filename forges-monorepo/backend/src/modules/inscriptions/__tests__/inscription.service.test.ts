@@ -329,4 +329,50 @@ describe('InscriptionService', () => {
       voucher_organisation: expect.objectContaining({ code: 'VCHR-001' }),
     });
   });
+
+  it('applique correctement la réduction d un voucher promotionnel MONTANT en centimes', async () => {
+    // valeur = 15000 centimes = 150 FCFA de réduction sur une formation à 1000 FCFA (100000 centimes)
+    mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+    mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+    mockPrisma.dossier.count.mockResolvedValue(2);
+    mockFormationRepo.findById.mockResolvedValue({
+      id: 'formation-01',
+      type_formation: 'STANDARD',
+      cout_catalogue: 100000,
+    } as any);
+    mockPrisma.voucherApporteur.findFirst.mockResolvedValue({
+      id: 'voucher-promo-01',
+      type: 'PROMOTIONNEL',
+      type_valeur: 'MONTANT',
+      valeur: 15000,
+      quota_max: 5,
+      quota_utilise: 0,
+    } as any);
+    mockDossierRepo.create.mockResolvedValue({ id: 'dossier-promo', statut: 'PAYE' } as any);
+    mockPrisma.voucherApporteur.update.mockResolvedValue({
+      id: 'voucher-promo-01',
+      quota_max: 5,
+      quota_utilise: 1,
+    });
+    mockAudit.info.mockResolvedValue(undefined);
+
+    const result = await service.inscrire({
+      session_id: 'session-01',
+      apprenantId: 'app-01',
+      source_financement: 'RETAIL',
+      voucher_code: 'PROMO-001',
+      code_apporteur: null,
+    });
+
+    // montant_remise doit etre 15000 centimes (la valeur stockée, issue du frontend converti en centimes)
+    expect(mockDossierRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      statut: 'PAYE',
+      montant_remise: 15000,
+    }));
+    // montant_apres_reduction = 100000 - 15000 = 85000 centimes = 850 FCFA
+    expect(result).toMatchObject({
+      montant_total: 100000,
+      montant_apres_reduction: 85000,
+    });
+  });
 });
