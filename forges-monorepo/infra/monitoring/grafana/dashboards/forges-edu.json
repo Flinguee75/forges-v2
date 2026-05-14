@@ -780,6 +780,145 @@
           "unit": "short"
         }
       }
+    },
+    {
+      "title": "Nombre de connexions",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 128 }
+    },
+    {
+      "title": "Logins reussis aujourd'hui (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [24h]))",
+          "refId": "A",
+          "legendFormat": "logins OK"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#27AE60" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Echecs login aujourd'hui (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [24h]))",
+          "refId": "A",
+          "legendFormat": "logins KO"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Utilisateurs connectes cette semaine (7j)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [7d]))",
+          "refId": "A",
+          "legendFormat": "logins semaine"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#8E44AD" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Taux echec / total (24h) %",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [24h])) / (sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"LOGIN_SUCCESS|LOGIN_FAILED\" [24h])) > 0) * 100",
+          "refId": "A",
+          "legendFormat": "taux echec %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Logins par heure (24h)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 134 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logins OK / heure"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [1h]))",
+          "refId": "B",
+          "legendFormat": "logins KO / heure"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true, "drawStyle": "bars", "barAlignment": 0 },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "logins OK / heure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#27AE60" } }] },
+          { "matcher": { "id": "byName", "options": "logins KO / heure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#E74C3C" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi" } }
+    },
+    {
+      "title": "Logins par role (24h)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 143 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (role) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [1h]))",
+          "refId": "A",
+          "legendFormat": "{{role}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true, "drawStyle": "bars" },
+          "unit": "short"
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" } }
     }
   ],
   "schemaVersion": 39,
