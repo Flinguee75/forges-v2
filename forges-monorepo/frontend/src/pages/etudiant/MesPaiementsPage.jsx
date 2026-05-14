@@ -98,7 +98,7 @@ export default function MesPaiementsPage() {
             {getFormationTitre(dossier)}
           </div>
           <div className="text-xs text-subtext">
-            Session: {dossier.session?.titre || 'N/A'}
+            Session du {dossier.session?.date_debut ? formatDate(dossier.session.date_debut) : 'N/A'}
           </div>
         </div>
       ),
