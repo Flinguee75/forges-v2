@@ -213,6 +213,36 @@ export class EmailService {
     }
   }
 
+  async sendEmailFromTemplateWithAttachment(
+    to: string,
+    templateName: string,
+    langue: Langue,
+    variables: Record<string, string>,
+    conditionals: Record<string, boolean>,
+    attachment: EmailAttachment
+  ): Promise<void> {
+    try {
+      let { subject, html } = this.loadTemplate(templateName, langue, variables);
+
+      // Blocs conditionnels {{#if_xxx}}...{{/if_xxx}}
+      Object.entries(conditionals).forEach(([key, show]) => {
+        const openTag = new RegExp(`{{#if_${key}}}`, 'g');
+        const closeTag = new RegExp(`{{/if_${key}}}`, 'g');
+        if (!show) {
+          // Supprimer le bloc entier
+          const blockRe = new RegExp(`{{#if_${key}}}[\\s\\S]*?{{/if_${key}}}`, 'g');
+          html = html.replace(blockRe, '');
+        } else {
+          html = html.replace(openTag, '').replace(closeTag, '');
+        }
+      });
+
+      await this.sendEmailWithAttachment({ to, subject, html, attachment });
+    } catch (err) {
+      console.error('[EmailService] sendEmailFromTemplateWithAttachment error:', (err as Error).message);
+    }
+  }
+
   async sendEmailWithAttachment(options: EmailWithAttachmentOptions): Promise<void> {
     const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'contact@forges.local';
     const fromAddress = `"FORGES AGRÉGATEUR" <${fromEmail}>`;

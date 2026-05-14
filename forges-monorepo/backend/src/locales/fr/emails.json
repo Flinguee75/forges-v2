@@ -83,6 +83,24 @@
     "action_required": "Merci de prendre en charge cette validation ou de relancer le responsable désigné.",
     "cta_button": "Traiter maintenant"
   },
+  "paiement-confirme": {
+    "subject": "Confirmation de paiement — {{formation_intitule}}",
+    "title": "Paiement confirme",
+    "intro": "Votre paiement a bien ete recu et votre inscription a la formation <strong>{{formation_intitule}}</strong> est confirmee. Vous trouverez votre recu en piece jointe.",
+    "formation_label": "Formation :",
+    "organisation_label": "Organisation :",
+    "payment_details_label": "Details du paiement",
+    "amount_label": "Montant paye",
+    "reference_label": "Reference recu",
+    "transaction_label": "Ref. transaction",
+    "payment_date_label": "Date de paiement",
+    "payment_method_label": "Moyen de paiement",
+    "session_label": "Votre session",
+    "session_dates": "Dates :",
+    "lieu_label": "Lieu :",
+    "attachment_note": "Le recu PDF de votre paiement est joint a cet email. Conservez-le comme justificatif.",
+    "cta_button": "Voir mon dossier"
+  },
   "dossier-annule": {
     "subject": "Annulation de votre candidature",
     "title": "❌ Votre candidature a été annulée",

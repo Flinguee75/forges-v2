@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CommissionService } from './commission.service';
+import { PaiementRecuService } from './paiement-recu.service';
 
 export interface IpnPayload {
   // Champs réels NGSER (doc officielle)
@@ -32,6 +33,8 @@ export interface IpnResult {
 }
 
 export class IpnNgserService {
+  private recuService: PaiementRecuService;
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit?: AuditLogger,
@@ -39,6 +42,7 @@ export class IpnNgserService {
   ) {
     this.audit = audit || new AuditLogger(prisma);
     this.commissionService = commissionService || new CommissionService(prisma, this.audit);
+    this.recuService = new PaiementRecuService(prisma, this.audit);
   }
 
   async traiterIpn(ipn: IpnPayload): Promise<IpnResult> {
@@ -215,6 +219,9 @@ export class IpnNgserService {
       transaction_id: ipn.transaction_id,
       dossier_id: paiement.dossier_id,
     });
+
+    // Envoi recu PDF non-bloquant
+    this.recuService.genererEtEnvoyerRecu(paiement.dossier_id).catch(() => {});
 
     return {
       paiement_statut: 'CONFIRME',

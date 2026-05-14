@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CommissionService } from './commission.service';
 import { FineoClient } from './fineo.client';
+import { PaiementRecuService } from './paiement-recu.service';
 
 export interface FineoCbPayload {
   reference: string;        // référence transaction FineoPay
@@ -22,12 +23,15 @@ export interface IpnFineoResult {
 
 export class IpnFineoService {
   private _fineoClient: FineoClient | null = null;
+  private recuService: PaiementRecuService;
 
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
     private readonly commissionService: CommissionService
-  ) {}
+  ) {
+    this.recuService = new PaiementRecuService(prisma, audit);
+  }
 
   private get fineoClient(): FineoClient {
     if (!this._fineoClient) {
@@ -152,6 +156,9 @@ export class IpnFineoService {
       reference,
       dossier_id: paiement.dossier_id,
     });
+
+    // Envoi recu PDF non-bloquant
+    this.recuService.genererEtEnvoyerRecu(paiement.dossier_id).catch(() => {});
 
     return { paiement_statut: 'CONFIRME', dossier_statut: 'PAYE', commissions_created: commissionsCreated };
   }
