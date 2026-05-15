@@ -13,56 +13,66 @@ export type EnrollmentConfirmationEmailOptions = {
 };
 
 export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmationEmailOptions) {
-  const nomComplet = `${options.prenoms} ${options.nom}`;
-  const fonctionLine = options.organisation
-    ? `<p style="margin:0;color:#666;font-size:13px;">${options.organisation}</p>`
+  const sessionLabel = options.session?.date_debut && options.session?.date_fin
+    ? ` (${new Date(options.session.date_debut).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} – ${new Date(options.session.date_fin).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })})`
     : '';
-  const sessionLine = options.session
-    ? [
-        options.session.date_debut && options.session.date_fin
-          ? `<p style="margin:0 0 4px;font-size:13px;color:#555;"><strong>Session :</strong> du ${new Date(options.session.date_debut).toLocaleDateString('fr-FR')} au ${new Date(options.session.date_fin).toLocaleDateString('fr-FR')}</p>`
-          : null,
-        options.session.lieu ? `<p style="margin:0;font-size:13px;color:#555;"><strong>Lieu :</strong> ${options.session.lieu}</p>` : null,
-      ].filter(Boolean).join('')
-    : '';
+
+  const plainText = [
+    `Bonjour ${options.prenoms},`,
+    '',
+    `Votre inscription à la ${options.formation}${sessionLabel} est bien enregistrée.`,
+    '',
+    'Vous pouvez finaliser votre paiement en ligne en vous connectant à votre compte FORGES via le lien ci-dessous :',
+    'https://edu.forges-group.com',
+    '',
+    'Si vous avez déjà effectué le paiement, merci d\'ignorer ce message.',
+    '',
+    'Pour toute question, nous restons à votre disposition.',
+    '',
+    'Cordialement,',
+    'L\'équipe FORGES',
+  ].join('\n');
 
   return {
-    subject: `Votre inscription Masterclass GWU/CCDL confirmée — FORGES`,
-    text: [
-      `Bonjour ${nomComplet},`,
-      '',
-      `Votre inscription à la ${options.formation} a bien été confirmée.`,
-      options.organisation ? options.organisation : '',
-      '',
-      'Votre inscription est bien enregistrée.',
-    ].filter(Boolean).join('\n'),
+    subject: `Votre inscription ${options.formation} — Finalisez votre paiement`,
+    text: plainText,
     html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;">
-        <div style="background:#1a1a2e;padding:24px 32px;border-radius:8px 8px 0 0;">
-          <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700;letter-spacing:1px;">FORGES AGRÉGATEUR</h1>
-          <p style="color:#a0a8c0;margin:4px 0 0;font-size:13px;">Plateforme de formations certifiantes</p>
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+        <div style="background:#1a1a2e;padding:24px 32px;text-align:center;">
+          <img src="https://edu.forges-group.com/logo_forges.png" alt="FORGES" style="height:48px;display:block;margin:0 auto;" />
         </div>
 
-        <div style="background:#f8f9fb;padding:32px;border-radius:0 0 8px 8px;">
-          <p style="font-size:15px;color:#333;margin-top:0;">Bonjour <strong>${nomComplet}</strong>,</p>
-          ${fonctionLine}
-          <br>
-          <p style="font-size:15px;color:#333;">
-            Votre inscription à la <strong>${options.formation}</strong> a bien été confirmée.
+        <div style="padding:32px;">
+          <p style="font-size:15px;color:#333;margin-top:0;">Bonjour <strong>${options.prenoms}</strong>,</p>
+
+          <p style="font-size:15px;color:#333;line-height:1.6;">
+            Votre inscription à la <strong>${options.formation}${sessionLabel}</strong> est bien enregistrée.
           </p>
 
-          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0;">
-            <p style="margin:0 0 8px;font-size:13px;color:#555;">Votre inscription est bien enregistrée.</p>
-            ${sessionLine}
+          <p style="font-size:15px;color:#333;line-height:1.6;">
+            Vous pouvez finaliser votre paiement en ligne en vous connectant à votre compte FORGES via le lien ci-dessous :
+          </p>
+
+          <div style="text-align:center;margin:28px 0;">
+            <a href="https://edu.forges-group.com"
+               style="background:#1a1a2e;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:15px;font-weight:600;display:inline-block;">
+              Accéder à mon compte FORGES
+            </a>
           </div>
 
-          <p style="font-size:14px;color:#555;">
-            Pour toute question concernant cette masterclass, n'hésitez pas à contacter notre équipe.
+          <p style="font-size:13px;color:#888;line-height:1.6;">
+            Si vous avez déjà effectué le paiement, merci d'ignorer ce message.
+          </p>
+
+          <p style="font-size:14px;color:#555;line-height:1.6;">
+            Pour toute question, nous restons à votre disposition.
           </p>
 
           <div style="border-top:1px solid #e2e8f0;margin-top:32px;padding-top:20px;">
-            <p style="font-size:13px;color:#888;margin:0;">
-              <a href="mailto:contact@forges-group.com" style="color:#1a1a2e;font-weight:600;">contact@forges-group.com</a>
+            <p style="font-size:13px;color:#555;margin:0;">Cordialement,</p>
+            <p style="font-size:13px;color:#333;font-weight:600;margin:4px 0 0;">L'équipe FORGES</p>
+            <p style="font-size:12px;color:#aaa;margin:4px 0 0;">
+              <a href="mailto:contact@forges-group.com" style="color:#888;">contact@forges-group.com</a>
             </p>
           </div>
         </div>
