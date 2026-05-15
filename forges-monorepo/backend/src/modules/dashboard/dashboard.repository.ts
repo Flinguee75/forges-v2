@@ -615,7 +615,7 @@ export class DashboardRepository {
         montant_remise: true,
         created_at: true,
         apprenant: { select: { nom: true, prenoms: true, email: true } },
-        formation: { select: { intitule: true } },
+        formation: { select: { intitule: true, cout_catalogue: true } },
         session: { select: { date_debut: true } },
         paiement: { select: { statut: true, montant_final: true, methode: true } },
       },
@@ -637,8 +637,11 @@ export class DashboardRepository {
         formation_titre: row.formation?.intitule || null,
         session_date_debut: row.session?.date_debut || null,
         statut_dossier: row.statut,
-        statut_paiement: row.paiement?.statut || 'EN_ATTENTE',
+        statut_paiement: row.paiement?.statut || null,
         montant_paiement: row.paiement?.montant_final || 0,
+        montant_attendu: row.paiement?.montant_final
+          ? null
+          : Math.max(0, Number(row.formation?.cout_catalogue || 0) - Number(row.montant_remise || 0)),
         methode_paiement: row.paiement?.methode || null,
         source_financement: row.source_financement,
         voucher_code: row.voucher_code,

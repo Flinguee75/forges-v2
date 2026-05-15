@@ -55,7 +55,9 @@ describe('RapportsDashboard', () => {
       expect(screen.getByText('3')).toBeInTheDocument();
       expect(screen.getByText('18')).toBeInTheDocument();
       expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
-      expect(screen.getByText('CONFIRME')).toBeInTheDocument();
+      expect(screen.getByText('Paiement confirmé')).toBeInTheDocument();
+      expect(screen.getByText('Payé')).toBeInTheDocument();
+      expect(screen.getByText('2 500 FCFA')).toBeInTheDocument();
     });
   });
 });

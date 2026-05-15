@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import { dashboardApi } from '../../../api/dashboard.api';
 import EmptyState from '../../../components/feedback/EmptyState';
 import Spinner from '../../../components/feedback/Spinner';
+import Badge from '../../../components/ui/Badge';
 import Card from '../../../components/ui/Card';
 import { useApi } from '../../../hooks/useApi';
+import { getDossierStatutMeta, PAIEMENT_STATUT_META } from '../../../utils/dossierStatus';
 
 function formatFcfa(amount) {
-  return `${Number(amount || 0).toLocaleString('fr-FR')} FCFA`;
+  return `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
+}
+
+function getPaiementStatutMeta(statut) {
+  return PAIEMENT_STATUT_META[statut] || { variant: 'gray', label: statut || 'Aucun' };
 }
 
 function Metric({ label, value }) {
@@ -104,27 +110,43 @@ export default function RapportsDashboard() {
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border text-sm">
               <thead>
-                <tr className="text-left text-subtext">
-                  <th className="py-3 pr-4 font-medium">Apprenant</th>
-                  <th className="py-3 pr-4 font-medium">Formation</th>
-                  <th className="py-3 pr-4 font-medium">Dossier</th>
-                  <th className="py-3 pr-4 font-medium">Paiement</th>
-                  <th className="py-3 pr-4 font-medium">Montant</th>
+                <tr className="border-b border-border text-left">
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Apprenant</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Formation</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Dossier</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Paiement</th>
+                  <th className="pb-3 text-right text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Montant</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {rapports.rapports.map((row) => (
-                  <tr key={row.dossier_id} className="align-top">
+                {rapports.rapports.map((row) => {
+                  const dossierMeta = getDossierStatutMeta(row.statut_dossier);
+                  const paiementMeta = getPaiementStatutMeta(row.statut_paiement);
+                  return (
+                  <tr key={row.dossier_id} className="align-middle hover:bg-bg">
                     <td className="py-3 pr-4">
-                      <p className="font-medium text-text">{row.apprenant_nom || 'N/A'}</p>
-                      <p className="text-xs text-subtext">{row.apprenant_email || 'N/A'}</p>
+                      <p className="font-medium text-text">{row.apprenant_nom || '-'}</p>
+                      <p className="text-xs text-subtext">{row.apprenant_email || '-'}</p>
                     </td>
-                    <td className="py-3 pr-4 text-text">{row.formation_titre || 'N/A'}</td>
-                    <td className="py-3 pr-4 text-text">{row.statut_dossier}</td>
-                    <td className="py-3 pr-4 text-text">{row.statut_paiement}</td>
-                    <td className="py-3 pr-4 text-text">{formatFcfa(row.montant_paiement)}</td>
+                    <td className="py-3 pr-4 text-sm text-text">{row.formation_titre || '-'}</td>
+                    <td className="py-3 pr-4">
+                      <Badge variant={dossierMeta.variant}>{dossierMeta.label}</Badge>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <Badge variant={paiementMeta.variant}>{paiementMeta.label}</Badge>
+                    </td>
+                    <td className="py-3 text-right">
+                      {row.montant_paiement > 0 ? (
+                        <span className="font-medium text-text">{formatFcfa(row.montant_paiement)}</span>
+                      ) : row.montant_attendu > 0 ? (
+                        <span className="text-subtext" title="Montant catalogue attendu">{formatFcfa(row.montant_attendu)} <span className="text-xs">(attendu)</span></span>
+                      ) : (
+                        <span className="text-subtext">-</span>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
