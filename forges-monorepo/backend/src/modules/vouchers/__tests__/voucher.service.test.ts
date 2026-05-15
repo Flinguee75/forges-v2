@@ -238,7 +238,7 @@ describe('VoucherService', () => {
 
   describe('getUtilisateurs', () => {
     it('retourne la liste des apprenants ayant utilisé le voucher', async () => {
-      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', type: 'ORGANISATION' } as any);
+      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', code: 'CODE-ORG-01', type: 'ORGANISATION' } as any);
       (mockPrisma.dossier.findMany as jest.Mock).mockResolvedValue([
         {
           id: 'dossier-01',
@@ -264,7 +264,7 @@ describe('VoucherService', () => {
         apprenant: { id: 'app-01', nom: 'DOGBA', prenoms: 'Benjamin', email: 'dogba@test.ci' },
       });
       expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { voucher_organisation_id: 'voucher-01' },
+        where: { OR: [{ voucher_organisation_id: 'voucher-01' }, { voucher_code: 'CODE-ORG-01' }] },
       }));
     });
 
@@ -274,7 +274,7 @@ describe('VoucherService', () => {
     });
 
     it('retourne une liste vide si aucun dossier n\'utilise le voucher', async () => {
-      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', type: 'ORGANISATION' } as any);
+      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', code: 'CODE-ORG-01', type: 'ORGANISATION' } as any);
       (mockPrisma.dossier.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getUtilisateurs('voucher-01');

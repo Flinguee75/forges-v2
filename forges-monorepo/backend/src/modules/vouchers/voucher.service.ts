@@ -397,7 +397,12 @@ export class VoucherService {
     if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
 
     const dossiers = await this.prisma.dossier.findMany({
-      where: { voucher_organisation_id: id },
+      where: {
+        OR: [
+          { voucher_organisation_id: id },
+          { voucher_code: voucher.code },
+        ],
+      },
       select: {
         id: true,
         statut: true,
