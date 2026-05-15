@@ -351,9 +351,9 @@ export default function DossierDecision() {
           <dl className="grid grid-cols-2 gap-4">
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
-                Code formation
+                Formation
               </dt>
-              <dd className="mt-1 text-sm text-text">{formation.code || formation.code_formation || '-'}</dd>
+              <dd className="mt-1 text-sm text-text">{formation.intitule || formation.titre || formation.id || '-'}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
@@ -414,7 +414,7 @@ export default function DossierDecision() {
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Pays</dt>
                 <dd className="mt-1 text-sm text-text">
-                  {etudiant.pays_residence || '-'} / {etudiant.pays_nationalite || '-'}
+                  {[etudiant.pays_residence, etudiant.pays_nationalite].filter(Boolean).join(' / ') || '-'}
                 </dd>
               </div>
               <div>
@@ -454,7 +454,9 @@ export default function DossierDecision() {
               </div>
             </dl>
           </Card>
+        </div>
 
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card title="Session">
             <dl className="grid grid-cols-2 gap-4">
               <div>
@@ -464,6 +466,12 @@ export default function DossierDecision() {
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Lieu</dt>
                 <dd className="mt-1 text-sm text-text">{session.lieu || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Dates</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {session.date_debut ? `Du ${formatDate(session.date_debut)} au ${formatDate(session.date_fin)}` : '-'}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Capacité</dt>
@@ -479,9 +487,7 @@ export default function DossierDecision() {
               </div>
             </dl>
           </Card>
-        </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
           <Card title="Paiement">
             <dl className="grid grid-cols-2 gap-4">
               <div>
@@ -502,21 +508,21 @@ export default function DossierDecision() {
                 <dt className="text-xs font-medium uppercase text-subtext">Montant final</dt>
                 <dd className="mt-1 text-sm text-text">{formatMontant(paiement.montant_final)}</dd>
               </div>
-              {paiement.reduction_appliquee > 0 && (
-                <div>
-                  <dt className="text-xs font-medium uppercase text-subtext">Réduction</dt>
-                  <dd className="mt-1 text-sm font-medium text-success">
-                    -{formatMontant(paiement.reduction_appliquee)}
-                  </dd>
-                </div>
-              )}
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Réduction</dt>
+                <dd className="mt-1 text-sm font-medium text-success">
+                  {paiement.reduction_appliquee > 0 ? `-${formatMontant(paiement.reduction_appliquee)}` : '-'}
+                </dd>
+              </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-subtext">Confirmé le</dt>
                 <dd className="mt-1 text-sm text-text">{formatDate(paiement.confirmed_at)}</dd>
               </div>
             </dl>
           </Card>
+        </div>
 
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card title="Voucher / apporteur">
             <dl className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
@@ -559,44 +565,42 @@ export default function DossierDecision() {
               </div>
             </dl>
           </Card>
+
+          {codeApporteur?.code && (
+            <Card title="Commission apporteur">
+              <dl className="grid grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Apporteur</dt>
+                  <dd className="mt-1 text-sm text-text">{codeApporteur.apporteur?.nom || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Code</dt>
+                  <dd className="mt-1 text-sm text-text">{codeApporteur.code}</dd>
+                </div>
+                {paiement.commission_apporteur && (
+                  <>
+                    <div>
+                      <dt className="text-xs font-medium uppercase text-subtext">Montant commission</dt>
+                      <dd className="mt-1 text-sm text-text">
+                        {formatMontant(paiement.commission_apporteur.montant)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-medium uppercase text-subtext">Statut reversement</dt>
+                      <dd className="mt-1 text-sm text-text">
+                        {paiement.commission_apporteur.statut || '-'}
+                      </dd>
+                    </div>
+                  </>
+                )}
+              </dl>
+            </Card>
+          )}
         </div>
 
         {dossier.motif_refus && (
           <Card title="Motif de refus">
             <p className="text-sm text-danger">{dossier.motif_refus}</p>
-          </Card>
-        )}
-
-        {codeApporteur?.code && (
-          <Card title="Commission apporteur">
-            <dl className="grid grid-cols-2 gap-4">
-              <div>
-                <dt className="text-xs font-medium uppercase text-subtext">Apporteur</dt>
-                <dd className="mt-1 text-sm text-text">
-                  {codeApporteur.apporteur?.nom || '-'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase text-subtext">Code</dt>
-                <dd className="mt-1 text-sm text-text">{codeApporteur.code}</dd>
-              </div>
-              {paiement.commission_apporteur && (
-                <>
-                  <div>
-                    <dt className="text-xs font-medium uppercase text-subtext">Montant commission</dt>
-                    <dd className="mt-1 text-sm text-text">
-                      {formatMontant(paiement.commission_apporteur.montant)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-medium uppercase text-subtext">Statut reversement</dt>
-                    <dd className="mt-1 text-sm text-text">
-                      {paiement.commission_apporteur.statut || '-'}
-                    </dd>
-                  </div>
-                </>
-              )}
-            </dl>
           </Card>
         )}
 
