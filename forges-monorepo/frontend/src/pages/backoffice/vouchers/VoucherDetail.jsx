@@ -264,9 +264,7 @@ export default function VoucherDetail() {
                 <tr className="border-b border-border text-left">
                   <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Nom</th>
                   <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Email</th>
-                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Statut dossier</th>
                   <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Date d'utilisation</th>
-                  <th className="pb-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -276,26 +274,7 @@ export default function VoucherDetail() {
                       {u.apprenant?.nom} {u.apprenant?.prenoms}
                     </td>
                     <td className="py-3 text-subtext">{u.apprenant?.email || '-'}</td>
-                    <td className="py-3">
-                      <Badge variant={
-                        u.statut === 'PAYE' ? 'success'
-                        : u.statut === 'RETENU' ? 'warning'
-                        : u.statut === 'ANNULE' || u.statut === 'REJETE' ? 'danger'
-                        : 'gray'
-                      }>
-                        {u.statut}
-                      </Badge>
-                    </td>
                     <td className="py-3 text-subtext">{formatDateTime(u.date_utilisation)}</td>
-                    <td className="py-3 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/backoffice/dossiers/${u.dossier_id}`)}
-                      >
-                        Voir dossier
-                      </Button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
