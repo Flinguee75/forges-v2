@@ -266,46 +266,61 @@ describe('PaiementController', () => {
     expect(res.status).toHaveBeenCalledWith(422);
   });
 
-  describe('traiterIpnNgser — RM-158', () => {
-    it('accepte un IPN sans signature et répond 200 accepted:true', async () => {
-      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+  describe('traiterIpnNgser — securite HMAC', () => {
+    it('rejette un IPN sans header x-webhook-signature', async () => {
       const req = createMockReq({
-        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001', transaction_amount: 1500 },
+        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001' },
         headers: {},
       });
       const res = createMockRes();
+      const next = createNext();
 
-      await controller.traiterIpnNgser(req, res, createNext());
+      await controller.traiterIpnNgser(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ statusCode: 200, data: { accepted: true } });
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 401,
+        error: 'SIGNATURE_MANQUANTE',
+      }));
+      expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
     });
 
-    it('accepte un IPN avec signature valide et répond 200 accepted:true', async () => {
-      const body = { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-002', transaction_amount: 1500 };
-      const signature = createHmac('sha256', 'webhook-secret').update(JSON.stringify(body)).digest('hex');
-      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
-
-      const req = createMockReq({ body, headers: { 'x-webhook-signature': signature } });
-      const res = createMockRes();
-
-      await controller.traiterIpnNgser(req, res, createNext());
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ statusCode: 200, data: { accepted: true } });
-    });
-
-    it('rejette un IPN avec signature invalide et répond 401', async () => {
+    it('rejette un IPN avec signature invalide', async () => {
       const req = createMockReq({
-        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-003' },
+        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001' },
         headers: { 'x-webhook-signature': 'mauvaise-signature' },
       });
       const res = createMockRes();
+      const next = createNext();
 
-      await controller.traiterIpnNgser(req, res, createNext());
+      await controller.traiterIpnNgser(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 401,
+        error: 'INVALID_SIGNATURE',
+      }));
       expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
+    });
+
+    it('accepte un IPN avec signature HMAC valide', async () => {
+      const body = { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001' };
+      const payload = JSON.stringify(body);
+      const validSig = createHmac('sha256', 'webhook-secret').update(payload).digest('hex');
+
+      const req = createMockReq({
+        body,
+        headers: { 'x-webhook-signature': validSig },
+      });
+      const res = createMockRes();
+      const next = createNext();
+      mockService.traiterIpnNgser.mockResolvedValue(undefined);
+      process.env.NODE_ENV = 'test';
+
+      await controller.traiterIpnNgser(req, res, next);
+
+      expect(mockService.traiterIpnNgser).toHaveBeenCalledWith(body);
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 
