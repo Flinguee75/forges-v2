@@ -8,6 +8,7 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Spinner from '../../../components/feedback/Spinner';
 import EmptyState from '../../../components/feedback/EmptyState';
+import { getDossierStatutMeta } from '../../../utils/dossierStatus';
 
 function getStatutBadge(statut) {
   const mapping = {
@@ -62,7 +63,7 @@ export default function SessionDetail() {
       await execute(() => sessionsApi.getDossiers(id), {
         showErrorToast: false,
         onSuccess: (response) => {
-          const payload = response?.data ?? response;
+          const payload = response?.data?.data ?? response?.data ?? response;
           setDossiers(Array.isArray(payload) ? payload : []);
         },
       });
@@ -240,31 +241,58 @@ export default function SessionDetail() {
         </div>
       </Card>
 
-      <Card title="Dossiers de la session">
+      <Card>
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">
+          Participants ({dossiers.length})
+        </h3>
         {dossiers.length > 0 ? (
-          <div className="space-y-3">
-            {dossiers.map((dossier) => (
-              <div key={dossier.id} className="rounded-lg border border-border bg-gray-50 p-4">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-medium text-primary">
-                      {dossier.apprenant ? `${dossier.apprenant.prenoms || ''} ${dossier.apprenant.nom || ''}`.trim() : dossier.id}
-                    </p>
-                    <p className="text-xs text-subtext">
-                      {dossier.apprenant?.email || 'Apprenant non renseigné'}
-                    </p>
-                  </div>
-                  <div className="text-sm text-text">
-                    {dossier.statut}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Apprenant</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Statut dossier</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Source</th>
+                  <th className="pb-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {dossiers.map((dossier) => {
+                  const meta = getDossierStatutMeta(dossier.statut);
+                  const nom = dossier.apprenant
+                    ? `${dossier.apprenant.prenoms || ''} ${dossier.apprenant.nom || ''}`.trim()
+                    : '-';
+                  return (
+                    <tr key={dossier.id} className="hover:bg-bg">
+                      <td className="py-3 pr-4">
+                        <p className="font-medium text-text">{nom}</p>
+                        <p className="text-xs text-subtext">{dossier.apprenant?.email || '-'}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Badge variant={meta.variant}>{meta.label}</Badge>
+                      </td>
+                      <td className="py-3 pr-4 text-subtext">
+                        {dossier.source_financement || '-'}
+                      </td>
+                      <td className="py-3 text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/backoffice/dossiers/${dossier.id}`)}
+                        >
+                          Voir dossier
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <EmptyState
-            title="Aucun dossier"
-            message="Aucun dossier n'est associé à cette session."
+            title="Aucun participant"
+            message="Aucun apprenant n'est encore inscrit à cette session."
           />
         )}
       </Card>
