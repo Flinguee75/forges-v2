@@ -46,7 +46,7 @@ export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmation
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#FFFFFF;">
 
         <tr>
-          <td style="background:#111111;padding:28px 32px;">
+          <td style="background:#1B4F72;padding:28px 32px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td valign="middle">
@@ -67,35 +67,35 @@ export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmation
             <p style="margin:0 0 8px;font-size:15px;color:#1C2833;">
               Bonjour <strong>${options.prenoms}</strong>,
             </p>
-            <p style="margin:0 0 24px;font-size:14px;color:#566573;line-height:1.6;">
-              Votre inscription à la <strong style="color:#111111;">${options.formation}${sessionLabel}</strong> est bien enregistrée.
+            <p style="margin:0 0 24px;font-size:14px;color:#1C2833;line-height:1.6;">
+              Votre inscription à la <strong style="color:#1B4F72;">${options.formation}${sessionLabel}</strong> est bien enregistrée.
             </p>
 
-            <p style="margin:0 0 24px;font-size:14px;color:#566573;line-height:1.6;">
+            <p style="margin:0 0 24px;font-size:14px;color:#1C2833;line-height:1.6;">
               Vous pouvez finaliser votre paiement en ligne en vous connectant à votre compte FORGES via le lien ci-dessous :
             </p>
 
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
               <tr><td align="center">
                 <a href="https://edu.forges-group.com"
-                   style="background:#111111;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;display:inline-block;">
+                   style="background:#1B4F72;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;display:inline-block;">
                   Acceder a mon compte FORGES
                 </a>
               </td></tr>
             </table>
 
-            <p style="margin:0 0 8px;font-size:13px;color:#566573;font-style:italic;border-left:3px solid #2E86C1;padding-left:12px;line-height:1.6;">
+            <p style="margin:0 0 8px;font-size:13px;color:#1C2833;font-style:italic;border-left:3px solid #2E86C1;padding-left:12px;line-height:1.6;">
               Si vous avez deja effectue le paiement, merci d'ignorer ce message.
             </p>
 
-            <p style="margin:20px 0 0;font-size:14px;color:#566573;line-height:1.6;">
+            <p style="margin:20px 0 0;font-size:14px;color:#1C2833;line-height:1.6;">
               Pour toute question, nous restons a votre disposition.
             </p>
           </td>
         </tr>
 
         <tr>
-          <td style="background:#111111;padding:20px 32px;">
+          <td style="background:#1B4F72;padding:20px 32px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="color:#B0C4D8;font-size:12px;">
