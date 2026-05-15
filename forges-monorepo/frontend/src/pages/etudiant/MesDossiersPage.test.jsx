@@ -122,7 +122,7 @@ describe('MesDossiersPage', () => {
     renderWithProviders(<MesDossiersPage />);
 
     expect(await screen.findByText('En attente de verification')).toBeInTheDocument();
-    const paiementDirectBadge = screen.getAllByText('Paiement à initier').at(-1);
+    const paiementDirectBadge = screen.getAllByText('Paiement requis').at(-1);
     const payeBadge = screen.getAllByText('Paye').at(-1);
     const rejeteBadge = screen.getAllByText('Rejete').at(-1);
     const listeGriseBadge = screen.getAllByText('Liste grise').at(-1);

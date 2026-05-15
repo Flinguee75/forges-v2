@@ -7,6 +7,8 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/feedback/Spinner';
 import { getDossierStatutMeta, getPaiementMeta } from '../../utils/dossierStatus';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { getPaymentExpirationMs } from '../../utils/paymentDeadline';
 
 /**
  * DossierDetail - Détail d'un dossier d'inscription apprenant
@@ -17,6 +19,7 @@ export default function DossierDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [dossier, setDossier] = useState(null);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute, isLoading } = useApi();
 
@@ -57,10 +60,10 @@ export default function DossierDetail() {
   const getFormationTarif = () =>
     getFormation()?.tarif || getFormation()?.cout_catalogue || 0;
 
-  const calculateDelai72h = () => {
+  const calculateDelaiPaiement = () => {
     if (!dossier || dossier.statut !== 'RETENU') return null;
     const dateRetenu = new Date(dossier.updated_at || dossier.created_at);
-    const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
+    const dateLimite = new Date(dateRetenu.getTime() + getPaymentExpirationMs(paymentExpirationHours));
     const now = new Date();
     const heuresRestantes = Math.ceil((dateLimite - now) / (1000 * 60 * 60));
     return { dateLimite, heuresRestantes, isExpired: heuresRestantes <= 0 };
@@ -85,7 +88,7 @@ export default function DossierDetail() {
     );
   }
 
-  const delai = calculateDelai72h();
+  const delai = calculateDelaiPaiement();
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -129,10 +132,10 @@ export default function DossierDetail() {
         <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <h3 className="font-semibold text-warning">Action requise : paiement à initier</h3>
-              <p className="mt-1 text-sm text-warning">
-                Votre dossier est accepté sans vérification manuelle. Il reste à régler le montant pour confirmer définitivement votre inscription.
-              </p>
+              <h3 className="font-semibold text-warning">Action requise : paiement requis</h3>
+                <p className="mt-1 text-sm text-warning">
+                  Votre dossier est accepté sans vérification manuelle. Il reste à régler le montant pour confirmer définitivement votre inscription.
+                </p>
             </div>
             <Link to="/apprenant/paiements">
               <Button variant="warning" size="small">
@@ -189,7 +192,7 @@ export default function DossierDetail() {
           <h2 className="mb-4 text-lg font-semibold text-primary">Informations financières</h2>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-subtext">Paiement</span>
+                <span className="text-subtext">Paiement</span>
               <div>{getPaiementLabel(dossier.paiement)}</div>
             </div>
             <div className="flex justify-between">

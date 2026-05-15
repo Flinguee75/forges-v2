@@ -6,7 +6,7 @@ describe('dossierStatus utils', () => {
     const meta = getDossierStatutMeta('PAYE_DIRECTEMENT');
 
     expect(meta.variant).toBe('warning');
-    expect(meta.label).toBe('Paiement à initier');
+    expect(meta.label).toBe('Paiement requis');
   });
 
   it('distingue un paiement en attente d un dossier a initier', () => {
@@ -20,6 +20,6 @@ describe('dossierStatus utils', () => {
     const paiementMeta = getPaiementMeta(null, 'PAYE_DIRECTEMENT');
 
     expect(paiementMeta.variant).toBe('warning');
-    expect(paiementMeta.label).toBe('Paiement à initier');
+    expect(paiementMeta.label).toBe('Paiement requis');
   });
 });

@@ -175,7 +175,7 @@ export default function InscriptionsPage() {
                 <option value="">Tous</option>
                 <option value="EN_ATTENTE">En attente</option>
                 <option value="EN_ATTENTE_VERIFICATION">En vérification</option>
-              <option value="PAYE_DIRECTEMENT">Paiement à initier</option>
+              <option value="PAYE_DIRECTEMENT">Paiement requis</option>
                 <option value="PAYE">Payé (confirmé)</option>
                 <option value="CONFIRME">Confirmé</option>
                 <option value="REJETE">Rejeté</option>

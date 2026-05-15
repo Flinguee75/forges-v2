@@ -2,7 +2,7 @@ export const DOSSIER_STATUT_META = {
   EN_ATTENTE: { variant: 'gray', label: 'En attente' },
   EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
   RETENU: { variant: 'success', label: 'Retenu' },
-  PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à initier' },
+  PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement requis' },
   PAYE: { variant: 'success', label: 'Payé' },
   CONFIRME: { variant: 'success', label: 'Confirmé' },
   REJETE: { variant: 'danger', label: 'Rejeté' },
@@ -43,7 +43,7 @@ export function getPaiementMeta(paiement, dossierStatut) {
   }
 
   if (dossierStatut === 'PAYE_DIRECTEMENT' || dossierStatut === 'RETENU') {
-    return { variant: 'warning', label: 'Paiement à initier' };
+    return { variant: 'warning', label: 'Paiement requis' };
   }
 
   return { variant: 'gray', label: 'Aucun paiement initié' };

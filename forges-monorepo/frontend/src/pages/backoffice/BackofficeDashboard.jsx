@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 function formatFcfa(amount) {
   return `${Math.round(Number(amount || 0) / 100).toLocaleString('fr-FR')} FCFA`;
@@ -29,6 +30,10 @@ function StatCard({ label, value, sublabel, variant = 'gray' }) {
       </div>
     </Card>
   );
+}
+
+function formatDossierStatut(statut) {
+  return getDossierStatutMeta(statut).label;
 }
 
 function getQuickLinks(role) {
@@ -204,7 +209,7 @@ export default function BackofficeDashboard() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {Object.entries(data.dossiers_par_statut).map(([statut, count]) => (
               <div key={statut} className="rounded-lg border border-border p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-subtext">{statut}</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-subtext">{formatDossierStatut(statut)}</p>
                 <p className="mt-2 text-xl font-semibold text-text">{count}</p>
               </div>
             ))}

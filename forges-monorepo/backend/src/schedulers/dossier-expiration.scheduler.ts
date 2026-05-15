@@ -3,6 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import { prisma } from '../shared/prisma/prisma.client';
 import { EmailService } from '../shared/email/email.service';
 import { AuditLogger } from '../shared/audit/audit.logger';
+import { getDelaiPaiementH } from '../config/env.config';
 
 /**
  * DossierExpirationScheduler (Gap 1.1 - RM-07)
@@ -12,7 +13,7 @@ import { AuditLogger } from '../shared/audit/audit.logger';
  * Logique :
  * 1. Interroger Dossier WHERE statut=RETENU AND expires_at < NOW()
  * 2. Transition RETENU → ANNULE
- * 3. AuditLog('DOSSIER_ANNULE_EXPIRATION', { dossier_id, motif: 'Délai 72h expiré' })
+ * 3. AuditLog('DOSSIER_ANNULE_EXPIRATION', { dossier_id, motif: 'Délai de paiement expiré' })
  * 4. Déclencher EmailService.sendDossierAnnule(apprenant.email, formation, langue_preferee)
  * 5. Libérer places session (decrementPlacesOccupees)
  */
@@ -100,7 +101,7 @@ export class DossierExpirationScheduler {
             dossier_id: dossier.id,
             apprenant_id: dossier.apprenant_id,
             session_id: dossier.session_id,
-            motif: 'Délai 72h expiré - Aucun paiement reçu',
+            motif: `Délai de paiement expiré - Aucun paiement reçu (${getDelaiPaiementH()}h)`,
             expires_at: dossier.expires_at,
             date_annulation: now,
           });
@@ -131,7 +132,7 @@ export class DossierExpirationScheduler {
             formation.intitule,
             session.date_debut.toLocaleDateString('fr-FR'),
             session.date_fin.toLocaleDateString('fr-FR'),
-            'Délai de paiement expiré (72 heures)', // motif
+            `Délai de paiement expiré (${getDelaiPaiementH()} heures)`, // motif
             langue
           );
 

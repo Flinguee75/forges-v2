@@ -18,7 +18,7 @@
     "session_label": "📅 Session:",
     "session_dates": "From {{date_debut}} to {{date_fin}}",
     "important_title": "⏰ IMPORTANT: Payment Deadline",
-    "payment_deadline": "You have <strong>72 hours</strong> to complete the payment and confirm your registration.",
+    "payment_deadline": "You have <strong>{{delai_paiement_heures}} hours</strong> to complete the payment and confirm your registration.",
     "deadline_label": "Deadline:",
     "deadline_warning": "After this deadline, your spot will be automatically released for other candidates.",
     "cta_button": "Proceed to Payment"
@@ -37,7 +37,7 @@
     "title": "⏰ Reminder: Your Payment Deadline Expires in {{heures_restantes}}h",
     "intro": "Your application for the training <strong>{{formation_intitule}}</strong> has been accepted.",
     "warning_title": "🚨 Action Required",
-    "warning_message": "Your 72-hour payment deadline expires on <strong>{{delai_expiration}}</strong>.",
+    "warning_message": "Your <strong>{{delai_paiement_heures}}-hour</strong> payment deadline expires on <strong>{{delai_expiration}}</strong>.",
     "consequence": "Without payment before this date, your spot will be automatically released.",
     "cta_button": "Pay Now"
   },

@@ -28,12 +28,14 @@ describe('ConfigAdmin', () => {
       default_commission_apporteur_pct: 5,
       seuil_reversement_partenaire_xof: 50000,
       seuil_reversement_apporteur_xof: 5000,
+      paiement_expiration_heures: 72,
     });
     const updateSpy = vi.spyOn(dashboardApi, 'updateAdminConfig').mockResolvedValue({
       default_commission_forges_pct: 25,
       default_commission_apporteur_pct: 5,
       seuil_reversement_partenaire_xof: 50000,
       seuil_reversement_apporteur_xof: 5000,
+      paiement_expiration_heures: 72,
     });
 
     render(<ConfigAdmin />);
@@ -42,6 +44,7 @@ describe('ConfigAdmin', () => {
       expect(screen.getByText('Configuration globale')).toBeInTheDocument();
       expect(screen.getByText('20%')).toBeInTheDocument();
       expect(screen.getByText('5%')).toBeInTheDocument();
+      expect(screen.getByText('72h')).toBeInTheDocument();
     });
 
     const user = userEvent.setup();
@@ -51,6 +54,7 @@ describe('ConfigAdmin', () => {
       expect(updateSpy).toHaveBeenCalledWith({
         DEFAULT_COMMISSION_FORGES_PCT: 20,
         DEFAULT_COMMISSION_APPORTEUR_PCT: 5,
+        PAIEMENT_EXPIRATION_HEURES: 72,
         seuil_reversement_partenaire_xof: 50000,
         seuil_reversement_apporteur_xof: 5000,
       });

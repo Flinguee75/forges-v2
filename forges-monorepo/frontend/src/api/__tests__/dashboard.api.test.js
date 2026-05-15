@@ -25,7 +25,8 @@ describe('dashboardApi', () => {
       .mockResolvedValueOnce({ data: { formation: { id: 'f-1' } } })
       .mockResolvedValueOnce({ data: { session: { id: 's-1' } } })
       .mockResolvedValueOnce({ data: { role: 'ADMIN' } })
-      .mockResolvedValueOnce({ data: { default_commission_forges_pct: 20 } });
+      .mockResolvedValueOnce({ data: { default_commission_forges_pct: 20 } })
+      .mockResolvedValueOnce({ data: { paiement_expiration_heures: 72 } });
     apiClient.put.mockResolvedValue({ data: { default_commission_forges_pct: 25 } });
 
     await dashboardApi.getDashboardStats({ periode: '12mois', search: '', page: 2, empty: null });
@@ -38,6 +39,7 @@ describe('dashboardApi', () => {
     await dashboardApi.getSessionStats('s-1', { periode: '30jours' });
     await dashboardApi.getBackofficeDashboard('ADMIN');
     await dashboardApi.getBackofficeConfig();
+    await dashboardApi.getRuntimeConfig();
     await dashboardApi.updateBackofficeConfig({ DEFAULT_COMMISSION_FORGES_PCT: 25 });
 
     expect(apiClient.get).toHaveBeenCalledWith('/dashboard/stats', {
@@ -68,6 +70,7 @@ describe('dashboardApi', () => {
     });
     expect(apiClient.get).toHaveBeenCalledWith('/backoffice/dashboard/admin');
     expect(apiClient.get).toHaveBeenCalledWith('/backoffice/config');
+    expect(apiClient.get).toHaveBeenCalledWith('/backoffice/runtime/config');
     expect(apiClient.put).toHaveBeenCalledWith('/backoffice/config', {
       DEFAULT_COMMISSION_FORGES_PCT: 25,
     });

@@ -18,7 +18,7 @@
     "session_label": "📅 Session :",
     "session_dates": "Du {{date_debut}} au {{date_fin}}",
     "important_title": "⏰ IMPORTANT : Délai de paiement",
-    "payment_deadline": "Vous disposez de <strong>72 heures</strong> pour effectuer le paiement et confirmer votre inscription.",
+    "payment_deadline": "Vous disposez de <strong>{{delai_paiement_heures}} heures</strong> pour effectuer le paiement et confirmer votre inscription.",
     "deadline_label": "Date limite :",
     "deadline_warning": "Passé ce délai, votre place sera automatiquement libérée pour d'autres candidats.",
     "cta_button": "Procéder au paiement"
@@ -37,7 +37,7 @@
     "title": "⏰ Rappel : Votre délai de paiement expire dans {{heures_restantes}}h",
     "intro": "Votre candidature pour la formation <strong>{{formation_intitule}}</strong> a été retenue.",
     "warning_title": "🚨 Action requise",
-    "warning_message": "Votre délai de paiement de 72 heures expire le <strong>{{delai_expiration}}</strong>.",
+    "warning_message": "Votre délai de paiement de <strong>{{delai_paiement_heures}} heures</strong> expire le <strong>{{delai_expiration}}</strong>.",
     "consequence": "Sans paiement avant cette date, votre place sera automatiquement libérée.",
     "cta_button": "Payer maintenant"
   },

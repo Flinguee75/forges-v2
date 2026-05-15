@@ -14,6 +14,10 @@ vi.mock('../../../hooks/useApi', () => ({
   }),
 }));
 
+vi.mock('../../../hooks/usePaymentExpirationHours', () => ({
+  usePaymentExpirationHours: () => 72,
+}));
+
 const mockDossiersData = {
   data: [
     {

@@ -80,9 +80,9 @@ export default function PaiementsList() {
 
   const getStatutBadge = (statut) => {
     const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      PENDING: { variant: 'warning', label: 'En attente' },
-      INITIE: { variant: 'gray', label: 'Initié' },
+      EN_ATTENTE: { variant: 'warning', label: 'Paiement initié' },
+      PENDING: { variant: 'warning', label: 'Paiement initié' },
+      INITIE: { variant: 'warning', label: 'Paiement initié' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       ECHOUE: { variant: 'danger', label: 'Échoué' },
       EXPIRE: { variant: 'warning', label: 'Expiré' },
@@ -223,9 +223,9 @@ export default function PaiementsList() {
               className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none"
             >
               <option value="">Tous les statuts</option>
-              <option value="EN_ATTENTE">En attente</option>
-              <option value="PENDING">En attente NGSER</option>
-              <option value="INITIE">Initié</option>
+              <option value="EN_ATTENTE">Paiement initié</option>
+              <option value="PENDING">Paiement initié NGSER</option>
+              <option value="INITIE">Paiement initié</option>
               <option value="CONFIRME">Confirmé</option>
               <option value="ECHOUE">Échoué</option>
               <option value="EXPIRE">Expiré</option>

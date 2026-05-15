@@ -10,7 +10,7 @@ import Input from '../../../components/ui/Input';
 import Table from '../../../components/ui/Table';
 import Spinner from '../../../components/feedback/Spinner';
 import Pagination from '../../../components/ui/Pagination';
-import { getDossierStatutMeta, getPaiementMeta } from '../../../utils/dossierStatus';
+import { getDossierStatutMeta } from '../../../utils/dossierStatus';
 
 /**
  * DossiersList - Liste backoffice des dossiers d'inscription
@@ -66,11 +66,6 @@ export default function DossiersList() {
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
-  const getPaiementBadge = (paiement, dossierStatut) => {
-    const config = getPaiementMeta(paiement, dossierStatut);
-    return <Badge variant={config.variant} size="small">{config.label}</Badge>;
-  };
-
   // RM-19: Fonction pour identifier les dossiers prioritaires
   const isPriorityDossier = (statut) => {
     return statut === 'GRIS' || statut === 'EXCEPTION';
@@ -107,11 +102,6 @@ export default function DossiersList() {
       key: 'statut',
       label: 'Statut',
       render: (value) => getStatutBadge(value),
-    },
-    {
-      key: 'paiement',
-      label: 'Paiement',
-      render: (_, dossier) => getPaiementBadge(dossier.paiement, dossier.statut),
     },
     {
       key: 'created_at',
@@ -196,7 +186,7 @@ export default function DossiersList() {
               <option value="GRIS">Gris (priorité)</option>
               <option value="EXCEPTION">Exception (priorité)</option>
               <option value="RETENU">Retenu</option>
-              <option value="PAYE_DIRECTEMENT">Paiement à initier</option>
+              <option value="PAYE_DIRECTEMENT">Paiement requis</option>
               <option value="PAYE">Payé</option>
               <option value="CONFIRME">Confirmé</option>
               <option value="REJETE">Rejeté</option>

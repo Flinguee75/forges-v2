@@ -98,6 +98,11 @@ const getBackofficeConfig = async () => {
   return unwrapRuntimeData(response);
 };
 
+const getRuntimeConfig = async () => {
+  const response = await apiClient.get('/backoffice/runtime/config');
+  return unwrapRuntimeData(response);
+};
+
 const updateBackofficeConfig = async (payload) => {
   const response = await apiClient.put('/backoffice/config', payload);
   return unwrapRuntimeData(response);
@@ -162,6 +167,7 @@ export const dashboardApi = {
   getSessionStats,
   getBackofficeDashboard,
   getBackofficeConfig,
+  getRuntimeConfig,
   updateBackofficeConfig,
   getAdminRetailSubscriptions,
   getAdminB2BSubscriptions,

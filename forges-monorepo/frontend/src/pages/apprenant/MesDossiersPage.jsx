@@ -15,7 +15,7 @@ const STATUT_LABELS = {
   EN_ATTENTE_VERIFICATION: 'En vérification',
   RETENU: 'Retenu',
   PAYE: 'Payé',
-  PAYE_DIRECTEMENT: 'Paiement à initier',
+  PAYE_DIRECTEMENT: 'Paiement requis',
   CONFIRME: 'Confirmé',
   REFUSE: 'Refusé',
   REJETE: 'Rejeté',
@@ -30,7 +30,7 @@ const STATUS_FILTERS = [
   { value: 'EN_ATTENTE', label: 'En attente' },
   { value: 'EN_ATTENTE_VERIFICATION', label: 'En vérification' },
   { value: 'RETENU', label: 'Retenu' },
-  { value: 'PAYE_DIRECTEMENT', label: 'Paiement à initier' },
+  { value: 'PAYE_DIRECTEMENT', label: 'Paiement requis' },
   { value: 'PAYE', label: 'Payé' },
   { value: 'REFUSE', label: 'Refusé' },
   { value: 'ANNULE', label: 'Annulé' },
@@ -190,7 +190,7 @@ export default function MesDossiersPage() {
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                         <div className="text-sm">
-                          <p className="font-semibold text-warning">Paiement à initier</p>
+                          <p className="font-semibold text-warning">Paiement requis</p>
                           <p className="text-gray-700 mt-1">
                             Votre dossier est accepté, mais l'inscription ne sera confirmée qu'après validation du paiement.
                           </p>
@@ -253,7 +253,7 @@ export default function MesDossiersPage() {
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="font-semibold text-warning text-lg">Paiement encore à effectuer</p>
+              <p className="font-semibold text-warning text-lg">Paiement requis</p>
                 <p className="mt-2 text-gray-700">
                   Votre dossier est créé, mais l'inscription ne sera confirmée qu'après <strong>paiement validé</strong>.
                 </p>

@@ -185,7 +185,7 @@ export default function MesDossiersPage() {
               <option value="EN_ATTENTE">En attente</option>
               <option value="EN_ATTENTE_VERIFICATION">En attente de verification</option>
               <option value="RETENU">Retenu</option>
-              <option value="PAYE_DIRECTEMENT">Paiement à initier</option>
+              <option value="PAYE_DIRECTEMENT">Paiement requis</option>
               <option value="PAYE">Paye</option>
               <option value="CONFIRME">Confirme</option>
               <option value="REJETE">Rejete</option>

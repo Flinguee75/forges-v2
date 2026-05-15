@@ -9,6 +9,8 @@ import logoAspire from '../../assets/logo_aspire.png';
 import logoAiCrafters from '../../assets/logo_ai_crafters.png';
 import imageCcdlGw from '../../assets/image_ccdl_gw.png';
 import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationShort } from '../../utils/paymentDeadline';
 
 /**
  * LandingPage - Page d'accueil publique haute conversion
@@ -70,6 +72,7 @@ function CarouselCollaborateurs() {
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -542,8 +545,8 @@ export default function LandingPage() {
                 {openFaq === 2 && (
                   <div className="px-6 pb-4 text-subtext">
                     Une fois votre dossier d'inscription soumis, il est examiné par l'équipe de la formation
-                    dans un délai de 24 à 72 heures. Vous recevez une notification par email dès que votre
-                    dossier est validé. Le paiement doit être effectué dans les 72 heures suivant la validation.
+                    dans un délai de 24 à {formatPaymentExpirationShort(paymentExpirationHours)}. Vous recevez une notification par email dès que votre
+                    dossier est validé. Le paiement doit être effectué dans les {formatPaymentExpirationShort(paymentExpirationHours)} suivant la validation.
                   </div>
                 )}
               </div>

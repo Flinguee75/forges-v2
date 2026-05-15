@@ -1,30 +1,37 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { paiementsApi } from '../../api/paiements.api';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationShort } from '../../utils/paymentDeadline';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/feedback/Spinner';
 
-const ERROR_MESSAGES = {
-  FORBIDDEN: "Vous n'etes pas autorise a payer ce dossier.",
-  DOSSIER_NOT_FOUND: 'Dossier introuvable.',
-  DOSSIER_STATUT_INVALIDE: "Ce dossier ne peut pas etre paye dans son etat actuel.",
-  PAIEMENT_DEJA_VALIDE: 'Ce dossier a deja ete paye.',
-  PAYMENT_EXPIRED: 'Le delai de paiement de 72h est depasse.',
-  TOO_MANY_ATTEMPTS: 'Trop de tentatives. Contactez le support.',
-};
+function buildErrorMessages(hours) {
+  return {
+    FORBIDDEN: "Vous n'etes pas autorise a payer ce dossier.",
+    DOSSIER_NOT_FOUND: 'Dossier introuvable.',
+    DOSSIER_STATUT_INVALIDE: "Ce dossier ne peut pas etre paye dans son etat actuel.",
+    PAIEMENT_DEJA_VALIDE: 'Ce dossier a deja ete paye.',
+    PAYMENT_EXPIRED: `Le delai de paiement de ${formatPaymentExpirationShort(hours)} est depasse.`,
+    TOO_MANY_ATTEMPTS: 'Trop de tentatives. Contactez le support.',
+  };
+}
 
-function getErrorMessage(err) {
+function getErrorMessage(err, hours) {
   const code = err?.response?.data?.error || err?.message || '';
-  return ERROR_MESSAGES[code] || "Impossible d'initialiser le paiement. Veuillez reessayer.";
+  const messages = buildErrorMessages(hours);
+  return messages[code] || "Impossible d'initialiser le paiement. Veuillez reessayer.";
 }
 
 export default function PaiementInitiation() {
   const { dossierId } = useParams();
   const navigate = useNavigate();
+  const paymentExpirationHours = usePaymentExpirationHours();
   const [status, setStatus] = useState('loading');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorCode, setErrorCode] = useState('');
   const [paymentUrl, setPaymentUrl] = useState('');
+  const errorMessage = errorCode ? getErrorMessage({ response: { data: { error: errorCode } } }, paymentExpirationHours) : '';
 
   useEffect(() => {
     let isMounted = true;
@@ -43,7 +50,7 @@ export default function PaiementInitiation() {
         if (isBlocking) {
           if (!isMounted) return;
           setStatus('error');
-          setErrorMessage(getErrorMessage(fineoErr));
+          setErrorCode(fineoErr?.response?.data?.error || fineoErr?.message || '');
           return;
         }
 
@@ -57,7 +64,7 @@ export default function PaiementInitiation() {
         } catch (ngserErr) {
           if (!isMounted) return;
           setStatus('error');
-          setErrorMessage(getErrorMessage(ngserErr));
+          setErrorCode(ngserErr?.response?.data?.error || ngserErr?.message || '');
         }
       }
     }

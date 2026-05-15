@@ -4,6 +4,7 @@ import { InitierPaiementNgserSchema, InitierPaiementSchema, WebhookPaiementSchem
 import { createHmac } from 'crypto';
 import { QueueItem } from '../../shared/queue/ipn-queue.service';
 import { masquerSecrets } from '../../shared/utils/masque-secrets.util';
+import { getDelaiPaiementH } from '../../config/env.config';
 
 interface IpnQueuePort {
   enqueue(item: QueueItem): Promise<void>;
@@ -58,7 +59,11 @@ export class PaiementController {
         return res.status(403).json({ statusCode: 403, error: 'FORBIDDEN', message: 'Accès refusé' });
       }
       if (error.message === 'PAYMENT_EXPIRED') {
-        return res.status(410).json({ statusCode: 410, error: 'PAYMENT_EXPIRED', message: 'Le délai de paiement de 72h est dépassé (RM-07).' });
+        return res.status(410).json({
+          statusCode: 410,
+          error: 'PAYMENT_EXPIRED',
+          message: `Le délai de paiement de ${getDelaiPaiementH()}h est dépassé (RM-07).`,
+        });
       }
       if (error.message === 'TOO_MANY_ATTEMPTS') {
         return res.status(429).json({ statusCode: 429, error: 'TOO_MANY_ATTEMPTS', message: 'Nombre maximum de tentatives atteint (RM-08).' });
@@ -223,7 +228,7 @@ export class PaiementController {
   }
 
   // POST /webhooks/paiement — IPN NGSER (RM-158/160)
-  async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
+  async traiterIpnNgser(req: Request, res: Response) {
     try {
       // La doc NGSER ne décrit pas de mécanisme de signature pour l'IPN.
       // On vérifie la signature seulement si elle est présente (intégrations internes).
@@ -282,7 +287,7 @@ export class PaiementController {
   }
 
   // GET /api/paiements/retour — Payment Data Transfer NGSER (redirection post-paiement)
-  async retourPaiementNgser(req: Request, res: Response, next: NextFunction) {
+  async retourPaiementNgser(req: Request, res: Response) {
     try {
       const {
         order_id,
@@ -337,7 +342,7 @@ export class PaiementController {
   }
 
   // POST /webhooks/fineo — Callback FineoPay (PUBLIC, double vérification côté FineoPay)
-  async traiterCallbackFineo(req: Request, res: Response, next: NextFunction) {
+  async traiterCallbackFineo(req: Request, res: Response) {
     try {
       const { reference, amount, status, clientAccountNumber, timestamp, syncRef } = req.body;
 

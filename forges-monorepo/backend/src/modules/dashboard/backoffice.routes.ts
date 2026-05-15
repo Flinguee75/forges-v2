@@ -7,7 +7,13 @@ import { DashboardService } from './dashboard.service';
 import { ApporteurRepository } from '../apporteurs/apporteur.repository';
 import { ApporteurService } from '../apporteurs/apporteur.service';
 import { EmailService } from '../../shared/email/email.service';
-import { getCommissionForgesDefaut, getCommissionApporteurDefaut, getSeuilReversementPartenaire, getSeuilReversementApporteur } from '../../config/env.config';
+import {
+  getCommissionForgesDefaut,
+  getCommissionApporteurDefaut,
+  getDelaiPaiementH,
+  getSeuilReversementPartenaire,
+  getSeuilReversementApporteur,
+} from '../../config/env.config';
 
 const router = Router();
 const audit = new AuditLogger();
@@ -21,6 +27,16 @@ const getConfigPayload = () => ({
   seuil_reversement_partenaire_xof: getSeuilReversementPartenaire(),
   seuil_reversement_apporteur_xof: getSeuilReversementApporteur(),
   validation_partenaire_delai_jours: Number(process.env.VALIDATION_PARTENAIRE_DELAI_JOURS ?? 5),
+  paiement_expiration_heures: getDelaiPaiementH(),
+});
+
+router.get('/runtime/config', (_req, res) => {
+  res.status(200).json({
+    statusCode: 200,
+    data: {
+      paiement_expiration_heures: getDelaiPaiementH(),
+    },
+  });
 });
 
 router.get('/dashboard/superviseur', authenticate, authorize('SUPERVISEUR', 'ADMIN'), async (req, res, next) => {
@@ -58,6 +74,7 @@ router.put('/config', authenticate, authorize('ADMIN'), (req, res) => {
   const allowedKeys = [
     'COMMISSION_FORGES_DEFAULT_PCT',
     'COMMISSION_APPORTEUR_DEFAULT_PCT',
+    'PAIEMENT_EXPIRATION_HEURES',
     'SEUIL_REVERSEMENT_PARTENAIRE_XOF',
     'SEUIL_REVERSEMENT_APPORTEUR_XOF',
     'VALIDATION_PARTENAIRE_DELAI_JOURS',

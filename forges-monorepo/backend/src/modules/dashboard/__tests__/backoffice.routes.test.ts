@@ -88,8 +88,25 @@ describe('backoffice.routes', () => {
         seuil_reversement_partenaire_xof: 50000,
         seuil_reversement_apporteur_xof: 5000,
         validation_partenaire_delai_jours: 5,
+        paiement_expiration_heures: 72,
       });
     });
+
+    await request(app).get('/api/backoffice/runtime/config').expect(200).expect(({ body }) => {
+      expect(body.statusCode).toBe(200);
+      expect(body.data).toMatchObject({
+        paiement_expiration_heures: 72,
+      });
+    });
+
+    await request(app)
+      .put('/api/backoffice/config')
+      .send({ PAIEMENT_EXPIRATION_HEURES: 48 })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.statusCode).toBe(200);
+        expect(body.data.paiement_expiration_heures).toBe(48);
+      });
   });
 
   describe('UCS13 — Surcharge config par organisation', () => {

@@ -10,6 +10,8 @@ import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
 import { getPaiementMeta } from '../../utils/dossierStatus';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationHours, getPaymentExpirationMs } from '../../utils/paymentDeadline';
 
 /**
  * MesPaiementsPage - Gestion des paiements de l'apprenant
@@ -20,6 +22,7 @@ export default function MesPaiementsPage() {
   const [dossiers, setDossiers] = useState([]);
   const [selectedDossier, setSelectedDossier] = useState(null);
   const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute, isLoading } = useApi();
   const navigate = useNavigate();
@@ -125,10 +128,10 @@ export default function MesPaiementsPage() {
           return <span>{formatDate(dossier.paiement.expires_at)}</span>;
         }
         if (dossier.statut === 'PAYE_DIRECTEMENT') {
-          return <span className="text-subtext">Paiement à initier pour confirmer</span>;
+          return <span className="text-subtext">Paiement requis pour confirmer</span>;
         }
         const dateRetenu = new Date(dossier.updated_at || dossier.updatedAt || dossier.created_at);
-        const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
+        const dateLimite = new Date(dateRetenu.getTime() + getPaymentExpirationMs(paymentExpirationHours));
         const isExpired = dateLimite < new Date();
 
         return (
@@ -170,9 +173,9 @@ export default function MesPaiementsPage() {
       </div>
 
       <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
-        <p className="text-sm text-warning">
-          Les dossiers “Paiement à initier” ne sont pas encore payés. Ils seront confirmés uniquement après validation du paiement.
-          Pour un dossier “Retenu”, le délai de règlement est de 72 heures.
+          <p className="text-sm text-warning">
+          Les dossiers “Paiement requis” ne sont pas encore payés. Ils seront confirmés uniquement après validation du paiement.
+          Pour un dossier “Retenu”, le délai de règlement est de {formatPaymentExpirationHours(paymentExpirationHours)}.
         </p>
       </div>
 

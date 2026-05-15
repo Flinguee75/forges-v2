@@ -66,7 +66,13 @@ export class PaiementNgserService {
     };
 
     const paiement = paiementExistant
-      ? await this.prisma.paiement.update({ where: { id: paiementExistant.id }, data: ngserData })
+      ? await this.prisma.paiement.update({
+          where: { id: paiementExistant.id },
+          data: {
+            ...ngserData,
+            statut: 'PENDING',
+          },
+        })
       : await this.prisma.paiement.create({
           data: {
             dossier_id: dto.dossier_id,

@@ -8,6 +8,8 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationHours } from '../../utils/paymentDeadline';
 
 /**
  * InscriptionSessionPage - Page d'inscription à une session avec voucher
@@ -26,6 +28,7 @@ export default function InscriptionSessionPage() {
   const [formError, setFormError] = useState('');
   const [abonnementActif, setAbonnementActif] = useState(null);
   const [loadingAbonnement, setLoadingAbonnement] = useState(true);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute: executeFormation, isLoading: loadingFormation } = useApi();
   const { execute: executeSessions, isLoading: loadingSessions } = useApi();
@@ -291,7 +294,7 @@ export default function InscriptionSessionPage() {
               <div>
                 <p className="font-semibold">Engagement de paiement</p>
                 <p className="mt-1">
-                  En validant cette inscription, vous vous engagez à effectuer le paiement dans les <strong>72 heures</strong>.
+                  En validant cette inscription, vous vous engagez à effectuer le paiement dans les <strong>{formatPaymentExpirationHours(paymentExpirationHours)}</strong>.
                   Passé ce délai, votre dossier sera automatiquement annulé (RM-07).
                 </p>
               </div>

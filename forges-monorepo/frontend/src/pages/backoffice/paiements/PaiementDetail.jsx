@@ -40,9 +40,9 @@ export default function PaiementDetail() {
 
   const getStatutBadge = (statut) => {
     const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      PENDING: { variant: 'warning', label: 'En attente' },
-      INITIE: { variant: 'gray', label: 'Initié' },
+      EN_ATTENTE: { variant: 'warning', label: 'Paiement initié' },
+      PENDING: { variant: 'warning', label: 'Paiement initié' },
+      INITIE: { variant: 'warning', label: 'Paiement initié' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       ECHOUE: { variant: 'danger', label: 'Échoué' },
       EXPIRE: { variant: 'warning', label: 'Expiré' },

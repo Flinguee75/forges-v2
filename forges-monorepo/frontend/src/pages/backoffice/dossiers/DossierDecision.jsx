@@ -10,6 +10,8 @@ import Button from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
 import Spinner from '../../../components/feedback/Spinner';
 import { getDossierStatutMeta, getPaiementMeta } from '../../../utils/dossierStatus';
+import { usePaymentExpirationHours } from '../../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationHours } from '../../../utils/paymentDeadline';
 
 /**
  * DossierDecision - Page de décision sur un dossier (RETENIR ou REFUSER)
@@ -27,6 +29,7 @@ export default function DossierDecision() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [motifRefus, setMotifRefus] = useState('');
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute, isLoading } = useApi();
   const { showToast } = useToast();
@@ -57,7 +60,7 @@ export default function DossierDecision() {
     setConfirmAction({
       title: 'Confirmer la décision RETENU ?',
       message:
-        'L\'étudiant sera notifié et aura 72h pour effectuer le paiement. Cette décision est irréversible.',
+        `L'étudiant sera notifié et aura ${formatPaymentExpirationHours(paymentExpirationHours)} pour effectuer le paiement. Cette décision est irréversible.`,
       action: async () => {
         await execute(() => inscriptionsApi.retenir(id), {
           onSuccess: () => {
@@ -267,7 +270,7 @@ export default function DossierDecision() {
               <div className="mb-4 rounded-lg border-l-4 border-warning bg-warning/10 p-4">
                 <p className="text-sm font-medium text-warning">
                   Ce dossier a déjà été retenu et ne peut plus être refusé.
-                  L'étudiant dispose de 72h pour effectuer son paiement.
+                  L'étudiant dispose de {formatPaymentExpirationHours(paymentExpirationHours)} pour effectuer son paiement.
                 </p>
               </div>
             )}

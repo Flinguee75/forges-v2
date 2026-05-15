@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getDelaiPaiementH } from '../../config/env.config';
 import { buildEnrollmentConfirmationEmail } from './enrollment-confirmation-email.formatter';
 
 interface EmailOptions {
@@ -1005,6 +1006,7 @@ export class EmailService {
       date_debut: date_debut_session,
       date_fin: date_fin_session,
       delai_expiration,
+      delai_paiement_heures: getDelaiPaiementH().toString(),
       lien_paiement,
       site_url: process.env.FRONTEND_URL || 'https://forges.local',
       support_email: process.env.EMAIL_FROM || 'support@forges.local',
@@ -1057,6 +1059,7 @@ export class EmailService {
       date_debut: date_debut_session,
       date_fin: date_fin_session,
       delai_expiration,
+      delai_paiement_heures: getDelaiPaiementH().toString(),
       heures_restantes: heures_restantes.toString(),
       lien_paiement,
       site_url: process.env.FRONTEND_URL || 'https://forges.local',
