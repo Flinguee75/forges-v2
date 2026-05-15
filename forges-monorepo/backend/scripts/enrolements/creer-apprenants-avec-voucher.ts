@@ -5,10 +5,12 @@
  *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --formation frm-123 --session ses-456
  *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --formation frm-123 --session ses-456 --row 3
  *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --formation frm-123 --session ses-456 --limit 1 --dry-run
+ *   node -r ts-node/register/transpile-only scripts/enrolements/creer-apprenants-avec-voucher.ts --file /Users/tidianecisse/Downloads/apprenants\ avec\ voucher.csv --formation frm-123 --session ses-456 --limit 70 --no-email
  *
  * Variables d'environnement:
  *   DATABASE_URL           Obligatoire.
  *   DRY_RUN=true           Simule sans ecrire en base.
+ *   NO_EMAIL=true          Lance le flux réel sans envoi d'email.
  */
 
 import * as dotenv from 'dotenv';
@@ -38,6 +40,7 @@ const sessionFlag = args.indexOf('--session');
 const rowFlag = args.indexOf('--row');
 const limitFlag = args.indexOf('--limit');
 const dryRun = args.includes('--dry-run') || process.env.DRY_RUN === 'true';
+const noEmail = args.includes('--no-email') || process.env.NO_EMAIL === 'true';
 
 if (fileFlag === -1 || !args[fileFlag + 1]) {
   console.error('Usage: creer-apprenants-avec-voucher.ts --file <chemin/vers/fichier.csv> --formation <id> --session <id> [--row <ligne>] [--limit <n>] [--dry-run]');
@@ -71,7 +74,16 @@ const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl.includes('connection_limit') ? dbUrl : `${dbUrl}?connection_limit=3` } },
 });
 
-const emailService = new EmailService();
+const emailService = noEmail
+  ? {
+      notifyResponsable: async () => undefined,
+      sendEnrolementConfirmationApprenant: async () => undefined,
+      sendPaiementConfirme: async () => undefined,
+      sendDossierRetenu: async () => undefined,
+      sendDossierRejete: async () => undefined,
+      sendDossierAnnuleExpiration: async () => undefined,
+    }
+  : new EmailService();
 const audit = new AuditLogger(prisma);
 const dossierRepo = new DossierRepository(prisma);
 const sessionRepo = new SessionRepository(prisma);
@@ -163,6 +175,7 @@ async function main() {
   console.log('\n' + '═'.repeat(72));
   console.log('  FORGES — Script apprenants avec voucher CSV');
   console.log(`  Mode : ${dryRun ? '🔵 DRY-RUN (simulation)' : '🔴 EXÉCUTION RÉELLE'}`);
+  if (noEmail) console.log('  Emails : OFF (mode no-email)');
   console.log(`  CSV  : ${path.relative(process.cwd(), inputPath)}`);
   console.log(`  Formation cible : ${formation.intitule} (${formation.id})`);
   console.log(`  Session cible    : ${session.id}`);
