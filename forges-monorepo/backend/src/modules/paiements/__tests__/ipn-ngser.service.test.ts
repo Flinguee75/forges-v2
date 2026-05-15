@@ -705,4 +705,75 @@ describe('IpnNgserService — RM-158/160', () => {
       await expect(service.traiterIpn(ipn)).rejects.toThrow('IPN_ORDER_MANQUANT');
     });
   });
+
+  describe('RM-158 — Race condition : second IPN SUCCESS ignore', () => {
+    const RACE_DOSSIER_ID = 'D-TEST-RACE-001';
+    const RACE_PAIEMENT_ID = 'P-TEST-RACE-001';
+    const RACE_ORDER = 'FRG-RACE-2026-001';
+    const RACE_TX_ID = 'TXN-RACE-001';
+
+    beforeAll(async () => {
+      await prisma.commissionApporteur.deleteMany({ where: { paiement_id: RACE_PAIEMENT_ID } });
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: RACE_PAIEMENT_ID } });
+      await prisma.paiement.deleteMany({ where: { id: RACE_PAIEMENT_ID } });
+      await prisma.dossier.deleteMany({ where: { id: RACE_DOSSIER_ID } });
+
+      await prisma.dossier.create({
+        data: {
+          id: RACE_DOSSIER_ID,
+          apprenant_id: TEST_IDS.apprenant,
+          formation_id: TEST_IDS.formation,
+          session_id: TEST_IDS.session,
+          source_financement: 'RETAIL',
+          statut: 'PAYE',
+        },
+      });
+
+      await prisma.paiement.create({
+        data: {
+          id: RACE_PAIEMENT_ID,
+          dossier_id: RACE_DOSSIER_ID,
+          montant_catalogue: MONTANT_INITIE_CENTIMES,
+          montant_final: MONTANT_INITIE_CENTIMES,
+          montant_initie: MONTANT_INITIE_CENTIMES,
+          methode: 'MOBILE_MONEY',
+          statut: 'CONFIRME',
+          transaction_id: RACE_TX_ID,
+          confirmed_at: new Date(),
+          order_ngser: RACE_ORDER,
+          provider: 'NGSER',
+          reduction_appliquee: 0,
+        },
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.commissionApporteur.deleteMany({ where: { paiement_id: RACE_PAIEMENT_ID } });
+      await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: RACE_PAIEMENT_ID } });
+      await prisma.paiement.deleteMany({ where: { id: RACE_PAIEMENT_ID } });
+      await prisma.dossier.deleteMany({ where: { id: RACE_DOSSIER_ID } });
+    });
+
+    it('retourne already_processed et ne cree pas de commission si le paiement est deja CONFIRME', async () => {
+      const result = await service.traiterIpn({
+        order_id: RACE_ORDER,
+        order_ngser: RACE_ORDER,
+        transaction_id: 'TXN-RACE-002',
+        status_id: 1,
+        amount: MONTANT_XOF,
+      });
+
+      expect(result).toEqual(expect.objectContaining({ already_processed: true }));
+
+      const commissions = await prisma.commissionApporteur.findMany({
+        where: { paiement_id: RACE_PAIEMENT_ID },
+      });
+      expect(commissions).toHaveLength(0);
+
+      const commissionsPartenaire = await prisma.commissionPartenaire.findMany({
+        where: { paiement_id: RACE_PAIEMENT_ID },
+      });
+      expect(commissionsPartenaire).toHaveLength(0);
+    });
+  });
 });
