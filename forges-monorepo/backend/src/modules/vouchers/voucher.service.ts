@@ -391,4 +391,29 @@ export class VoucherService {
     if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
     await this.voucherRepo.delete(id, voucher.type as any);
   }
+
+  async getUtilisateurs(id: string) {
+    const voucher = await this.voucherRepo.findById(id);
+    if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
+
+    const dossiers = await this.prisma.dossier.findMany({
+      where: { voucher_organisation_id: id },
+      select: {
+        id: true,
+        statut: true,
+        created_at: true,
+        apprenant: {
+          select: { id: true, nom: true, prenoms: true, email: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    } as any);
+
+    return (dossiers as any[]).map((d) => ({
+      dossier_id: d.id,
+      statut: d.statut,
+      date_utilisation: d.created_at,
+      apprenant: d.apprenant,
+    }));
+  }
 }

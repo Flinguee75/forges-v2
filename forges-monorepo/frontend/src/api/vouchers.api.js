@@ -49,6 +49,11 @@ export const vouchersApi = {
     return normalizeVoucher(unwrapPayload(response));
   },
 
+  getUtilisateurs: async (id) => {
+    const response = await apiClient.get(`/vouchers/${id}/utilisateurs`);
+    return unwrapPayload(response);
+  },
+
   getByCode: async (code) => {
     const response = await apiClient.get(`/vouchers/code/${code}`);
     return normalizeVoucher(unwrapPayload(response));

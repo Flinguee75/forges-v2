@@ -40,6 +40,10 @@ router.get('/code/:code', authenticate, authorize('APPRENANT', 'ORGANISATION', '
   voucherController.getByCode(req, res, next);
 });
 
+router.get('/:id/utilisateurs', authenticate, authorize('ADMIN', 'AGENT', 'SUPERVISEUR'), (req, res, next) => {
+  voucherController.getUtilisateurs(req, res, next);
+});
+
 router.get('/:id', authenticate, authorize('ADMIN', 'AGENT', 'SUPERVISEUR', 'ORGANISATION'), (req, res, next) => {
   voucherController.getById(req, res, next);
 });

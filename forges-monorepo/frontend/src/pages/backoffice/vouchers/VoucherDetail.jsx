@@ -71,10 +71,15 @@ export default function VoucherDetail() {
 
   const [voucher, setVoucher] = useState(null);
   const [motif, setMotif] = useState('');
+  const [utilisateurs, setUtilisateurs] = useState([]);
 
   useEffect(() => {
     execute(() => vouchersApi.getById(id), {
       onSuccess: setVoucher,
+      showErrorToast: false,
+    });
+    execute(() => vouchersApi.getUtilisateurs(id), {
+      onSuccess: (data) => setUtilisateurs(Array.isArray(data) ? data : []),
       showErrorToast: false,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,6 +250,59 @@ export default function VoucherDetail() {
           </div>
         </Card>
       )}
+
+      <Card>
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">
+          Utilisateurs ({utilisateurs.length})
+        </h3>
+        {utilisateurs.length === 0 ? (
+          <p className="text-sm text-subtext">Aucun apprenant n'a encore utilisé ce voucher.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Nom</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Email</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Statut dossier</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Date d'utilisation</th>
+                  <th className="pb-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {utilisateurs.map((u) => (
+                  <tr key={u.dossier_id} className="hover:bg-bg">
+                    <td className="py-3 font-medium text-text">
+                      {u.apprenant?.nom} {u.apprenant?.prenoms}
+                    </td>
+                    <td className="py-3 text-subtext">{u.apprenant?.email || '-'}</td>
+                    <td className="py-3">
+                      <Badge variant={
+                        u.statut === 'PAYE' ? 'success'
+                        : u.statut === 'RETENU' ? 'warning'
+                        : u.statut === 'ANNULE' || u.statut === 'REJETE' ? 'danger'
+                        : 'gray'
+                      }>
+                        {u.statut}
+                      </Badge>
+                    </td>
+                    <td className="py-3 text-subtext">{formatDateTime(u.date_utilisation)}</td>
+                    <td className="py-3 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/backoffice/dossiers/${u.dossier_id}`)}
+                      >
+                        Voir dossier
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       <div className="flex justify-end">
         <Button variant="outline" onClick={() => navigate('/backoffice/vouchers')}>

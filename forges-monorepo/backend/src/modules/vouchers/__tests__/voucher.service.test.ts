@@ -45,6 +45,7 @@ describe('VoucherService', () => {
       },
       dossier: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
       },
       paiement: {
         findFirst: jest.fn(),
@@ -233,5 +234,51 @@ describe('VoucherService', () => {
       'Formation Test',
       'Org Test'
     );
+  });
+
+  describe('getUtilisateurs', () => {
+    it('retourne la liste des apprenants ayant utilisé le voucher', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', type: 'ORGANISATION' } as any);
+      (mockPrisma.dossier.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'dossier-01',
+          statut: 'PAYE',
+          created_at: new Date('2026-05-01'),
+          apprenant: { id: 'app-01', nom: 'DOGBA', prenoms: 'Benjamin', email: 'dogba@test.ci' },
+        },
+        {
+          id: 'dossier-02',
+          statut: 'RETENU',
+          created_at: new Date('2026-05-02'),
+          apprenant: { id: 'app-02', nom: 'DJE', prenoms: 'Hiba', email: 'dje@test.ci' },
+        },
+      ]);
+
+      const result = await service.getUtilisateurs('voucher-01');
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        dossier_id: 'dossier-01',
+        statut: 'PAYE',
+        date_utilisation: new Date('2026-05-01'),
+        apprenant: { id: 'app-01', nom: 'DOGBA', prenoms: 'Benjamin', email: 'dogba@test.ci' },
+      });
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { voucher_organisation_id: 'voucher-01' },
+      }));
+    });
+
+    it('lève VOUCHER_NOT_FOUND si le voucher n\'existe pas', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+      await expect(service.getUtilisateurs('inexistant')).rejects.toThrow('VOUCHER_NOT_FOUND');
+    });
+
+    it('retourne une liste vide si aucun dossier n\'utilise le voucher', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', type: 'ORGANISATION' } as any);
+      (mockPrisma.dossier.findMany as jest.Mock).mockResolvedValue([]);
+
+      const result = await service.getUtilisateurs('voucher-01');
+      expect(result).toEqual([]);
+    });
   });
 });

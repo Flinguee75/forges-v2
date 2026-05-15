@@ -186,4 +186,14 @@ export class VoucherController {
       next(error);
     }
   }
+
+  async getUtilisateurs(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await this.voucherService.getUtilisateurs(req.params.id);
+      res.status(200).json({ statusCode: 200, data });
+    } catch (error: any) {
+      if (error.message === 'VOUCHER_NOT_FOUND') return res.status(404).json({ statusCode: 404, error: 'VOUCHER_NOT_FOUND' });
+      next(error);
+    }
+  }
 }
