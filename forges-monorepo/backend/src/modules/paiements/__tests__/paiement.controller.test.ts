@@ -315,7 +315,6 @@ describe('PaiementController', () => {
       const res = createMockRes();
       const next = createNext();
       mockService.traiterIpnNgser.mockResolvedValue(undefined);
-      process.env.NODE_ENV = 'test';
 
       await controller.traiterIpnNgser(req, res, next);
 
