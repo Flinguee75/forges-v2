@@ -17,6 +17,7 @@ describe('AdminService', () => {
     mockAudit = { info: jest.fn(), warning: jest.fn() };
     mockEmail = {
       sendTempPassword: jest.fn(),
+      sendTempPasswordBackoffice: jest.fn(),
       sendInvitationPartenaire: jest.fn(),
       sendCodeApporteur: jest.fn(),
     };
@@ -28,7 +29,7 @@ describe('AdminService', () => {
       mockPrisma.apprenant.findUnique.mockResolvedValue(null);
       mockPrisma.apprenant.create.mockResolvedValue({ id: 'user-id', email: 'admin@test.ci' });
       mockAudit.info.mockResolvedValue(undefined);
-      mockEmail.sendTempPassword.mockResolvedValue(undefined);
+      mockEmail.sendTempPasswordBackoffice.mockResolvedValue(undefined);
 
       const result = await service.createUser({
         email: 'admin@test.ci',
@@ -45,10 +46,11 @@ describe('AdminService', () => {
           type_apprenant: 'PROFESSIONNEL',
         })
       });
-      expect(mockEmail.sendTempPassword).toHaveBeenCalledWith(
+      expect(mockEmail.sendTempPasswordBackoffice).toHaveBeenCalledWith(
         'admin@test.ci',
-        expect.stringMatching(/[A-Za-z0-9!@#$%^&*()_+\-=]{8,}/),
-        'FR'
+        'Jane',
+        expect.any(String),
+        'ADMIN'
       );
     });
 

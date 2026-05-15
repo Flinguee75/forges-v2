@@ -41,7 +41,7 @@ describe('BotController', () => {
       expect(res.json).toHaveBeenCalledWith({ statusCode: 200, data: mockSession });
     });
 
-    it('retourne 404 si aucune session active', async () => {
+    it('retourne 200 avec data null si aucune session active', async () => {
       const req = createMockReq({ user: { userId: 'app-01' } });
       const res = createMockRes();
       const next = createNext();
@@ -50,13 +50,8 @@ describe('BotController', () => {
       await controller.getActiveSession(req, res, next);
 
       expect(mockService.getSessionActive).toHaveBeenCalledWith('app-01');
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({
-        statusCode: 404,
-        error: 'NOT_FOUND',
-        code: 'NOT_FOUND',
-        message: 'Aucune session active'
-      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ statusCode: 200, data: null });
     });
 
     it('délègue les erreurs au middleware de gestion d\'erreurs', async () => {

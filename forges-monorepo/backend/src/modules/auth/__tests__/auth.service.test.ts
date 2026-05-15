@@ -94,7 +94,7 @@ describe('AuthService', () => {
 
     expect(sign).toHaveBeenNthCalledWith(1, { sub: 'user-01', role: 'ADMIN' }, 'jwt-secret', { expiresIn: '1h' });
     expect(sign).toHaveBeenNthCalledWith(2, { sub: 'user-01' }, 'refresh-secret', { expiresIn: '7d' });
-    expect(mockAudit.info).toHaveBeenCalledWith('LOGIN_SUCCESS', { userId: 'user-01', ip: '127.0.0.1' });
+    expect(mockAudit.info).toHaveBeenCalledWith('LOGIN_SUCCESS', { userId: 'user-01', ip: '127.0.0.1', role: 'ADMIN' });
     expect(result).toEqual({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',

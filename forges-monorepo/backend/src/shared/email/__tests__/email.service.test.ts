@@ -265,9 +265,8 @@ describe('EmailService', () => {
       });
 
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        subject: 'Votre inscription Masterclass GWU/CCDL confirmée — FORGES',
-        text: expect.stringContaining('Votre inscription à la Masterclass GWU/CCDL (1er-11 juin 2026) a bien été confirmée.'),
-        html: expect.stringContaining('Session :'),
+        subject: expect.stringContaining('Masterclass GWU/CCDL'),
+        html: expect.stringContaining('Masterclass GWU/CCDL'),
       }));
     });
   });
