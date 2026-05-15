@@ -228,7 +228,7 @@ export class PaiementController {
   }
 
   // POST /webhooks/paiement — IPN NGSER (RM-158/160)
-  async traiterIpnNgser(req: Request, res: Response) {
+  async traiterIpnNgser(req: Request, res: Response, next: NextFunction) {
     try {
       // La doc NGSER ne décrit pas de mécanisme de signature pour l'IPN.
       // On vérifie la signature seulement si elle est présente (intégrations internes).
@@ -287,7 +287,7 @@ export class PaiementController {
   }
 
   // GET /api/paiements/retour — Payment Data Transfer NGSER (redirection post-paiement)
-  async retourPaiementNgser(req: Request, res: Response) {
+  async retourPaiementNgser(req: Request, res: Response, next: NextFunction) {
     try {
       const {
         order_id,
@@ -342,7 +342,7 @@ export class PaiementController {
   }
 
   // POST /webhooks/fineo — Callback FineoPay (PUBLIC, double vérification côté FineoPay)
-  async traiterCallbackFineo(req: Request, res: Response) {
+  async traiterCallbackFineo(req: Request, res: Response, next: NextFunction) {
     try {
       const { reference, amount, status, clientAccountNumber, timestamp, syncRef } = req.body;
 
