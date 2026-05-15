@@ -435,4 +435,30 @@ describe('PaiementController', () => {
       );
     });
   });
+
+  describe('configuration securite webhook', () => {
+    it('utilise WEBHOOK_SECRET depuis les variables d environnement', async () => {
+      const secret = 'mon-secret-prod-32chars';
+      process.env.WEBHOOK_SECRET = secret;
+
+      const body = { order_id: 'FRG-TEST', status_id: 1 };
+      const payload = JSON.stringify(body);
+      const validSig = createHmac('sha256', secret).update(payload).digest('hex');
+
+      const req = createMockReq({
+        body,
+        headers: { 'x-webhook-signature': validSig },
+      });
+      const res = createMockRes();
+      const next = createNext();
+      mockService.traiterIpnNgser.mockResolvedValue(undefined);
+
+      await controller.traiterIpnNgser(req, res, next);
+
+      expect(mockService.traiterIpnNgser).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+
+      process.env.WEBHOOK_SECRET = 'webhook-secret'; // restaurer
+    });
+  });
 });

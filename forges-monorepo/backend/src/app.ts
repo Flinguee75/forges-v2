@@ -7,6 +7,15 @@ import dotenv from 'dotenv';
 // Charger les variables d'environnement
 dotenv.config();
 
+// =====================================================
+// SECURITE - VALIDATION DES VARIABLES CRITIQUES
+// =====================================================
+
+if (process.env.NODE_ENV === 'production' && !process.env.WEBHOOK_SECRET) {
+  console.error('[FATAL] WEBHOOK_SECRET non defini en production. Arret du serveur.');
+  process.exit(1);
+}
+
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
