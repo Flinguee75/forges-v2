@@ -37,42 +37,42 @@ export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmation
     subject: `Votre inscription ${options.formation} — Finalisez votre paiement`,
     text: plainText,
     html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-        <div style="background:#1a1a2e;padding:24px 32px;text-align:center;">
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1C2833;border:1px solid #D5D8DC;border-radius:8px;overflow:hidden;">
+        <div style="background:#1B4F72;padding:24px 32px;text-align:center;">
           <img src="https://edu.forges-group.com/logo_forges.png" alt="FORGES" style="height:48px;display:block;margin:0 auto;" />
         </div>
 
-        <div style="padding:32px;">
-          <p style="font-size:15px;color:#333;margin-top:0;">Bonjour <strong>${options.prenoms}</strong>,</p>
+        <div style="background:#F4F6F7;padding:32px;">
+          <p style="font-size:15px;color:#1C2833;margin-top:0;">Bonjour <strong>${options.prenoms}</strong>,</p>
 
-          <p style="font-size:15px;color:#333;line-height:1.6;">
+          <p style="font-size:15px;color:#1C2833;line-height:1.6;">
             Votre inscription à la <strong>${options.formation}${sessionLabel}</strong> est bien enregistrée.
           </p>
 
-          <p style="font-size:15px;color:#333;line-height:1.6;">
+          <p style="font-size:15px;color:#1C2833;line-height:1.6;">
             Vous pouvez finaliser votre paiement en ligne en vous connectant à votre compte FORGES via le lien ci-dessous :
           </p>
 
           <div style="text-align:center;margin:28px 0;">
             <a href="https://edu.forges-group.com"
-               style="background:#1a1a2e;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:15px;font-weight:600;display:inline-block;">
+               style="background:#2E86C1;color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;display:inline-block;">
               Accéder à mon compte FORGES
             </a>
           </div>
 
-          <p style="font-size:13px;color:#888;line-height:1.6;">
+          <p style="font-size:13px;color:#566573;line-height:1.6;">
             Si vous avez déjà effectué le paiement, merci d'ignorer ce message.
           </p>
 
-          <p style="font-size:14px;color:#555;line-height:1.6;">
+          <p style="font-size:14px;color:#566573;line-height:1.6;">
             Pour toute question, nous restons à votre disposition.
           </p>
 
-          <div style="border-top:1px solid #e2e8f0;margin-top:32px;padding-top:20px;">
-            <p style="font-size:13px;color:#555;margin:0;">Cordialement,</p>
-            <p style="font-size:13px;color:#333;font-weight:600;margin:4px 0 0;">L'équipe FORGES</p>
-            <p style="font-size:12px;color:#aaa;margin:4px 0 0;">
-              <a href="mailto:contact@forges-group.com" style="color:#888;">contact@forges-group.com</a>
+          <div style="border-top:1px solid #D5D8DC;margin-top:32px;padding-top:20px;">
+            <p style="font-size:13px;color:#566573;margin:0;">Cordialement,</p>
+            <p style="font-size:13px;color:#1B4F72;font-weight:600;margin:4px 0 0;">L'équipe FORGES</p>
+            <p style="font-size:12px;color:#566573;margin:4px 0 0;">
+              <a href="mailto:contact@forges-group.com" style="color:#2E86C1;">contact@forges-group.com</a>
             </p>
           </div>
         </div>
