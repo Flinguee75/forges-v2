@@ -383,4 +383,56 @@ describe('PaiementController', () => {
       expect(res.redirect).toHaveBeenCalledWith(302, expect.any(String));
     });
   });
+
+  describe('retourPaiementNgser — PDT securise', () => {
+    it('ne declenche pas de traitement IPN meme avec status_id=1', async () => {
+      const req = createMockReq({
+        query: {
+          order_id: 'FRG-2026-042-A3F7B2',
+          status_id: '1',
+          transaction_id: 'TXN-001',
+        },
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.retourPaiementNgser(req, res, next);
+
+      expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
+    });
+
+    it('redirige vers /apprenant/paiements/callback avec status=success si status_id=1', async () => {
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '1' },
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.retourPaiementNgser(req, res, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        302,
+        expect.stringContaining('/apprenant/paiements/callback')
+      );
+      expect(res.redirect).toHaveBeenCalledWith(
+        302,
+        expect.stringContaining('status=success')
+      );
+    });
+
+    it('redirige avec status=fail si status_id=0', async () => {
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '0' },
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.retourPaiementNgser(req, res, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        302,
+        expect.stringContaining('status=fail')
+      );
+    });
+  });
 });
