@@ -18,7 +18,10 @@ export class DossierRepository {
 
   async findBySession(sessionId: string) {
     const dossiers = await this.prisma.dossier.findMany({
-      where: { session_id: sessionId },
+      where: {
+        session_id: sessionId,
+        statut: { notIn: ['ANNULE', 'REJETE', 'REFUSE'] },
+      },
       include: {
         apprenant: {
           select: {
