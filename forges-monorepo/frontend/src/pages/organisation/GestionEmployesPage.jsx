@@ -10,6 +10,7 @@ import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/feedback/Spinner';
 import Pagination from '../../components/ui/Pagination';
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 /**
  * GestionEmployesPage - Gestion des employés/bénéficiaires de l'organisation
@@ -111,20 +112,7 @@ export default function GestionEmployesPage() {
       return <span className="text-xs text-subtext">Aucun dossier</span>;
     }
 
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
-      PAYE: { variant: 'success', label: 'Payé' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REJETE: { variant: 'danger', label: 'Rejeté' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-
-    const config = mapping[dernierDossier.statut] || { variant: 'gray', label: dernierDossier.statut };
+    const config = getDossierStatutMeta(dernierDossier.statut);
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 

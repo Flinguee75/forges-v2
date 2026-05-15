@@ -8,28 +8,14 @@ import Button from '../../components/ui/Button';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
 import Modal from '../../components/ui/Modal';
-
-const STATUT_COLORS = {
-  EN_ATTENTE: 'warning',
-  EN_ATTENTE_VERIFICATION: 'warning',
-  RETENU: 'success',
-  PAYE: 'success',
-  PAYE_DIRECTEMENT: 'warning',
-  CONFIRME: 'success',
-  REFUSE: 'danger',
-  REJETE: 'danger',
-  ANNULE: 'neutral',
-  GRIS: 'neutral',
-  EXCEPTION: 'warning',
-  ARCHIVE: 'neutral',
-};
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 const STATUT_LABELS = {
   EN_ATTENTE: 'En attente',
   EN_ATTENTE_VERIFICATION: 'En vérification',
   RETENU: 'Retenu',
   PAYE: 'Payé',
-  PAYE_DIRECTEMENT: 'Paiement à effectuer',
+  PAYE_DIRECTEMENT: 'Paiement à initier',
   CONFIRME: 'Confirmé',
   REFUSE: 'Refusé',
   REJETE: 'Rejeté',
@@ -44,7 +30,7 @@ const STATUS_FILTERS = [
   { value: 'EN_ATTENTE', label: 'En attente' },
   { value: 'EN_ATTENTE_VERIFICATION', label: 'En vérification' },
   { value: 'RETENU', label: 'Retenu' },
-  { value: 'PAYE_DIRECTEMENT', label: 'Paiement à effectuer' },
+  { value: 'PAYE_DIRECTEMENT', label: 'Paiement à initier' },
   { value: 'PAYE', label: 'Payé' },
   { value: 'REFUSE', label: 'Refusé' },
   { value: 'ANNULE', label: 'Annulé' },
@@ -159,8 +145,8 @@ export default function MesDossiersPage() {
                     <h3 className="text-lg font-semibold text-text" data-testid={`dossier-title-${dossier.id}`}>
                       {getFormationTitre(dossier)}
                     </h3>
-                    <Badge variant={STATUT_COLORS[dossier.statut] || 'neutral'} data-testid={`dossier-status-${dossier.id}`}>
-                      {STATUT_LABELS[dossier.statut] || dossier.statut}
+                    <Badge variant={getDossierStatutMeta(dossier.statut).variant} data-testid={`dossier-status-${dossier.id}`}>
+                      {STATUT_LABELS[dossier.statut] || getDossierStatutMeta(dossier.statut).label}
                     </Badge>
                   </div>
 
@@ -204,7 +190,7 @@ export default function MesDossiersPage() {
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                         <div className="text-sm">
-                          <p className="font-semibold text-warning">Paiement à effectuer</p>
+                          <p className="font-semibold text-warning">Paiement à initier</p>
                           <p className="text-gray-700 mt-1">
                             Votre dossier est accepté, mais l'inscription ne sera confirmée qu'après validation du paiement.
                           </p>

@@ -6,6 +6,7 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/feedback/Spinner';
+import { getDossierStatutMeta, getPaiementMeta } from '../../utils/dossierStatus';
 
 /**
  * DossierDetail - Détail d'un dossier d'inscription apprenant
@@ -33,21 +34,7 @@ export default function DossierDetail() {
   }, [id]);
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En attente de vérification' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
-      PAYE: { variant: 'success', label: 'Payé' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REJETE: { variant: 'danger', label: 'Rejeté' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Liste grise' },
-      EXCEPTION: { variant: 'warning', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -86,14 +73,7 @@ export default function DossierDetail() {
     ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && !isPaiementConfirme(dossier);
 
   const getPaiementLabel = (paiement) => {
-    const mapping = {
-      CONFIRME: { variant: 'success', label: 'Paiement confirmé' },
-      PENDING: { variant: 'warning', label: 'Paiement en cours' },
-      EN_ATTENTE: { variant: 'warning', label: 'Paiement initié' },
-      ECHOUE: { variant: 'danger', label: 'Paiement échoué' },
-      EXPIRE: { variant: 'danger', label: 'Paiement expiré' },
-    };
-    const config = mapping[paiement?.statut] || { variant: 'gray', label: 'Aucun paiement initié' };
+    const config = getPaiementMeta(paiement, dossier?.statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -149,7 +129,7 @@ export default function DossierDetail() {
         <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <h3 className="font-semibold text-warning">Action requise : paiement à effectuer</h3>
+              <h3 className="font-semibold text-warning">Action requise : paiement à initier</h3>
               <p className="mt-1 text-sm text-warning">
                 Votre dossier est accepté sans vérification manuelle. Il reste à régler le montant pour confirmer définitivement votre inscription.
               </p>

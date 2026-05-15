@@ -62,6 +62,7 @@ export default function PaiementDetail() {
       VIREMENT: { label: 'Virement' },
       VOUCHER_ORG: { label: 'Voucher Organisation' },
       VOUCHER_PROMO: { label: 'Voucher Promo' },
+      DIRECT: { label: 'Paiement direct' },
     };
 
     const config = mapping[canal] || { label: canal || '-' };

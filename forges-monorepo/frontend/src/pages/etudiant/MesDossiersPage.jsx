@@ -8,6 +8,7 @@ import Table from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 /**
  * MesDossiersPage - Liste des dossiers d'inscription de l'apprenant
@@ -52,22 +53,7 @@ export default function MesDossiersPage() {
   }, [filters]);
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'gray', label: 'En attente de verification' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
-      PAYE: { variant: 'success', label: 'Paye' },
-      CONFIRME: { variant: 'success', label: 'Confirme' },
-      REJETE: { variant: 'danger', label: 'Rejete' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Liste grise' },
-      EXCEPTION: { variant: 'warning', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -199,7 +185,7 @@ export default function MesDossiersPage() {
               <option value="EN_ATTENTE">En attente</option>
               <option value="EN_ATTENTE_VERIFICATION">En attente de verification</option>
               <option value="RETENU">Retenu</option>
-              <option value="PAYE_DIRECTEMENT">Paiement à effectuer</option>
+              <option value="PAYE_DIRECTEMENT">Paiement à initier</option>
               <option value="PAYE">Paye</option>
               <option value="CONFIRME">Confirme</option>
               <option value="REJETE">Rejete</option>

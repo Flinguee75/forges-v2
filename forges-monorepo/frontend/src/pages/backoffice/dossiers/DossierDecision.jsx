@@ -9,6 +9,7 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
 import Spinner from '../../../components/feedback/Spinner';
+import { getDossierStatutMeta, getPaiementMeta } from '../../../utils/dossierStatus';
 
 /**
  * DossierDecision - Page de décision sur un dossier (RETENIR ou REFUSER)
@@ -141,22 +142,7 @@ export default function DossierDecision() {
   };
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
-      RETENU: { variant: 'info', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
-      PAYE: { variant: 'success', label: 'Payé' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REJETE: { variant: 'danger', label: 'Rejeté' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Gris' },
-      EXCEPTION: { variant: 'danger', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -186,15 +172,7 @@ export default function DossierDecision() {
   };
 
   const getPaiementLabel = (paiementValue) => {
-    const mapping = {
-      CONFIRME: { variant: 'success', label: 'Paiement confirmé' },
-      EN_ATTENTE: { variant: 'warning', label: 'Paiement en attente' },
-      PENDING: { variant: 'warning', label: 'Paiement en cours' },
-      ECHOUE: { variant: 'danger', label: 'Paiement échoué' },
-      EXPIRE: { variant: 'danger', label: 'Paiement expiré' },
-    };
-
-    const config = mapping[paiementValue?.statut] || { variant: 'gray', label: 'Aucun paiement' };
+    const config = getPaiementMeta(paiementValue, dossier?.statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 

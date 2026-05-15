@@ -78,6 +78,7 @@ describe('InscriptionService', () => {
     mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
     mockPrisma.voucherApporteur.findFirst.mockResolvedValue(null);
     mockPrisma.paiement.findUnique.mockResolvedValue(null);
+    mockPrisma.paiement.create.mockResolvedValue({ id: 'paiement-default' } as any);
 
     service = new InscriptionService(
       mockDossierRepo,
@@ -121,12 +122,13 @@ describe('InscriptionService', () => {
     ).rejects.toThrow('VOUCHER_CUMUL_INTERDIT');
   });
 
-  it('crée un dossier payé directement pour une formation non premium retail', async () => {
+  it('crée un dossier payé directement avec une ligne paiement en attente pour une formation non premium retail', async () => {
     mockSessionRepo.findById.mockResolvedValue(baseSession as any);
     mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
     mockPrisma.dossier.count.mockResolvedValue(2); // 2 dossiers actifs → (2+1)/10 = 30% NORMAL
     mockFormationRepo.findById.mockResolvedValue({ id: 'formation-01', type_formation: 'STANDARD', cout_catalogue: 100000 } as any);
     mockDossierRepo.create.mockResolvedValue({ id: 'dossier-01', statut: 'PAYE_DIRECTEMENT' } as any);
+    mockPrisma.paiement.create.mockResolvedValue({ id: 'paiement-direct' } as any);
     mockAudit.info.mockResolvedValue(undefined);
 
     const result = await service.inscrire({
@@ -141,6 +143,17 @@ describe('InscriptionService', () => {
       apprenant_id: 'app-01',
       statut: 'PAYE_DIRECTEMENT',
       type_fenetre: 'NORMAL',
+    }));
+    expect(mockPrisma.paiement.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        dossier_id: 'dossier-01',
+        montant_catalogue: 100000,
+        montant_final: 100000,
+        reduction_appliquee: 0,
+        methode: 'DIRECT',
+        statut: 'EN_ATTENTE',
+        expires_at: expect.any(Date),
+      }),
     }));
     expect(mockAudit.info).toHaveBeenCalledWith('DOSSIER_CREE', { dossier_id: 'dossier-01', statut: 'PAYE_DIRECTEMENT' });
     expect(result).toMatchObject({ id: 'dossier-01', statut: 'PAYE_DIRECTEMENT', montant_total: 100000, montant_apres_reduction: 100000 });

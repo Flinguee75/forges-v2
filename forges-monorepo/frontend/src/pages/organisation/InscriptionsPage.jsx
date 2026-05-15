@@ -7,6 +7,7 @@ import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Spinner from '../../components/feedback/Spinner';
 import Pagination from '../../components/ui/Pagination';
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 /**
  * InscriptionsPage - Liste des inscriptions des employés
@@ -60,21 +61,7 @@ export default function InscriptionsPage() {
   }, [filters]);
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En attente de vérification' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
-      PAYE: { variant: 'success', label: 'Payé' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REJETE: { variant: 'danger', label: 'Rejeté' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Liste grise' },
-      EXCEPTION: { variant: 'warning', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
@@ -188,7 +175,7 @@ export default function InscriptionsPage() {
                 <option value="">Tous</option>
                 <option value="EN_ATTENTE">En attente</option>
                 <option value="EN_ATTENTE_VERIFICATION">En vérification</option>
-                <option value="PAYE_DIRECTEMENT">Paiement à effectuer</option>
+              <option value="PAYE_DIRECTEMENT">Paiement à initier</option>
                 <option value="PAYE">Payé (confirmé)</option>
                 <option value="CONFIRME">Confirmé</option>
                 <option value="REJETE">Rejeté</option>

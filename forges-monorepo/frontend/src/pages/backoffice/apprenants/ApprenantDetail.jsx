@@ -6,6 +6,7 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Spinner from '../../../components/feedback/Spinner';
+import { getDossierStatutMeta } from '../../../utils/dossierStatus';
 
 const formatDate = (value) => {
   if (!value) return 'N/A';
@@ -231,7 +232,9 @@ export default function ApprenantDetail() {
                   <Badge
                     variant={dossier.statut === 'PAYE' || dossier.paiement?.statut === 'CONFIRME' ? 'success' : 'warning'}
                   >
-                    {dossier.statut === 'PAYE_DIRECTEMENT' ? 'Paiement à effectuer' : dossier.statut}
+                    {dossier.statut === 'PAYE_DIRECTEMENT'
+                      ? getDossierStatutMeta('PAYE_DIRECTEMENT').label
+                      : dossier.statut}
                   </Badge>
                 </div>
               );

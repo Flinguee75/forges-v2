@@ -8,6 +8,7 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 function formatMoney(amount) {
   return `${Math.round(Number(amount || 0)).toLocaleString('fr-FR')} FCFA`;
@@ -17,26 +18,6 @@ function formatDate(dateValue) {
   if (!dateValue) return '-';
   return new Date(dateValue).toLocaleDateString('fr-FR');
 }
-
-const DOSSIER_STATUT_LABEL = {
-  EN_ATTENTE: 'En attente',
-  EN_ATTENTE_VERIFICATION: 'Verification',
-  RETENU: 'Retenu',
-  PAYE_DIRECTEMENT: 'A payer',
-  PAYE: 'Paye',
-  ANNULE: 'Annule',
-  EXPIRE: 'Expire',
-};
-
-const DOSSIER_STATUT_VARIANT = {
-  EN_ATTENTE: 'warning',
-  EN_ATTENTE_VERIFICATION: 'warning',
-  RETENU: 'info',
-  PAYE_DIRECTEMENT: 'warning',
-  PAYE: 'success',
-  ANNULE: 'danger',
-  EXPIRE: 'danger',
-};
 
 export default function ApprenantDashboard() {
   const [formations, setFormations] = useState([]);
@@ -285,28 +266,28 @@ export default function ApprenantDashboard() {
               />
             ) : (
               <div className="space-y-3">
-                {dossiers.slice(0, 4).map((dossier) => (
-                  <div
-                    key={dossier.id}
-                    className="flex items-start justify-between rounded-xl border border-border p-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-text">
-                        {dossier.session?.formation?.titre || dossier.session?.titre || 'Formation'}
-                      </p>
-                      <p className="mt-1 text-sm text-subtext">
-                        {dossier.session?.date_debut ? `Debut le ${formatDate(dossier.session.date_debut)}` : '-'}
-                      </p>
+                {dossiers.slice(0, 4).map((dossier) => {
+                  const meta = getDossierStatutMeta(dossier.statut);
+
+                  return (
+                    <div
+                      key={dossier.id}
+                      className="flex items-start justify-between rounded-xl border border-border p-4"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-text">
+                          {dossier.session?.formation?.titre || dossier.session?.titre || 'Formation'}
+                        </p>
+                        <p className="mt-1 text-sm text-subtext">
+                          {dossier.session?.date_debut ? `Debut le ${formatDate(dossier.session.date_debut)}` : '-'}
+                        </p>
+                      </div>
+                      <div className="ml-4 flex-shrink-0">
+                        <Badge variant={meta.variant}>{meta.label}</Badge>
+                      </div>
                     </div>
-                    <div className="ml-4 flex-shrink-0">
-                      <Badge
-                        variant={DOSSIER_STATUT_VARIANT[dossier.statut] || 'default'}
-                      >
-                        {DOSSIER_STATUT_LABEL[dossier.statut] || dossier.statut}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <Link to="/apprenant/dossiers" className="block pt-2">
                   <Button variant="ghost" className="w-full text-primary">
                     Voir tous mes dossiers

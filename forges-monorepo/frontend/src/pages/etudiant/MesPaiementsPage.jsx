@@ -9,6 +9,7 @@ import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
+import { getPaiementMeta } from '../../utils/dossierStatus';
 
 /**
  * MesPaiementsPage - Gestion des paiements de l'apprenant
@@ -73,19 +74,8 @@ export default function MesPaiementsPage() {
     ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && dossier?.paiement?.statut !== 'CONFIRME';
 
   const getPaymentStatusBadge = (dossier) => {
-    if (dossier.paiement?.statut === 'PENDING') {
-      return <Badge variant="warning" size="small">Paiement en cours</Badge>;
-    }
-    if (dossier.paiement?.statut === 'EN_ATTENTE') {
-      return <Badge variant="warning" size="small">Paiement initié</Badge>;
-    }
-    if (dossier.paiement?.statut === 'ECHOUE') {
-      return <Badge variant="danger" size="small">Paiement échoué</Badge>;
-    }
-    if (dossier.statut === 'RETENU') {
-      return <Badge variant="info" size="small">Retenu, paiement requis</Badge>;
-    }
-    return <Badge variant="warning" size="small">Paiement à effectuer</Badge>;
+    const config = getPaiementMeta(dossier?.paiement, dossier?.statut);
+    return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
   const columns = [
@@ -135,7 +125,7 @@ export default function MesPaiementsPage() {
           return <span>{formatDate(dossier.paiement.expires_at)}</span>;
         }
         if (dossier.statut === 'PAYE_DIRECTEMENT') {
-          return <span className="text-subtext">À régler pour confirmer</span>;
+          return <span className="text-subtext">Paiement à initier pour confirmer</span>;
         }
         const dateRetenu = new Date(dossier.updated_at || dossier.updatedAt || dossier.created_at);
         const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
@@ -181,7 +171,7 @@ export default function MesPaiementsPage() {
 
       <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
         <p className="text-sm text-warning">
-          Les dossiers “Paiement à effectuer” ne sont pas encore payés. Ils seront confirmés uniquement après validation du paiement.
+          Les dossiers “Paiement à initier” ne sont pas encore payés. Ils seront confirmés uniquement après validation du paiement.
           Pour un dossier “Retenu”, le délai de règlement est de 72 heures.
         </p>
       </div>

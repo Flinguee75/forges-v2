@@ -10,6 +10,7 @@ import Input from '../../../components/ui/Input';
 import Table from '../../../components/ui/Table';
 import Spinner from '../../../components/feedback/Spinner';
 import Pagination from '../../../components/ui/Pagination';
+import { getDossierStatutMeta, getPaiementMeta } from '../../../utils/dossierStatus';
 
 /**
  * DossiersList - Liste backoffice des dossiers d'inscription
@@ -61,39 +62,13 @@ export default function DossiersList() {
   };
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En vérification' },
-      RETENU: { variant: 'info', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'warning', label: 'Paiement à effectuer' },
-      PAYE: { variant: 'success', label: 'Payé' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REJETE: { variant: 'danger', label: 'Rejeté' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Gris' },
-      EXCEPTION: { variant: 'danger', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
   const getPaiementBadge = (paiement, dossierStatut) => {
-    if (paiement?.statut === 'CONFIRME') {
-      return <Badge variant="success" size="small">Paiement confirmé</Badge>;
-    }
-    if (paiement?.statut === 'PENDING' || paiement?.statut === 'EN_ATTENTE') {
-      return <Badge variant="warning" size="small">Paiement en cours</Badge>;
-    }
-    if (paiement?.statut === 'ECHOUE' || paiement?.statut === 'EXPIRE') {
-      return <Badge variant="danger" size="small">Paiement échoué</Badge>;
-    }
-    if (dossierStatut === 'PAYE_DIRECTEMENT' || dossierStatut === 'RETENU') {
-      return <Badge variant="warning" size="small">A régler</Badge>;
-    }
-    return <Badge variant="gray" size="small">Non initié</Badge>;
+    const config = getPaiementMeta(paiement, dossierStatut);
+    return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
   // RM-19: Fonction pour identifier les dossiers prioritaires
@@ -221,7 +196,7 @@ export default function DossiersList() {
               <option value="GRIS">Gris (priorité)</option>
               <option value="EXCEPTION">Exception (priorité)</option>
               <option value="RETENU">Retenu</option>
-              <option value="PAYE_DIRECTEMENT">Paiement à effectuer</option>
+              <option value="PAYE_DIRECTEMENT">Paiement à initier</option>
               <option value="PAYE">Payé</option>
               <option value="CONFIRME">Confirmé</option>
               <option value="REJETE">Rejeté</option>

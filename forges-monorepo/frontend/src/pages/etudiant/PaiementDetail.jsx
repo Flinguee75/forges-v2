@@ -52,6 +52,7 @@ export default function PaiementDetail() {
       CARTE: 'Carte bancaire',
       VIREMENT: 'Virement bancaire',
       VOUCHER_ORG: 'Voucher Organisation',
+      DIRECT: 'Paiement direct',
     };
     return mapping[methode] || methode;
   };
