@@ -15,10 +15,10 @@ describe('RM-156 — PAIEMENT_EXPIRATION_HEURES depuis .env', () => {
     jest.resetModules();
   });
 
-  it('getDelaiPaiementMs() retourne 72h par defaut (259200000 ms)', async () => {
+  it('getDelaiPaiementMs() retourne 336h (2 semaines) par defaut', async () => {
     delete process.env.PAIEMENT_EXPIRATION_HEURES;
     const { getDelaiPaiementMs } = await import('../../../config/env.config');
-    expect(getDelaiPaiementMs()).toBe(72 * 3600 * 1000);
+    expect(getDelaiPaiementMs()).toBe(336 * 3600 * 1000);
   });
 
   it('getDelaiPaiementMs() retourne la valeur de PAIEMENT_EXPIRATION_HEURES si definie', async () => {

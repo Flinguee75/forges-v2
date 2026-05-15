@@ -15,11 +15,11 @@ export function getCommissionApporteurDefaut(): number {
 }
 
 export function getDelaiPaiementMs(): number {
-  return Number(process.env.PAIEMENT_EXPIRATION_HEURES ?? 72) * 3600 * 1000;
+  return Number(process.env.PAIEMENT_EXPIRATION_HEURES ?? 336) * 3600 * 1000;
 }
 
 export function getDelaiPaiementH(): number {
-  return Number(process.env.PAIEMENT_EXPIRATION_HEURES ?? 72);
+  return Number(process.env.PAIEMENT_EXPIRATION_HEURES ?? 336);
 }
 
 export function getSeuilReversementApporteur(): number {
