@@ -99,9 +99,9 @@ export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmation
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="color:#ffffff;font-size:12px;">
-                  <strong style="color:#ffffff;">FORGES AGREGATEUR</strong><br>
-                  contact@forges-group.com &nbsp;|&nbsp; +225 05 04 08 43 84<br>
-                  <a href="https://edu.forges-group.com" style="color:#ffffff;text-decoration:none;">edu.forges-group.com</a>
+                  <strong style="color:#ffffff !important;">FORGES AGREGATEUR</strong><br>
+                  <span style="color:#ffffff !important;">contact@forges-group.com &nbsp;|&nbsp; +225 05 04 08 43 84</span><br>
+                  <span style="color:#ffffff !important;">edu.forges-group.com</span>
                 </td>
                 <td align="right">
                   <div style="width:8px;height:8px;background:#2E86C1;border-radius:50%;display:inline-block;"></div>
