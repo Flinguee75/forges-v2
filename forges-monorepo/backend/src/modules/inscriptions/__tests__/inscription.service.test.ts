@@ -69,7 +69,7 @@ describe('InscriptionService', () => {
     } as any;
 
     mockPrisma = {
-      dossier: { count: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn() },
+      dossier: { count: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
       apprenant: { findUnique: jest.fn() },
       organisation: { findUnique: jest.fn() },
       paiement: { findUnique: jest.fn(), create: jest.fn() },
@@ -658,6 +658,97 @@ describe('InscriptionService', () => {
 
       expect(mockDossierRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ montant_remise: 0 })
+      );
+    });
+  });
+
+  // ─── getDossiersByApprenant (RM-19 tri desc) ─────────────────────────────
+
+  describe('getDossiersByApprenant', () => {
+    it('retourne la liste des dossiers pour un apprenant avec orderBy created_at desc', async () => {
+      const dossiers = [
+        { id: 'dossier-02', apprenant_id: 'app-01', statut: 'PAYE', created_at: new Date('2026-06-02') },
+        { id: 'dossier-01', apprenant_id: 'app-01', statut: 'RETENU', created_at: new Date('2026-06-01') },
+      ];
+      mockPrisma.dossier.findMany.mockResolvedValue(dossiers);
+
+      const result = await service.getDossiersByApprenant('app-01');
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ apprenant_id: 'app-01' }),
+          orderBy: { created_at: 'desc' },
+        })
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('dossier-02');
+    });
+
+    it('filtre par statut quand le filtre est fourni', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([
+        { id: 'dossier-01', apprenant_id: 'app-01', statut: 'PAYE' },
+      ]);
+
+      await service.getDossiersByApprenant('app-01', { statut: 'PAYE' });
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { apprenant_id: 'app-01', statut: 'PAYE' },
+        })
+      );
+    });
+
+    it('retourne un tableau vide si l apprenant n a aucun dossier', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+      const result = await service.getDossiersByApprenant('app-inconnu');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ─── getDossiersBackoffice (RM-19 tri priorité EXCEPTION > GRIS > NORMAL) ─
+
+  describe('getDossiersBackoffice', () => {
+    it('retourne tous les dossiers avec orderBy created_at desc par defaut', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([
+        { id: 'dossier-01', statut: 'PAYE', type_fenetre: 'NORMAL' },
+      ]);
+
+      const result = await service.getDossiersBackoffice();
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { created_at: 'desc' },
+        })
+      );
+      expect(result).toHaveLength(1);
+    });
+
+    it('trie EXCEPTION avant GRIS avant NORMAL (RM-19 priorité)', async () => {
+      const rawDossiers = [
+        { id: 'd-normal', statut: 'PAYE', type_fenetre: 'NORMAL' },
+        { id: 'd-exception', statut: 'EN_ATTENTE_VERIFICATION', type_fenetre: 'EXCEPTION' },
+        { id: 'd-gris', statut: 'EN_ATTENTE_VERIFICATION', type_fenetre: 'GRIS' },
+      ];
+      mockPrisma.dossier.findMany.mockResolvedValue(rawDossiers);
+
+      const result = await service.getDossiersBackoffice();
+
+      expect(result[0].id).toBe('d-exception');
+      expect(result[1].id).toBe('d-gris');
+      expect(result[2].id).toBe('d-normal');
+    });
+
+    it('filtre par statut quand le filtre est fourni', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+      await service.getDossiersBackoffice({ statut: 'EN_ATTENTE_VERIFICATION' });
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ statut: 'EN_ATTENTE_VERIFICATION' }),
+        })
       );
     });
   });
