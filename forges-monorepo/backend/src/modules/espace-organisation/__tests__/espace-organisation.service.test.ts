@@ -413,4 +413,88 @@ describe('EspaceOrganisationService', () => {
       expect(result.apprenant.id).toBe('app-nouveau');
     });
   });
+
+  describe('commanderVouchers', () => {
+    it('lance FORMATION_NOT_FOUND si la formation est introuvable', async () => {
+      mockPrisma.formation.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.commanderVouchers('org-01', { formation_id: 'f-inconnue', quantite: 5 })
+      ).rejects.toThrow('FORMATION_NOT_FOUND');
+      expect(mockPrisma.voucherApporteur.create).not.toHaveBeenCalled();
+    });
+
+    it('cree le bon nombre de vouchers et journalise', async () => {
+      const formation = { id: 'f-01', cout_catalogue: 150000 };
+      mockPrisma.formation.findUnique.mockResolvedValue(formation as any);
+      mockPrisma.voucherApporteur.create.mockResolvedValue({ id: 'v-01', code: 'ORG-xxx', statut: 'ACTIF' });
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.commanderVouchers('org-01', { formation_id: 'f-01', quantite: 3 });
+
+      expect(mockPrisma.voucherApporteur.create).toHaveBeenCalledTimes(3);
+      expect(mockPrisma.voucherApporteur.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            organisation_id: 'org-01',
+            formation_id: 'f-01',
+            statut: 'ACTIF',
+            type: 'PROMOTIONNEL',
+            valeur: 150000,
+          }),
+        })
+      );
+      expect(result.vouchers).toHaveLength(3);
+      expect(mockAudit.info).toHaveBeenCalledWith('VOUCHERS_COMMANDES', expect.objectContaining({ quantite: 3 }));
+    });
+  });
+
+  describe('getMesPaiements', () => {
+    const paiementFixture = [
+      {
+        id: 'p-01',
+        statut: 'CONFIRME',
+        confirmed_at: new Date('2026-03-15'),
+        montant_final: 200000,
+        dossier: {
+          apprenant: { nom: 'Cisse', prenoms: 'Tidiane', email: 't@org.ci' },
+          formation: { intitule: 'Cloud AWS' },
+        },
+      },
+    ];
+
+    it('retourne la liste paginee des paiements', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue(paiementFixture);
+      mockPrisma.paiement.count.mockResolvedValue(1);
+
+      const result = await service.getMesPaiements('org-01', { page: 1, limit: 20 });
+
+      expect(result.paiements).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+    });
+
+    it('applique le filtre date_debut dans le where Prisma', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue([]);
+      mockPrisma.paiement.count.mockResolvedValue(0);
+
+      await service.getMesPaiements('org-01', { date_debut: '2026-01-01', page: 1, limit: 20 });
+
+      const whereArg = mockPrisma.paiement.findMany.mock.calls[0][0].where;
+      expect(whereArg.confirmed_at).toBeDefined();
+      expect(whereArg.confirmed_at.gte).toEqual(new Date('2026-01-01'));
+    });
+
+    it('applique date_debut et date_fin ensemble', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue([]);
+      mockPrisma.paiement.count.mockResolvedValue(0);
+
+      await service.getMesPaiements('org-01', { date_debut: '2026-01-01', date_fin: '2026-03-31', page: 1, limit: 20 });
+
+      const whereArg = mockPrisma.paiement.findMany.mock.calls[0][0].where;
+      expect(whereArg.confirmed_at.gte).toEqual(new Date('2026-01-01'));
+      expect(whereArg.confirmed_at.lte).toEqual(new Date('2026-03-31'));
+    });
+  });
 });
