@@ -96,32 +96,42 @@ export class DevisService {
     }
 
     const annee = new Date().getFullYear();
-    const maxSeq = await this.devisRepository.maxSequenceParAnnee(annee);
-    const sequence = String(maxSeq + 1).padStart(3, '0');
-    const numero_devis = `FORGES-DEVIS-${annee}-${sequence}`;
-
     const nb_places = estApprenantIndividuel ? 1 : (dto as any).nb_places;
     // RM-150: montant calculé par le backend, jamais par le client
     const montant_total_xof = nb_places * dto.tarif_unitaire_xof;
 
-    const devis = await this.devisRepository.create({
-      numero_devis,
-      organisation_id: estApprenantIndividuel ? null : (dto as any).organisation_id,
-      destinataire_nom: estApprenantIndividuel ? (dto as any).destinataire_nom : null,
-      destinataire_email: estApprenantIndividuel ? (dto as any).destinataire_email : null,
-      destinataire_organisation: estApprenantIndividuel ? ((dto as any).destinataire_organisation ?? null) : null,
-      formation_id: dto.formation_id,
-      session_id: dto.session_id,
-      nb_places,
-      tarif_unitaire_xof: dto.tarif_unitaire_xof,
-      montant_total_xof,
-      notes_admin: dto.notes_admin,
-      created_by: adminId,
-    });
+    let devis: Awaited<ReturnType<typeof this.devisRepository.create>> | undefined;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const maxSeq = await this.devisRepository.maxSequenceParAnnee(annee);
+      const numero_devis = `FORGES-DEVIS-${annee}-${String(maxSeq + 1).padStart(3, '0')}`;
+      try {
+        devis = await this.devisRepository.create({
+          numero_devis,
+          organisation_id: estApprenantIndividuel ? null : (dto as any).organisation_id,
+          destinataire_nom: estApprenantIndividuel ? (dto as any).destinataire_nom : null,
+          destinataire_email: estApprenantIndividuel ? (dto as any).destinataire_email : null,
+          destinataire_organisation: estApprenantIndividuel ? ((dto as any).destinataire_organisation ?? null) : null,
+          formation_id: dto.formation_id,
+          session_id: dto.session_id,
+          nb_places,
+          tarif_unitaire_xof: dto.tarif_unitaire_xof,
+          montant_total_xof,
+          notes_admin: dto.notes_admin,
+          created_by: adminId,
+        });
+        break;
+      } catch (e: any) {
+        if (e?.code === 'P2002' && e?.meta?.target?.includes('numero_devis')) {
+          continue;
+        }
+        throw e;
+      }
+    }
+    if (!devis) throw new Error('NUMERO_DEVIS_COLLISION');
 
     await this.audit.info('DEVIS_CREE', {
       devis_id: devis.id,
-      numero_devis,
+      numero_devis: devis.numero_devis,
       organisation_id: estApprenantIndividuel ? null : (dto as any).organisation_id,
       destinataire_email: estApprenantIndividuel ? (dto as any).destinataire_email : null,
       montant_total_xof,

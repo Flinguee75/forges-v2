@@ -23,7 +23,13 @@ export class EspaceOrganisationService {
       this.orgRepo.findOrganisationById(organisation_id),
       this.orgRepo.getStatsOrganisation(organisation_id),
       this.prisma.dossier.findMany({
-        where: { apprenant: { organisation_id } },
+        where: {
+          apprenant: { organisation_id },
+          OR: [
+            { source_financement: 'B2B' },
+            { voucher_organisation_id: { not: null } },
+          ],
+        },
         include: {
           apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
           formation: { select: { id: true, intitule: true, type_formation: true } },

@@ -160,6 +160,51 @@ describe('DevisService — RM-149 à RM-151', () => {
       expect(devis.numero_devis).toBe(`FORGES-DEVIS-${annee}-004`);
     });
 
+    it('retente sur P2002 numero_devis et reussit a la 2e tentative', async () => {
+      mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      // maxSequence retourne 5 puis 6 (comme si un insert concurrent s'est glissé entre les deux)
+      mockDevisRepo.maxSequenceParAnnee
+        .mockResolvedValueOnce(5)
+        .mockResolvedValueOnce(6);
+      const p2002 = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+        meta: { target: ['numero_devis'] },
+      });
+      mockDevisRepo.create
+        .mockRejectedValueOnce(p2002)
+        .mockImplementation((data: any) => ({ id: 'd-retry', ...data }));
+
+      const service = makeService();
+      const annee = new Date().getFullYear();
+      const devis = await service.creerDevis(
+        { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 1, tarif_unitaire_xof: 5000 },
+        'admin-01'
+      );
+
+      expect(devis.numero_devis).toBe(`FORGES-DEVIS-${annee}-007`);
+      expect(mockDevisRepo.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('propage l erreur si P2002 persiste apres 5 tentatives', async () => {
+      mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(0);
+      const p2002 = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+        meta: { target: ['numero_devis'] },
+      });
+      mockDevisRepo.create.mockRejectedValue(p2002);
+
+      const service = makeService();
+      await expect(
+        service.creerDevis(
+          { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 1, tarif_unitaire_xof: 5000 },
+          'admin-01'
+        )
+      ).rejects.toThrow('NUMERO_DEVIS_COLLISION');
+    });
+
     it('lève ORGANISATION_NOT_FOUND si organisation inconnue', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(null);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
+import { useAuth } from '../../contexts/AuthContext';
 import { organisationApi } from '../../api/espace-organisation.api';
 import { trackClick } from '../../utils/analytics';
 import Card from '../../components/ui/Card';
@@ -75,6 +76,7 @@ function getStatusBadgeMeta(statut) {
  */
 export default function OrgDashboard() {
   const [dashboard, setDashboard] = useState(createDefaultDashboard);
+  const { updateUser } = useAuth();
 
   const { execute, isLoading } = useApi();
 
@@ -83,7 +85,12 @@ export default function OrgDashboard() {
       () => organisationApi.getDashboard(),
       {
         onSuccess: (data) => {
-          setDashboard(normalizeDashboardData(data));
+          const normalized = normalizeDashboardData(data);
+          setDashboard(normalized);
+          const raisonSociale = normalized.organisation?.raison_sociale || normalized.organisation?.nom;
+          if (raisonSociale) {
+            updateUser({ raison_sociale: raisonSociale });
+          }
         },
       }
     );
