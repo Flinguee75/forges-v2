@@ -5,6 +5,9 @@ import { RapportService } from '../rapport.service';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 
+jest.mock('bcrypt', () => ({ hash: jest.fn().mockResolvedValue('hashed-password') }));
+jest.mock('uuid', () => ({ v4: jest.fn().mockReturnValue('uuid-12345678901') }));
+
 describe('EspaceOrganisationService', () => {
   let service: EspaceOrganisationService;
   let mockRepo: jest.Mocked<EspaceOrganisationRepository>;
@@ -51,15 +54,17 @@ describe('EspaceOrganisationService', () => {
     } as any;
 
     mockPrisma = {
-      apprenant: { findFirst: jest.fn(), update: jest.fn() },
+      apprenant: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       abonnementB2B: { update: jest.fn() },
       dossier: { findMany: jest.fn(), count: jest.fn() },
       paiement: { findMany: jest.fn(), count: jest.fn(), aggregate: jest.fn() },
       formation: { findUnique: jest.fn() },
+      voucherApporteur: { create: jest.fn() },
+      organisation: { update: jest.fn() },
     };
 
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
-    mockEmail = {} as any;
+    mockEmail = { sendTempPassword: jest.fn().mockResolvedValue(undefined) } as any;
 
     service = new EspaceOrganisationService(
       mockRepo, mockImportCSV, mockRapport, mockPrisma, mockAudit, mockEmail
@@ -352,6 +357,60 @@ describe('EspaceOrganisationService', () => {
         service.desactiverBeneficiaire('app-inexistant', 'org-01', 'user-01')
       ).rejects.toThrow('APPRENANT_NOT_FOUND');
       expect(mockPrisma.apprenant.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createMembre — RM-61', () => {
+    const dataCreation = {
+      email: 'nouveau@org.ci',
+      nom: 'Diallo',
+      prenom: 'Aissatou',
+      secteur_activite: 'TECH',
+      niveau_etude: 'BAC+5',
+    };
+
+    it('lance EMAIL_DEJA_UTILISE si l email existe deja', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue({ id: 'app-existant' });
+
+      await expect(service.createMembre('org-01', dataCreation)).rejects.toThrow('EMAIL_DEJA_UTILISE');
+      expect(mockPrisma.apprenant.create).not.toHaveBeenCalled();
+    });
+
+    it('lance B2B_PLAFOND_ATTEINT si quota depasse', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      const orgPleine = { ...orgAvecB2B, abonnement_b2b: { ...orgAvecB2B.abonnement_b2b, nb_max: 30 } };
+      mockRepo.findOrganisationById.mockResolvedValue(orgPleine as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+
+      await expect(service.createMembre('org-01', dataCreation)).rejects.toThrow('B2B_PLAFOND_ATTEINT');
+      expect(mockPrisma.apprenant.create).not.toHaveBeenCalled();
+    });
+
+    it('cree l apprenant et incremente nb_actifs B2B', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      const apprenantCree = { id: 'app-nouveau', email: 'nouveau@org.ci', nom: 'Diallo', prenoms: 'Aissatou' };
+      mockPrisma.apprenant.create.mockResolvedValue(apprenantCree);
+      mockPrisma.abonnementB2B.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.createMembre('org-01', dataCreation);
+
+      expect(mockPrisma.apprenant.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'nouveau@org.ci',
+            nom: 'Diallo',
+            organisation_id: 'org-01',
+            statut: 'ACTIF',
+          }),
+        })
+      );
+      expect(mockPrisma.abonnementB2B.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { nb_actifs: { increment: 1 } } })
+      );
+      expect(result.apprenant.id).toBe('app-nouveau');
     });
   });
 });
