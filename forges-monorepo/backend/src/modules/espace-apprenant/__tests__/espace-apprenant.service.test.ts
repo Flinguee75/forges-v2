@@ -366,6 +366,59 @@ describe('EspaceApprenantService', () => {
     });
   });
 
+  // Annulation paiement en cours (PAYE_DIRECTEMENT + paiement EN_ATTENTE)
+  describe('Annulation dossier PAYE_DIRECTEMENT avec paiement en cours', () => {
+    const dossierPayeDirectement = {
+      id: 'd-pd',
+      apprenant_id: 'a-01',
+      statut: 'PAYE_DIRECTEMENT',
+      session_id: 's-01',
+      voucher_code: null,
+      paiement: { id: 'p-01', statut: 'EN_ATTENTE', montant_final: 300000000 },
+      formation: { intitule: 'Cyber', type_formation: 'STANDARD' },
+      session: { statut: 'INSCRIPTIONS_OUVERTES' },
+    };
+
+    it('autorise l\'annulation si statut PAYE_DIRECTEMENT et paiement EN_ATTENTE', async () => {
+      mockRepo.findDossierById.mockResolvedValue(dossierPayeDirectement as any);
+      mockRepo.annulerDossier.mockResolvedValue({} as any);
+      mockPrisma.paiement = { update: jest.fn().mockResolvedValue({}) };
+      mockPrisma.session.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.annulerDossier('d-pd', 'a-01');
+
+      expect(result.message).toContain('annulé');
+      expect(mockRepo.annulerDossier).toHaveBeenCalledWith('d-pd');
+      expect(mockPrisma.paiement.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'p-01' }, data: { statut: 'ANNULE' } })
+      );
+    });
+
+    it('annule aussi le paiement associé quand le dossier PAYE_DIRECTEMENT est annulé', async () => {
+      mockRepo.findDossierById.mockResolvedValue(dossierPayeDirectement as any);
+      mockRepo.annulerDossier.mockResolvedValue({} as any);
+      mockPrisma.paiement = { update: jest.fn().mockResolvedValue({}) };
+      mockPrisma.session.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.annulerDossier('d-pd', 'a-01');
+
+      expect(mockPrisma.paiement.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { statut: 'ANNULE' } })
+      );
+    });
+
+    it('bloque annulation si paiement déjà confirmé (PAYE)', async () => {
+      mockRepo.findDossierById.mockResolvedValue({
+        ...dossierPayeDirectement,
+        paiement: { id: 'p-01', statut: 'PAYE', montant_final: 300000000 },
+      } as any);
+
+      await expect(service.annulerDossier('d-pd', 'a-01')).rejects.toThrow('DOSSIER_PAYE_NON_ANNULABLE');
+    });
+  });
+
   describe('RM-49 — Document complémentaire', () => {
     it('rejette si le dossier est introuvable', async () => {
       mockRepo.findDossierById.mockResolvedValue(null);

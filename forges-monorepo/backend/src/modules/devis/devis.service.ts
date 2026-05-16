@@ -96,8 +96,8 @@ export class DevisService {
     }
 
     const annee = new Date().getFullYear();
-    const count = await this.devisRepository.countParAnnee(annee);
-    const sequence = String(count + 1).padStart(3, '0');
+    const maxSeq = await this.devisRepository.maxSequenceParAnnee(annee);
+    const sequence = String(maxSeq + 1).padStart(3, '0');
     const numero_devis = `FORGES-DEVIS-${annee}-${sequence}`;
 
     const nb_places = estApprenantIndividuel ? 1 : (dto as any).nb_places;

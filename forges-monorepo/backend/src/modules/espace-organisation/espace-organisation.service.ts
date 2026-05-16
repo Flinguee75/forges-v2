@@ -19,9 +19,19 @@ export class EspaceOrganisationService {
 
   // UCS12 — Dashboard organisation
   async getDashboard(organisation_id: string) {
-    const [org, stats] = await Promise.all([
+    const [org, stats, recent_inscriptions] = await Promise.all([
       this.orgRepo.findOrganisationById(organisation_id),
       this.orgRepo.getStatsOrganisation(organisation_id),
+      this.prisma.dossier.findMany({
+        where: { apprenant: { organisation_id } },
+        include: {
+          apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
+          formation: { select: { id: true, intitule: true, type_formation: true } },
+          session: { select: { date_debut: true, date_fin: true, statut: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        take: 5,
+      }),
     ]);
 
     if (!org) throw new Error('ORGANISATION_NOT_FOUND');
@@ -44,6 +54,7 @@ export class EspaceOrganisationService {
         abonnement_b2b: org.abonnement_b2b,
       },
       stats,
+      recent_inscriptions,
     };
   }
 
@@ -237,6 +248,11 @@ export class EspaceOrganisationService {
 
     const where: any = {
       apprenant: { organisation_id },
+      // UCS12 : l'org ne voit que les inscriptions qu'elle commande (B2B ou voucher org)
+      OR: [
+        { source_financement: 'B2B' },
+        { voucher_organisation_id: { not: null } },
+      ],
     };
     if (statut) where.statut = statut;
     if (formation_id) where.formation_id = formation_id;
@@ -246,9 +262,9 @@ export class EspaceOrganisationService {
         where,
         include: {
           apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
-          formation: { select: { id: true, intitule: true, type_formation: true } },
+          formation: { select: { id: true, intitule: true, type_formation: true, cout_catalogue: true } },
           session: { select: { date_debut: true, date_fin: true, statut: true } },
-          paiement: { select: { statut: true, confirmed_at: true } },
+          paiement: { select: { statut: true, confirmed_at: true, montant_final: true } },
         },
         skip,
         take: parsedLimit,

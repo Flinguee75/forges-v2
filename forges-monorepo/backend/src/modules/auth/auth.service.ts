@@ -45,7 +45,11 @@ export class AuthService {
     const accessToken = sign(tokenPayload, process.env.JWT_SECRET!, { expiresIn: '1h' });
     const refreshToken = sign({ sub: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' });
     await this.audit.info('LOGIN_SUCCESS', { userId: user.id, role: user.role, ip });
-    return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } };
+    const userPayload: any = { id: user.id, email: user.email, role: user.role };
+    if (user.role === 'ORGANISATION' && (user as any).raison_sociale) {
+      userPayload.raison_sociale = (user as any).raison_sociale;
+    }
+    return { accessToken, refreshToken, user: userPayload };
   }
 
   async refresh(refreshToken: string) {

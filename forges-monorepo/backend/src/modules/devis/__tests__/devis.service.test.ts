@@ -11,6 +11,7 @@ const mockDevisRepo = {
   payer: jest.fn(),
   annuler: jest.fn(),
   countParAnnee: jest.fn(),
+  maxSequenceParAnnee: jest.fn(),
 };
 
 const mockPrisma = {
@@ -93,7 +94,7 @@ describe('DevisService — RM-149 à RM-151', () => {
     it('calcule montant_total = nb_places × tarif_unitaire (RM-150)', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
-      mockDevisRepo.countParAnnee.mockResolvedValue(4);
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(4);
       mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-01', ...data }));
 
       const service = makeService();
@@ -111,7 +112,7 @@ describe('DevisService — RM-149 à RM-151', () => {
     it('génère le numéro au format FORGES-DEVIS-YYYY-NNN', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
-      mockDevisRepo.countParAnnee.mockResolvedValue(0);
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(0);
       mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-01', ...data }));
 
       const service = makeService();
@@ -127,7 +128,7 @@ describe('DevisService — RM-149 à RM-151', () => {
     it('séquence padded à 3 chiffres (ex: 012 pour le 12e)', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
-      mockDevisRepo.countParAnnee.mockResolvedValue(11); // 11 existants → 12e
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(11); // max=11 → 12e
       mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-01', ...data }));
 
       const service = makeService();
@@ -138,6 +139,25 @@ describe('DevisService — RM-149 à RM-151', () => {
 
       const annee = new Date().getFullYear();
       expect(devis.numero_devis).toBe(`FORGES-DEVIS-${annee}-012`);
+    });
+
+    it('utilise maxSequence+1 et non count+1 pour eviter les doublons apres suppression', async () => {
+      // Scenario: 3 devis créés, le 2e supprimé → count=2, max=3
+      // count+1 génèrerait FORGES-DEVIS-YYYY-003 → collision avec le 3e existant
+      // max+1 doit générer FORGES-DEVIS-YYYY-004 → correct
+      mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(3); // max seq = 3 (le 3e devis existe)
+      mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-04', ...data }));
+
+      const service = makeService();
+      const devis = await service.creerDevis(
+        { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 1, tarif_unitaire_xof: 5000 },
+        'admin-01'
+      );
+
+      const annee = new Date().getFullYear();
+      expect(devis.numero_devis).toBe(`FORGES-DEVIS-${annee}-004`);
     });
 
     it('lève ORGANISATION_NOT_FOUND si organisation inconnue', async () => {
@@ -194,7 +214,7 @@ describe('DevisService — RM-149 à RM-151', () => {
 
     it('crée un devis apprenant sans organisation_id', async () => {
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
-      mockDevisRepo.countParAnnee.mockResolvedValue(2);
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(0);
       mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-apprenant-01', ...data }));
 
       const service = makeService();
@@ -226,7 +246,7 @@ describe('DevisService — RM-149 à RM-151', () => {
 
     it('force nb_places à 1 pour un devis apprenant', async () => {
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
-      mockDevisRepo.countParAnnee.mockResolvedValue(0);
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(0);
       mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-02', ...data }));
 
       const service = makeService();
@@ -247,7 +267,7 @@ describe('DevisService — RM-149 à RM-151', () => {
     it('logue DEVIS_CREE sans envoyer de mail à la création', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
-      mockDevisRepo.countParAnnee.mockResolvedValue(0);
+      mockDevisRepo.maxSequenceParAnnee.mockResolvedValue(0);
       mockDevisRepo.create.mockImplementation((data: any) => ({ id: 'd-01', ...data }));
 
       const service = makeService();

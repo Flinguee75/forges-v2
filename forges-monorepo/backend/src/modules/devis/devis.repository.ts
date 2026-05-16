@@ -74,4 +74,16 @@ export class DevisRepository {
       where: { created_at: { gte: debut, lt: fin } },
     });
   }
+
+  async maxSequenceParAnnee(annee: number): Promise<number> {
+    const prefix = `FORGES-DEVIS-${annee}-`;
+    const last = await this.prisma.devis.findFirst({
+      where: { numero_devis: { startsWith: prefix } },
+      orderBy: { numero_devis: 'desc' },
+      select: { numero_devis: true },
+    });
+    if (!last) return 0;
+    const seq = parseInt(last.numero_devis.replace(prefix, ''), 10);
+    return isNaN(seq) ? 0 : seq;
+  }
 }

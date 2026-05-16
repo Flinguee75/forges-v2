@@ -24,14 +24,26 @@ export class EspaceApprenantService {
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
     if (dossier.apprenant_id !== apprenant_id) throw new Error('FORBIDDEN');
 
-    // RM-27 : annulation uniquement si EN_ATTENTE_VERIFICATION
-    if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
+    // RM-27 : annulation autorisée si EN_ATTENTE_VERIFICATION ou PAYE_DIRECTEMENT + paiement EN_ATTENTE
+    if (dossier.statut === 'PAYE_DIRECTEMENT') {
+      if ((dossier as any).paiement?.statut !== 'EN_ATTENTE') {
+        throw new Error('DOSSIER_PAYE_NON_ANNULABLE');
+      }
+    } else if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
       if (dossier.statut === 'RETENU') throw new Error('DOSSIER_RETENU_CONTACT_RESPONSABLE');
       if (dossier.statut === 'PAYE') throw new Error('DOSSIER_PAYE_NON_ANNULABLE');
       throw new Error('ANNULATION_IMPOSSIBLE');
     }
 
     await this.espaceRepo.annulerDossier(dossier_id);
+
+    // Annuler le paiement associé si présent (PAYE_DIRECTEMENT → paiement EN_ATTENTE)
+    if ((dossier as any).paiement?.id) {
+      await this.prisma.paiement.update({
+        where: { id: (dossier as any).paiement.id },
+        data: { statut: 'ANNULE' }
+      });
+    }
 
     // Libérer la place en session
     if (dossier.session_id) {

@@ -240,4 +240,51 @@ describe('AuthService', () => {
   it('tolère un logout sans logique de blacklist implémentée', async () => {
     await expect(service.logout('user-01', 'token')).resolves.toBeUndefined();
   });
+
+  // Nom organisation dans la réponse login
+  describe('Login ORGANISATION — raison_sociale dans la réponse', () => {
+    it('inclut raison_sociale dans user si le compte est de type ORGANISATION', async () => {
+      mockRepo.findByEmail.mockResolvedValue({
+        id: 'org-01',
+        email: 'contact@techcorp.ci',
+        password_hash: 'hash',
+        role: 'ORGANISATION',
+        statut: 'ACTIF',
+        raison_sociale: 'TechCorp CI',
+      } as any);
+      (compare as jest.MockedFunction<typeof compare>).mockResolvedValue(true as never);
+      (sign as jest.MockedFunction<typeof sign>)
+        .mockReturnValueOnce('access-token' as never)
+        .mockReturnValueOnce('refresh-token' as never);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.login('contact@techcorp.ci', 'Pass123!', '127.0.0.1');
+
+      expect(result.user).toMatchObject({
+        id: 'org-01',
+        email: 'contact@techcorp.ci',
+        role: 'ORGANISATION',
+        raison_sociale: 'TechCorp CI',
+      });
+    });
+
+    it('ne retourne pas raison_sociale pour les autres rôles', async () => {
+      mockRepo.findByEmail.mockResolvedValue({
+        id: 'user-01',
+        email: 'admin@forges.ci',
+        password_hash: 'hash',
+        role: 'ADMIN',
+        statut: 'ACTIF',
+      } as any);
+      (compare as jest.MockedFunction<typeof compare>).mockResolvedValue(true as never);
+      (sign as jest.MockedFunction<typeof sign>)
+        .mockReturnValueOnce('access-token' as never)
+        .mockReturnValueOnce('refresh-token' as never);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.login('admin@forges.ci', 'Pass123!', '127.0.0.1');
+
+      expect(result.user).not.toHaveProperty('raison_sociale');
+    });
+  });
 });
