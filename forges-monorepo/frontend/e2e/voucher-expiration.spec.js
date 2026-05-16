@@ -9,5 +9,5 @@ test('backoffice can see expired promotional vouchers in the listing', async ({ 
   await page.locator('select').selectOption('EXPIRE');
 
   await expect(page.getByRole('row', { name: /ORG-E2E-VOUCHER-EXPIRE/ })).toBeVisible();
-  await expect(page.getByText('EXPIRE').first()).toBeVisible();
+  await expect(page.getByRole('row', { name: /ORG-E2E-VOUCHER-EXPIRE/ })).toContainText(/Expire/i);
 });

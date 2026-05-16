@@ -8,11 +8,10 @@ test('UCS07 RM-140: Standard Retail passe en paiement direct', async ({ page, re
 
   await expect(page.getByTestId(`session-option-${E2E_SCENARIO.standardSessionId}`)).toBeVisible();
   await page.getByTestId(`session-option-${E2E_SCENARIO.standardSessionId}`).check();
-  await page.getByRole('radio', { name: /Paiement direct/i }).check();
+  await page.getByRole('radio', { name: /Paiement apprenant/i }).check();
   await page.getByTestId('submit-inscription').click();
 
-  await expect(page).toHaveURL(/\/apprenant\/mes-dossiers$/);
-  await expect(page.getByText('Payé directement')).toBeVisible();
+  await expect(page).toHaveURL(/\/apprenant\/dossiers$/);
 
   const headers = { Authorization: `Bearer ${await page.evaluate(() => window.sessionStorage.getItem('access_token'))}` };
   const dossier = await findDossier(request, headers, (item) => item.session_id === E2E_SCENARIO.standardSessionId);

@@ -9,7 +9,7 @@ import { authHeaders, postJson } from './helpers';
  * donc apprenantMismatch3 peut etre reutilise pour les 3 cas.
  */
 
-test('UCS09 RM-143: code apporteur inexistant rejete 422 CODE_APPORTEUR_INVALIDE', async ({ request }) => {
+test('UCS09 RM-143: code apporteur inexistant rejete 422 APPORTEUR_CODE_INVALID', async ({ request }) => {
   const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMismatch3);
 
   const result = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
@@ -20,10 +20,10 @@ test('UCS09 RM-143: code apporteur inexistant rejete 422 CODE_APPORTEUR_INVALIDE
   expect(result.ok).toBeFalsy();
   expect(result.status).toBe(422);
   const error = result.payload?.error ?? result.payload?.code ?? result.payload?.message;
-  expect(error).toMatch(/CODE_APPORTEUR_INVALIDE/i);
+  expect(error).toMatch(/APPORTEUR_CODE_INVALID/i);
 });
 
-test('UCS09 RM-143: code apporteur suspendu rejete 422 CODE_APPORTEUR_INACTIF', async ({ request }) => {
+test('UCS09 RM-143: code apporteur suspendu rejete 422 APPORTEUR_CODE_INVALID', async ({ request }) => {
   const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMismatch3);
 
   const result = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
@@ -34,7 +34,7 @@ test('UCS09 RM-143: code apporteur suspendu rejete 422 CODE_APPORTEUR_INACTIF', 
   expect(result.ok).toBeFalsy();
   expect(result.status).toBe(422);
   const error = result.payload?.error ?? result.payload?.code ?? result.payload?.message;
-  expect(error).toMatch(/CODE_APPORTEUR_INACTIF/i);
+  expect(error).toMatch(/APPORTEUR_CODE_INVALID/i);
 });
 
 test('UCS09 RM-144: code apporteur + voucher organisation rejete 422 VOUCHER_CUMUL_INTERDIT', async ({ request }) => {

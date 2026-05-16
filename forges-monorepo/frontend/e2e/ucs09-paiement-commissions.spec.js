@@ -34,7 +34,7 @@ test('UCS09 RM-09: webhook SUCCESS confirme le paiement et passe le dossier en P
 });
 
 test('UCS09 RM-129: paiement partenaire génère une commission nette partenaire', async ({ request }) => {
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMismatch2);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon1);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.partenaireSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
@@ -64,7 +64,7 @@ test('UCS09 RM-129: paiement partenaire génère une commission nette partenaire
 });
 
 test('UCS09 RM-145: paiement avec code apporteur crée une commission visible côté apporteur', async ({ request }) => {
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMismatch1);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon2);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
     source_financement: 'RETAIL',
     code_apporteur: E2E_SCENARIO.apporteurCode,
@@ -103,12 +103,12 @@ test('UCS09 RM-145: paiement avec code apporteur crée une commission visible c�
 });
 
 /**
- * RM-157 NGSER - Initiation paiement backend-only
- * Montant recalculé côté backend, order_ngser généré
+ * RM-157 Fineo - Initiation paiement backend-only
+ * Montant recalculé côté backend, sync_ref Fineo généré
  */
-test('UCS09 RM-157 NGSER: Initiation paiement crée order_ngser et payment_url', async ({ request }) => {
+test('UCS09 RM-157 Fineo: Initiation paiement crée sync_ref et checkout_link', async ({ request }) => {
   // 1. Créer une inscription
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon1);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon3);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);
@@ -120,36 +120,35 @@ test('UCS09 RM-157 NGSER: Initiation paiement crée order_ngser et payment_url',
   const dossier = inscription.payload.dossier;
   const dossierId = dossier.id;
 
-  // 2. Initier paiement NGSER (nouveau endpoint RM-157)
-  const paiementResponse = await postJson(request, '/paiements/initier', {
+  // 2. Initier paiement Fineo (nouveau endpoint RM-157)
+  const paiementResponse = await postJson(request, '/paiements/fineo/initier', {
     dossier_id: dossierId,
   }, headers);
 
   expect(paiementResponse.ok).toBeTruthy();
   const paiementData = paiementResponse.payload?.data || paiementResponse.payload;
 
-  // 3. Vérifier que order_ngser est créé au format FRG-YYYY-SEQ-XXXXXX
-  expect(paiementData.order_ngser).toBeTruthy();
-  expect(paiementData.order_ngser).toMatch(/^FRG-\d{4}-\d+-\w+$/);
+  // 3. Vérifier que sync_ref est créé au format Fineo
+  expect(paiementData.sync_ref).toBeTruthy();
+  expect(paiementData.sync_ref).toMatch(/^FRG-FNO-\d{4}-\d{3}-[A-Z0-9]{6}$/);
 
-  // 4. Vérifier que payment_url est présent (redirection vers NGSER ou mock en test)
-  expect(paiementData.payment_url).toBeTruthy();
-  // En environnement test, peut être mock-ngser.forges.ci ou securetest.crossroad-africa.net
-  expect(paiementData.payment_url).toMatch(/(mock-ngser\.forges\.ci|securetest\.crossroad-africa\.net)/);
+  // 4. Vérifier que checkout_link est présent
+  expect(paiementData.checkout_link).toBeTruthy();
+  expect(paiementData.checkout_link).toMatch(/^https?:\/\//);
 
   // 5. Vérifier que paiement est créé avec statut PENDING
   const dossierAfter = await findDossier(request, headers, (item) => item.id === dossierId);
   expect(dossierAfter?.paiement?.statut).toBe('PENDING');
-  // Provider peut être présent ou non dans la réponse
+  // Provider doit être Fineo sur ce chemin
   if (dossierAfter?.paiement?.provider) {
-    expect(dossierAfter.paiement.provider).toBe('NGSER');
+    expect(dossierAfter.paiement.provider).toBe('FINEO');
   }
 
-  console.log(`✅ RM-157 OK: order_ngser=${paiementData.order_ngser}`);
+  console.log(`✅ RM-157 OK: sync_ref=${paiementData.sync_ref}`);
 });
 
 test('UCS09 RM-145 negatif: webhook FAILED ne cree aucune commission', async ({ request }) => {
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantIdempotence2);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantRecon4);
 
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
     source_financement: 'RETAIL',

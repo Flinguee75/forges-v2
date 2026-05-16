@@ -17,9 +17,17 @@ const IDS = {
   apprenantPremiumB2b: 'app-e2e-premium-b2b-01',
   apprenantDossier: 'app-e2e-dossier-01',
   apprenantAuth: 'app-e2e-auth-01',
+  apprenantVoucher: 'app-e2e-voucher-01',
   apprenantRetail: 'app-e2e-retail-01',
   apprenantGris: 'app-e2e-gris-01',
   apprenantException: 'app-e2e-exception-01',
+  apprenantAboNgserOk: 'app-e2e-abo-ngser-ok',
+  apprenantAboNgserKo: 'app-e2e-abo-ngser-ko',
+  apprenantAboNgserCycle1: 'app-e2e-abo-cycle-01',
+  apprenantAboNgserCycle2: 'app-e2e-abo-cycle-02',
+  apprenantAboNgserCycle3: 'app-e2e-abo-cycle-03',
+  apprenantAboNgserCycle4: 'app-e2e-abo-cycle-04',
+  apprenantAboNgserCycle5: 'app-e2e-abo-cycle-05',
   // Nouveaux comptes pour tests paiement NGSER (Phase 1 v4.9)
   apprenantIdempotence1: 'app-e2e-idempotence-1',
   apprenantIdempotence2: 'app-e2e-idempotence-2',
@@ -32,6 +40,7 @@ const IDS = {
   apprenantRecon4: 'app-e2e-recon-4',
   apprenantRecon5: 'app-e2e-recon-5',
   apprenantNgser1: 'app-e2e-ngser-1',
+  apprenantMontantMismatch: 'app-e2e-montant-mismatch-1',
   organisation: 'org-e2e-01',
   partenaire: 'part-e2e-01',
   partenaireInvite: 'part-e2e-invite-01',
@@ -88,9 +97,17 @@ const EMAILS = {
   apprenantPremiumB2b: 'apprenant-premium-b2b-e2e@forges.ci',
   apprenantDossier: 'apprenant-dossier-e2e@forges.ci',
   apprenantAuth: 'apprenant-auth-e2e@forges.ci',
+  apprenantVoucher: 'apprenant-voucher-e2e@forges.ci',
   apprenantRetail: 'apprenant-retail-e2e@forges.ci',
   apprenantGris: 'apprenant-gris-e2e@forges.ci',
   apprenantException: 'apprenant-exception-e2e@forges.ci',
+  apprenantAboNgserOk: 'apprenant-abo-ngser-ok@forges.ci',
+  apprenantAboNgserKo: 'apprenant-abo-ngser-ko@forges.ci',
+  apprenantAboNgserCycle1: 'apprenant-abo-cycle-01@forges.ci',
+  apprenantAboNgserCycle2: 'apprenant-abo-cycle-02@forges.ci',
+  apprenantAboNgserCycle3: 'apprenant-abo-cycle-03@forges.ci',
+  apprenantAboNgserCycle4: 'apprenant-abo-cycle-04@forges.ci',
+  apprenantAboNgserCycle5: 'apprenant-abo-cycle-05@forges.ci',
   // Nouveaux comptes pour tests paiement NGSER
   apprenantIdempotence1: 'apprenant-idempotence-1@forges.ci',
   apprenantIdempotence2: 'apprenant-idempotence-2@forges.ci',
@@ -103,6 +120,7 @@ const EMAILS = {
   apprenantRecon4: 'apprenant-recon-4@forges.ci',
   apprenantRecon5: 'apprenant-recon-5@forges.ci',
   apprenantNgser1: 'apprenant-ngser-1@forges.ci',
+  apprenantMontantMismatch: 'apprenant-montant-mismatch@forges.ci',
   organisation: 'org@forges.ci',
   partenaire: 'partenaire-e2e@forges.ci',
   partenaireInvite: 'partenaire-invite-e2e@forges.ci',
@@ -141,9 +159,17 @@ async function cleanupScenarioData() {
     IDS.apprenantPremiumB2b,
     IDS.apprenantDossier,
     IDS.apprenantAuth,
+    IDS.apprenantVoucher,
     IDS.apprenantRetail,
     IDS.apprenantGris,
     IDS.apprenantException,
+    IDS.apprenantAboNgserOk,
+    IDS.apprenantAboNgserKo,
+    IDS.apprenantAboNgserCycle1,
+    IDS.apprenantAboNgserCycle2,
+    IDS.apprenantAboNgserCycle3,
+    IDS.apprenantAboNgserCycle4,
+    IDS.apprenantAboNgserCycle5,
     IDS.apprenantIdempotence1,
     IDS.apprenantIdempotence2,
     IDS.apprenantMismatch1,
@@ -155,6 +181,7 @@ async function cleanupScenarioData() {
     IDS.apprenantRecon4,
     IDS.apprenantRecon5,
     IDS.apprenantNgser1,
+    IDS.apprenantMontantMismatch,
     IDS.apporteur,
   ];
   const formationIds = [
@@ -292,6 +319,16 @@ async function cleanupScenarioData() {
         { id: IDS.formationPartenaireMeta },
         { formation_id: IDS.formationPartenaire },
         { partenaire_id: { in: partenaireIds } },
+      ],
+    },
+  });
+  await prisma.devis.deleteMany({
+    where: {
+      OR: [
+        { formation_id: { in: formationIds } },
+        { formation_id: { startsWith: 'F-RM' } },
+        { organisation_id: IDS.organisation },
+        { organisation: { email: { contains: 'e2e-ucs' } } },
       ],
     },
   });
@@ -461,7 +498,15 @@ async function main() {
     token_expiration: daysFromNow(1),
     statut: 'INACTIF',
   });
+  await createApprenant(IDS.apprenantVoucher, EMAILS.apprenantVoucher, passwordHash);
   await createApprenant(IDS.apprenantRetail, EMAILS.apprenantRetail, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserOk, EMAILS.apprenantAboNgserOk, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserKo, EMAILS.apprenantAboNgserKo, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle1, EMAILS.apprenantAboNgserCycle1, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle2, EMAILS.apprenantAboNgserCycle2, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle3, EMAILS.apprenantAboNgserCycle3, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle4, EMAILS.apprenantAboNgserCycle4, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle5, EMAILS.apprenantAboNgserCycle5, passwordHash);
   // Nouveaux comptes pour tests paiement NGSER v4.9 (Phase 1)
   await createApprenant(IDS.apprenantIdempotence1, EMAILS.apprenantIdempotence1, passwordHash);
   await createApprenant(IDS.apprenantIdempotence2, EMAILS.apprenantIdempotence2, passwordHash);
@@ -474,6 +519,7 @@ async function main() {
   await createApprenant(IDS.apprenantRecon4, EMAILS.apprenantRecon4, passwordHash);
   await createApprenant(IDS.apprenantRecon5, EMAILS.apprenantRecon5, passwordHash);
   await createApprenant(IDS.apprenantNgser1, EMAILS.apprenantNgser1, passwordHash);
+  await createApprenant(IDS.apprenantMontantMismatch, EMAILS.apprenantMontantMismatch, passwordHash);
 
   await prisma.organisation.create({
     data: {

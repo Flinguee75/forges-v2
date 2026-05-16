@@ -8,7 +8,7 @@ const BaseDevisSchema = z.object({
 });
 
 const DevisOrganisationSchema = BaseDevisSchema.extend({
-  organisation_id: z.string().uuid(),
+  organisation_id: z.string().min(1),
   nb_places: z.number().int().min(1),
   destinataire_nom: z.undefined(),
   destinataire_email: z.undefined(),

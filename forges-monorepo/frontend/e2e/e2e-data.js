@@ -43,6 +43,10 @@ export const E2E_ACCOUNTS = {
     email: 'apprenant-auth-e2e@forges.ci',
     password: 'Test@FORGES2026!',
   },
+  apprenantVoucher: {
+    email: 'apprenant-voucher-e2e@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
   organisation: {
     email: 'org@forges.ci',
     password: 'Test@FORGES2026!',
@@ -66,6 +70,26 @@ export const E2E_ACCOUNTS = {
   },
   apprenantAboNgserKo: {
     email: 'apprenant-abo-ngser-ko@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantAboNgserCycle1: {
+    email: 'apprenant-abo-cycle-01@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantAboNgserCycle2: {
+    email: 'apprenant-abo-cycle-02@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantAboNgserCycle3: {
+    email: 'apprenant-abo-cycle-03@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantAboNgserCycle4: {
+    email: 'apprenant-abo-cycle-04@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantAboNgserCycle5: {
+    email: 'apprenant-abo-cycle-05@forges.ci',
     password: 'Test@FORGES2026!',
   },
   // Nouveaux comptes pour tests paiement NGSER
@@ -111,6 +135,10 @@ export const E2E_ACCOUNTS = {
   },
   apprenantNgser1: {
     email: 'apprenant-ngser-1@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
+  apprenantMontantMismatch: {
+    email: 'apprenant-montant-mismatch@forges.ci',
     password: 'Test@FORGES2026!',
   },
 };

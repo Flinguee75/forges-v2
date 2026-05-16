@@ -4,6 +4,7 @@ import { E2E_ACCOUNTS } from './e2e-data';
 
 export const API_BASE_URL = process.env.E2E_API_URL || 'http://127.0.0.1:3000/api';
 export const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
+const apiLoginCache = new Map();
 
 export async function loginViaUi(page, account, expectedUrl) {
   await page.goto('/login');
@@ -54,6 +55,12 @@ export async function getAccessToken(page) {
 }
 
 export async function apiLogin(request, account) {
+  const cacheKey = `${account.email}::${account.password}`;
+  const cached = apiLoginCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const response = await request.post(`${API_BASE_URL}/auth/login`, {
     data: {
       email: account.email,
@@ -62,6 +69,7 @@ export async function apiLogin(request, account) {
   });
   expect(response.ok()).toBeTruthy();
   const payload = await response.json();
+  apiLoginCache.set(cacheKey, payload.data);
   return payload.data;
 }
 

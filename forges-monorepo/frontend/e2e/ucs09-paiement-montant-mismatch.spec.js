@@ -18,7 +18,7 @@ import {
 
 test('UCS09 RM-160 Montant Mismatch: IPN montant invalide (insuffisant) rejette paiement', async ({ request }) => {
   // 1. Créer une inscription
-  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantNgser1);
+  const headers = await authHeaders(request, E2E_ACCOUNTS.apprenantMontantMismatch);
   const inscription = await postJson(request, `/sessions/${E2E_SCENARIO.standardSessionId}/inscrire`, {
     source_financement: 'RETAIL',
   }, headers);

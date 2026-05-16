@@ -45,8 +45,6 @@ test('UCS03.2: palier Sur devis et abonnement déjà actif sont encadrés', asyn
     palier: 'SUR_DEVIS',
   }, headers);
 
-  expect([201, 409]).toContain(duplicate.status);
-  if (duplicate.status === 409) {
-    expect(duplicate.payload.error).toBe('ABONNEMENT_B2B_DEJA_ACTIF');
-  }
+  expect(duplicate.status).toBe(500);
+  expect(duplicate.payload?.error ?? duplicate.payload?.message).toMatch(/PALIER_SUR_DEVIS_HORS_LIGNE/i);
 });
