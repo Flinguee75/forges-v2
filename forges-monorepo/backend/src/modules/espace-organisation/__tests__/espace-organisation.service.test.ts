@@ -323,6 +323,7 @@ describe('EspaceOrganisationService', () => {
       mockPrisma.dossier.findMany.mockResolvedValue([]);
 
       await expect(service.getDashboard('org-inconnue')).rejects.toThrow('ORGANISATION_NOT_FOUND');
+      expect(mockRepo.findOrganisationById).toHaveBeenCalledWith('org-inconnue');
     });
   });
 
@@ -350,6 +351,7 @@ describe('EspaceOrganisationService', () => {
       await expect(
         service.desactiverBeneficiaire('app-inexistant', 'org-01', 'user-01')
       ).rejects.toThrow('APPRENANT_NOT_FOUND');
+      expect(mockPrisma.apprenant.update).not.toHaveBeenCalled();
     });
   });
 });
