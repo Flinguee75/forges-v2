@@ -3,6 +3,9 @@ name: Deploy → https://dev.forges-group.com
 on:
   push:
     branches: [develop]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
   workflow_dispatch:
 
 # Tous les deploys (test, dev, demo) ciblent le meme serveur Docker.
