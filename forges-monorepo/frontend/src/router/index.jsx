@@ -412,6 +412,10 @@ const router = createBrowserRouter([
         path: 'b2b-apprenants',
         element: withSuspense(<GestionApprenantsB2B />),
       },
+      {
+        path: 'catalogue',
+        element: withSuspense(<CatalogueApprenantPage />),
+      },
     ],
   },
 

@@ -23,6 +23,7 @@ export default function OrgLayout() {
 
   const navigation = [
     { name: 'Tableau de bord', href: '/organisation/dashboard', icon: 'chartBar' },
+    { name: 'Catalogue', href: '/organisation/catalogue', icon: 'bookOpen' },
     { name: 'Abonnement', href: '/organisation/abonnement', icon: 'creditCard' },
     { name: 'Abonnement B2B', href: '/organisation/b2b', icon: 'folder' },
     { name: 'Employés', href: '/organisation/employes', icon: 'users' },
