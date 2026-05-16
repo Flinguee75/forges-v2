@@ -19,6 +19,10 @@ router.get('/users', (req, res, next) => {
   controller.listUsers(req, res, next);
 });
 
+router.get('/backoffice-users', (req, res, next) => {
+  controller.listBackofficeUsers(req, res, next);
+});
+
 router.post('/users', (req, res, next) => {
   controller.createUser(req, res, next);
 });

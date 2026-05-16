@@ -101,6 +101,7 @@ const FormationsPartenaire = lazy(() => import('../pages/backoffice/partenaires/
 const ReversementsPartenaires = lazy(() => import('../pages/backoffice/partenaires/ReversementsPartenaires'));
 const UtilisateursList = lazy(() => import('../pages/backoffice/utilisateurs/UtilisateursList'));
 const CreateUtilisateur = lazy(() => import('../pages/backoffice/utilisateurs/CreateUtilisateur'));
+const EquipeBackofficePage = lazy(() => import('../pages/backoffice/utilisateurs/EquipeBackofficePage'));
 const ApporteursList = lazy(() => import('../pages/backoffice/apporteurs/ApporteursList'));
 const CreateApporteur = lazy(() => import('../pages/backoffice/apporteurs/CreateApporteur'));
 const ApporteurDetail = lazy(() => import('../pages/backoffice/apporteurs/ApporteurDetail'));
@@ -884,6 +885,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['ADMIN']}>
             {withSuspense(<UtilisateursList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'equipe',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<EquipeBackofficePage />)}
           </RoleGuard>
         ),
       },

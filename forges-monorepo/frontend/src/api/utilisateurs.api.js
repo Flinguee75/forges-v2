@@ -6,6 +6,11 @@ const utilisateursApi = {
     return res.data;
   },
 
+  getBackofficeUsers: async (params = {}) => {
+    const res = await apiClient.get('/admin/backoffice-users', { params });
+    return res.data;
+  },
+
   create: async (data) => {
     const res = await apiClient.post('/admin/users', data);
     return res.data;

@@ -129,17 +129,41 @@ export class AdminService {
   }
 
   // UCS02 — Liste utilisateurs backoffice
+  private static readonly ROLES_BACKOFFICE = ['ADMIN', 'SUPERVISEUR', 'RESPONSABLE', 'AGENT', 'GESTIONNAIRE'];
+
   async listUsers(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
+    const where = {
+      statut: { not: 'INACTIF' as const },
+      role: { notIn: AdminService.ROLES_BACKOFFICE as any[] },
+    };
     const [users, total] = await Promise.all([
       this.prisma.apprenant.findMany({
-        where: { statut: { not: 'INACTIF' } },
-        select: { id: true, email: true, nom: true, prenoms: true, statut: true, created_at: true },
+        where,
+        select: { id: true, email: true, nom: true, prenoms: true, role: true, statut: true, created_at: true },
         skip,
         take: limit,
         orderBy: { created_at: 'desc' },
       }),
-      this.prisma.apprenant.count({ where: { statut: { not: 'INACTIF' } } })
+      this.prisma.apprenant.count({ where })
+    ]);
+    return { users, total, page, limit };
+  }
+
+  async listBackofficeUsers(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const where = {
+      role: { in: AdminService.ROLES_BACKOFFICE as any[] },
+    };
+    const [users, total] = await Promise.all([
+      this.prisma.apprenant.findMany({
+        where,
+        select: { id: true, email: true, nom: true, prenoms: true, role: true, statut: true, created_at: true },
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+      }),
+      this.prisma.apprenant.count({ where })
     ]);
     return { users, total, page, limit };
   }
