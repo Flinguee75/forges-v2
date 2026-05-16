@@ -753,6 +753,109 @@ describe('InscriptionService', () => {
     });
   });
 
+  // ─── traiterException (RM-05, UCS08) ────────────────────────────────────
+
+  describe('traiterException', () => {
+    const baseDossierException = {
+      id: 'dossier-exc-01',
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      session_id: 'session-01',
+      apprenant_id: 'app-01',
+      type_fenetre: 'EXCEPTION',
+      voucher_organisation_id: null,
+      voucher_code: null,
+    };
+    const premiumFormation = { id: 'formation-01', intitule: 'Cert Premium', type_formation: 'PREMIUM' };
+    const session = { id: 'session-01', formation_id: 'formation-01', date_debut: new Date('2026-06-01'), date_fin: new Date('2026-06-11') };
+
+    beforeEach(() => {
+      mockDossierRepo.findById.mockResolvedValue(baseDossierException as any);
+      mockSessionRepo.findById.mockResolvedValue(session as any);
+      mockFormationRepo.findById.mockResolvedValue(premiumFormation as any);
+      mockDossierRepo.updateStatut.mockResolvedValue(undefined);
+      mockDossierRepo.setDelaiPaiement.mockResolvedValue(undefined);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockAudit.warning.mockResolvedValue(undefined);
+      mockPrisma.apprenant.findUnique.mockResolvedValue({
+        id: 'app-01',
+        email: 'apprenant@test.ci',
+        nom: 'Cisse',
+        prenoms: 'Tidiane',
+        langue_preferee: 'FR',
+      } as any);
+      (mockEmail as any).sendDossierRetenu = jest.fn().mockResolvedValue(undefined);
+      (mockEmail as any).sendDossierRejete = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('[RED] traiterException — dossier non trouvé → DOSSIER_NOT_FOUND', async () => {
+      mockDossierRepo.findById.mockResolvedValue(null);
+      await expect(service.traiterException('inexistant', 'RETENU', undefined, 'resp-01')).rejects.toThrow('DOSSIER_NOT_FOUND');
+    });
+
+    it('[RED] traiterException — dossier non EXCEPTION → NOT_EXCEPTION', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossierException, type_fenetre: 'NORMAL' } as any);
+      await expect(service.traiterException('dossier-exc-01', 'RETENU', undefined, 'resp-01')).rejects.toThrow('NOT_EXCEPTION');
+    });
+
+    it('[RED] traiterException — décision REFUSE sans motif → MOTIF_OBLIGATOIRE', async () => {
+      mockPrisma.dossier.update = jest.fn().mockResolvedValue({});
+      await expect(service.traiterException('dossier-exc-01', 'REFUSE', undefined, 'resp-01')).rejects.toThrow('MOTIF_OBLIGATOIRE');
+    });
+
+    it('[RED] traiterException — décision REFUSE avec motif trop court (< 5 chars) → MOTIF_OBLIGATOIRE', async () => {
+      mockPrisma.dossier.update = jest.fn().mockResolvedValue({});
+      await expect(service.traiterException('dossier-exc-01', 'REFUSE', 'Non', 'resp-01')).rejects.toThrow('MOTIF_OBLIGATOIRE');
+    });
+
+    it('[GREEN] traiterException — décision RETENU → délègue à retenir() avec succès', async () => {
+      const result = await service.traiterException('dossier-exc-01', 'RETENU', undefined, 'resp-01');
+
+      expect(mockDossierRepo.updateStatut).toHaveBeenCalledWith('dossier-exc-01', 'RETENU');
+      expect(mockDossierRepo.setDelaiPaiement).toHaveBeenCalledWith('dossier-exc-01', expect.any(Date));
+      expect(result).toMatchObject({ success: true });
+    });
+
+    it('[GREEN] traiterException — décision REFUSE avec motif valide → délègue à rejeter()', async () => {
+      mockPrisma.dossier.update = jest.fn().mockResolvedValue({});
+      mockPrisma.voucherApporteur.findFirst.mockResolvedValue(null);
+
+      const result = await service.traiterException('dossier-exc-01', 'REFUSE', 'Documents incomplets', 'resp-01');
+
+      expect(mockPrisma.dossier.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'dossier-exc-01' },
+        data: expect.objectContaining({ statut: 'REJETE', motif_refus: 'Documents incomplets' }),
+      }));
+      expect(result).toMatchObject({ success: true });
+    });
+  });
+
+  // ─── getDossiersPrioritaires (RM-19) ─────────────────────────────────────
+
+  describe('getDossiersPrioritaires', () => {
+    it('[GREEN] retourne les dossiers prioritaires via le repository', async () => {
+      const dossiersPrio = [
+        { id: 'dossier-exc', type_fenetre: 'EXCEPTION', statut: 'EN_ATTENTE_VERIFICATION' },
+        { id: 'dossier-gris', type_fenetre: 'GRIS', statut: 'EN_ATTENTE_VERIFICATION' },
+      ];
+      (mockDossierRepo as any).findPrioritairesByResponsable = jest.fn().mockResolvedValue(dossiersPrio);
+
+      const result = await service.getDossiersPrioritaires('resp-01');
+
+      expect((mockDossierRepo as any).findPrioritairesByResponsable).toHaveBeenCalledWith('resp-01');
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('dossier-exc');
+    });
+
+    it('[GREEN] retourne un tableau vide si aucun dossier prioritaire', async () => {
+      (mockDossierRepo as any).findPrioritairesByResponsable = jest.fn().mockResolvedValue([]);
+
+      const result = await service.getDossiersPrioritaires('resp-01');
+
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('RM-41 — Voucher ORGANISATION → statut PAYE', () => {
     const voucherOrg = {
       id: 'voucher-org-01',
