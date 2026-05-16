@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formationsApi } from '../../api/formations.api';
 import apprenantApi from '../../api/espace-apprenant.api';
+import { organisationApi } from '../../api/espace-organisation.api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useApi } from '../../hooks/useApi';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -49,6 +51,8 @@ function FormationCard({ formation, index, onAcceder, onInscrire }) {
   const pilierBadge = PILIER_BADGE[formation.pilier_abonnement];
   const isOrgFunded = ['B2B', 'INSTITUTIONNEL'].includes(formation.pilier_abonnement)
     || (formation.pilier_abonnement === 'TOUS');
+  const isEnrolled = Boolean(formation.enrollment?.isEnrolled);
+  const orgVouchers = Array.isArray(formation.orgVouchers) ? formation.orgVouchers : [];
   const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe'];
   const bgGradient = `linear-gradient(135deg, ${colors[index % 4]} 0%, ${colors[(index + 1) % 4]} 100%)`;
 
@@ -130,16 +134,43 @@ function FormationCard({ formation, index, onAcceder, onInscrire }) {
               : formatMoney(formation.tarif)
             }
           </div>
-          <Button
-            className="w-full"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isALaDemande) onAcceder(formation.id);
-              else onInscrire(formation.id);
-            }}
-          >
-            {isALaDemande ? 'Accéder maintenant' : 'Voir les sessions'}
-          </Button>
+
+          {isEnrolled ? (
+            <div className="flex w-full items-center justify-center rounded-lg bg-success/10 px-4 py-2 text-sm font-semibold text-success">
+              Deja inscrit
+            </div>
+          ) : (
+            <Button
+              className="w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isALaDemande) onAcceder(formation.id);
+                else onInscrire(formation.id);
+              }}
+            >
+              {isALaDemande ? 'Accéder maintenant' : 'Voir les sessions'}
+            </Button>
+          )}
+
+          {orgVouchers.length > 0 && (
+            <div className="mt-3 rounded-lg border border-border bg-bg p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-subtext">
+                Vos vouchers pour cette formation
+              </p>
+              <ul className="space-y-1">
+                {orgVouchers.map((v) => (
+                  <li key={v.code} className="flex items-center justify-between text-xs">
+                    <span className="font-mono font-medium text-primary">{v.code}</span>
+                    <span className="text-subtext">
+                      {v.date_expiration
+                        ? `Expire le ${new Date(v.date_expiration).toLocaleDateString('fr-FR')}`
+                        : 'Sans expiration'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -148,6 +179,8 @@ function FormationCard({ formation, index, onAcceder, onInscrire }) {
 
 export default function CatalogueApprenantPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOrg = user?.role === 'ORGANISATION';
   const [formations, setFormations] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [filters, setFilters] = useState({ search: '', page: 1, limit: 12 });
@@ -155,19 +188,42 @@ export default function CatalogueApprenantPage() {
   const { execute, isLoading } = useApi();
 
   const loadCatalogue = async (nextPage = filters.page) => {
-    await execute(
-      () => formationsApi.getCatalogue({
+    const [catalogueResult, contextResult] = await Promise.all([
+      execute(() => formationsApi.getCatalogue({
         page: nextPage,
         limit: filters.limit,
         search: filters.search || undefined,
-      }),
-      {
-        onSuccess: (result) => {
-          setFormations(result?.data || []);
-          setMeta(result?.meta || { page: 1, totalPages: 1, total: 0 });
-        },
+      }), {}),
+      isOrg
+        ? execute(() => organisationApi.getVouchers(), {}).catch(() => null)
+        : execute(() => apprenantApi.getMesDossiers(), {}).catch(() => null),
+    ]);
+
+    const data = catalogueResult?.data || [];
+
+    if (!isOrg) {
+      const dossiers = Array.isArray(contextResult) ? contextResult : (contextResult?.data || []);
+      const enrolledIds = new Set(dossiers.map((d) => d.formation_id));
+      setFormations(data.map((f) => ({
+        ...f,
+        enrollment: { isEnrolled: enrolledIds.has(f.id) },
+      })));
+    } else {
+      const vouchers = contextResult?.data || (Array.isArray(contextResult) ? contextResult : []);
+      const vouchersByFormation = {};
+      for (const v of vouchers) {
+        const fid = v.formation?.id || v.formation_id;
+        if (!fid) continue;
+        if (!vouchersByFormation[fid]) vouchersByFormation[fid] = [];
+        vouchersByFormation[fid].push({ code: v.code, date_expiration: v.date_expiration || v.expires_at });
       }
-    );
+      setFormations(data.map((f) => ({
+        ...f,
+        orgVouchers: vouchersByFormation[f.id] || [],
+      })));
+    }
+
+    setMeta(catalogueResult?.meta || { page: 1, totalPages: 1, total: 0 });
   };
 
   const handleAccederFormation = async (formationId) => {
