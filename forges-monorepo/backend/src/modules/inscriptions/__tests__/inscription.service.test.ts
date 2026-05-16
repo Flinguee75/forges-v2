@@ -606,4 +606,86 @@ describe('InscriptionService', () => {
       );
     });
   });
+
+  describe('RM-41 — Voucher ORGANISATION → statut PAYE', () => {
+    const voucherOrg = {
+      id: 'voucher-org-01',
+      type: 'ORGANISATION',
+      organisation_id: 'org-01',
+      quota_max: 10,
+      quota_utilise: 2,
+      statut: 'ACTIF',
+    };
+
+    beforeEach(() => {
+      mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockFormationRepo.findById.mockResolvedValue({ id: 'formation-01', type_formation: 'STANDARD', cout_catalogue: 100000, intitule: 'Cert Test' } as any);
+      mockPrisma.dossier.count.mockResolvedValue(2);
+      mockVoucherValidation.validerVoucher.mockResolvedValue(voucherOrg as any);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockPrisma.voucherOrganisation.update.mockResolvedValue({ ...voucherOrg, quota_utilise: 3 });
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-org' } as any);
+      mockPrisma.apprenant.findUnique.mockResolvedValue({ id: 'app-01', email: 'a@test.ci', nom: 'Cisse', prenoms: 'Tidiane', langue_preferee: 'FR' } as any);
+      mockPrisma.organisation.findUnique.mockResolvedValue({ raison_sociale: 'ACME Corp' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+      (mockEmail as any).sendEnrolementConfirmationApprenant = jest.fn().mockResolvedValue(undefined);
+      (mockEmail as any).sendPaiementConfirme = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('crée un dossier PAYE avec voucher_organisation_id positionné', async () => {
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-org', statut: 'PAYE' } as any);
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'VOUCHER',
+        voucher_code: 'ORG-CODE-01',
+      });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statut: 'PAYE',
+          voucher_organisation_id: 'voucher-org-01',
+        })
+      );
+    });
+
+    it('rejette VOUCHER_ALREADY_USED si le voucher a déjà été utilisé', async () => {
+      // Premier findFirst : unicité formation (doit retourner null)
+      // Deuxième findFirst : voucher déjà utilisé (retourne un dossier)
+      mockPrisma.dossier.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'dossier-existant' });
+
+      await expect(
+        service.inscrire({
+          session_id: 'session-01',
+          apprenantId: 'app-01',
+          source_financement: 'VOUCHER',
+          voucher_code: 'ORG-CODE-01',
+        })
+      ).rejects.toThrow('VOUCHER_ALREADY_USED');
+    });
+
+    it('marque le voucher EPUISE quand quota_utilise atteint quota_max', async () => {
+      const voucherPlein = { ...voucherOrg, quota_max: 3, quota_utilise: 2 };
+      mockVoucherValidation.validerVoucher.mockResolvedValue(voucherPlein as any);
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-org', statut: 'PAYE' } as any);
+      mockPrisma.voucherOrganisation.update
+        .mockResolvedValueOnce({ ...voucherPlein, quota_utilise: 3 })
+        .mockResolvedValueOnce({ statut: 'EPUISE' });
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'VOUCHER',
+        voucher_code: 'ORG-CODE-01',
+      });
+
+      expect(mockPrisma.voucherOrganisation.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ statut: 'EPUISE' }) })
+      );
+    });
+  });
 });
