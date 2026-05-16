@@ -53,6 +53,7 @@ describe('InscriptionService', () => {
 
     mockRetailRepo = {
       countFormationsActives: jest.fn(),
+      findActifByApprenant: jest.fn().mockResolvedValue(null),
     };
 
     mockAudit = {
@@ -561,6 +562,29 @@ describe('InscriptionService', () => {
 
       expect(result.success).toBe(true);
       expect(mockAudit.warning).toHaveBeenCalledWith('DOSSIER_REJETE_EMAIL_FAILED', expect.objectContaining({ dossier_id: 'dossier-rej-01' }));
+    });
+  });
+
+  describe('RM-72 — Source ABONNEMENT', () => {
+    it('rejette si aucun abonnement actif (ABONNEMENT_REQUIS)', async () => {
+      mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockRetailRepo.findActifByApprenant.mockResolvedValue(null);
+
+      await expect(
+        service.inscrire({ session_id: 'session-01', apprenantId: 'app-01', source_financement: 'ABONNEMENT' })
+      ).rejects.toThrow('ABONNEMENT_REQUIS');
+    });
+
+    it('rejette si 3 formations actives déjà en cours (FORMATION_LIMIT_REACHED — RM-72)', async () => {
+      mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockRetailRepo.findActifByApprenant.mockResolvedValue({ id: 'abo-01', statut: 'ACTIF' });
+      mockRetailRepo.countFormationsActives.mockResolvedValue(3);
+
+      await expect(
+        service.inscrire({ session_id: 'session-01', apprenantId: 'app-01', source_financement: 'ABONNEMENT' })
+      ).rejects.toThrow('FORMATION_LIMIT_REACHED');
     });
   });
 });
