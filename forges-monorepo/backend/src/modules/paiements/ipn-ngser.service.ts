@@ -170,13 +170,12 @@ export class IpnNgserService {
 
   private async traiterSuccess(paiement: any, ipn: IpnPayload): Promise<IpnResult> {
     let commissionsCreated = false;
-
     let commissions: { partenaire?: any; apporteur?: any } = {};
+    let raceDetected = false;
 
     await this.prisma.$transaction(async (tx) => {
-      // Mettre à jour paiement
-      await tx.paiement.update({
-        where: { id: paiement.id },
+      const result = await tx.paiement.updateMany({
+        where: { id: paiement.id, statut: { not: 'CONFIRME' } },
         data: {
           statut: 'CONFIRME',
           status_ngser: 'SUCCESS',
@@ -188,13 +187,20 @@ export class IpnNgserService {
         },
       });
 
-      // Mettre à jour dossier
+      if (result.count === 0) {
+        raceDetected = true;
+        await this.audit.info('IPN_DOUBLON_RACE', {
+          paiement_id: paiement.id,
+          transaction_id: ipn.transaction_id,
+        });
+        return;
+      }
+
       await tx.dossier.update({
         where: { id: paiement.dossier_id },
         data: { statut: 'PAYE' },
       });
 
-      // Créer commissions dans la transaction (RM-09, RM-145)
       commissions = await this.commissionService.creerCommissionsApresSuccessPayment(
         paiement,
         paiement.dossier,
@@ -202,6 +208,10 @@ export class IpnNgserService {
         tx
       );
     });
+
+    if (raceDetected) {
+      return { already_processed: true, action: 'NONE' };
+    }
 
     commissionsCreated = !!(commissions.partenaire || commissions.apporteur);
 
@@ -220,7 +230,6 @@ export class IpnNgserService {
       dossier_id: paiement.dossier_id,
     });
 
-    // Envoi recu PDF non-bloquant
     this.recuService.genererEtEnvoyerRecu(paiement.dossier_id).catch(() => {});
 
     return {
