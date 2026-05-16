@@ -48,6 +48,7 @@ describe('EspaceApprenantService', () => {
       session: { update: jest.fn() },
       voucherApporteur: { findFirst: jest.fn(), update: jest.fn() },
       dossier: { update: jest.fn() },
+      accesFormationDemande: { update: jest.fn() },
     };
 
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
@@ -416,6 +417,84 @@ describe('EspaceApprenantService', () => {
       } as any);
 
       await expect(service.annulerDossier('d-pd', 'a-01')).rejects.toThrow('DOSSIER_PAYE_NON_ANNULABLE');
+    });
+  });
+
+  // UCS14 — Détail d'un accès formation (RM-92, RM-103)
+  describe('getAccesFormationDemande', () => {
+    const accesMock = {
+      id: 'acc-01',
+      formation_id: 'f-01',
+      apprenant_id: 'a-01',
+      statut: 'ACTIF',
+      source_financement: 'ABONNEMENT',
+      progression: 40,
+      date_expiration: new Date(Date.now() + 3600 * 1000), // dans 1h
+      formation: {
+        id: 'f-01',
+        intitule: 'Formation Cybersécurité',
+        description_courte: 'Desc',
+        duree_jours: 5,
+        type_formation: 'STANDARD',
+        mode_formation: 'A_LA_DEMANDE',
+      },
+    };
+
+    it('nominal — retourne acces quand actif et non expire', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue(accesMock as any);
+      mockPrisma.accesFormationDemande.update.mockResolvedValue({});
+
+      const result = await service.getAccesFormationDemande('acc-01', 'a-01');
+
+      expect(result).toMatchObject({
+        id: 'acc-01',
+        statut: 'ACTIF',
+        progression: 40,
+      });
+      expect(result.formation.titre).toBe('Formation Cybersécurité');
+      expect(result.url_contenu).toContain('/formations/f-01/apprenant/a-01');
+      expect(mockPrisma.accesFormationDemande.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'acc-01' } })
+      );
+    });
+
+    it('ACCES_NON_TROUVE — leve une erreur si acces introuvable', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue(null as any);
+
+      await expect(service.getAccesFormationDemande('acc-inconnu', 'a-01'))
+        .rejects.toThrow('ACCES_NON_TROUVE');
+    });
+
+    it('RM-92 — lève ACCES_EXPIRE si date_expiration est passée', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        ...accesMock,
+        date_expiration: new Date(Date.now() - 1000), // expiré
+      } as any);
+
+      await expect(service.getAccesFormationDemande('acc-01', 'a-01'))
+        .rejects.toThrow('ACCES_EXPIRE');
+    });
+
+    it('RM-103 — lève ACCES_SUSPENDU_ABONNEMENT_INACTIF si statut SUSPENDU', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        ...accesMock,
+        statut: 'SUSPENDU',
+        date_expiration: new Date(Date.now() + 3600 * 1000), // non expiré
+      } as any);
+
+      await expect(service.getAccesFormationDemande('acc-01', 'a-01'))
+        .rejects.toThrow('ACCES_SUSPENDU_ABONNEMENT_INACTIF');
+    });
+
+    it('ne met pas à jour last_access_at si accès expiré', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        ...accesMock,
+        date_expiration: new Date(Date.now() - 1000),
+      } as any);
+
+      await expect(service.getAccesFormationDemande('acc-01', 'a-01'))
+        .rejects.toThrow('ACCES_EXPIRE');
+      expect(mockPrisma.accesFormationDemande.update).not.toHaveBeenCalled();
     });
   });
 
