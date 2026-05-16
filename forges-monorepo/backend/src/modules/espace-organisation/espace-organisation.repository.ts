@@ -145,7 +145,15 @@ export class EspaceOrganisationRepository {
   async getStatsOrganisation(organisation_id: string) {
     const [nbBeneficiaires, nbInscriptions, nbVouchersActifsOrganisation, nbVouchersActifsApporteur, paiements] = await Promise.all([
       this.prisma.apprenant.count({ where: { organisation_id } }),
-      this.prisma.dossier.count({ where: { apprenant: { organisation_id } } }),
+      this.prisma.dossier.count({
+        where: {
+          apprenant: { organisation_id },
+          OR: [
+            { source_financement: 'B2B' },
+            { voucher_organisation_id: { not: null } },
+          ],
+        },
+      }),
       this.prisma.voucherOrganisation.count({
         where: { organisation_id, statut: 'ACTIF' }
       }),
@@ -156,9 +164,13 @@ export class EspaceOrganisationRepository {
         _sum: { montant_final: true },
         where: {
           dossier: {
-            apprenant: { organisation_id }
-          }
-        }
+            apprenant: { organisation_id },
+            OR: [
+              { source_financement: 'B2B' },
+              { voucher_organisation_id: { not: null } },
+            ],
+          },
+        },
       }),
     ]);
 

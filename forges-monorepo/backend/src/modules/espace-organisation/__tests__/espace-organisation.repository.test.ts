@@ -185,4 +185,37 @@ describe('EspaceOrganisationRepository', () => {
       where: { organisation_id: 'org-01' },
     });
   });
+
+  it('getStatsOrganisation exclut les inscriptions personnelles (non B2B et sans voucher org)', async () => {
+    prisma.apprenant.count.mockResolvedValue(1);
+    prisma.dossier.count.mockResolvedValue(2);
+    prisma.voucherOrganisation.count.mockResolvedValue(0);
+    prisma.voucherApporteur.count.mockResolvedValue(0);
+    prisma.paiement.aggregate.mockResolvedValue({ _sum: { montant_final: 0 } } as any);
+
+    await repository.getStatsOrganisation('org-01');
+
+    expect(prisma.dossier.count).toHaveBeenCalledWith({
+      where: {
+        apprenant: { organisation_id: 'org-01' },
+        OR: [
+          { source_financement: 'B2B' },
+          { voucher_organisation_id: { not: null } },
+        ],
+      },
+    });
+    expect(prisma.paiement.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          dossier: {
+            apprenant: { organisation_id: 'org-01' },
+            OR: [
+              { source_financement: 'B2B' },
+              { voucher_organisation_id: { not: null } },
+            ],
+          },
+        },
+      })
+    );
+  });
 });
