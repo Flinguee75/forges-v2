@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { organisationApi } from '../../api/espace-organisation.api';
 import { trackClick } from '../../utils/analytics';
 import Card from '../../components/ui/Card';

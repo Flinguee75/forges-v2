@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { formationsApi } from '../../api/formations.api';
 import apprenantApi from '../../api/espace-apprenant.api';
 import { organisationApi } from '../../api/espace-organisation.api';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
