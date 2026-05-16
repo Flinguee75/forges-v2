@@ -607,6 +607,61 @@ describe('InscriptionService', () => {
     });
   });
 
+  describe('RM-88 — réduction -15% abonnement Premium', () => {
+    beforeEach(() => {
+      mockSessionRepo.findById.mockResolvedValue({ ...baseSession, capacite: 10 } as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      // Premier findFirst (RM-15 unicité formation) → null
+      mockPrisma.dossier.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.dossier.count.mockResolvedValue(2);
+      mockFormationRepo.findById.mockResolvedValue({
+        id: 'formation-01',
+        type_formation: 'PREMIUM',
+        cout_catalogue: 100000,
+      } as any);
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-premium', statut: 'EN_ATTENTE_VERIFICATION' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockEmail.notifyResponsable.mockResolvedValue(undefined);
+    });
+
+    it('abonné Premium actif → montant_remise = 15000 (15% de 100000)', async () => {
+      mockPrisma.abonnementRetail.findFirst.mockResolvedValue({
+        id: 'abo-premium-01',
+        apprenant_id: 'app-01',
+        offre: 'PREMIUM',
+        statut: 'ACTIF',
+      } as any);
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'RETAIL',
+        voucher_code: null,
+        code_apporteur: null,
+      });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ montant_remise: 15000 })
+      );
+    });
+
+    it('pas d abonnement Premium actif → montant_remise = 0', async () => {
+      mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'RETAIL',
+        voucher_code: null,
+        code_apporteur: null,
+      });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ montant_remise: 0 })
+      );
+    });
+  });
+
   describe('RM-41 — Voucher ORGANISATION → statut PAYE', () => {
     const voucherOrg = {
       id: 'voucher-org-01',
