@@ -573,4 +573,180 @@ describe('PaiementService', () => {
       ).rejects.toThrow('PAIEMENT_SUPPRESSION_INTERDITE');
     });
   });
+
+  // RM-06 — PAIEMENT_DEJA_VALIDE (non testé jusqu ici)
+  describe('RM-06 — PAIEMENT_DEJA_VALIDE', () => {
+    it('rejette si le paiement existant est déjà CONFIRME', async () => {
+      mockPrisma.dossier.findUnique.mockResolvedValue(dossierStandard);
+      mockPaiementRepo.findByDossierId.mockResolvedValue({
+        id: 'p-01',
+        statut: 'CONFIRME',
+        tentatives: 1,
+        expires_at: new Date(Date.now() + 24 * 3600 * 1000),
+        montant_final: 100000,
+      } as any);
+
+      await expect(
+        service.initierPaiement({ dossier_id: 'd-01', methode: 'MOBILE_MONEY' }, 'a-01')
+      ).rejects.toThrow('PAIEMENT_DEJA_VALIDE');
+      expect(mockPaiementRepo.incrementerTentatives).not.toHaveBeenCalled();
+    });
+  });
+
+  // BUG-PAI-01 — Double confirmation (pas de garde statut dans confirmerPaiement)
+  describe('[BUG-PAI-01] Double confirmation — second SUCCESS avec nouveau transaction_id', () => {
+    it('ne doit pas reconfirmer un paiement déjà CONFIRME ni doubler les commissions', async () => {
+      // Premier IPN déjà traité → paiement en statut CONFIRME
+      mockPaiementRepo.findByTransactionId.mockResolvedValue(null); // nouvelle tx inconnue
+      mockPaiementRepo.findByDossierId.mockResolvedValue({
+        id: 'p-01',
+        dossier_id: 'd-01',
+        statut: 'CONFIRME', // déjà confirmé
+        montant_final: 100000,
+      } as any);
+      mockPaiementRepo.confirmer.mockResolvedValue({} as any);
+      mockPrisma.dossier.update.mockResolvedValue({} as any);
+      mockPrisma.dossier.findUnique.mockResolvedValue(null);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockAudit.warning.mockResolvedValue(undefined);
+      mockEmail.sendPaiementConfirme.mockResolvedValue(undefined);
+
+      await service.confirmerPaiement({
+        transaction_id: 'tx-new-different',
+        dossier_id: 'd-01',
+        statut: 'SUCCESS',
+        montant: 100000,
+      });
+
+      // Ce test ECHOUE tant que le bug existe :
+      // confirmer() et creerCommission() ne doivent pas être appelés une seconde fois
+      expect(mockPaiementRepo.confirmer).not.toHaveBeenCalled();
+      expect(mockCommissionRepo.creerCommissionApporteur).not.toHaveBeenCalled();
+      expect(mockCommissionRepo.creerCommissionPartenaire).not.toHaveBeenCalled();
+    });
+  });
+
+  // RM-160 — MONTANT_INVALIDE webhook (comportement documenté)
+  describe('RM-160 — Mismatch montant IPN', () => {
+    it('retourne MONTANT_INVALIDE et n annule pas le paiement si le montant differe', async () => {
+      mockPaiementRepo.findByTransactionId.mockResolvedValue(null);
+      mockPaiementRepo.findByDossierId.mockResolvedValue({
+        id: 'p-01',
+        dossier_id: 'd-01',
+        montant_final: 100000,
+        statut: 'EN_ATTENTE',
+      } as any);
+      mockAudit.warning.mockResolvedValue(undefined);
+
+      const result = await service.confirmerPaiement({
+        transaction_id: 'tx-mismatch',
+        dossier_id: 'd-01',
+        statut: 'SUCCESS',
+        montant: 50000, // montant different
+      });
+
+      expect(result).toMatchObject({ message: 'MONTANT_INVALIDE', statut: 'REJECTED' });
+      expect(mockPaiementRepo.confirmer).not.toHaveBeenCalled();
+      expect(mockPrisma.dossier.update).not.toHaveBeenCalled();
+      expect(mockAudit.warning).toHaveBeenCalledWith('PAIEMENT_MONTANT_MISMATCH', expect.objectContaining({
+        montant_attendu: 100000,
+        montant_recu: 50000,
+      }));
+      // Le paiement doit rester en attente — aucun echouer() déclenché
+      expect(mockPaiementRepo.echouer).not.toHaveBeenCalled();
+    });
+  });
+
+  // BUG-PAI-03 — Email non enveloppé dans annulerPaiementsExpires
+  describe('[BUG-PAI-03] annulerPaiementsExpires — email sans try/catch', () => {
+    it('continue d annuler les autres paiements meme si l email echoue', async () => {
+      const paiements = [
+        { id: 'p-exp-01', dossier_id: 'd-01', dossier: { voucher_code: null, session_id: 's-01' } },
+        { id: 'p-exp-02', dossier_id: 'd-02', dossier: { voucher_code: null, session_id: 's-02' } },
+      ];
+      mockPaiementRepo.findPaiementsExpires.mockResolvedValue(paiements as any);
+      mockPaiementRepo.echouer.mockResolvedValue({} as any);
+      mockPrisma.dossier.update.mockResolvedValue({} as any);
+      mockPrisma.session.update.mockResolvedValue({} as any);
+      mockPrisma.dossier.findUnique.mockResolvedValue({
+        apprenant: { email: 'a@test.ci', langue_preferee: 'FR' }
+      } as any);
+      mockAudit.warning.mockResolvedValue(undefined);
+
+      // Email échoue pour le premier paiement
+      mockEmail.sendDossierAnnuleExpiration
+        .mockRejectedValueOnce(new Error('SMTP_DOWN'))
+        .mockResolvedValueOnce(undefined);
+
+      // Ce test ECHOUE tant que le bug existe :
+      // l exception non catchée interrompt la boucle → count = 1 au lieu de 2
+      const count = await service.annulerPaiementsExpires();
+      expect(count).toBe(2);
+      expect(mockPaiementRepo.echouer).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // RM-10 — Remboursement admin (non testé jusqu ici)
+  describe('RM-10 — rembourserPaiement', () => {
+    it('lance PAIEMENT_NOT_FOUND si paiement inexistant', async () => {
+      mockPaiementRepo.findById.mockResolvedValue(null);
+      await expect(service.rembourserPaiement('p-01', 'Erreur', 'admin-01')).rejects.toThrow('PAIEMENT_NOT_FOUND');
+    });
+
+    it('lance PAIEMENT_NON_REMBOURSABLE si statut non CONFIRME', async () => {
+      mockPaiementRepo.findById.mockResolvedValue({ id: 'p-01', statut: 'EN_ATTENTE', dossier_id: 'd-01' } as any);
+      await expect(service.rembourserPaiement('p-01', 'Erreur', 'admin-01')).rejects.toThrow('PAIEMENT_NON_REMBOURSABLE');
+    });
+
+    it('rembourse le paiement CONFIRME et annule le dossier', async () => {
+      mockPaiementRepo.findById.mockResolvedValue({ id: 'p-01', statut: 'CONFIRME', dossier_id: 'd-01' } as any);
+      mockPaiementRepo.rembourser = jest.fn().mockResolvedValue({});
+      mockPrisma.dossier.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.rembourserPaiement('p-01', 'Doublon paiement', 'admin-01');
+
+      expect(mockPaiementRepo.rembourser).toHaveBeenCalledWith('p-01');
+      expect(mockPrisma.dossier.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'd-01' },
+        data: { statut: 'ANNULE' },
+      }));
+      expect(mockAudit.info).toHaveBeenCalledWith('PAIEMENT_REMBOURSE', expect.objectContaining({
+        paiement_id: 'p-01',
+        motif: 'Doublon paiement',
+        admin_id: 'admin-01',
+      }));
+      expect(result).toMatchObject({ statut: 'REMBOURSE', motif: 'Doublon paiement' });
+    });
+  });
+
+  // getPaiementsStats
+  describe('getPaiementsStats', () => {
+    it('calcule correctement les stats sur une période donnée', async () => {
+      const now = Date.now();
+      mockPrisma.paiement.findMany.mockResolvedValue([
+        { statut: 'CONFIRME', created_at: new Date(now - 1000), confirmed_at: new Date(now), provider: 'NGSER' },
+        { statut: 'ECHOUE', created_at: new Date(now - 2000), confirmed_at: null, provider: 'NGSER' },
+        { statut: 'PENDING', created_at: new Date(now - 3000), confirmed_at: null, provider: 'FINEO' },
+      ] as any);
+      mockPrisma.paiement.count = jest.fn().mockResolvedValue(0);
+
+      const stats = await service.getPaiementsStats('24h');
+
+      expect(stats.total).toBe(3);
+      expect(stats.success).toBe(1);
+      expect(stats.fail).toBe(1);
+      expect(stats.pending).toBe(1);
+      expect(stats.success_rate).toBeCloseTo(33.33);
+    });
+
+    it('retourne success_rate 0 si aucun paiement', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue([]);
+      mockPrisma.paiement.count = jest.fn().mockResolvedValue(0);
+
+      const stats = await service.getPaiementsStats('1h');
+      expect(stats.success_rate).toBe(0);
+      expect(stats.avg_confirmation_time_seconds).toBe(0);
+    });
+  });
 });

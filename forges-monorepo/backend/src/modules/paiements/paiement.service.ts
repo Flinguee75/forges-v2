@@ -175,6 +175,10 @@ export class PaiementService {
     const paiement = await this.paiementRepo.findByDossierId(webhookData.dossier_id);
     if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
 
+    // Idempotence par statut : un paiement déjà CONFIRME ne doit pas être retraité
+    // même si le webhook arrive avec un nouveau transaction_id (RM-158/RM-160)
+    if (paiement.statut === 'CONFIRME') return { message: 'ALREADY_PROCESSED' };
+
     if (webhookData.statut === 'SUCCESS') {
       // ✅ RM-160: Valider que montant IPN == montant initié (idempotence strict)
       if (webhookData.montant !== paiement.montant_final) {
@@ -342,10 +346,17 @@ export class PaiementService {
         include: { apprenant: true }
       });
       if (dossierComplet) {
-        await this.email.sendDossierAnnuleExpiration(
-          dossierComplet.apprenant.email,
-          dossierComplet.apprenant.langue_preferee
-        );
+        try {
+          await this.email.sendDossierAnnuleExpiration(
+            dossierComplet.apprenant.email,
+            dossierComplet.apprenant.langue_preferee
+          );
+        } catch (error: any) {
+          await this.audit.warning('EXPIRATION_EMAIL_FAILED', {
+            dossier_id: paiement.dossier_id,
+            error: error?.message || 'UNKNOWN_ERROR',
+          });
+        }
       }
     }
 
