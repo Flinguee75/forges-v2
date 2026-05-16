@@ -587,4 +587,23 @@ describe('InscriptionService', () => {
       ).rejects.toThrow('FORMATION_LIMIT_REACHED');
     });
   });
+
+  describe('RM-18 — Fenêtre GRIS (taux exactement 110%)', () => {
+    it('marque le dossier GRIS si taux > 100% et <= 110%', async () => {
+      // count=10, capacite=10 → taux = (10+1)/10*100 = 110% → GRIS (>100 mais pas >110)
+      mockSessionRepo.findById.mockResolvedValue({ ...baseSession, capacite: 10 } as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockFormationRepo.findById.mockResolvedValue({ id: 'formation-01', type_formation: 'STANDARD', cout_catalogue: 100000 } as any);
+      mockPrisma.dossier.count.mockResolvedValue(10);
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-gris', statut: 'PAYE_DIRECTEMENT' } as any);
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-gris' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.inscrire({ session_id: 'session-01', apprenantId: 'app-01', source_financement: 'RETAIL' });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ type_fenetre: 'GRIS' })
+      );
+    });
+  });
 });
