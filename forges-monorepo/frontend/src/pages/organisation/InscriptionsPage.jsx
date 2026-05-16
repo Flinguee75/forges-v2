@@ -72,7 +72,7 @@ export default function InscriptionsPage() {
 
   const formatMontant = (montant) => {
     if (!montant) return '0 FCFA';
-    return `${Number(montant).toLocaleString('fr-FR')} FCFA`;
+    return `${Math.round(Number(montant) / 100).toLocaleString('fr-FR')} FCFA`;
   };
 
   const columns = [
@@ -98,7 +98,10 @@ export default function InscriptionsPage() {
       key: 'montant',
       label: 'Montant',
       render: (_, dossier) => {
-        const montant = (dossier.paiement?.montant_final > 0 ? dossier.paiement.montant_final : null) ?? dossier.formation?.cout_catalogue ?? 0;
+        const montant_final = dossier.paiement?.montant_final;
+        const montant = (montant_final != null && montant_final > 0)
+          ? montant_final
+          : dossier.session?.formation?.tarif ?? dossier.formation?.cout_catalogue ?? 0;
         return formatMontant(montant);
       },
     },

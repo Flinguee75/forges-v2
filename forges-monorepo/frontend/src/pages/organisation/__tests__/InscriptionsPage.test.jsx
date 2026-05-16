@@ -142,6 +142,38 @@ describe('InscriptionsPage - Tests', () => {
     });
   });
 
+  it('affiche cout_catalogue quand montant_final vaut 0 (bug voucher)', async () => {
+    vi.spyOn(organisationApi.organisationApi, 'getInscriptions').mockResolvedValue({
+      data: [
+        {
+          id: '99',
+          statut: 'PAYE_DIRECTEMENT',
+          etudiant: { prenom: 'Hassan', nom: 'Cisse' },
+          session: {
+            formation: { titre: 'Masterclass Cybersecurite', tarif: 15000000 }, // 150 000 FCFA en centimes
+            date_debut: '2026-06-01',
+          },
+          formation: { intitule: 'Masterclass Cybersecurite', cout_catalogue: 15000000 },
+          paiement: { statut: 'EN_ATTENTE', montant_final: 0 },
+          created_at: '2026-05-15',
+        },
+      ],
+      meta: { page: 1, totalPages: 1, total: 1 },
+    });
+
+    render(
+      <BrowserRouter>
+        <InscriptionsPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      // doit afficher 150 000 FCFA (tarif de fallback), pas 0 FCFA
+      expect(screen.queryByText('0 FCFA')).not.toBeInTheDocument();
+      expect(screen.getAllByText(/150.*000.*FCFA/).length).toBeGreaterThan(0);
+    });
+  });
+
   it('affiche les badges de statut', async () => {
     render(
       <BrowserRouter>
