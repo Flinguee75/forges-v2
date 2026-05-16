@@ -314,4 +314,42 @@ describe('EspaceOrganisationService', () => {
       expect(result.alerte_plafond).toBe(false);
     });
   });
+
+  // Error case : getDashboard ORGANISATION_NOT_FOUND
+  describe('getDashboard — ORGANISATION_NOT_FOUND', () => {
+    it('lance ORGANISATION_NOT_FOUND si l\'organisation est introuvable', async () => {
+      mockRepo.findOrganisationById.mockResolvedValue(null);
+      mockRepo.getStatsOrganisation.mockResolvedValue({} as any);
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+      await expect(service.getDashboard('org-inconnue')).rejects.toThrow('ORGANISATION_NOT_FOUND');
+    });
+  });
+
+  // Error case : getDashboardB2B ABONNEMENT_B2B_INACTIF
+  describe('getDashboardB2B — ABONNEMENT_B2B_INACTIF', () => {
+    it('lance ABONNEMENT_B2B_INACTIF si l\'organisation n\'a pas d\'abonnement B2B', async () => {
+      const orgSansB2B = { ...orgAvecB2B, abonnement_b2b: null };
+      mockRepo.findOrganisationById.mockResolvedValue(orgSansB2B as any);
+
+      await expect(service.getDashboardB2B('org-01')).rejects.toThrow('ABONNEMENT_B2B_INACTIF');
+    });
+
+    it('lance ABONNEMENT_B2B_INACTIF si l\'organisation est introuvable', async () => {
+      mockRepo.findOrganisationById.mockResolvedValue(null);
+
+      await expect(service.getDashboardB2B('org-inconnue')).rejects.toThrow('ABONNEMENT_B2B_INACTIF');
+    });
+  });
+
+  // Error case : desactiverBeneficiaire APPRENANT_NOT_FOUND
+  describe('desactiverBeneficiaire — APPRENANT_NOT_FOUND', () => {
+    it('lance APPRENANT_NOT_FOUND si l\'apprenant n\'appartient pas à l\'organisation', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.desactiverBeneficiaire('app-inexistant', 'org-01', 'user-01')
+      ).rejects.toThrow('APPRENANT_NOT_FOUND');
+    });
+  });
 });
