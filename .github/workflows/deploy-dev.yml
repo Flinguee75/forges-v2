@@ -1,8 +1,6 @@
 name: Deploy → https://dev.forges-group.com
 
 on:
-  push:
-    branches: [develop]
   pull_request:
     branches: [main]
     types: [opened, synchronize]
