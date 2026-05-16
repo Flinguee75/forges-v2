@@ -497,4 +497,57 @@ describe('EspaceOrganisationService', () => {
       expect(whereArg.confirmed_at.lte).toEqual(new Date('2026-03-31'));
     });
   });
+
+  describe('getMonProfil', () => {
+    it('retourne le profil de l organisation', async () => {
+      const orgComplete = {
+        ...orgAvecB2B,
+        email: 'contact@techcorp.ci',
+        contact_referent: 'Moussa Koné',
+        type: 'ENTREPRISE',
+        sous_types: ['PME'],
+        pays: 'CI',
+        langue_preferee: 'FR',
+      };
+      mockRepo.findOrganisationById.mockResolvedValue(orgComplete as any);
+
+      const result = await service.getMonProfil('org-01');
+
+      expect(result.raison_sociale).toBe('TechCorp CI');
+      expect(result.email).toBe('contact@techcorp.ci');
+      expect(result.statut).toBe('ACTIF');
+      expect((result as any).password_hash).toBeUndefined();
+    });
+
+    it('lance ORGANISATION_NOT_FOUND si l organisation est introuvable', async () => {
+      mockRepo.findOrganisationById.mockResolvedValue(null);
+
+      await expect(service.getMonProfil('org-inconnue')).rejects.toThrow('ORGANISATION_NOT_FOUND');
+    });
+  });
+
+  describe('updateMonProfil', () => {
+    it('met a jour et journalise PROFIL_ORGANISATION_MIS_A_JOUR', async () => {
+      const updated = { id: 'org-01', raison_sociale: 'TechCorp Nouvelle', email: 'new@techcorp.ci' };
+      mockPrisma.organisation.update.mockResolvedValue(updated);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.updateMonProfil('org-01', {
+        raison_sociale: 'TechCorp Nouvelle',
+        email: 'new@techcorp.ci',
+        contact_referent: 'Moussa',
+        pays: 'CI',
+        langue_preferee: 'FR',
+      });
+
+      expect(mockPrisma.organisation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'org-01' },
+          data: expect.objectContaining({ raison_sociale: 'TechCorp Nouvelle', email: 'new@techcorp.ci' }),
+        })
+      );
+      expect(mockAudit.info).toHaveBeenCalledWith('PROFIL_ORGANISATION_MIS_A_JOUR', expect.objectContaining({ organisation_id: 'org-01' }));
+      expect(result.organisation.raison_sociale).toBe('TechCorp Nouvelle');
+    });
+  });
 });
