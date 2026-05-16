@@ -333,6 +333,59 @@ describe('EspaceApprenantService', () => {
     });
   });
 
+  describe('updateProgressionFormationDemande', () => {
+    it("leve ACCES_NON_TROUVE si l'acces n'existe pas", async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue(null as any);
+
+      await expect(
+        service.updateProgressionFormationDemande('acc-xxx', 'a-01', 50)
+      ).rejects.toThrow('ACCES_NON_TROUVE');
+    });
+
+    it("leve FORBIDDEN si l'acces appartient a un autre apprenant", async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        id: 'acc-01',
+        apprenant_id: 'a-autre',
+        statut: 'ACTIF',
+        progression: 10,
+      } as any);
+
+      await expect(
+        service.updateProgressionFormationDemande('acc-01', 'a-01', 50)
+      ).rejects.toThrow('FORBIDDEN');
+    });
+
+    it('normalise une progression superieure a 100 a 100', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        id: 'acc-01',
+        apprenant_id: 'a-01',
+        statut: 'ACTIF',
+        progression: 80,
+      } as any);
+      mockRepo.updateProgression.mockResolvedValue({ id: 'acc-01', progression: 100 } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.updateProgressionFormationDemande('acc-01', 'a-01', 150);
+
+      expect(mockRepo.updateProgression).toHaveBeenCalledWith('acc-01', 100);
+    });
+
+    it('normalise une progression negative a 0', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        id: 'acc-01',
+        apprenant_id: 'a-01',
+        statut: 'ACTIF',
+        progression: 10,
+      } as any);
+      mockRepo.updateProgression.mockResolvedValue({ id: 'acc-01', progression: 0 } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.updateProgressionFormationDemande('acc-01', 'a-01', -20);
+
+      expect(mockRepo.updateProgression).toHaveBeenCalledWith('acc-01', 0);
+    });
+  });
+
   describe('UCS11 — Consultation et attestation', () => {
     it('retourne les dossiers de l’apprenant', async () => {
       mockRepo.findDossiersByApprenant.mockResolvedValue([{ id: 'd-01' }] as any);
