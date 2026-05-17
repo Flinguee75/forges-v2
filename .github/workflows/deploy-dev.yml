@@ -189,8 +189,9 @@ jobs:
         run: |
           gh workflow run "Deploy → https://edu.forges-group.com" \
             --repo ${{ github.repository }} \
-            --ref develop \
-            --field image_sha=${{ github.sha }}
+            --ref main \
+            --field image_sha=${{ github.sha }} \
+            --field frontend_ref=${{ github.sha }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
