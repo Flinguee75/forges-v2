@@ -417,6 +417,10 @@ const router = createBrowserRouter([
         path: 'catalogue',
         element: withSuspense(<CatalogueApprenantPage />),
       },
+      {
+        path: 'formations/:id',
+        element: withSuspense(<FormationDetailApprenantPage />),
+      },
     ],
   },
 

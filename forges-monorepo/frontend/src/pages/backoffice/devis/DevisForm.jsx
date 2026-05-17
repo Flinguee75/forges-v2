@@ -15,7 +15,7 @@ const TYPE_DEVIS = { ORGANISATION: 'ORGANISATION', APPRENANT: 'APPRENANT' };
 export default function DevisForm() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { execute, isLoading } = useApi();
+  const { execute, isLoading, error } = useApi();
 
   const [typeDevis, setTypeDevis] = useState(TYPE_DEVIS.ORGANISATION);
   const [formations, setFormations] = useState([]);
@@ -222,6 +222,15 @@ export default function DevisForm() {
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
+          {error && (
+            <div
+              className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger"
+              data-testid="devis-error"
+            >
+              {error}
+            </div>
+          )}
+
           {typeDevis === TYPE_DEVIS.ORGANISATION ? (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-text">Organisation</label>

@@ -148,6 +148,7 @@ export default function Navbar({
   user,
   onLogout,
   onMenuToggle,
+  showApiBadge = true,
   showSystemStatus = true,
 }) {
   const isPublic = variant === 'public';
@@ -250,7 +251,7 @@ export default function Navbar({
                 <h1 className="truncate text-lg font-semibold text-text sm:text-xl">
                   {title}
                 </h1>
-                {showSystemStatus && (
+                {showApiBadge && (
                   <div className="mt-2">
                     <StatusBadge />
                   </div>
@@ -334,5 +335,6 @@ Navbar.propTypes = {
   }),
   onLogout: PropTypes.func,
   onMenuToggle: PropTypes.func,
+  showApiBadge: PropTypes.bool,
   showSystemStatus: PropTypes.bool,
 };
