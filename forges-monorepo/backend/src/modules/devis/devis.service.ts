@@ -16,6 +16,35 @@ export class DevisService {
     private readonly emailService: EmailService
   ) {}
 
+  private isNumeroDevisUniqueConstraint(error: unknown) {
+    const prismaError = error as {
+      code?: string;
+      meta?: { target?: string | string[] };
+      message?: string;
+    };
+
+    if (prismaError?.code !== 'P2002') {
+      return false;
+    }
+
+    const target = prismaError?.meta?.target;
+    if (Array.isArray(target) && target.includes('numero_devis')) {
+      return true;
+    }
+
+    if (typeof target === 'string' && target.includes('numero_devis')) {
+      return true;
+    }
+
+    const message = prismaError?.message || '';
+    return message.includes('Unique constraint failed') && message.includes('numero_devis');
+  }
+
+  private async waitBeforeRetry(attempt: number) {
+    const delayMs = 15 * (attempt + 1);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
   private buildDraftOrganisation(
     recipientLabel: string,
     organisationLabel: string,
@@ -121,7 +150,8 @@ export class DevisService {
         });
         break;
       } catch (e: any) {
-        if (e?.code === 'P2002' && e?.meta?.target?.includes('numero_devis')) {
+        if (this.isNumeroDevisUniqueConstraint(e)) {
+          await this.waitBeforeRetry(attempt);
           continue;
         }
         throw e;

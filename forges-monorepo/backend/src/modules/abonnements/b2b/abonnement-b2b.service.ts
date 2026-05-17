@@ -2,8 +2,7 @@ import { randomBytes } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
-
-const NGSER_MOCK_BASE_URL = 'https://mock-ngser.forges.ci/pay';
+import { PaiementCheckoutService } from '../../paiements/paiement-checkout.service';
 
 // Paliers B2B
 export const PALIERS_B2B = {
@@ -17,7 +16,8 @@ export class AbonnementB2BService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
-    private readonly email: EmailService
+    private readonly email: EmailService,
+    private readonly checkoutService = new PaiementCheckoutService(audit)
   ) {}
 
   // GET Mon abonnement B2B actif
@@ -81,11 +81,8 @@ export class AbonnementB2BService {
 
     if (existant) {
       if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
-        let paymentUrl = `${NGSER_MOCK_BASE_URL}?order=${existant.order_ngser}`;
-        try {
-          const session = await this.creerSessionNgser(existant.id, existant.prix_annuel);
-          paymentUrl = session.payment_url;
-        } catch (_) { /* NGSER indisponible — fallback sur order_ngser existant */ }
+        const session = await this.creerSessionPaiement(existant.id, existant.prix_annuel);
+        const paymentUrl = session.payment_url;
         return { abonnement: existant, payment_url: paymentUrl, order_ngser: existant.order_ngser };
       }
       // RM-84 : unicité stricte
@@ -111,7 +108,7 @@ export class AbonnementB2BService {
       },
     });
 
-    const session = await this.creerSessionNgser(abo.id, config.prix_annuel);
+    const session = await this.creerSessionPaiement(abo.id, config.prix_annuel);
 
     await this.audit.info('ABONNEMENT_B2B_EN_ATTENTE_PAIEMENT', {
       organisation_id,
@@ -137,27 +134,20 @@ export class AbonnementB2BService {
     return `ABO-B2B-${year}-${dayOfYear}-${suffix}`;
   }
 
-  private async creerSessionNgser(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
-    const isMock = process.env.NGSER_MOCK_MODE !== 'false';
+  private async creerSessionPaiement(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
     const abo = await this.prisma.abonnementB2B.findUnique({ where: { id: abonnement_id } });
     const order = abo?.order_ngser ?? this.generateOrderNgser();
-
-    if (isMock) {
-      return { payment_url: `${NGSER_MOCK_BASE_URL}?order=${order}` };
-    }
-
-    const { NgserClient } = await import('../../paiements/ngser.client');
-    const ngserClient = new NgserClient(this.audit);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const notificationUrl = process.env.NGSER_NOTIFICATION_URL || 'http://localhost:3000/webhooks/paiement';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+    const notificationUrl = process.env.FINEO_CALLBACK_URL || `${backendUrl}/webhooks/fineo`;
     const returnUrl = `${frontendUrl}/organisation/b2b/callback`;
 
-    const session = await ngserClient.createSession({
+    const session = await this.checkoutService.initierCheckout({
       order,
-      amount: montantXof,
-      currency: 'XOF',
-      notification_url: notificationUrl,
-      return_url: returnUrl,
+      amountXof: montantXof,
+      title: `Abonnement B2B — ${abo?.palier || 'FORGES'}`,
+      callbackUrl: notificationUrl,
+      returnUrl,
     });
 
     return { payment_url: session.payment_url };

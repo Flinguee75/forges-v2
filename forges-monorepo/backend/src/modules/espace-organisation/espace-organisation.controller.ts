@@ -134,6 +134,29 @@ export class EspaceOrganisationController {
     }
   }
 
+  // POST /api/organisation/inscrire-beneficiaire — ORGANISATION (UCS12)
+  async inscrireBeneficiaire(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { beneficiaire_id, session_id, source_financement, voucher_organisation_id } = req.body;
+      if (!beneficiaire_id || !session_id || !source_financement) {
+        return res.status(400).json({ error: 'CHAMPS_REQUIS_MANQUANTS' });
+      }
+      const result = await this.orgService.inscrireBeneficiaire(req.user!.userId, {
+        beneficiaire_id,
+        session_id,
+        source_financement,
+        voucher_organisation_id,
+      });
+      res.status(201).json(result);
+    } catch (error: any) {
+      if (error.message === 'APPRENANT_NON_BENEFICIAIRE') return res.status(403).json({ error: 'APPRENANT_NON_BENEFICIAIRE' });
+      if (error.message === 'INSCRIPTION_DEJA_EXISTANTE') return res.status(409).json({ error: 'INSCRIPTION_DEJA_EXISTANTE' });
+      if (error.message === 'B2B_PLAFOND_ATTEINT') return res.status(409).json({ error: 'B2B_PLAFOND_ATTEINT' });
+      if (error.message === 'VOUCHER_INVALIDE') return res.status(422).json({ error: 'VOUCHER_INVALIDE' });
+      next(error);
+    }
+  }
+
   // GET /api/organisation/inscriptions — ORGANISATION
   async getSuiviInscriptions(req: Request, res: Response, next: NextFunction) {
     try {

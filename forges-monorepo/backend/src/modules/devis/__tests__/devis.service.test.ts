@@ -186,6 +186,34 @@ describe('DevisService — RM-149 à RM-151', () => {
       expect(mockDevisRepo.create).toHaveBeenCalledTimes(2);
     });
 
+    it('retente aussi quand Prisma renvoie un target string au lieu d un tableau', async () => {
+      mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
+      mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);
+      mockDevisRepo.maxSequenceParAnnee
+        .mockResolvedValueOnce(7)
+        .mockResolvedValueOnce(8);
+      const p2002 = Object.assign(
+        new Error('Unique constraint failed on the fields: (`numero_devis`)'),
+        {
+          code: 'P2002',
+          meta: { target: 'devis_numero_devis_key' },
+        }
+      );
+      mockDevisRepo.create
+        .mockRejectedValueOnce(p2002)
+        .mockImplementation((data: any) => ({ id: 'd-retry-string-target', ...data }));
+
+      const service = makeService();
+      const annee = new Date().getFullYear();
+      const devis = await service.creerDevis(
+        { organisation_id: 'org-01', formation_id: 'f-01', session_id: 's-01', nb_places: 1, tarif_unitaire_xof: 5000 },
+        'admin-01'
+      );
+
+      expect(devis.numero_devis).toBe(`FORGES-DEVIS-${annee}-009`);
+      expect(mockDevisRepo.create).toHaveBeenCalledTimes(2);
+    });
+
     it('propage l erreur si P2002 persiste apres 5 tentatives', async () => {
       mockPrisma.organisation.findUnique.mockResolvedValue(orgFixture);
       mockPrisma.formation.findUnique.mockResolvedValue(formationFixture);

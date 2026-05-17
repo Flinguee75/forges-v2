@@ -31,6 +31,13 @@ export class DevisController {
           message: 'La session sélectionnée n\'est pas éligible à la création d\'un devis',
         });
       }
+      if (error.message === 'NUMERO_DEVIS_COLLISION') {
+        return res.status(409).json({
+          statusCode: 409,
+          error: 'NUMERO_DEVIS_COLLISION',
+          message: 'Impossible de générer un nouveau numéro de devis pour le moment. Réessayez.',
+        });
+      }
       if (error.message === 'SESSION_NOT_FOUND') {
         return res.status(404).json({ statusCode: 404, error: 'SESSION_NOT_FOUND', message: 'Session introuvable' });
       }

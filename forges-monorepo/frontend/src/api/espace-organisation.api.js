@@ -328,6 +328,10 @@ export const organisationApi = {
     });
   },
 
+  // Inscrire un bénéficiaire à une formation (UCS12)
+  inscrireBeneficiaire: (data) =>
+    apiClient.post('/espace-organisation/inscrire-beneficiaire', data),
+
   // Vouchers
   getVouchers: async (params = {}) => {
     const response = await apiClient.get('/espace-organisation/vouchers', {

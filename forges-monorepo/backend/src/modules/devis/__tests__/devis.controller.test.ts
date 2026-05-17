@@ -188,4 +188,37 @@ describe('DevisController', () => {
       })
     );
   });
+
+  it('mappe NUMERO_DEVIS_COLLISION en 409 avec message utilisateur', async () => {
+    const service = {
+      creerDevis: jest.fn().mockRejectedValue(new Error('NUMERO_DEVIS_COLLISION')),
+    } as any;
+    const controller = new DevisController(service);
+
+    const req = {
+      body: {
+        organisation_id: '550e8400-e29b-41d4-a716-446655440000',
+        formation_id: 'formation-01',
+        session_id: '550e8400-e29b-41d4-a716-446655440001',
+        nb_places: 3,
+        tarif_unitaire_xof: 15000,
+      },
+      user: { userId: 'admin-01' },
+    } as any;
+
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as any;
+
+    await controller.creerDevis(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: 'NUMERO_DEVIS_COLLISION',
+        message: expect.stringContaining('Réessayez'),
+      })
+    );
+  });
 });

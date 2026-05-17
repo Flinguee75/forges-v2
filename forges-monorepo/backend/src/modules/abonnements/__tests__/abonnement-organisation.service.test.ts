@@ -77,6 +77,7 @@ describe('AbonnementOrganisationService', () => {
       expect.objectContaining({ organisation_id: 'org-01', offre: 'ENTERPRISE' })
     );
     expect(result.payment_url).toBeDefined();
+    expect(result.payment_url).not.toContain('mock-ngser');
     expect(result.order_ngser).toBeDefined();
     expect(result.abonnement).toEqual(created);
   });

@@ -116,6 +116,7 @@ describe('AbonnementRetailService', () => {
       const result = await service.souscrire('a-01', 'ESSENTIEL', 'FR');
       expect(typeof result.payment_url).toBe('string');
       expect(result.payment_url.length).toBeGreaterThan(0);
+      expect(result.payment_url).not.toContain('mock-ngser');
     });
 
     it('retourne order_ngser au format ABO-YYYY-DDD-XXXXXX', async () => {

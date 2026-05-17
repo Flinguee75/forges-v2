@@ -181,6 +181,7 @@ export default function CatalogueApprenantPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isOrg = user?.role === 'ORGANISATION';
+  const basePath = isOrg ? '/organisation' : '/apprenant';
   const [formations, setFormations] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [filters, setFilters] = useState({ search: '', page: 1, limit: 12 });
@@ -227,13 +228,18 @@ export default function CatalogueApprenantPage() {
   };
 
   const handleAccederFormation = async (formationId) => {
+    if (isOrg) {
+      navigate(`${basePath}/formations/${formationId}`);
+      return;
+    }
+
     await execute(
       () => apprenantApi.accederFormationDemande(formationId),
       {
-        onSuccess: (acces) => navigate(`/apprenant/formations-a-la-demande/${acces.id}`),
+        onSuccess: (acces) => navigate(`${basePath}/formations-a-la-demande/${acces.id}`),
         onError: (error) => {
           if (error?.statusCode === 402 || error?.code === 'PAYMENT_REQUIRED') {
-            navigate('/apprenant/abonnement/souscrire');
+            navigate(`${basePath}/abonnement/souscrire`);
           }
         },
       }
@@ -371,7 +377,7 @@ export default function CatalogueApprenantPage() {
                 formation={formation}
                 index={index}
                 onAcceder={handleAccederFormation}
-                onInscrire={(id) => navigate(`/apprenant/formations/${id}`)}
+                onInscrire={(id) => navigate(`${basePath}/formations/${id}`)}
               />
             ))}
           </div>

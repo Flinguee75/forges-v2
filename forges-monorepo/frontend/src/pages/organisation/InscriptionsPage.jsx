@@ -78,7 +78,7 @@ export default function InscriptionsPage() {
   const columns = [
     {
       key: 'etudiant',
-      label: 'Employé',
+      label: 'Employe',
       render: (_, dossier) => {
         const etudiant = dossier.etudiant || {};
         return `${etudiant.prenom || ''} ${etudiant.nom || ''}`.trim() || 'N/A';
@@ -108,7 +108,16 @@ export default function InscriptionsPage() {
     {
       key: 'statut',
       label: 'Statut',
-      render: (value) => getStatutBadge(value),
+      render: (_, dossier) => (
+        <div className="flex flex-col gap-1">
+          {getStatutBadge(dossier.statut)}
+          {dossier.organisation_inscriptrice_id && (
+            <Badge variant="info" size="small" data-testid="badge-inscrit-par-org">
+              Inscrit par l'org
+            </Badge>
+          )}
+        </div>
+      ),
     },
     {
       key: 'created_at',

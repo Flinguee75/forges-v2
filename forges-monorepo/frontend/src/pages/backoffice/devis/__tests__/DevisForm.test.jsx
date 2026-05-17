@@ -8,6 +8,11 @@ import formationsApi from '../../../../api/formations.api';
 import { organisationsApi } from '../../../../api/organisations.api';
 import { sessionsApi } from '../../../../api/sessions.api';
 
+const useApiState = {
+  error: null,
+  isLoading: false,
+};
+
 vi.mock('../../../../hooks/useApi', () => ({
   useApi: () => ({
     execute: vi.fn(async (fn, options) => {
@@ -15,7 +20,8 @@ vi.mock('../../../../hooks/useApi', () => ({
       options?.onSuccess?.(data);
       return data;
     }),
-    isLoading: false,
+    isLoading: useApiState.isLoading,
+    error: useApiState.error,
   }),
 }));
 
@@ -28,6 +34,8 @@ vi.mock('../../../../hooks/useToast', () => ({
 describe('DevisForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useApiState.error = null;
+    useApiState.isLoading = false;
     vi.spyOn(formationsApi, 'getAllBackoffice').mockResolvedValue({
       data: [{ id: 'f-01', intitule: 'Formation Test' }],
     });
@@ -101,5 +109,19 @@ describe('DevisForm', () => {
         })
       );
     });
+  });
+
+  it('affiche une box d erreur dediee quand la creation echoue', async () => {
+    useApiState.error = 'Impossible de générer un nouveau numéro de devis pour le moment. Réessayez.';
+
+    render(
+      <BrowserRouter>
+        <DevisForm />
+      </BrowserRouter>
+    );
+
+    expect(await screen.findByTestId('devis-error')).toHaveTextContent(
+      'Impossible de générer un nouveau numéro de devis pour le moment. Réessayez.'
+    );
   });
 });

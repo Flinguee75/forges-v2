@@ -50,6 +50,7 @@ describe('AbonnementB2BService', () => {
       expect.objectContaining({ organisation_id: 'org-01', palier: 'BUSINESS' })
     );
     expect(result.payment_url).toBeDefined();
+    expect(result.payment_url).not.toContain('mock-ngser');
     expect(result.order_ngser).toBeDefined();
     expect(result.abonnement).toEqual(created);
   });

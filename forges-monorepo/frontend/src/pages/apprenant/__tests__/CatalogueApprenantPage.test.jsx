@@ -1,11 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import CatalogueApprenantPage from '../CatalogueApprenantPage';
 import { apiClient } from '../../../api/client';
 
 let mockRole = 'APPRENANT';
-vi.mock('../../../contexts/AuthContext', () => ({
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock('../../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { role: mockRole }, updateUser: vi.fn() }),
 }));
 
@@ -54,6 +64,8 @@ const renderPage = () => render(
 describe('CatalogueApprenantPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNavigate.mockReset();
+    mockRole = 'APPRENANT';
     apiClient.get.mockResolvedValue({
       data: [
         {
@@ -148,6 +160,30 @@ describe('CatalogueApprenantPage', () => {
     });
 
     mockRole = 'APPRENANT';
+  });
+
+  it('org — ouvre le detail organisation au lieu des routes apprenant', async () => {
+    mockRole = 'ORGANISATION';
+
+    apiClient.get.mockImplementation((url) => {
+      if (url.includes('/espace-organisation/vouchers')) {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve({
+        data: [{ id: 'f1', titre: 'Formation incluse', description: '', tarif: 500000, duree: 20, type_formation: 'STANDARD', mode_formation: 'A_LA_DEMANDE', pilier_abonnement: 'RETAIL', inclus_abonnement: true }],
+        meta: { page: 1, totalPages: 1, total: 1 },
+      });
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Accéder maintenant')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Accéder maintenant'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/organisation/formations/f1');
   });
 
   it('affiche les badges Inclus et Premium', async () => {

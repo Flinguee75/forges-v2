@@ -41,6 +41,8 @@ const IDS = {
   apprenantRecon5: 'app-e2e-recon-5',
   apprenantNgser1: 'app-e2e-ngser-1',
   apprenantMontantMismatch: 'app-e2e-montant-mismatch-1',
+  apprenantBeneficiaireOrg: 'app-e2e-beneficiaire-org-01',
+  voucherOrganisationUcs12: 'vch-org-ucs12-e2e-01',
   organisation: 'org-e2e-01',
   partenaire: 'part-e2e-01',
   partenaireInvite: 'part-e2e-invite-01',
@@ -121,6 +123,7 @@ const EMAILS = {
   apprenantRecon5: 'apprenant-recon-5@forges.ci',
   apprenantNgser1: 'apprenant-ngser-1@forges.ci',
   apprenantMontantMismatch: 'apprenant-montant-mismatch@forges.ci',
+  apprenantBeneficiaireOrg: 'apprenant-beneficiaire-org@forges.ci',
   organisation: 'org@forges.ci',
   partenaire: 'partenaire-e2e@forges.ci',
   partenaireInvite: 'partenaire-invite-e2e@forges.ci',
@@ -182,6 +185,7 @@ async function cleanupScenarioData() {
     IDS.apprenantRecon5,
     IDS.apprenantNgser1,
     IDS.apprenantMontantMismatch,
+    IDS.apprenantBeneficiaireOrg,
     IDS.apporteur,
   ];
   const formationIds = [
@@ -520,6 +524,12 @@ async function main() {
   await createApprenant(IDS.apprenantRecon5, EMAILS.apprenantRecon5, passwordHash);
   await createApprenant(IDS.apprenantNgser1, EMAILS.apprenantNgser1, passwordHash);
   await createApprenant(IDS.apprenantMontantMismatch, EMAILS.apprenantMontantMismatch, passwordHash);
+  // Beneficiaire org cree sans organisation_id (FK non encore existante) — rattache apres creation org
+  await createApprenant(IDS.apprenantBeneficiaireOrg, EMAILS.apprenantBeneficiaireOrg, passwordHash, 'APPRENANT', {
+    type_apprenant: 'PROFESSIONNEL',
+    nom: 'Beneficiaire',
+    prenoms: 'Org E2E',
+  });
 
   await prisma.organisation.create({
     data: {
@@ -574,6 +584,12 @@ async function main() {
   await prisma.organisation.update({
     where: { id: IDS.organisation },
     data: { abonnement_org_id: abonnementOrg.id },
+  });
+
+  // Rattacher le beneficiaire a l'organisation (FK cree apres l'org)
+  await prisma.apprenant.update({
+    where: { id: IDS.apprenantBeneficiaireOrg },
+    data: { organisation_id: IDS.organisation },
   });
 
   await prisma.partenaire.create({
@@ -908,6 +924,22 @@ async function main() {
       valide_le: now,
       nb_utilisations: 3,
       date_derniere_utilisation: now,
+    },
+  });
+
+  // VoucherOrganisation pour test UCS12 inscrire-beneficiaire
+  await prisma.voucherOrganisation.upsert({
+    where: { id: IDS.voucherOrganisationUcs12 },
+    update: { statut: 'ACTIF', quota_utilise: 0 },
+    create: {
+      id: IDS.voucherOrganisationUcs12,
+      code: 'VORG-E2E-UCS12-01',
+      organisation_id: IDS.organisation,
+      formation_id: IDS.formationStandard,
+      statut: 'ACTIF',
+      quota_max: 10,
+      quota_utilise: 0,
+      date_expiration: daysFromNow(365),
     },
   });
 

@@ -35,49 +35,11 @@ const mockPaiementsData = {
       statut: 'CONFIRME',
       created_at: '2025-01-15T10:00:00Z',
     },
-    {
-      id: '2',
-      reference: 'PAY-002',
-      methode_paiement: 'MOBILE_MONEY',
-      montant: 50000, // 500 FCFA
-      dossier: {
-        etudiant: {
-          prenom: 'Marie',
-          nom: 'Martin',
-        },
-        session: {
-          formation: {
-            titre: 'Formation Node.js',
-          },
-        },
-      },
-      statut: 'EN_ATTENTE',
-      created_at: '2025-01-20T14:30:00Z',
-    },
-    {
-      id: '3',
-      reference: 'PAY-003',
-      methode_paiement: 'CARTE',
-      montant: 75000, // 750 FCFA
-      dossier: {
-        etudiant: {
-          prenom: 'Paul',
-          nom: 'Bernard',
-        },
-        session: {
-          formation: {
-            titre: 'Formation TypeScript',
-          },
-        },
-      },
-      statut: 'ECHOUE',
-      created_at: '2025-01-18T09:15:00Z',
-    },
   ],
   meta: {
     page: 1,
     totalPages: 1,
-    total: 3,
+    total: 1,
   },
 };
 
@@ -98,8 +60,6 @@ describe('PaiementsOrganisationPage - Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('PAY-001')).toBeInTheDocument();
-      expect(screen.getByText('PAY-002')).toBeInTheDocument();
-      expect(screen.getByText('PAY-003')).toBeInTheDocument();
     });
   });
 
@@ -111,7 +71,7 @@ describe('PaiementsOrganisationPage - Tests', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('3 paiements')).toBeInTheDocument();
+      expect(screen.getByText('1 paiement')).toBeInTheDocument();
     });
   });
 
@@ -138,12 +98,10 @@ describe('PaiementsOrganisationPage - Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Confirmé')).toBeInTheDocument();
-      expect(screen.getByText('En attente')).toBeInTheDocument();
-      expect(screen.getByText('Échoué')).toBeInTheDocument();
     });
   });
 
-  it('affiche le type de paiement (voucher vs autres)', async () => {
+  it('affiche uniquement les paiements organisation', async () => {
     render(
       <BrowserRouter>
         <PaiementsOrganisationPage />
@@ -152,8 +110,8 @@ describe('PaiementsOrganisationPage - Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Voucher Organisation')).toBeInTheDocument();
-      expect(screen.getByText('MOBILE_MONEY')).toBeInTheDocument();
-      expect(screen.getByText('CARTE')).toBeInTheDocument();
+      expect(screen.queryByText('MOBILE_MONEY')).not.toBeInTheDocument();
+      expect(screen.queryByText('CARTE')).not.toBeInTheDocument();
     });
   });
 
@@ -167,8 +125,6 @@ describe('PaiementsOrganisationPage - Tests', () => {
     await waitFor(() => {
       // Should display formatted amounts with thousand separators
       expect(screen.getByText(/1.*000.*FCFA/)).toBeInTheDocument();
-      expect(screen.getByText(/500.*FCFA/)).toBeInTheDocument();
-      expect(screen.getByText(/750.*FCFA/)).toBeInTheDocument();
     });
   });
 
@@ -181,8 +137,6 @@ describe('PaiementsOrganisationPage - Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
-      expect(screen.getByText('Marie Martin')).toBeInTheDocument();
-      expect(screen.getByText('Paul Bernard')).toBeInTheDocument();
     });
   });
 

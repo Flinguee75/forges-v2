@@ -57,6 +57,7 @@ const GestionEmployesPage = lazy(() => import('../pages/organisation/GestionEmpl
 const GestionApprenantsB2B = lazy(() => import('../pages/organisation/GestionApprenantsB2B'));
 const AbonnementOrgCallback = lazy(() => import('../pages/organisation/AbonnementOrgCallback'));
 const AbonnementB2BCallback = lazy(() => import('../pages/organisation/AbonnementB2BCallback'));
+const CatalogueOrganisationPage = lazy(() => import('../pages/organisation/CatalogueOrganisationPage'));
 
 const PartenaireDashboard = lazy(() => import('../pages/partenaire/PartenaireDashboard'));
 const MesFormations = lazy(() => import('../pages/partenaire/MesFormations'));
@@ -415,7 +416,11 @@ const router = createBrowserRouter([
       },
       {
         path: 'catalogue',
-        element: withSuspense(<CatalogueApprenantPage />),
+        element: withSuspense(<CatalogueOrganisationPage />),
+      },
+      {
+        path: 'formations/:id',
+        element: withSuspense(<FormationDetailApprenantPage />),
       },
     ],
   },

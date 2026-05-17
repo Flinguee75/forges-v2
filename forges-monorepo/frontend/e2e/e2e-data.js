@@ -51,6 +51,10 @@ export const E2E_ACCOUNTS = {
     email: 'org@forges.ci',
     password: 'Test@FORGES2026!',
   },
+  apprenantBeneficiaireOrg: {
+    email: 'apprenant-beneficiaire-org@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
   partenaire: {
     email: 'partenaire-e2e@forges.ci',
     password: 'Test@FORGES2026!',
@@ -177,5 +181,8 @@ export const E2E_SCENARIO = {
   apporteurCode: 'APT-E2E-RM145-001',
   apporteurSuspCode: 'APT-E2E-SUSP-001',
   organisationId: 'org-e2e-01',
+  beneficiaireOrgId: 'app-e2e-beneficiaire-org-01',
+  voucherOrganisationUcs12Id: 'vch-org-ucs12-e2e-01',
+  voucherOrganisationUcs12Code: 'VORG-E2E-UCS12-01',
   apporteurId: 'apt-e2e-rm145-01',
 };

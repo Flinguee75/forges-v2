@@ -83,6 +83,7 @@ export default function OrgLayout() {
           title="Espace Organisation"
           user={user}
           onLogout={handleLogout}
+          showApiBadge={false}
           showSystemStatus={true}
         />
 

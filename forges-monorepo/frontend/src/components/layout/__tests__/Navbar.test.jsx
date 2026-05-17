@@ -64,6 +64,7 @@ describe('Navbar', () => {
           variant="private"
           title="Espace Organisation"
           user={{ role: 'ORGANISATION', email: 'org@test.com', raison_sociale: 'Org Test' }}
+          showApiBadge={false}
           showSystemStatus={false}
         />
       </BrowserRouter>
@@ -73,5 +74,29 @@ describe('Navbar', () => {
     expect(screen.getByText('Org Test')).toBeInTheDocument();
     expect(screen.queryByText('API en ligne')).not.toBeInTheDocument();
     expect(screen.queryByText("Aujourd'hui")).not.toBeInTheDocument();
+  });
+
+  it('masque seulement le badge API quand showApiBadge=false', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+
+    render(
+      <BrowserRouter>
+        <Navbar
+          variant="private"
+          title="Espace Organisation"
+          user={{ role: 'ORGANISATION', email: 'org@test.com', raison_sociale: 'Org Test' }}
+          showApiBadge={false}
+          showSystemStatus
+        />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalled();
+    });
+
+    expect(screen.getByText('Org Test')).toBeInTheDocument();
+    expect(screen.queryByText('API en ligne')).not.toBeInTheDocument();
+    expect(document.querySelector('span.text-success, span.text-warning, span.text-danger')).toBeTruthy();
   });
 });
