@@ -86,11 +86,7 @@ export class IpnFineoService {
     });
 
     if (!paiement) {
-      await this.audit.error('FINEO_CB_PAIEMENT_INTROUVABLE', {
-        syncRef,
-        reference: payload.reference,
-      });
-      throw new Error('PAIEMENT_NOT_FOUND');
+      return this.traiterCallbackAbonnement(syncRef, statut, payload.reference, transactionVerifiee);
     }
 
     // Contrôle montant (FineoPay envoie en XOF directement)
@@ -120,6 +116,233 @@ export class IpnFineoService {
     if (s === 'success') return 'SUCCESS';
     if (s === 'failed' || s === 'fail') return 'FAIL';
     return 'PENDING';
+  }
+
+  private async traiterCallbackAbonnement(
+    syncRef: string,
+    statut: string,
+    reference: string,
+    transaction: any
+  ): Promise<IpnFineoResult> {
+    const abonnementRetail = await this.prisma.abonnementRetail.findUnique({
+      where: { order_ngser: syncRef },
+      include: { apprenant: true },
+    });
+
+    if (abonnementRetail) {
+      this.assertMontantFineo(syncRef, abonnementRetail.montant_premier_mois || abonnementRetail.montant_mensuel, transaction.amount);
+      return this.traiterAbonnementRetail(abonnementRetail, statut, reference, transaction);
+    }
+
+    const abonnementOrg = await this.prisma.abonnementOrganisation.findUnique({
+      where: { order_ngser: syncRef },
+      include: { organisation: true },
+    });
+
+    if (abonnementOrg) {
+      this.assertMontantFineo(syncRef, abonnementOrg.montant_annuel, transaction.amount);
+      return this.traiterAbonnementOrganisation(abonnementOrg, statut, reference, transaction);
+    }
+
+    const abonnementB2B = await this.prisma.abonnementB2B.findUnique({
+      where: { order_ngser: syncRef },
+      include: { organisation: true },
+    });
+
+    if (abonnementB2B) {
+      this.assertMontantFineo(syncRef, abonnementB2B.prix_annuel, transaction.amount);
+      return this.traiterAbonnementB2B(abonnementB2B, statut, reference, transaction);
+    }
+
+    await this.audit.error('FINEO_CB_PAIEMENT_INTROUVABLE', {
+      syncRef,
+      reference,
+    });
+    throw new Error('PAIEMENT_NOT_FOUND');
+  }
+
+  private assertMontantFineo(syncRef: string, montantAttenduXof: number, montantFineo?: number) {
+    if (montantFineo !== undefined && montantFineo !== montantAttenduXof) {
+      this.audit.error('FINEO_CB_MONTANT_MISMATCH', {
+        syncRef,
+        montant_initie_xof: montantAttenduXof,
+        montant_verifie: montantFineo,
+      }).catch(() => {});
+      throw new Error('MONTANT_MISMATCH');
+    }
+  }
+
+  private async traiterAbonnementRetail(
+    abonnement: any,
+    statut: string,
+    reference: string,
+    transaction: any
+  ): Promise<IpnFineoResult> {
+    if (abonnement.statut !== 'EN_ATTENTE_PAIEMENT') {
+      await this.audit.info('FINEO_CB_ABONNEMENT_DEJA_TRAITE', {
+        abonnement_id: abonnement.id,
+        statut: abonnement.statut,
+      });
+      return { already_processed: true, action: 'NONE' };
+    }
+
+    if (statut === 'SUCCESS') {
+      await this.prisma.abonnementRetail.update({
+        where: { id: abonnement.id },
+        data: {
+          statut: 'ACTIF',
+          transaction_id_ngser: reference,
+        },
+      });
+
+      await this.audit.info('FINEO_CB_ABONNEMENT_ACTIVE', {
+        abonnement_id: abonnement.id,
+        apprenant_id: abonnement.apprenant_id,
+        offre: abonnement.offre,
+        reference,
+        canal: transaction.canal,
+      });
+
+      return { action: 'ABONNEMENT_ACTIVE', paiement_statut: 'CONFIRME' };
+    }
+
+    if (statut === 'FAIL') {
+      await this.prisma.abonnementRetail.update({
+        where: { id: abonnement.id },
+        data: { statut: 'ANNULE' },
+      });
+
+      await this.audit.warning('FINEO_CB_ABONNEMENT_ECHEC', {
+        abonnement_id: abonnement.id,
+        apprenant_id: abonnement.apprenant_id,
+        reference,
+      });
+
+      return { action: 'ABONNEMENT_ANNULE', paiement_statut: 'ECHOUE' };
+    }
+
+    await this.audit.info('FINEO_CB_ABONNEMENT_PENDING', { abonnement_id: abonnement.id, reference });
+    return { action: 'ABONNEMENT_PENDING' };
+  }
+
+  private async traiterAbonnementOrganisation(
+    abonnement: any,
+    statut: string,
+    reference: string,
+    transaction: any
+  ): Promise<IpnFineoResult> {
+    if (abonnement.statut !== 'EN_ATTENTE_PAIEMENT') {
+      await this.audit.info('FINEO_CB_ABONNEMENT_ORG_DEJA_TRAITE', {
+        abonnement_id: abonnement.id,
+        statut: abonnement.statut,
+      });
+      return { already_processed: true, action: 'NONE' };
+    }
+
+    if (statut === 'SUCCESS') {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.abonnementOrganisation.update({
+          where: { id: abonnement.id },
+          data: {
+            statut: 'ACTIF',
+            transaction_id_ngser: reference,
+          },
+        });
+
+        await tx.organisation.update({
+          where: { id: abonnement.organisation_id },
+          data: { abonnement_org_id: abonnement.id },
+        });
+      });
+
+      await this.audit.info('FINEO_CB_ABONNEMENT_ORG_ACTIVE', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+        offre: abonnement.offre,
+        reference,
+        canal: transaction.canal,
+      });
+
+      return { action: 'ABONNEMENT_ORG_ACTIVE', paiement_statut: 'CONFIRME' };
+    }
+
+    if (statut === 'FAIL') {
+      await this.prisma.abonnementOrganisation.update({
+        where: { id: abonnement.id },
+        data: { statut: 'ANNULE' },
+      });
+
+      await this.audit.warning('FINEO_CB_ABONNEMENT_ORG_ECHEC', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+        reference,
+      });
+
+      return { action: 'ABONNEMENT_ORG_ANNULE', paiement_statut: 'ECHOUE' };
+    }
+
+    await this.audit.info('FINEO_CB_ABONNEMENT_ORG_PENDING', { abonnement_id: abonnement.id, reference });
+    return { action: 'ABONNEMENT_ORG_PENDING' };
+  }
+
+  private async traiterAbonnementB2B(
+    abonnement: any,
+    statut: string,
+    reference: string,
+    transaction: any
+  ): Promise<IpnFineoResult> {
+    if (abonnement.statut !== 'EN_ATTENTE_PAIEMENT') {
+      await this.audit.info('FINEO_CB_ABONNEMENT_B2B_DEJA_TRAITE', {
+        abonnement_id: abonnement.id,
+        statut: abonnement.statut,
+      });
+      return { already_processed: true, action: 'NONE' };
+    }
+
+    if (statut === 'SUCCESS') {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.abonnementB2B.update({
+          where: { id: abonnement.id },
+          data: {
+            statut: 'ACTIF',
+            transaction_id_ngser: reference,
+          },
+        });
+
+        await tx.organisation.update({
+          where: { id: abonnement.organisation_id },
+          data: { abonnement_b2b_id: abonnement.id },
+        });
+      });
+
+      await this.audit.info('FINEO_CB_ABONNEMENT_B2B_ACTIVE', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+        palier: abonnement.palier,
+        reference,
+        canal: transaction.canal,
+      });
+
+      return { action: 'ABONNEMENT_B2B_ACTIVE', paiement_statut: 'CONFIRME' };
+    }
+
+    if (statut === 'FAIL') {
+      await this.prisma.abonnementB2B.update({
+        where: { id: abonnement.id },
+        data: { statut: 'ANNULE' },
+      });
+
+      await this.audit.warning('FINEO_CB_ABONNEMENT_B2B_ECHEC', {
+        abonnement_id: abonnement.id,
+        organisation_id: abonnement.organisation_id,
+        reference,
+      });
+
+      return { action: 'ABONNEMENT_B2B_ANNULE', paiement_statut: 'ECHOUE' };
+    }
+
+    await this.audit.info('FINEO_CB_ABONNEMENT_B2B_PENDING', { abonnement_id: abonnement.id, reference });
+    return { action: 'ABONNEMENT_B2B_PENDING' };
   }
 
   private async traiterSuccess(paiement: any, reference: string, transaction: any): Promise<IpnFineoResult> {

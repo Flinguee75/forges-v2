@@ -3,15 +3,15 @@ import { AbonnementRetailRepository, TARIFS_RETAIL } from './abonnement-retail.r
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
-
-const NGSER_MOCK_BASE_URL = 'https://mock-ngser.forges.ci/pay';
+import { PaiementCheckoutService } from '../../paiements/paiement-checkout.service';
 
 export class AbonnementRetailService {
   constructor(
     private readonly aboRepo: AbonnementRetailRepository,
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
-    private readonly email: EmailService
+    private readonly email: EmailService,
+    private readonly checkoutService = new PaiementCheckoutService(audit)
   ) {}
 
   // GET Mon abonnement retail actif
@@ -52,9 +52,9 @@ export class AbonnementRetailService {
     // RM-70 : unicité abonnement Retail
     const existant = await this.aboRepo.findByApprenant(apprenant_id);
     if (existant) {
-      // Idempotence : si en attente paiement, recréer une session NGSER
+      // Idempotence : si en attente paiement, recréer une session checkout
       if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
-        const session = await this.creerSessionNgser(existant.id, existant.montant_premier_mois ?? 0);
+        const session = await this.creerSessionPaiement(existant.id, existant.montant_premier_mois ?? 0);
         return {
           abonnement: existant,
           montant_premier_mois: existant.montant_premier_mois ?? 0,
@@ -90,7 +90,7 @@ export class AbonnementRetailService {
       order_ngser: orderNgser,
     });
 
-    const session = await this.creerSessionNgser(abonnement.id, montantProrata);
+    const session = await this.creerSessionPaiement(abonnement.id, montantProrata);
 
     await this.audit.info('ABONNEMENT_RETAIL_SOUSCRIT_EN_ATTENTE', {
       apprenant_id,
@@ -117,28 +117,21 @@ export class AbonnementRetailService {
     return `ABO-${year}-${dayOfYear}-${suffix}`;
   }
 
-  private async creerSessionNgser(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
-    const isMock = process.env.NGSER_MOCK_MODE !== 'false';
+  private async creerSessionPaiement(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
     // On récupère l'order_ngser depuis l'abonnement
     const abo = await this.prisma.abonnementRetail.findUnique({ where: { id: abonnement_id } });
     const order = abo?.order_ngser ?? this.generateOrderNgser();
-
-    if (isMock) {
-      return { payment_url: `${NGSER_MOCK_BASE_URL}?order=${order}` };
-    }
-
-    const { NgserClient } = await import('../../paiements/ngser.client');
-    const ngserClient = new NgserClient(this.audit);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const notificationUrl = process.env.NGSER_NOTIFICATION_URL || 'http://localhost:3000/webhooks/paiement';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+    const notificationUrl = process.env.FINEO_CALLBACK_URL || `${backendUrl}/webhooks/fineo`;
     const returnUrl = `${frontendUrl}/apprenant/abonnement/callback`;
 
-    const session = await ngserClient.createSession({
+    const session = await this.checkoutService.initierCheckout({
       order,
-      amount: montantXof, // déjà en XOF
-      currency: 'XOF',
-      notification_url: notificationUrl,
-      return_url: returnUrl,
+      amountXof: montantXof,
+      title: `Abonnement ${abo?.offre || 'FORGES'}`,
+      callbackUrl: notificationUrl,
+      returnUrl,
     });
 
     return { payment_url: session.payment_url };
