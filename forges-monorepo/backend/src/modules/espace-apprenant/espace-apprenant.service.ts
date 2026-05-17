@@ -20,6 +20,7 @@ export class EspaceApprenantService {
 
   // UCS11 — Annulation volontaire (RM-27)
   async annulerDossier(dossier_id: string, apprenant_id: string) {
+    // Validation (lectures seules, hors transaction)
     const dossier = await this.espaceRepo.findDossierById(dossier_id, apprenant_id);
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
     if (dossier.apprenant_id !== apprenant_id) throw new Error('FORBIDDEN');
@@ -35,31 +36,30 @@ export class EspaceApprenantService {
       throw new Error('ANNULATION_IMPOSSIBLE');
     }
 
-    await this.espaceRepo.annulerDossier(dossier_id);
-
-    // Annuler le paiement associé si présent (PAYE_DIRECTEMENT → paiement EN_ATTENTE)
-    if ((dossier as any).paiement?.id) {
-      await this.prisma.paiement.update({
-        where: { id: (dossier as any).paiement.id },
-        data: { statut: 'ANNULE' }
-      });
-    }
-
-    // Libérer la place en session
-    if (dossier.session_id) {
-      await this.prisma.session.update({
-        where: { id: dossier.session_id },
-        data: { places_restantes: { increment: 1 } }
-      });
-    }
-
-    // Réactiver voucher Organisation si présent (RM-45)
+    // Lecture voucher avant la transaction (lecture seule, pas de rollback nécessaire)
+    let voucher: { id: string; statut: string } | null = null;
     if (dossier.voucher_code) {
-      const voucher = await this.prisma.voucherApporteur.findFirst({
+      voucher = await this.prisma.voucherApporteur.findFirst({
         where: { code: dossier.voucher_code }
       });
+    }
+
+    // Transaction atomique : les 3 writes doivent réussir ou échouer ensemble
+    await this.prisma.$transaction(async (tx: any) => {
+      await tx.dossier.update({
+        where: { id: dossier_id },
+        data: { statut: 'ANNULE' }
+      });
+
+      if (dossier.session_id) {
+        await tx.session.update({
+          where: { id: dossier.session_id },
+          data: { places_restantes: { increment: 1 } }
+        });
+      }
+
       if (voucher) {
-        await this.prisma.voucherApporteur.update({
+        await tx.voucherApporteur.update({
           where: { id: voucher.id },
           data: {
             quota_utilise: { decrement: 1 },
@@ -67,8 +67,9 @@ export class EspaceApprenantService {
           }
         });
       }
-    }
+    });
 
+    // Audit après la transaction (fire-and-forget, ne doit pas provoquer de rollback)
     await this.audit.info('DOSSIER_ANNULE_VOLONTAIRE', { dossier_id, apprenant_id });
 
     return { message: 'Dossier annulé avec succès.' };

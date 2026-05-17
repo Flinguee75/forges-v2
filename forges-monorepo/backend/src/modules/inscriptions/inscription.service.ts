@@ -7,6 +7,7 @@ import { AbonnementRetailRepository } from '../abonnements/retail/abonnement-ret
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
+import { DossierStateMachine, DELAI_PAIEMENT_MS } from './dossier-state-machine';
 
 export class InscriptionService {
   constructor(
@@ -432,9 +433,12 @@ export class InscriptionService {
     const session = await this.sessionRepo.findById(dossier.session_id);
     const formation = await this.formationRepo.findById(session.formation_id);
 
-    if (formation.type_formation !== 'PREMIUM' || dossier.source_financement !== 'RETAIL') {
-      throw new Error('NOT_PREMIUM_RETAIL');
-    }
+    // RM-05 / RM-140 : valider la transition via la state machine
+    const machine = new DossierStateMachine();
+    machine.canTransition(dossier.statut as any, 'RETENU', {
+      type_formation: formation.type_formation,
+      source_financement: dossier.source_financement,
+    });
 
     // RM-05 : Transition EN_ATTENTE_VERIFICATION → RETENU (irréversible)
     await this.dossierRepo.updateStatut(dossierId, 'RETENU');
@@ -501,9 +505,13 @@ export class InscriptionService {
     const session = await this.sessionRepo.findById(dossier.session_id);
     const formation = await this.formationRepo.findById(session.formation_id);
 
-    if (formation.type_formation !== 'PREMIUM' || dossier.source_financement !== 'RETAIL') {
-      throw new Error('NOT_PREMIUM_RETAIL');
-    }
+    // RM-140 : valider la transition via la state machine
+    const machine = new DossierStateMachine();
+    machine.canTransition(dossier.statut as any, 'REJETE', {
+      type_formation: formation.type_formation,
+      source_financement: dossier.source_financement,
+      motif_refus,
+    });
 
     // Transition EN_ATTENTE_VERIFICATION → REJETE
     await this.prisma.dossier.update({

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { EspaceOrganisationController } from './espace-organisation.controller';
 import { EspaceOrganisationService } from './espace-organisation.service';
+import { BeneficiaireService } from './beneficiaire.service';
+import { OrganisationDashboardService } from './organisation-dashboard.service';
 import { EspaceOrganisationRepository } from './espace-organisation.repository';
 import { ImportCSVService } from './import-csv.service';
 import { RapportService } from './rapport.service';
@@ -20,14 +22,9 @@ const orgRepository = new EspaceOrganisationRepository(prisma);
 const importCSV = new ImportCSVService(prisma, auditLogger, emailService);
 const rapport = new RapportService(prisma, auditLogger);
 
-const orgService = new EspaceOrganisationService(
-  orgRepository,
-  importCSV,
-  rapport,
-  prisma,
-  auditLogger,
-  emailService
-);
+const beneficiaireService = new BeneficiaireService(orgRepository, importCSV, prisma, auditLogger, emailService);
+const dashboardService = new OrganisationDashboardService(orgRepository, rapport, prisma, auditLogger);
+const orgService = new EspaceOrganisationService(beneficiaireService, dashboardService);
 const orgController = new EspaceOrganisationController(orgService);
 
 // ============================================

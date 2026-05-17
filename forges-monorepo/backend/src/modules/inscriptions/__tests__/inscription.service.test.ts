@@ -3,6 +3,7 @@ import { DossierRepository } from '../dossier.repository';
 import { SessionRepository } from '../../sessions/session.repository';
 import { FormationRepository } from '../../formations/formation.repository';
 import { VoucherValidationService } from '../../vouchers/voucher-validation.service';
+import { AbonnementRetailRepository } from '../../abonnements/retail/abonnement-retail.repository';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 
@@ -12,7 +13,7 @@ describe('InscriptionService', () => {
   let mockSessionRepo: jest.Mocked<SessionRepository>;
   let mockFormationRepo: jest.Mocked<FormationRepository>;
   let mockVoucherValidation: jest.Mocked<VoucherValidationService>;
-  let mockRetailRepo: any;
+  let mockRetailRepo: jest.Mocked<AbonnementRetailRepository>;
   let mockAudit: jest.Mocked<AuditLogger>;
   let mockEmail: jest.Mocked<EmailService>;
   let mockPrisma: any;
@@ -52,9 +53,9 @@ describe('InscriptionService', () => {
     } as any;
 
     mockRetailRepo = {
-      countFormationsActives: jest.fn(),
+      countFormationsActives: jest.fn().mockResolvedValue(0),
       findActifByApprenant: jest.fn().mockResolvedValue(null),
-    };
+    } as any;
 
     mockAudit = {
       info: jest.fn(),
@@ -579,7 +580,7 @@ describe('InscriptionService', () => {
     it('rejette si 3 formations actives déjà en cours (FORMATION_LIMIT_REACHED — RM-72)', async () => {
       mockSessionRepo.findById.mockResolvedValue(baseSession as any);
       mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
-      mockRetailRepo.findActifByApprenant.mockResolvedValue({ id: 'abo-01', statut: 'ACTIF' });
+      mockRetailRepo.findActifByApprenant.mockResolvedValue({ id: 'abo-01', statut: 'ACTIF' } as any);
       mockRetailRepo.countFormationsActives.mockResolvedValue(3);
 
       await expect(
