@@ -1,7 +1,7 @@
-import { IpnNgserService } from '../ipn-ngser.service';
+import { IpnNgserService } from 'modules/paiements/ipn-ngser.service';
 import { PrismaClient } from '@prisma/client';
-import { AuditLogger } from '../../../shared/audit/audit.logger';
-import { CommissionService } from '../commission.service';
+import { AuditLogger } from 'shared/audit/audit.logger';
+import { CommissionService } from 'modules/paiements/commission.service';
 
 const prisma = new PrismaClient();
 const audit = new AuditLogger(prisma);

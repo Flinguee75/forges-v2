@@ -1,8 +1,8 @@
-import { NgserClient } from '../ngser.client';
-import { AuditLogger } from '../../../shared/audit/audit.logger';
+import { NgserClient } from 'modules/paiements/ngser.client';
+import { AuditLogger } from 'shared/audit/audit.logger';
 import { PrismaClient } from '@prisma/client';
 import axios from 'axios';
-import { ngserCircuitBreaker } from '../../../shared/circuit-breaker/circuit-breaker.service';
+import { ngserCircuitBreaker } from 'shared/circuit-breaker/circuit-breaker.service';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;

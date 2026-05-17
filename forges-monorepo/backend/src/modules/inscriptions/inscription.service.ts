@@ -7,9 +7,12 @@ import { AbonnementRetailRepository } from '../abonnements/retail/abonnement-ret
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
-import { DossierStateMachine, DELAI_PAIEMENT_MS } from './dossier-state-machine';
+import { DossierStateMachine } from './dossier-state-machine';
+import { PaiementInitialisationService } from '../paiements/paiement-initialisation.service';
 
 export class InscriptionService {
+  private readonly paiementInit: PaiementInitialisationService;
+
   constructor(
     private dossierRepo: DossierRepository,
     private sessionRepo: SessionRepository,
@@ -19,7 +22,9 @@ export class InscriptionService {
     private audit: AuditLogger,
     private email: EmailService,
     private prisma: PrismaClient
-  ) {}
+  ) {
+    this.paiementInit = new PaiementInitialisationService(prisma);
+  }
 
   async inscrire(params: any) {
     const session = await this.sessionRepo.findById(params.session_id);
@@ -51,8 +56,10 @@ export class InscriptionService {
     }
 
     if (params.code_apporteur) {
-      await this.voucherValidation.validateApporteur(params.code_apporteur);
-      if (params.voucher_code) throw new Error('VOUCHER_CUMUL_INTERDIT');
+      await this.voucherValidation.validateApporteurContexte(
+        params.code_apporteur,
+        params.voucher_code
+      );
     }
 
     // RM-18 : calcul du taux de remplissage pour déterminer le type de fenêtre
@@ -265,16 +272,16 @@ export class InscriptionService {
   }
 
   private async creerPaiementVoucherOrganisation(dossierId: string, montantCatalogue: number) {
-    const paiement = await this.creerPaiementInitial(
-      dossierId,
-      montantCatalogue,
-      montantCatalogue,
-      0,
-      'VOUCHER_ORG',
-      'CONFIRME',
-      `VOUCHER_ORG-${dossierId}`,
-      new Date()
-    );
+    const paiement = await this.paiementInit.creerOuRecuperer({
+      dossier_id: dossierId,
+      montant_catalogue: montantCatalogue,
+      montant_final: montantCatalogue,
+      reduction_appliquee: 0,
+      methode: 'VOUCHER_ORG',
+      statut: 'CONFIRME',
+      transaction_id: `VOUCHER_ORG-${dossierId}`,
+      confirmed_at: new Date(),
+    });
 
     await this.audit.info('PAIEMENT_VOUCHER_ORG_CONFIRME', {
       paiement_id: paiement.id,
@@ -289,13 +296,13 @@ export class InscriptionService {
     dossierId: string,
     montantCatalogue: number
   ) {
-    const paiement = await this.creerPaiementInitial(
-      dossierId,
-      montantCatalogue,
-      montantCatalogue,
-      0,
-      'DIRECT'
-    );
+    const paiement = await this.paiementInit.creerOuRecuperer({
+      dossier_id: dossierId,
+      montant_catalogue: montantCatalogue,
+      montant_final: montantCatalogue,
+      reduction_appliquee: 0,
+      methode: 'DIRECT',
+    });
 
     await this.audit.info('PAIEMENT_DIRECT_EN_ATTENTE', {
       paiement_id: paiement.id,
@@ -313,13 +320,13 @@ export class InscriptionService {
     montantFinal: number,
     reductionAppliquee: number
   ) {
-    const paiement = await this.creerPaiementInitial(
-      dossierId,
-      montantCatalogue,
-      montantFinal,
-      reductionAppliquee,
-      'VOUCHER_PROMO'
-    );
+    const paiement = await this.paiementInit.creerOuRecuperer({
+      dossier_id: dossierId,
+      montant_catalogue: montantCatalogue,
+      montant_final: montantFinal,
+      reduction_appliquee: reductionAppliquee,
+      methode: 'VOUCHER_PROMO',
+    });
 
     await this.audit.info('PAIEMENT_VOUCHER_PROMO_EN_ATTENTE', {
       paiement_id: paiement.id,
@@ -330,37 +337,6 @@ export class InscriptionService {
     });
 
     return paiement;
-  }
-
-  private async creerPaiementInitial(
-    dossierId: string,
-    montantCatalogue: number,
-    montantFinal: number,
-    reductionAppliquee: number,
-    methode: string,
-    statut: 'EN_ATTENTE' | 'CONFIRME' = 'EN_ATTENTE',
-    transactionId: string | null = null,
-    confirmedAt: Date | null = null
-  ) {
-    const paiementExistant = await this.prisma.paiement.findUnique({
-      where: { dossier_id: dossierId },
-    });
-
-    if (paiementExistant) return paiementExistant;
-
-    return this.prisma.paiement.create({
-      data: {
-        dossier_id: dossierId,
-        montant_catalogue: montantCatalogue,
-        montant_final: montantFinal,
-        reduction_appliquee: reductionAppliquee,
-        methode,
-        statut,
-        transaction_id: transactionId ?? undefined,
-        confirmed_at: confirmedAt ?? undefined,
-        expires_at: statut === 'EN_ATTENTE' ? new Date(Date.now() + getDelaiPaiementMs()) : undefined,
-      },
-    });
   }
 
   private async notifierApprenantVoucherOrganisation(

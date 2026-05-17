@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "paths": {
+      "modules/*": ["src/modules/*"],
+      "shared/*": ["src/shared/*"],
+      "config/*": ["src/config/*"]
+    }
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}

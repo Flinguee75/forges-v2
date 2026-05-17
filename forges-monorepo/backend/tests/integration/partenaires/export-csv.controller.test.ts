@@ -13,21 +13,21 @@ import { Request, Response, NextFunction } from 'express';
 const mockGenererCsv = jest.fn();
 const mockFindByUserId = jest.fn();
 
-jest.mock('../export-csv.service', () => ({
+jest.mock('modules/partenaires/export-csv.service', () => ({
   ExportCsvService: jest.fn().mockImplementation(() => ({
     genererCsvPartenaire: mockGenererCsv,
   })),
 }));
 
-jest.mock('../partenaire.repository', () => ({
+jest.mock('modules/partenaires/partenaire.repository', () => ({
   PartenaireRepository: jest.fn().mockImplementation(() => ({
     findByUserId: mockFindByUserId,
   })),
 }));
 
-import { ExportCsvController } from '../export-csv.controller';
-import { ExportCsvService } from '../export-csv.service';
-import { PartenaireRepository } from '../partenaire.repository';
+import { ExportCsvController } from 'modules/partenaires/export-csv.controller';
+import { ExportCsvService } from 'modules/partenaires/export-csv.service';
+import { PartenaireRepository } from 'modules/partenaires/partenaire.repository';
 import { PrismaClient } from '@prisma/client';
 
 function makeReq(overrides: Partial<Request> = {}): Request {

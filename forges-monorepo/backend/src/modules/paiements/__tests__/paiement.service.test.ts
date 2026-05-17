@@ -4,6 +4,7 @@ import { CommissionRepository } from '../commission.repository';
 import { VoucherRepository } from '../../vouchers/voucher.repository';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
+import { getDelaiPaiementH } from '../../../config/env.config';
 
 describe('PaiementService', () => {
   let service: PaiementService;
@@ -180,8 +181,9 @@ describe('PaiementService', () => {
 
       const createCall = mockPaiementRepo.create.mock.calls[0][0];
       const diff = createCall.expires_at.getTime() - Date.now();
-      expect(diff).toBeGreaterThan(71 * 3600 * 1000);
-      expect(diff).toBeLessThan(73 * 3600 * 1000);
+      const delaiH = getDelaiPaiementH();
+      expect(diff).toBeGreaterThan((delaiH - 1) * 3600 * 1000);
+      expect(diff).toBeLessThan((delaiH + 1) * 3600 * 1000);
     });
 
     it('annule les dossiers avec paiements expirés', async () => {

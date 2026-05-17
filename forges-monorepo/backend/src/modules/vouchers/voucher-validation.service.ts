@@ -27,6 +27,11 @@ export class VoucherValidationService {
     return apporteur;
   }
 
+  async validateApporteurContexte(code_apporteur: string, voucher_code?: string): Promise<void> {
+    await this.validateApporteur(code_apporteur);
+    if (voucher_code) throw new Error('VOUCHER_CUMUL_INTERDIT');
+  }
+
   calculerRemise(voucher: { valeur: number; type_valeur: string }, montantCatalogue: number): number {
     if (voucher.type_valeur === 'MONTANT') return Math.min(voucher.valeur, montantCatalogue);
     if (voucher.type_valeur === 'POURCENTAGE') return Math.floor((montantCatalogue * voucher.valeur) / 100);

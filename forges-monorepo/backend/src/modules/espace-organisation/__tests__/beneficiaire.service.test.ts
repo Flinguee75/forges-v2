@@ -11,6 +11,7 @@ describe('BeneficiaireService', () => {
   let mockPrisma: any;
   let mockAudit: jest.Mocked<AuditLogger>;
   let mockEmail: jest.Mocked<EmailService>;
+  let tx: any;
 
   const orgAvecB2B = {
     id: 'org-01',
@@ -36,6 +37,16 @@ describe('BeneficiaireService', () => {
       importerBeneficiaires: jest.fn(),
     } as any;
 
+    tx = {
+      apprenant: { findFirst: jest.fn(), update: jest.fn(), create: jest.fn(), count: jest.fn() },
+      abonnementB2B: { update: jest.fn() },
+      dossier: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+      session: { findUnique: jest.fn() },
+      voucherOrganisation: { findFirst: jest.fn(), update: jest.fn() },
+      paiement: { findUnique: jest.fn(), create: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }), update: jest.fn() },
+      commissionApporteur: { aggregate: jest.fn(), create: jest.fn() },
+    };
+
     mockPrisma = {
       apprenant: { findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
       abonnementB2B: { update: jest.fn() },
@@ -44,6 +55,7 @@ describe('BeneficiaireService', () => {
       voucherOrganisation: { findFirst: jest.fn(), update: jest.fn() },
       paiement: { findUnique: jest.fn(), create: jest.fn(), updateMany: jest.fn(), update: jest.fn() },
       commissionApporteur: { aggregate: jest.fn(), create: jest.fn() },
+      $transaction: jest.fn(async (cb: any) => cb(tx)),
     };
 
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
@@ -96,30 +108,46 @@ describe('BeneficiaireService', () => {
   describe('RM-62 — desactiverBeneficiaire', () => {
     it('désactive sans supprimer les données', async () => {
       mockPrisma.apprenant.findFirst.mockResolvedValue({ id: 'a-01', statut: 'ACTIF' });
-      mockPrisma.apprenant.update.mockResolvedValue({});
+      tx.apprenant.update.mockResolvedValue({});
       mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
-      mockPrisma.abonnementB2B.update.mockResolvedValue({});
+      tx.abonnementB2B.update.mockResolvedValue({});
       mockAudit.info.mockResolvedValue(undefined);
 
       const result = await service.desactiverBeneficiaire('a-01', 'org-01', 'user-01');
 
-      expect(mockPrisma.apprenant.update).toHaveBeenCalledWith(
+      expect(tx.apprenant.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { statut: 'INACTIF' } })
       );
       expect(result.message).toContain('certifications sont conservées');
     });
 
-    it('décrémente nb_actifs B2B après désactivation', async () => {
+    it('décrémente nb_actifs B2B dans la même transaction', async () => {
       mockPrisma.apprenant.findFirst.mockResolvedValue({ id: 'a-01' });
-      mockPrisma.apprenant.update.mockResolvedValue({});
+      tx.apprenant.update.mockResolvedValue({});
       mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
-      mockPrisma.abonnementB2B.update.mockResolvedValue({});
+      tx.abonnementB2B.update.mockResolvedValue({});
       mockAudit.info.mockResolvedValue(undefined);
 
       await service.desactiverBeneficiaire('a-01', 'org-01', 'user-01');
-      expect(mockPrisma.abonnementB2B.update).toHaveBeenCalledWith(
+
+      expect(tx.abonnementB2B.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { nb_actifs: { decrement: 1 } } })
       );
+    });
+
+    it('les deux writes sont dans la même transaction ($transaction appelé)', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue({ id: 'a-01' });
+      tx.apprenant.update.mockResolvedValue({});
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      tx.abonnementB2B.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.desactiverBeneficiaire('a-01', 'org-01', 'user-01');
+
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      // Les deux writes utilisent le proxy tx, pas mockPrisma directement
+      expect(mockPrisma.apprenant.update).not.toHaveBeenCalled();
+      expect(mockPrisma.abonnementB2B.update).not.toHaveBeenCalled();
     });
 
     it('lève APPRENANT_NOT_FOUND si apprenant absent', async () => {
@@ -164,23 +192,70 @@ describe('BeneficiaireService', () => {
 
   // RM-61 : plafond B2B à la création d'un membre
   describe('RM-61 — createMembre', () => {
-    it('bloque si plafond B2B atteint', async () => {
-      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
-      const orgPlafond = { ...orgAvecB2B, abonnement_b2b: { ...orgAvecB2B.abonnement_b2b, nb_max: 30 } };
-      mockRepo.findOrganisationById.mockResolvedValue(orgPlafond as any);
-      mockRepo.countActifsB2B.mockResolvedValue(30);
-
-      await expect(
-        service.createMembre('org-01', { email: 'new@test.ci', nom: 'Doe', prenom: 'John' })
-      ).rejects.toThrow('B2B_PLAFOND_ATTEINT');
-    });
-
     it('lève EMAIL_DEJA_UTILISE si email existant', async () => {
       mockPrisma.apprenant.findUnique.mockResolvedValue({ id: 'existing' });
 
       await expect(
         service.createMembre('org-01', { email: 'existing@test.ci', nom: 'Doe', prenom: 'John' })
       ).rejects.toThrow('EMAIL_DEJA_UTILISE');
+    });
+
+    it('bloque si plafond B2B atteint — re-comptage dans la transaction', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      const orgPlafond = { ...orgAvecB2B, abonnement_b2b: { ...orgAvecB2B.abonnement_b2b, nb_max: 30 } };
+      mockRepo.findOrganisationById.mockResolvedValue(orgPlafond as any);
+      // Le count dans la transaction retourne 30 = nb_max → doit rejeter
+      tx.apprenant.count.mockResolvedValue(30);
+
+      await expect(
+        service.createMembre('org-01', { email: 'new@test.ci', nom: 'Doe', prenom: 'John' })
+      ).rejects.toThrow('B2B_PLAFOND_ATTEINT');
+    });
+
+    it('appelle $transaction pour créer le membre', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      tx.apprenant.count.mockResolvedValue(30); // 30/50 → places dispo
+      tx.apprenant.create.mockResolvedValue({ id: 'a-new', email: 'new@test.ci' });
+      tx.abonnementB2B.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+      mockEmail.sendTempPassword.mockResolvedValue(undefined);
+
+      await service.createMembre('org-01', { email: 'new@test.ci', nom: 'Doe', prenom: 'John' });
+
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('re-compte les actifs dans la transaction via tx.apprenant.count', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      tx.apprenant.count.mockResolvedValue(10);
+      tx.apprenant.create.mockResolvedValue({ id: 'a-new', email: 'new@test.ci' });
+      tx.abonnementB2B.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+      mockEmail.sendTempPassword.mockResolvedValue(undefined);
+
+      await service.createMembre('org-01', { email: 'new@test.ci', nom: 'Doe', prenom: 'John' });
+
+      expect(tx.apprenant.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ organisation_id: 'org-01', statut: 'ACTIF' }) })
+      );
+    });
+
+    it('incrémente nb_actifs B2B dans la même transaction', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      tx.apprenant.count.mockResolvedValue(10);
+      tx.apprenant.create.mockResolvedValue({ id: 'a-new', email: 'new@test.ci' });
+      tx.abonnementB2B.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+      mockEmail.sendTempPassword.mockResolvedValue(undefined);
+
+      await service.createMembre('org-01', { email: 'new@test.ci', nom: 'Doe', prenom: 'John' });
+
+      expect(tx.abonnementB2B.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { nb_actifs: { increment: 1 } } })
+      );
     });
   });
 
@@ -210,7 +285,7 @@ describe('BeneficiaireService', () => {
       mockPrisma.session.findUnique.mockResolvedValue(session as any);
       mockPrisma.dossier.create.mockResolvedValue(dossierCree);
       mockPrisma.paiement.findUnique.mockResolvedValue(null);
-      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-01', dossier_id: 'd-01', statut: 'PENDING' });
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-01', dossier_id: 'd-01', statut: 'EN_ATTENTE' });
       mockPrisma.paiement.update.mockResolvedValue({ id: 'p-01', statut: 'CONFIRME' });
       mockPrisma.commissionApporteur.aggregate.mockResolvedValue({ _sum: { montant: 0 } });
       mockAudit.info.mockResolvedValue(undefined);
@@ -247,7 +322,7 @@ describe('BeneficiaireService', () => {
       mockPrisma.session.findUnique.mockResolvedValue(session as any);
       mockPrisma.dossier.create.mockResolvedValue(dossierVoucher);
       mockPrisma.paiement.findUnique.mockResolvedValue(null);
-      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-02', dossier_id: 'd-02', statut: 'PENDING' });
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-02', dossier_id: 'd-02', statut: 'EN_ATTENTE' });
       mockPrisma.paiement.update.mockResolvedValue({ id: 'p-02', statut: 'CONFIRME' });
       mockPrisma.commissionApporteur.aggregate.mockResolvedValue({ _sum: { montant: 0 } });
       mockPrisma.voucherOrganisation.update.mockResolvedValue({ id: 'v-01', quota_utilise: 1, quota_max: null });
@@ -372,7 +447,7 @@ describe('BeneficiaireService', () => {
       mockPrisma.session.findUnique.mockResolvedValue(session as any);
       mockPrisma.dossier.create.mockResolvedValue(dossierCree);
       mockPrisma.paiement.findUnique.mockResolvedValue(null);
-      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-03', dossier_id: 'd-01', statut: 'PENDING' });
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-03', dossier_id: 'd-01', statut: 'EN_ATTENTE' });
       mockPrisma.paiement.update.mockResolvedValue({ id: 'p-03', statut: 'CONFIRME' });
       mockPrisma.commissionApporteur.aggregate.mockResolvedValue({ _sum: { montant: 0 } });
       mockAudit.info.mockResolvedValue(undefined);

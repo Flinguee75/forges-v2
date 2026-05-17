@@ -18,15 +18,15 @@ jest.mock('@prisma/client', () => ({
   })),
 }));
 
-jest.mock('../../../shared/audit/audit.logger', () => ({
+jest.mock('shared/audit/audit.logger', () => ({
   AuditLogger: jest.fn().mockImplementation(() => ({ info: mockAuditInfo, warning: jest.fn() })),
 }));
 
-jest.mock('../../../shared/email/email.service', () => ({
+jest.mock('shared/email/email.service', () => ({
   EmailService: jest.fn().mockImplementation(() => ({ sendEmail: mockSendEmail })),
 }));
 
-jest.mock('../partenaire.repository', () => ({
+jest.mock('modules/partenaires/partenaire.repository', () => ({
   PartenaireRepository: jest.fn().mockImplementation(() => ({
     findByEmail: jest.fn().mockResolvedValue(null),
     create: mockCreate,
@@ -35,15 +35,15 @@ jest.mock('../partenaire.repository', () => ({
   })),
 }));
 
-jest.mock('../formation-partenaire.repository', () => ({
+jest.mock('modules/partenaires/formation-partenaire.repository', () => ({
   FormationPartenaireRepository: jest.fn().mockImplementation(() => ({})),
 }));
 
-import { PartenaireService } from '../partenaire.service';
-import { PartenaireRepository } from '../partenaire.repository';
-import { FormationPartenaireRepository } from '../formation-partenaire.repository';
-import { AuditLogger } from '../../../shared/audit/audit.logger';
-import { EmailService } from '../../../shared/email/email.service';
+import { PartenaireService } from 'modules/partenaires/partenaire.service';
+import { PartenaireRepository } from 'modules/partenaires/partenaire.repository';
+import { FormationPartenaireRepository } from 'modules/partenaires/formation-partenaire.repository';
+import { AuditLogger } from 'shared/audit/audit.logger';
+import { EmailService } from 'shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
 
 const PAYLOAD_BASE = {

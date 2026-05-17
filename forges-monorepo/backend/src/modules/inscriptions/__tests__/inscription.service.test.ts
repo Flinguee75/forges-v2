@@ -49,6 +49,7 @@ describe('InscriptionService', () => {
 
     mockVoucherValidation = {
       validateApporteur: jest.fn(),
+      validateApporteurContexte: jest.fn(),
       validerVoucher: jest.fn(),
     } as any;
 
@@ -112,10 +113,10 @@ describe('InscriptionService', () => {
     await expect(service.inscrire({ session_id: 'session-01', apprenantId: 'app-01' })).rejects.toThrow('ALREADY_ENROLLED');
   });
 
-  it('interdit le cumul code apporteur + voucher', async () => {
+  it('interdit le cumul code apporteur + voucher (RM-144)', async () => {
     mockSessionRepo.findById.mockResolvedValue(baseSession as any);
     mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
-    mockVoucherValidation.validateApporteur.mockResolvedValue({ id: 'apporteur-01' } as any);
+    mockVoucherValidation.validateApporteurContexte.mockRejectedValue(new Error('VOUCHER_CUMUL_INTERDIT'));
 
     await expect(
       service.inscrire({
@@ -125,6 +126,8 @@ describe('InscriptionService', () => {
         voucher_code: 'voucher-01',
       })
     ).rejects.toThrow('VOUCHER_CUMUL_INTERDIT');
+
+    expect(mockVoucherValidation.validateApporteurContexte).toHaveBeenCalledWith('code-01', 'voucher-01');
   });
 
   it('crée un dossier payé directement avec une ligne paiement en attente pour une formation non premium retail', async () => {

@@ -177,8 +177,11 @@ describe('AdminService', () => {
         limit: 20,
       });
       expect(mockPrisma.apprenant.findMany).toHaveBeenCalledWith({
-        where: { statut: { not: 'INACTIF' } },
-        select: { id: true, email: true, nom: true, prenoms: true, statut: true, created_at: true },
+        where: {
+          statut: { not: 'INACTIF' },
+          role: { notIn: ['ADMIN', 'SUPERVISEUR', 'RESPONSABLE', 'AGENT', 'GESTIONNAIRE'] },
+        },
+        select: { id: true, email: true, nom: true, prenoms: true, role: true, statut: true, created_at: true },
         skip: 0,
         take: 20,
         orderBy: { created_at: 'desc' },

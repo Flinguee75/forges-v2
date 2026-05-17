@@ -113,4 +113,31 @@ describe('VoucherValidationService', () => {
     expect(service.calculerRemise({ valeur: 15, type_valeur: 'POURCENTAGE' }, 10000)).toBe(1500);
     expect(service.calculerRemise({ valeur: 15, type_valeur: 'AUTRE' }, 10000)).toBe(0);
   });
+
+  describe('validateApporteurContexte (RM-143/RM-144)', () => {
+    it('valide un code apporteur actif sans voucher', async () => {
+      (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue({ id: 'apt-01' });
+
+      await expect(service.validateApporteurContexte('code-01')).resolves.toBeUndefined();
+      expect(mockRepo.prisma.apporteur.findFirst).toHaveBeenCalledWith({
+        where: { code_apporteur: 'code-01', statut: 'ACTIF' },
+      });
+    });
+
+    it('leve VOUCHER_CUMUL_INTERDIT si code apporteur + voucher_code fournis (RM-144)', async () => {
+      (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue({ id: 'apt-01' });
+
+      await expect(
+        service.validateApporteurContexte('code-01', 'voucher-org-01')
+      ).rejects.toThrow('VOUCHER_CUMUL_INTERDIT');
+    });
+
+    it('leve APPORTEUR_CODE_INVALID si le code apporteur est introuvable ou inactif (RM-143)', async () => {
+      (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.validateApporteurContexte('code-invalide')
+      ).rejects.toThrow('APPORTEUR_CODE_INVALID');
+    });
+  });
 });

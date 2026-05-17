@@ -12,7 +12,7 @@ jest.mock('@prisma/client', () => ({
   })),
 }));
 
-import { ExportCsvService } from '../export-csv.service';
+import { ExportCsvService } from 'modules/partenaires/export-csv.service';
 import { PrismaClient } from '@prisma/client';
 
 describe('ExportCsvService — RM-161', () => {

@@ -1,10 +1,10 @@
-import { IpnFineoService } from '../ipn-fineo.service';
+import { IpnFineoService } from 'modules/paiements/ipn-fineo.service';
 import { PrismaClient } from '@prisma/client';
-import { AuditLogger } from '../../../shared/audit/audit.logger';
-import { CommissionService } from '../commission.service';
-import { FineoClient } from '../fineo.client';
+import { AuditLogger } from 'shared/audit/audit.logger';
+import { CommissionService } from 'modules/paiements/commission.service';
+import { FineoClient } from 'modules/paiements/fineo.client';
 
-jest.mock('../fineo.client');
+jest.mock('modules/paiements/fineo.client');
 
 const prisma = new PrismaClient();
 const audit = new AuditLogger(prisma);

@@ -1,5 +1,5 @@
-import { FineoClient } from '../fineo.client';
-import { AuditLogger } from '../../../shared/audit/audit.logger';
+import { FineoClient } from 'modules/paiements/fineo.client';
+import { AuditLogger } from 'shared/audit/audit.logger';
 import { PrismaClient } from '@prisma/client';
 import axios from 'axios';
 

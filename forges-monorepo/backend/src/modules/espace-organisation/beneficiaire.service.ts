@@ -7,9 +7,11 @@ import { hash } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { CommissionService } from '../paiements/commission.service';
 import { PaiementReglementService } from '../paiements/paiement-reglement.service';
+import { PaiementInitialisationService } from '../paiements/paiement-initialisation.service';
 
 export class BeneficiaireService {
   private readonly reglementService: PaiementReglementService;
+  private readonly paiementInit: PaiementInitialisationService;
 
   constructor(
     private readonly orgRepo: EspaceOrganisationRepository,
@@ -23,6 +25,7 @@ export class BeneficiaireService {
       audit,
       new CommissionService(prisma, audit)
     );
+    this.paiementInit = new PaiementInitialisationService(prisma);
   }
 
   // UCS12 — Liste bénéficiaires (RM-44)
@@ -32,7 +35,11 @@ export class BeneficiaireService {
 
   // UCS12 — Import CSV bénéficiaires (RM-59)
   async importerBeneficiairesCSV(csvContent: string, organisation_id: string, userId: string) {
-    // RM-61 : vérification plafond B2B avant import
+    // RM-61 : vérification plafond B2B avant import (guard rapide, non transactionnel)
+    // Limitation connue : ce check n'est pas dans une transaction sérialisable.
+    // Des requêtes simultanées peuvent passer le check et dépasser le plafond le temps
+    // que ImportCSVService traite chaque ligne. Le check ligne par ligne dans
+    // ImportCSVService constitue le garde-fou effectif pour l'import en lot.
     const org = await this.orgRepo.findOrganisationById(organisation_id);
     if (org?.abonnement_b2b) {
       const nbActifs = await this.orgRepo.countActifsB2B(organisation_id);
@@ -72,20 +79,23 @@ export class BeneficiaireService {
 
     if (!apprenant) throw new Error('APPRENANT_NOT_FOUND');
 
-    // RM-62 : désactivation seulement — pas de suppression — certifications conservées
-    await this.prisma.apprenant.update({
-      where: { id: apprenant_id },
-      data: { statut: 'INACTIF' }
-    });
-
-    // Décrémenter nb_actifs B2B
     const org = await this.orgRepo.findOrganisationById(organisation_id);
-    if (org?.abonnement_b2b_id) {
-      await this.prisma.abonnementB2B.update({
-        where: { id: org.abonnement_b2b_id },
-        data: { nb_actifs: { decrement: 1 } }
+
+    // RM-62 : désactivation seulement — pas de suppression — certifications conservées
+    // Les deux writes sont atomiques : si le decrement échoue, l'apprenant reste ACTIF.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.apprenant.update({
+        where: { id: apprenant_id },
+        data: { statut: 'INACTIF' }
       });
-    }
+
+      if (org?.abonnement_b2b_id) {
+        await tx.abonnementB2B.update({
+          where: { id: org.abonnement_b2b_id },
+          data: { nb_actifs: { decrement: 1 } }
+        });
+      }
+    });
 
     await this.audit.info('BENEFICIAIRE_DESACTIVE', {
       apprenant_id,
@@ -99,62 +109,67 @@ export class BeneficiaireService {
 
   // UCS12 — Créer un membre individuel
   async createMembre(organisation_id: string, data: any) {
-    // Vérifier si l'email existe déjà
+    // Phase 1 : lectures seules, avant la transaction
     const existing = await this.prisma.apprenant.findUnique({
       where: { email: data.email }
     });
-
     if (existing) throw new Error('EMAIL_DEJA_UTILISE');
 
-    // RM-61 : vérification plafond B2B avant création
     const org = await this.orgRepo.findOrganisationById(organisation_id);
-    if (org?.abonnement_b2b) {
-      const nbActifs = await this.orgRepo.countActifsB2B(organisation_id);
-      if (nbActifs >= org.abonnement_b2b.nb_max) {
-        throw new Error('B2B_PLAFOND_ATTEINT');
-      }
-    }
 
-    // Générer mot de passe temporaire
+    // Hash CPU-bound effectué hors transaction pour ne pas bloquer les slots DB
     const tempPassword = uuidv4().substring(0, 12) + 'A1!';
     const password_hash = await hash(tempPassword, 12);
 
-    // Créer l'apprenant
-    const apprenant = await this.prisma.apprenant.create({
-      data: {
-        email: data.email,
-        password_hash,
-        nom: data.nom,
-        prenoms: data.prenom,
-        secteur_activite: data.secteur_activite,
-        niveau_etude: data.niveau_etude,
-        organisation_id,
-        statut: 'ACTIF',
-        type_apprenant: 'PROFESSIONNEL',
-        pays_residence: 'SN', // Défaut Sénégal
-        pays_nationalite: 'SN',
-        langue_preferee: 'FR',
-        consentement_rgpd: false,
-        consentement_timestamp: new Date(),
-        consentement_version_cgu: '1.0',
+    // Phase 2 : transaction sérialisable — re-compter dans la transaction pour éviter la race
+    let apprenant: any;
+    await this.prisma.$transaction(async (tx) => {
+      // RM-61 : re-vérification plafond B2B à l'intérieur de la transaction
+      if (org?.abonnement_b2b) {
+        const nbActifs = await tx.apprenant.count({
+          where: { organisation_id, statut: 'ACTIF' }
+        });
+        if (nbActifs >= org.abonnement_b2b.nb_max) {
+          throw new Error('B2B_PLAFOND_ATTEINT');
+        }
       }
-    });
 
-    // Incrémenter nb_actifs B2B si applicable
-    if (org?.abonnement_b2b_id) {
-      await this.prisma.abonnementB2B.update({
-        where: { id: org.abonnement_b2b_id },
-        data: { nb_actifs: { increment: 1 } }
+      apprenant = await tx.apprenant.create({
+        data: {
+          email: data.email,
+          password_hash,
+          nom: data.nom,
+          prenoms: data.prenom,
+          secteur_activite: data.secteur_activite,
+          niveau_etude: data.niveau_etude,
+          organisation_id,
+          statut: 'ACTIF',
+          type_apprenant: 'PROFESSIONNEL',
+          pays_residence: 'SN',
+          pays_nationalite: 'SN',
+          langue_preferee: 'FR',
+          consentement_rgpd: false,
+          consentement_timestamp: new Date(),
+          consentement_version_cgu: '1.0',
+        }
       });
-    }
 
+      if (org?.abonnement_b2b_id) {
+        await tx.abonnementB2B.update({
+          where: { id: org.abonnement_b2b_id },
+          data: { nb_actifs: { increment: 1 } }
+        });
+      }
+    }, { isolationLevel: 'Serializable' });
+
+    // Phase 3 : effets de bord hors transaction
     await this.audit.info('MEMBRE_CREE', {
       apprenant_id: apprenant.id,
       organisation_id,
     });
 
-    // Envoi identifiants par email
-    await this.email.sendTempPassword(data.email, tempPassword, 'FR');
+    // Fire-and-forget : l'échec d'envoi d'email ne doit pas faire échouer la création
+    this.email.sendTempPassword(data.email, tempPassword, 'FR').catch(() => undefined);
 
     return { message: 'Membre créé avec succès', apprenant };
   }
@@ -282,19 +297,13 @@ export class BeneficiaireService {
     montant: number,
     methode: 'B2B_ORG' | 'VOUCHER_ORG'
   ) {
-    const paiementExistant = await this.prisma.paiement.findUnique({ where: { dossier_id: dossier.id } });
-    const paiement = paiementExistant || await this.prisma.paiement.create({
-      data: {
-        dossier_id: dossier.id,
-        montant_catalogue: montant,
-        montant_final: montant,
-        montant_initie: montant,
-        reduction_appliquee: 0,
-        methode,
-        statut: 'PENDING',
-        provider: 'INTERNE',
-        order_ngser: `ORG-${dossier.id}`,
-      } as any,
+    const paiement = await this.paiementInit.creerOuRecuperer({
+      dossier_id: dossier.id,
+      montant_catalogue: montant,
+      montant_final: montant,
+      reduction_appliquee: 0,
+      methode,
+      statut: 'EN_ATTENTE',
     });
 
     if (paiement.statut === 'CONFIRME') return paiement;

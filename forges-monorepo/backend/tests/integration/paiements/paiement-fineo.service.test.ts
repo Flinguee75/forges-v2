@@ -1,10 +1,10 @@
-import { PaiementFineoService } from '../paiement-fineo.service';
+import { PaiementFineoService } from 'modules/paiements/paiement-fineo.service';
 import { PrismaClient } from '@prisma/client';
-import { AuditLogger } from '../../../shared/audit/audit.logger';
-import { VoucherRepository } from '../../vouchers/voucher.repository';
-import { FineoClient } from '../fineo.client';
+import { AuditLogger } from 'shared/audit/audit.logger';
+import { VoucherRepository } from 'modules/vouchers/voucher.repository';
+import { FineoClient } from 'modules/paiements/fineo.client';
 
-jest.mock('../fineo.client');
+jest.mock('modules/paiements/fineo.client');
 
 const prisma = new PrismaClient();
 const audit = new AuditLogger(prisma);
