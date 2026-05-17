@@ -95,6 +95,11 @@ router.post('/vouchers/commander', authenticate, authorize('ORGANISATION'), (req
 // INSCRIPTIONS & PAIEMENTS
 // ============================================
 
+// POST /api/organisation/inscrire-beneficiaire - Inscrire un bénéficiaire (UCS12)
+router.post('/inscrire-beneficiaire', authenticate, authorize('ORGANISATION'), (req, res, next) => {
+  orgController.inscrireBeneficiaire(req, res, next);
+});
+
 // GET /api/organisation/inscriptions - Suivi des inscriptions
 router.get('/inscriptions', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   orgController.getSuiviInscriptions(req, res, next);

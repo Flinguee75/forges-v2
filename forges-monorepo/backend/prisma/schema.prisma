@@ -63,11 +63,12 @@ model Organisation {
   abonnement_b2b     AbonnementB2B?           @relation("OrganisationAbonnementB2BCourant", fields: [abonnement_b2b_id], references: [id])
   apporteur_id       String?
   apporteur          Apporteur?               @relation(fields: [apporteur_id], references: [id])
-  apprenants         Apprenant[]
-  feedbacks          FeedbackFormation[]
-  devis              Devis[]
-  created_at         DateTime                 @default(now())
-  date_fin_essai     DateTime?
+  apprenants            Apprenant[]
+  feedbacks             FeedbackFormation[]
+  devis                 Devis[]
+  inscriptions_initiees Dossier[]                @relation("DossierInscritParOrg")
+  created_at            DateTime                 @default(now())
+  date_fin_essai        DateTime?
 
   config OrganisationConfig?
 
@@ -175,12 +176,14 @@ model Dossier {
   expires_at              DateTime?
   created_at              DateTime             @default(now())
   updated_at              DateTime?
-  voucher_organisation_id String?
-  apprenant               Apprenant            @relation(fields: [apprenant_id], references: [id])
-  formation               Formation            @relation(fields: [formation_id], references: [id])
-  session                 Session?             @relation(fields: [session_id], references: [id])
-  voucher_organisation    VoucherOrganisation? @relation(fields: [voucher_organisation_id], references: [id])
-  paiement                Paiement?
+  voucher_organisation_id      String?
+  organisation_inscriptrice_id String?
+  apprenant                    Apprenant            @relation(fields: [apprenant_id], references: [id])
+  formation                    Formation            @relation(fields: [formation_id], references: [id])
+  session                      Session?             @relation(fields: [session_id], references: [id])
+  voucher_organisation         VoucherOrganisation? @relation(fields: [voucher_organisation_id], references: [id])
+  organisation_inscriptrice    Organisation?        @relation(name: "DossierInscritParOrg", fields: [organisation_inscriptrice_id], references: [id])
+  paiement                     Paiement?
 }
 
 model Paiement {
