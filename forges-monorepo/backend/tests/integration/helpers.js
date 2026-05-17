@@ -28,6 +28,8 @@ const accounts = {
   apprenantStd: { email: 'apprenant-std-e2e@forges.ci', password: PASSWORD },
   apprenantPremiumRetail: { email: 'apprenant-premium-retail-e2e@forges.ci', password: PASSWORD },
   apprenantPremiumB2b: { email: 'apprenant-premium-b2b-e2e@forges.ci', password: PASSWORD },
+  apprenantRetail: { email: 'apprenant-retail-e2e@forges.ci', password: PASSWORD },
+  apprenantVoucher: { email: 'apprenant-voucher-e2e@forges.ci', password: PASSWORD },
   apprenantRm145: { email: 'apprenant-rm145@forges.ci', password: PASSWORD },
   apprenantDossier: { email: 'apprenant-dossier-e2e@forges.ci', password: PASSWORD },
   organisation: { email: 'org@forges.ci', password: PASSWORD },
