@@ -100,12 +100,22 @@ export class PaiementController {
     try {
       // Vérification signature HMAC webhook (RM-09)
       const signature = req.headers['x-webhook-signature'];
+      if (!signature) {
+        return res.status(401).json({
+          statusCode: 401,
+          error: 'SIGNATURE_MANQUANTE',
+          message: 'Header x-webhook-signature absent',
+        });
+      }
       const payload = JSON.stringify(req.body);
       const expectedSig = createHmac('sha256', process.env.WEBHOOK_SECRET || 'dev-secret')
         .update(payload).digest('hex');
-
-      if (signature && signature !== expectedSig) {
-        return res.status(401).json({ statusCode: 401, error: 'INVALID_SIGNATURE', message: 'Signature webhook invalide' });
+      if (signature !== expectedSig) {
+        return res.status(401).json({
+          statusCode: 401,
+          error: 'INVALID_SIGNATURE',
+          message: 'Signature webhook invalide',
+        });
       }
 
       const dto = WebhookPaiementSchema.parse(req.body);
