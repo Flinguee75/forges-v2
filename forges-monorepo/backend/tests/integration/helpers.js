@@ -220,4 +220,5 @@ module.exports = {
   ids,
   prisma,
   request,
+  signedWebhook,
 };
