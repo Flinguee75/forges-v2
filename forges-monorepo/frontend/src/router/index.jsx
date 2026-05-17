@@ -1,8 +1,9 @@
 import { Suspense, lazy } from 'react';
-import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import RoleGuard from './RoleGuard';
 import { useAuth } from '../hooks/useAuth';
+import RouteErrorFallback from '../components/common/RouteErrorFallback';
 
 const PublicLayout = lazy(() => import('../components/layout/PublicLayout'));
 const EtudiantLayout = lazy(() => import('../components/layout/EtudiantLayout'));
@@ -33,11 +34,15 @@ const FormationsALaDemande = lazy(() => import('../pages/apprenant/FormationsALa
 const AccesFormation = lazy(() => import('../pages/apprenant/AccesFormation'));
 const MesDossiersApprenantPage = lazy(() => import('../pages/apprenant/MesDossiersPage'));
 const InscriptionSessionPage = lazy(() => import('../pages/apprenant/InscriptionSessionPage'));
+const FormationDetailApprenantPage = lazy(() => import('../pages/apprenant/FormationDetailApprenantPage'));
 const MesDossiersPage = lazy(() => import('../pages/etudiant/MesDossiersPage'));
 const DossierDetail = lazy(() => import('../pages/etudiant/DossierDetail'));
 const CatalogueApprenantPage = lazy(() => import('../pages/apprenant/CatalogueApprenantPage'));
 const MesPaiementsPage = lazy(() => import('../pages/etudiant/MesPaiementsPage'));
 const PaiementDetailEtudiant = lazy(() => import('../pages/etudiant/PaiementDetail'));
+const PaiementInitiation = lazy(() => import('../pages/apprenant/PaiementInitiation'));
+const PaiementCallback = lazy(() => import('../pages/apprenant/PaiementCallback'));
+const AbonnementCallback = lazy(() => import('../pages/apprenant/AbonnementCallback'));
 const MesAttestationsPage = lazy(() => import('../pages/etudiant/MesAttestationsPage'));
 const MonProfilPage = lazy(() => import('../pages/etudiant/MonProfilPage'));
 
@@ -48,12 +53,18 @@ const VouchersPage = lazy(() => import('../pages/organisation/VouchersPage'));
 const InscriptionsPage = lazy(() => import('../pages/organisation/InscriptionsPage'));
 const PaiementsOrganisationPage = lazy(() => import('../pages/organisation/PaiementsOrganisationPage'));
 const ProfilOrganisationPage = lazy(() => import('../pages/organisation/ProfilOrganisationPage'));
+const GestionEmployesPage = lazy(() => import('../pages/organisation/GestionEmployesPage'));
+const GestionApprenantsB2B = lazy(() => import('../pages/organisation/GestionApprenantsB2B'));
+const AbonnementOrgCallback = lazy(() => import('../pages/organisation/AbonnementOrgCallback'));
+const AbonnementB2BCallback = lazy(() => import('../pages/organisation/AbonnementB2BCallback'));
+const CatalogueOrganisationPage = lazy(() => import('../pages/organisation/CatalogueOrganisationPage'));
 
 const PartenaireDashboard = lazy(() => import('../pages/partenaire/PartenaireDashboard'));
 const MesFormations = lazy(() => import('../pages/partenaire/MesFormations'));
 const SoumettreFormation = lazy(() => import('../pages/partenaire/SoumettreFormation'));
 const PartenaireFormationDetail = lazy(() => import('../pages/partenaire/FormationDetail'));
 const MesReversements = lazy(() => import('../pages/partenaire/MesReversements'));
+const ExportCSVPartenaire = lazy(() => import('../pages/partenaire/ExportCSV'));
 const ProfilPartenairePage = lazy(() => import('../pages/partenaire/ProfilPartenaire'));
 
 const ApporteurDashboard = lazy(() => import('../pages/apporteur/ApporteurDashboard'));
@@ -89,10 +100,24 @@ const ApprobationPartenaire = lazy(() => import('../pages/backoffice/partenaires
 const ValidationFormation = lazy(() => import('../pages/backoffice/partenaires/ValidationFormation'));
 const FormationsPartenaire = lazy(() => import('../pages/backoffice/partenaires/FormationsPartenaire'));
 const ReversementsPartenaires = lazy(() => import('../pages/backoffice/partenaires/ReversementsPartenaires'));
+const UtilisateursList = lazy(() => import('../pages/backoffice/utilisateurs/UtilisateursList'));
+const CreateUtilisateur = lazy(() => import('../pages/backoffice/utilisateurs/CreateUtilisateur'));
+const EquipeBackofficePage = lazy(() => import('../pages/backoffice/utilisateurs/EquipeBackofficePage'));
 const ApporteursList = lazy(() => import('../pages/backoffice/apporteurs/ApporteursList'));
 const CreateApporteur = lazy(() => import('../pages/backoffice/apporteurs/CreateApporteur'));
 const ApporteurDetail = lazy(() => import('../pages/backoffice/apporteurs/ApporteurDetail'));
 const ReversementsApporteurs = lazy(() => import('../pages/backoffice/apporteurs/ReversementsApporteurs'));
+const ApprenantsList = lazy(() => import('../pages/backoffice/apprenants/ApprenantsList'));
+const ApprenantDetail = lazy(() => import('../pages/backoffice/apprenants/ApprenantDetail'));
+const ApprenantCreate = lazy(() => import('../pages/backoffice/apprenants/ApprenantCreate'));
+const OrganisationsList = lazy(() => import('../pages/backoffice/organisations/OrganisationsList'));
+const OrganisationDetail = lazy(() => import('../pages/backoffice/organisations/OrganisationDetail'));
+const OrganisationCreate = lazy(() => import('../pages/backoffice/organisations/OrganisationCreate'));
+
+const DevisList = lazy(() => import('../pages/backoffice/devis/DevisList'));
+const DevisForm = lazy(() => import('../pages/backoffice/devis/DevisForm'));
+const DevisDetail = lazy(() => import('../pages/backoffice/devis/DevisDetail'));
+const DevisPage = lazy(() => import('../pages/organisation/DevisPage'));
 
 const PlaceholderPage = lazy(() => import('../pages/PlaceholderPage'));
 const ComponentsDemo = lazy(() => import('../pages/ComponentsDemo'));
@@ -143,6 +168,10 @@ function LegacyApprenantRedirect() {
  * Référence: CLAUDE.md section 17.3 et 17.7
  */
 const router = createBrowserRouter([
+  {
+    element: <Outlet />,
+    errorElement: <RouteErrorFallback />,
+    children: [
   // ============================================
   // ROUTES PUBLIQUES (sans authentification)
   // ============================================
@@ -254,12 +283,20 @@ const router = createBrowserRouter([
         element: withSuspense(<SouscrireAbonnement />),
       },
       {
+        path: 'abonnement/callback',
+        element: withSuspense(<AbonnementCallback />),
+      },
+      {
         path: 'formations-a-la-demande',
         element: withSuspense(<FormationsALaDemande />),
       },
       {
         path: 'formations-a-la-demande/:accesId',
         element: withSuspense(<AccesFormation />),
+      },
+      {
+        path: 'formations/:id',
+        element: withSuspense(<FormationDetailApprenantPage />),
       },
       {
         path: 'inscrire/:formationId',
@@ -280,6 +317,14 @@ const router = createBrowserRouter([
       {
         path: 'paiements',
         element: withSuspense(<MesPaiementsPage />),
+      },
+      {
+        path: 'paiements/initier/:dossierId',
+        element: withSuspense(<PaiementInitiation />),
+      },
+      {
+        path: 'paiements/callback',
+        element: withSuspense(<PaiementCallback />),
       },
       {
         path: 'paiements/:id',
@@ -330,8 +375,16 @@ const router = createBrowserRouter([
         element: withSuspense(<MonAbonnementOrg />),
       },
       {
+        path: 'abonnement/callback',
+        element: withSuspense(<AbonnementOrgCallback />),
+      },
+      {
         path: 'b2b',
         element: withSuspense(<AbonnementB2B />),
+      },
+      {
+        path: 'b2b/callback',
+        element: withSuspense(<AbonnementB2BCallback />),
       },
       {
         path: 'vouchers',
@@ -346,8 +399,28 @@ const router = createBrowserRouter([
         element: withSuspense(<PaiementsOrganisationPage />),
       },
       {
+        path: 'devis',
+        element: withSuspense(<DevisPage />),
+      },
+      {
         path: 'profil',
         element: withSuspense(<ProfilOrganisationPage />),
+      },
+      {
+        path: 'employes',
+        element: withSuspense(<GestionEmployesPage />),
+      },
+      {
+        path: 'b2b-apprenants',
+        element: withSuspense(<GestionApprenantsB2B />),
+      },
+      {
+        path: 'catalogue',
+        element: withSuspense(<CatalogueOrganisationPage />),
+      },
+      {
+        path: 'formations/:id',
+        element: withSuspense(<FormationDetailApprenantPage />),
       },
     ],
   },
@@ -388,6 +461,10 @@ const router = createBrowserRouter([
       {
         path: 'reversements',
         element: withSuspense(<MesReversements />),
+      },
+      {
+        path: 'export-csv',
+        element: withSuspense(<ExportCSVPartenaire />),
       },
       {
         path: 'profil',
@@ -602,6 +679,30 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'devis',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
+            {withSuspense(<DevisList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'devis/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
+            {withSuspense(<DevisForm />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'devis/:id',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'AGENT']}>
+            {withSuspense(<DevisDetail />)}
+          </RoleGuard>
+        ),
+      },
+      {
         path: 'abonnements',
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR', 'AGENT']}>
@@ -620,7 +721,7 @@ const router = createBrowserRouter([
       {
         path: 'bot/enquetes-catalogue',
         element: (
-          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+          <RoleGuard allowedRoles={['ADMIN']}>
             {withSuspense(<EnquetesCatalogue />)}
           </RoleGuard>
         ),
@@ -628,7 +729,7 @@ const router = createBrowserRouter([
       {
         path: 'bot/feedbacks',
         element: (
-          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR', 'RESPONSABLE']}>
+          <RoleGuard allowedRoles={['ADMIN', 'RESPONSABLE']}>
             {withSuspense(<FeedbacksAdmin />)}
           </RoleGuard>
         ),
@@ -693,6 +794,60 @@ const router = createBrowserRouter([
         ),
       },
       // ============================================
+      // ROUTES APPRENANTS
+      // ============================================
+      {
+        path: 'apprenants',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<ApprenantsList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'apprenants/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<ApprenantCreate />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'apprenants/:id',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<ApprenantDetail />)}
+          </RoleGuard>
+        ),
+      },
+      // ============================================
+      // ROUTES ORGANISATIONS
+      // ============================================
+      {
+        path: 'organisations',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<OrganisationsList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'organisations/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<OrganisationCreate />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'organisations/:id',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'SUPERVISEUR']}>
+            {withSuspense(<OrganisationDetail />)}
+          </RoleGuard>
+        ),
+      },
+      // ============================================
       // ROUTES APPORTEURS (F-15)
       // ============================================
       {
@@ -727,13 +882,31 @@ const router = createBrowserRouter([
           </RoleGuard>
         ),
       },
+      // ============================================
+      // ROUTES UTILISATEURS BACKOFFICE
+      // ============================================
       {
-        path: 'comptes',
-        element: withSuspense(
-          <PlaceholderPage
-            title="Comptes backoffice"
-            description="Page placeholder pour valider la navigation et le shell backoffice."
-          />
+        path: 'utilisateurs',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<UtilisateursList />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'equipe',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<EquipeBackofficePage />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'utilisateurs/new',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN']}>
+            {withSuspense(<CreateUtilisateur />)}
+          </RoleGuard>
         ),
       },
       {
@@ -770,6 +943,8 @@ const router = createBrowserRouter([
         </div>
       </div>
     ),
+  },
+    ],
   },
 ]);
 

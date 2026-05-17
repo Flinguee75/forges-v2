@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
+import { useAuth } from '../../../hooks/useAuth';
 import { paiementsApi } from '../../../api/paiements.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
+import Modal from '../../../components/ui/Modal';
 import Spinner from '../../../components/feedback/Spinner';
 
 /**
@@ -17,7 +19,9 @@ import Spinner from '../../../components/feedback/Spinner';
 export default function PaiementDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [paiement, setPaiement] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { execute, isLoading } = useApi();
 
@@ -27,7 +31,7 @@ export default function PaiementDetail() {
   }, [id]);
 
   const loadPaiement = async () => {
-    await execute(() => paiementsApi.getById(id), {
+    await execute(() => paiementsApi.getBackofficeById(id), {
       onSuccess: (data) => {
         setPaiement(data);
       },
@@ -36,8 +40,9 @@ export default function PaiementDetail() {
 
   const getStatutBadge = (statut) => {
     const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      INITIE: { variant: 'gray', label: 'Initié' },
+      EN_ATTENTE: { variant: 'warning', label: 'Paiement initié' },
+      PENDING: { variant: 'warning', label: 'Paiement initié' },
+      INITIE: { variant: 'warning', label: 'Paiement initié' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       ECHOUE: { variant: 'danger', label: 'Échoué' },
       EXPIRE: { variant: 'warning', label: 'Expiré' },
@@ -48,16 +53,31 @@ export default function PaiementDetail() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getMethodeBadge = (methode) => {
+  const getCanalBadge = (canal) => {
     const mapping = {
+      FINEO: { label: 'FineoPay' },
+      NGSER: { label: 'NGSER' },
       MOBILE_MONEY: { label: 'Mobile Money' },
       CARTE: { label: 'Carte bancaire' },
       VIREMENT: { label: 'Virement' },
       VOUCHER_ORG: { label: 'Voucher Organisation' },
+      VOUCHER_PROMO: { label: 'Voucher Promo' },
+      DIRECT: { label: 'Paiement direct' },
     };
 
-    const config = mapping[methode] || { label: methode };
+    const config = mapping[canal] || { label: canal || '-' };
     return <Badge variant="info">{config.label}</Badge>;
+  };
+
+  const handleDeletePaiement = async () => {
+    await execute(() => paiementsApi.deleteAdmin(paiement.id), {
+      showSuccessToast: true,
+      successMessage: 'Paiement supprimé',
+      onSuccess: () => {
+        navigate('/backoffice/paiements');
+      },
+    });
+    setIsDeleteModalOpen(false);
   };
 
   if (isLoading && !paiement) {
@@ -72,10 +92,17 @@ export default function PaiementDetail() {
     return null;
   }
 
-  const montantFCFA = paiement.montant / 100;
-  const etudiant = paiement.dossier?.etudiant || {};
+  const montant =
+    paiement.montant_final ?? paiement.montant_initie ?? paiement.montant ?? paiement.montant_catalogue ?? 0;
+  const montantFCFA = Math.round(montant / 100);
+  const etudiant = paiement.dossier?.apprenant || paiement.dossier?.etudiant || {};
   const session = paiement.dossier?.session || {};
-  const formation = session.formation || {};
+  const formation = paiement.dossier?.formation || session.formation || {};
+  const canalPaiement = paiement.provider || paiement.methode_paiement || paiement.methode;
+  const isFineo = canalPaiement === 'FINEO';
+  const commandeLabel = isFineo ? 'Commande Fineo' : 'Référence commande';
+  const transactionLabel = isFineo ? 'Transaction Fineo' : 'Référence transaction';
+  const statutProviderLabel = isFineo ? 'Statut Fineo' : 'Statut paiement';
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -96,12 +123,28 @@ export default function PaiementDetail() {
             </p>
           </div>
           <div className="flex gap-2">
+            {paiement.dossier_id && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/backoffice/dossiers/${paiement.dossier_id}`)}
+              >
+                Voir le dossier
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => navigate('/backoffice/paiements')}
             >
               Retour à la liste
             </Button>
+            {user?.role === 'ADMIN' && paiement.statut !== 'CONFIRME' && paiement.statut !== 'REMBOURSE' && (
+              <Button
+                variant="danger"
+                onClick={() => setIsDeleteModalOpen(true)}
+              >
+                Supprimer le paiement
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -135,10 +178,10 @@ export default function PaiementDetail() {
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
-                Méthode de paiement
+                Canal de paiement
               </dt>
               <dd className="mt-1 text-sm text-text">
-                {getMethodeBadge(paiement.methode_paiement)}
+                {getCanalBadge(canalPaiement)}
               </dd>
             </div>
             <div>
@@ -160,6 +203,45 @@ export default function PaiementDetail() {
               </dd>
             </div>
           </dl>
+
+          {(paiement.order_ngser || paiement.transaction_id || paiement.status_ngser) && (
+            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4">
+              {paiement.order_ngser && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    {commandeLabel}
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">{paiement.order_ngser}</dd>
+                </div>
+              )}
+              {paiement.transaction_id && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    {transactionLabel}
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">{paiement.transaction_id}</dd>
+                </div>
+              )}
+              {paiement.status_ngser && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    {statutProviderLabel}
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">{paiement.status_ngser}</dd>
+                </div>
+              )}
+              {paiement.reconciled_at && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">
+                    Réconcilié le
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {new Date(paiement.reconciled_at).toLocaleString('fr-FR')}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
 
           {paiement.external_id && (
             <div className="mt-6">
@@ -206,17 +288,10 @@ export default function PaiementDetail() {
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
-                Dossier
+                Référence dossier
               </dt>
               <dd className="mt-1 text-sm text-text">
-                <button
-                  onClick={() =>
-                    navigate(`/backoffice/dossiers/${paiement.dossier_id}`)
-                  }
-                  className="text-primary hover:underline"
-                >
-                  Voir le dossier
-                </button>
+                {paiement.dossier_id ? paiement.dossier_id.slice(0, 8).toUpperCase() : '-'}
               </dd>
             </div>
           </dl>
@@ -228,7 +303,7 @@ export default function PaiementDetail() {
               <dt className="text-xs font-medium uppercase text-subtext">
                 Formation
               </dt>
-              <dd className="mt-1 text-sm text-text">{formation.titre}</dd>
+              <dd className="mt-1 text-sm text-text">{formation.titre || formation.intitule || 'N/A'}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-subtext">
@@ -241,7 +316,7 @@ export default function PaiementDetail() {
                 Prix formation
               </dt>
               <dd className="mt-1 text-sm text-text">
-                {Math.round((formation.prix || 0) / 100).toLocaleString('fr-FR')} FCFA
+                {Math.round((formation.prix || formation.cout_catalogue || 0) / 100).toLocaleString('fr-FR')} FCFA
               </dd>
             </div>
             <div>
@@ -257,6 +332,55 @@ export default function PaiementDetail() {
           </dl>
         </Card>
 
+        {(paiement.reduction_appliquee > 0 || paiement.dossier?.voucher_organisation || paiement.code_apporteur) && (
+          <Card title="Réductions appliquées">
+            <dl className="grid grid-cols-2 gap-4">
+              {paiement.montant_catalogue > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Prix catalogue</dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {Math.round(paiement.montant_catalogue / 100).toLocaleString('fr-FR')} FCFA
+                  </dd>
+                </div>
+              )}
+              {paiement.reduction_appliquee > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Remise appliquée</dt>
+                  <dd className="mt-1 text-sm font-medium text-success">
+                    -{Math.round(paiement.reduction_appliquee / 100).toLocaleString('fr-FR')} FCFA
+                  </dd>
+                </div>
+              )}
+              {paiement.dossier?.voucher_organisation && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Voucher organisation</dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {paiement.dossier.voucher_organisation.code}
+                    {paiement._organisation_voucher_nom && (
+                      <span className="ml-1 text-subtext">
+                        ({paiement._organisation_voucher_nom})
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              )}
+              {paiement.code_apporteur && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Code apporteur</dt>
+                  <dd className="mt-1 text-sm text-text">
+                    {paiement.code_apporteur.code}
+                    {paiement.code_apporteur.apporteur?.nom && (
+                      <span className="ml-1 text-subtext">
+                        ({paiement.code_apporteur.apporteur.nom})
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </Card>
+        )}
+
         {paiement.tentatives > 0 && (
           <Card title="Historique des tentatives">
             <div className="rounded-lg border border-border p-4">
@@ -270,14 +394,68 @@ export default function PaiementDetail() {
               </div>
               {paiement.tentatives >= 3 && (
                 <p className="mt-2 text-xs text-warning">
-                  Maximum de tentatives atteint (RM-08). Aucun nouveau paiement
+                  Maximum de tentatives atteint. Aucun nouveau paiement
                   ne peut être initié pour ce dossier.
                 </p>
               )}
             </div>
           </Card>
         )}
+        {paiement.code_apporteur?.code && (
+          <Card title="Commission apporteur">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Apporteur</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {paiement.code_apporteur.apporteur?.nom || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Code</dt>
+                <dd className="mt-1 text-sm text-text">{paiement.code_apporteur.code}</dd>
+              </div>
+              {paiement.commission_apporteur && (
+                <>
+                  <div>
+                    <dt className="text-xs font-medium uppercase text-subtext">Montant commission</dt>
+                    <dd className="mt-1 text-sm text-text">
+                      {Math.round(paiement.commission_apporteur.montant / 100).toLocaleString('fr-FR')} FCFA
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium uppercase text-subtext">Statut reversement</dt>
+                    <dd className="mt-1 text-sm text-text">
+                      {paiement.commission_apporteur.statut || '-'}
+                    </dd>
+                  </div>
+                </>
+              )}
+            </dl>
+          </Card>
+        )}
       </div>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Supprimer le paiement"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text">
+            Supprimer le paiement{' '}
+            <strong>{paiement.reference || paiement.id.slice(0, 8)}</strong> ? Cette action est
+            définitive et supprime également le dossier associé.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="danger" onClick={handleDeletePaiement} loading={isLoading}>
+              Supprimer définitivement
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

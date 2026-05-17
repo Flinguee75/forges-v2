@@ -32,6 +32,28 @@ describe('DashboardRepository', () => {
       nb_abonnements_b2b_actifs: 1,
       dossiers_par_statut: { PAYE: 12 },
     });
+
+    expect(prisma.apprenant.count).toHaveBeenCalledWith({
+      where: { statut: 'ACTIF', role: 'APPRENANT' },
+    });
+  });
+
+  it('compte les organisations actives avec les statuts ACTIVE et ACTIF', async () => {
+    prisma.apprenant.count.mockResolvedValueOnce(0);
+    prisma.organisation.count.mockResolvedValueOnce(1);
+    prisma.formation.count.mockResolvedValueOnce(0);
+    prisma.session.count.mockResolvedValueOnce(0);
+    prisma.dossier.count.mockResolvedValueOnce(0);
+    prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 0 } } as any);
+    prisma.abonnementRetail.count.mockResolvedValueOnce(0);
+    prisma.abonnementB2B.count.mockResolvedValueOnce(0);
+    prisma.dossier.groupBy.mockResolvedValueOnce([] as any);
+
+    await repository.getStatsAdmin();
+
+    expect(prisma.organisation.count).toHaveBeenCalledWith({
+      where: { statut: { in: ['ACTIF', 'ACTIVE'] } },
+    });
   });
 
   it('retourne les stats agent, responsable et superviseur', async () => {

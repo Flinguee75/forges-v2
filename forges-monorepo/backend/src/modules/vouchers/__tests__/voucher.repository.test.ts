@@ -36,6 +36,33 @@ describe('VoucherRepository', () => {
     }));
   });
 
+  it('enrichit un voucher organisation avec son organisation liée', async () => {
+    prisma.voucherOrganisation.findUnique.mockResolvedValue({
+      id: 'voucher-org-01',
+      organisation_id: 'org-01',
+    } as any);
+    prisma.organisation.findUnique.mockResolvedValue({
+      id: 'org-01',
+      raison_sociale: 'Organisation Test',
+      statut: 'ACTIF',
+    } as any);
+
+    await expect(repository.findById('voucher-org-01')).resolves.toEqual({
+      id: 'voucher-org-01',
+      organisation_id: 'org-01',
+      organisation: {
+        id: 'org-01',
+        raison_sociale: 'Organisation Test',
+        statut: 'ACTIF',
+      },
+    });
+
+    expect(prisma.organisation.findUnique).toHaveBeenCalledWith({
+      where: { id: 'org-01' },
+      select: { id: true, raison_sociale: true, statut: true },
+    });
+  });
+
   it('marque un voucher comme épuisé quand le quota est atteint', async () => {
     prisma.voucherApporteur.update
       .mockResolvedValueOnce({ id: 'voucher-01', quota_max: 2, quota_utilise: 2 } as any)

@@ -18,9 +18,11 @@ import {
 
 const STATUS_META = {
   ACTIF: { variant: 'success', label: 'Actif' },
+  EN_ATTENTE_PAIEMENT: { variant: 'warning', label: 'Paiement en cours' },
   SUSPENDU: { variant: 'warning', label: 'Suspendu' },
-  EXPIRE: { variant: 'danger', label: 'Expire' },
-  RESILIE: { variant: 'danger', label: 'Resilie' },
+  ANNULE: { variant: 'danger', label: 'Annulé' },
+  EXPIRE: { variant: 'danger', label: 'Expiré' },
+  RESILIE: { variant: 'danger', label: 'Résilié' },
   ESSAI: { variant: 'info', label: 'Essai gratuit' },
   ABSENT: { variant: 'gray', label: 'Aucun abonnement' },
 };
@@ -39,7 +41,7 @@ export default function MonAbonnementOrg() {
   const location = useLocation();
   const shouldHighlightSubscribe = location.pathname.endsWith('/souscrire');
   const [abonnement, setAbonnement] = useState(null);
-  const [selectedOffer, setSelectedOffer] = useState('BASIQUE');
+  const [selectedOffer, setSelectedOffer] = useState(null);
   const didInitialLoad = useRef(false);
   const { execute, isLoading, error, reset } = useApi();
 
@@ -48,9 +50,7 @@ export default function MonAbonnementOrg() {
       showErrorToast: false,
       onSuccess: (data) => {
         setAbonnement(data);
-        if (data?.offre) {
-          setSelectedOffer(data.offre);
-        }
+        setSelectedOffer(data?.offre || null);
         reset?.();
       },
       onError: (loadError) => {
@@ -78,7 +78,7 @@ export default function MonAbonnementOrg() {
   }, [loadData]);
 
   const offerPreview = useMemo(
-    () => previewOrganisationSubscription(selectedOffer),
+    () => (selectedOffer ? previewOrganisationSubscription(selectedOffer) : null),
     [selectedOffer]
   );
   const welcomeOfferActive = useMemo(
@@ -86,18 +86,23 @@ export default function MonAbonnementOrg() {
     [abonnement]
   );
   const isTrial = abonnement?.is_trial ?? abonnement?.statut === 'ESSAI';
-  // Ne jamais permettre de souscrire si un abonnement ACTIF existe déjà
-  const canSubscribe = abonnement?.statut === 'ACTIF'
+  const hasSelectedOffer = Boolean(selectedOffer);
+  // Bloquer si ACTIF ou EN_ATTENTE_PAIEMENT
+  const canSubscribe = ['ACTIF', 'EN_ATTENTE_PAIEMENT'].includes(abonnement?.statut)
     ? false
     : (!abonnement || (abonnement?.can_subscribe ?? isTrial));
+  const canConfirmSubscription = canSubscribe && hasSelectedOffer;
 
   const handleSubscribe = async () => {
     await execute(() => organisationApi.souscrireOrganisation({ offre: selectedOffer }), {
-      showSuccessToast: true,
-      successMessage: 'Abonnement organisation active',
+      showSuccessToast: false,
       onSuccess: (data) => {
-        setAbonnement(data);
-        navigate('/organisation/abonnement');
+        if (data?.payment_url) {
+          window.location.href = data.payment_url;
+        } else {
+          setAbonnement(data?.abonnement ?? data);
+          navigate('/organisation/abonnement');
+        }
       },
     });
   };
@@ -121,10 +126,10 @@ export default function MonAbonnementOrg() {
               Abonnement Organisation
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-text">
-              {isTrial ? 'Convertir votre essai' : 'Piloter votre acces plateforme'}
+              {isTrial ? 'Convertir votre essai' : 'Piloter votre accès plateforme'}
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              Gere l acces de votre organisation a la plateforme et les offres annuelles Basique, Pro et Enterprise.
+              L&apos;abonnement organisation donne à votre structure un accès annuel à la plateforme FORGES : gestion des inscriptions, des vouchers, du tableau de bord et de l&apos;abonnement B2B. Sans abonnement actif, l&apos;accès est suspendu à la fin de la période d&apos;essai.
             </p>
           </div>
           {getStatusBadge(abonnement?.statut || 'ABSENT')}
@@ -139,13 +144,37 @@ export default function MonAbonnementOrg() {
                 Essai gratuit en cours
               </p>
               <p className="mt-1 text-sm text-subtext">
-                {abonnement.jours_restants_essai} jour(s) restant(s) avant suspension automatique si aucun abonnement n est souscrit.
+                {abonnement.jours_restants_essai} jour(s) restant(s) avant suspension automatique si aucun abonnement n&apos;est souscrit.
               </p>
             </div>
             <div className="text-right text-sm text-subtext">
-              <div>Fin de l essai</div>
+              <div>Fin de l&apos;essai</div>
               <div className="font-semibold text-text">{formatDate(abonnement.date_fin_essai)}</div>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {abonnement?.statut === 'EN_ATTENTE_PAIEMENT' && (
+        <Card className="border-l-4 border-warning">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-text">
+                Paiement en cours de traitement
+              </p>
+              <p className="mt-1 text-sm text-subtext">
+                Votre souscription est initiée. Elle sera activée dès confirmation du paiement par NGSER.
+                Si vous n&apos;avez pas été redirigé, cliquez sur le bouton ci-dessous pour reprendre.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              onClick={handleSubscribe}
+              disabled={isLoading}
+              loading={isLoading}
+            >
+              Reprendre le paiement
+            </Button>
           </div>
         </Card>
       )}
@@ -158,11 +187,11 @@ export default function MonAbonnementOrg() {
                 Offre bienvenue -{abonnement?.welcome_offer_pct || 20}%
               </p>
               <p className="mt-1 text-sm text-subtext">
-                Cette remise est visible pendant la fenetre de conversion de l essai.
+                Cette remise est visible pendant la fenêtre de conversion de l&apos;essai.
               </p>
             </div>
             <div className="text-right text-sm text-subtext">
-              <div>Valable jusqu au</div>
+              <div>Valable jusqu&apos;au</div>
               <div className="font-semibold text-text">{formatDate(abonnement?.welcome_offer_expires_at)}</div>
             </div>
           </div>
@@ -171,8 +200,8 @@ export default function MonAbonnementOrg() {
 
       {!abonnement && !shouldHighlightSubscribe && (
         <EmptyState
-          title="Aucun abonnement organisation"
-          message="Souscrivez une offre annuelle pour conserver l acces complet a la plateforme."
+          title="Aucun abonnement actif"
+          message="Aucune offre n&apos;est actuellement souscrite. Choisissez une offre ci-dessous pour activer l&apos;accès annuel."
           action={(
             <Link to="/organisation/abonnement/souscrire">
               <Button variant="primary">Choisir une offre</Button>
@@ -236,24 +265,34 @@ export default function MonAbonnementOrg() {
                     <p className="text-lg font-semibold text-text">{offer.label}</p>
                     <p className="mt-1 text-sm text-subtext">{offer.description}</p>
                   </div>
-                  {isSelected && <Badge variant="success" size="small">Selectionnee</Badge>}
+                  {isSelected && <Badge variant="success" size="small">Sélectionnée</Badge>}
                 </div>
-                <div className="mt-5">
+                <div className="mt-4">
                   <p className="text-sm text-subtext">Tarif annuel</p>
                   <p className="mt-1 text-2xl font-semibold text-text">{formatFcfa(displayAmount)}</p>
                   {welcomeOfferActive && (
                     <p className="mt-1 text-xs text-warning">
-                      Tarif catalogue: {formatFcfa(offer.annualAmount)}
+                      Tarif catalogue : {formatFcfa(offer.annualAmount)}
                     </p>
                   )}
                 </div>
+                {offer.features?.length > 0 && (
+                  <ul className="mt-4 space-y-1.5">
+                    {offer.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm text-text">
+                        <span className="mt-0.5 text-success">✓</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-6">
                   <Button
                     variant={isSelected ? 'primary' : 'outline'}
                     onClick={() => setSelectedOffer(offer.key)}
                     disabled={!canSubscribe && abonnement?.offre === offer.key}
                   >
-                    {isSelected ? 'Offre choisie' : 'Choisir'}
+                    {isSelected ? 'Offre sélectionnée' : 'Sélectionner'}
                   </Button>
                 </div>
               </div>
@@ -262,13 +301,21 @@ export default function MonAbonnementOrg() {
         </div>
 
         <div className={`rounded-lg border p-4 ${shouldHighlightSubscribe ? 'border-warning bg-warning/5' : 'border-border bg-bg'}`}>
-          <p className="text-sm font-semibold text-text">Previsualisation</p>
-          <p className="mt-1 text-sm text-subtext">
-            Offre {offerPreview.label} a {offerPreview.formattedAmount} par an.
-          </p>
-          {welcomeOfferActive && (
-            <p className="mt-2 text-sm text-warning">
-              La remise bienvenue s affiche sur cette selection tant que la fenetre de conversion est active.
+          <p className="text-sm font-semibold text-text">Prévisualisation</p>
+          {offerPreview ? (
+            <>
+              <p className="mt-1 text-sm text-subtext">
+                Offre {offerPreview.label} a {offerPreview.formattedAmount} par an.
+              </p>
+              {welcomeOfferActive && (
+                <p className="mt-2 text-sm text-warning">
+                  La remise bienvenue s&apos;affiche sur cette sélection tant que la fenêtre de conversion est active.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-subtext">
+              Aucune offre n&apos;est sélectionnée pour le moment.
             </p>
           )}
         </div>
@@ -278,10 +325,10 @@ export default function MonAbonnementOrg() {
             <Button
               variant="primary"
               onClick={handleSubscribe}
-              disabled={isLoading}
+              disabled={isLoading || !canConfirmSubscription}
               loading={isLoading}
             >
-              {isTrial ? 'Activer mon abonnement' : 'Confirmer la souscription'}
+              {hasSelectedOffer ? (isTrial ? 'Activer mon abonnement' : 'Confirmer la souscription') : 'Sélectionner une offre'}
             </Button>
           )}
           <Link to="/organisation/b2b">

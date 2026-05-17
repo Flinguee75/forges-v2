@@ -125,6 +125,13 @@ jobs:
             infra/docker/docker-compose.demo.deploy.yml \
             ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/docker/
 
+      - name: Transférer monitoring stack (rsync)
+        run: |
+          rsync -avz --mkpath --delete \
+            --exclude='backups/' \
+            forges-monorepo/infra/monitoring/ \
+            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/monitoring/
+
       - name: Docker pull + migrate + restart
         env:
           DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
@@ -183,6 +190,22 @@ jobs:
           sleep 8
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://demo.forges-group.com/health || echo "000")
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
+
+      - name: Disable monitoring stack
+        env:
+          DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" \
+            'bash -s' <<'ENDSSH'
+          set -euo pipefail
+          cd "$DEPLOY_PATH/infra/monitoring"
+          chmod +x monitoring-demo.sh
+          printf 'y\n' | ./monitoring-demo.sh cleanup
+          echo "Monitoring stack disabled and cleaned up."
+          ENDSSH
 
       - name: Résumé
         if: always()

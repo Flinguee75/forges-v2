@@ -27,7 +27,7 @@ describe('EspaceApprenantController', () => {
 
     service.getMesDossiers.mockResolvedValueOnce([{ id: 'dossier-01' }] as any);
     await controller.getMesDossiers(req, res, next);
-    expect(service.getMesDossiers).toHaveBeenCalledWith('app-01');
+    expect(service.getMesDossiers).toHaveBeenCalledWith('app-01', { statut: undefined });
     expect(res.json).toHaveBeenCalledWith([{ id: 'dossier-01' }]);
 
     const boom = new Error('BOOM');

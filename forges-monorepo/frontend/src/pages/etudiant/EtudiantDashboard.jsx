@@ -7,6 +7,8 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/feedback/Spinner';
 import Icon from '../../components/ui/Icon';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationHours } from '../../utils/paymentDeadline';
 
 /**
  * EtudiantDashboard - Tableau de bord apprenant avec statistiques et actions rapides
@@ -22,6 +24,7 @@ export default function EtudiantDashboard() {
   });
   const [recentDossiers, setRecentDossiers] = useState([]);
   const [recentFormations, setRecentFormations] = useState([]);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute, isLoading } = useApi();
 
@@ -175,7 +178,7 @@ export default function EtudiantDashboard() {
               </h3>
               <p className="mt-1 text-sm text-warning">
                 Vous avez {stats.dossiersRetenus} dossier(s) retenu(s). Effectuez votre
-                paiement dans les 72h pour confirmer votre inscription.
+                paiement dans les {formatPaymentExpirationHours(paymentExpirationHours)} pour confirmer votre inscription.
               </p>
             </div>
             <Link to="/apprenant/paiements" className="flex-shrink-0">

@@ -3,7 +3,7 @@
 
 **Date** : 2026-04-25
 **Version** : 4.8
-**Statut** : Tests d'intégration backend exécutés — 89/90 (98.9%) PASS
+**Statut** : document historique. Le plan actif est [PLAN_FOCUS_INTEGRATION.md](./PLAN_FOCUS_INTEGRATION.md).
 
 ---
 
@@ -751,7 +751,7 @@ npx playwright test ucs07-inscription             # Test spécifique
 
 # Reset base de test
 cd backend
-npm run db:seed:validation -- --reset
+node seed_for_test.js --reset
 ```
 
 ### Génération Rapports

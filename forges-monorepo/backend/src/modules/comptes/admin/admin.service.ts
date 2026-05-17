@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { CreateUserDtoType, InvitePartenaireDtoType, CreateApporteurDtoType } from './dto/admin-user.dto';
+import { isEmailAvailable } from '../../../shared/helpers/email-uniqueness';
 
 const SALT_ROUNDS = 12;
 const INVITATION_EXPIRATION_HOURS = 48; // RM-126 : token invitation 48h
@@ -42,7 +43,7 @@ export class AdminService {
     });
 
     await this.audit.info('UTILISATEUR_CREE', { user_id: user.id, role: dto.role, admin_id: adminId });
-    await this.email.sendTempPassword(dto.email, tempPassword, 'FR');
+    await this.email.sendTempPasswordBackoffice(dto.email, dto.prenoms || dto.nom, tempPassword, dto.role as any);
 
     return user;
   }
@@ -68,6 +69,12 @@ export class AdminService {
 
   // UCS02 — Invitation Partenaire Flux A (RM-126)
   async invitePartenaire(dto: InvitePartenaireDtoType, adminId: string) {
+    // RM-28 : Unicité email cross-tables
+    const emailAvailable = await isEmailAvailable(this.prisma, dto.email);
+    if (!emailAvailable) {
+      throw new Error('EMAIL_ALREADY_EXISTS');
+    }
+
     const token = uuidv4();
     const token_expiration = new Date(Date.now() + INVITATION_EXPIRATION_HOURS * 3600 * 1000);
 
@@ -93,6 +100,12 @@ export class AdminService {
 
   // UCS02 — Création Apporteur (RM-141, RM-142)
   async createApporteur(dto: CreateApporteurDtoType, adminId: string) {
+    // RM-28 : Unicité email cross-tables
+    const emailAvailable = await isEmailAvailable(this.prisma, dto.email);
+    if (!emailAvailable) {
+      throw new Error('EMAIL_ALREADY_EXISTS');
+    }
+
     // RM-142 : code UUID permanent généré à la création — JAMAIS modifiable
     const code_apporteur = uuidv4();
     const password_hash = 'PENDING_ACTIVATION'; // Password temporaire = email
@@ -110,23 +123,47 @@ export class AdminService {
     });
 
     await this.audit.info('APPORTEUR_CREE', { apporteur_id: apporteur.id, admin_id: adminId });
-    await this.email.sendCodeApporteur(dto.email, code_apporteur, 'FR');
+    await this.email.sendCodeApporteur(dto.email, code_apporteur, 'FR', dto.nom, dto.taux_commission_pct);
 
     return { apporteur_id: apporteur.id, code_apporteur };
   }
 
   // UCS02 — Liste utilisateurs backoffice
+  private static readonly ROLES_BACKOFFICE = ['ADMIN', 'SUPERVISEUR', 'RESPONSABLE', 'AGENT', 'GESTIONNAIRE'];
+
   async listUsers(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
+    const where = {
+      statut: { not: 'INACTIF' as const },
+      role: { notIn: AdminService.ROLES_BACKOFFICE as any[] },
+    };
     const [users, total] = await Promise.all([
       this.prisma.apprenant.findMany({
-        where: { statut: { not: 'INACTIF' } },
-        select: { id: true, email: true, nom: true, prenoms: true, statut: true, created_at: true },
+        where,
+        select: { id: true, email: true, nom: true, prenoms: true, role: true, statut: true, created_at: true },
         skip,
         take: limit,
         orderBy: { created_at: 'desc' },
       }),
-      this.prisma.apprenant.count({ where: { statut: { not: 'INACTIF' } } })
+      this.prisma.apprenant.count({ where })
+    ]);
+    return { users, total, page, limit };
+  }
+
+  async listBackofficeUsers(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const where = {
+      role: { in: AdminService.ROLES_BACKOFFICE as any[] },
+    };
+    const [users, total] = await Promise.all([
+      this.prisma.apprenant.findMany({
+        where,
+        select: { id: true, email: true, nom: true, prenoms: true, role: true, statut: true, created_at: true },
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+      }),
+      this.prisma.apprenant.count({ where })
     ]);
     return { users, total, page, limit };
   }

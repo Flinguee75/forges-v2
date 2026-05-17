@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { getDelaiPaiementMs } from '../../config/env.config';
 
 export class PaiementRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -56,9 +57,17 @@ export class PaiementRepository {
     });
   }
 
+  async rembourser(id: string) {
+    return this.prisma.paiement.update({
+      where: { id },
+      data: { statut: 'REMBOURSE' },
+      include: { dossier: { select: { id: true } } },
+    });
+  }
+
   async findPaiementsExpires() {
-    // RM-07 : paiements EN_ATTENTE depuis > 72h
-    const limite = new Date(Date.now() - 72 * 3600 * 1000);
+    // RM-07 : paiements EN_ATTENTE depuis > PAIEMENT_EXPIRATION_HEURES
+    const limite = new Date(Date.now() - getDelaiPaiementMs());
     return this.prisma.paiement.findMany({
       where: {
         statut: 'EN_ATTENTE',

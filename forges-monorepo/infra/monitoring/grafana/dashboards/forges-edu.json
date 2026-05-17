@@ -1,0 +1,943 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "EDU Backend Logs",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "title": "EDU Backend Errors",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)error\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "EDU Scheduler / Text Logs",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} |~ \"Scheduler|D\u00e9marr\u00e9|Arr\u00eat\u00e9|Ex\u00e9cution\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Error Rate (5m)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)error\" [5m]))",
+          "refId": "A",
+          "legendFormat": "errors/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#C0392B"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          },
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "title": "Log Volume by Service",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum by (level) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{level}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "title": "EDU Backend Audit Logs",
+      "type": "logs",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"COMPTE_CREE|APPRENANT_CREE_ADMIN|APPRENANT_SUPPRIME|LOGIN_SUCCESS|DASHBOARD_CONSULTE\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "EDU Backend Errors Detaillees",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)error\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "EDU Backend Historique brut",
+      "type": "logs",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Avertissements (WARN)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      }
+    },
+    {
+      "title": "Warnings \u2014 logs WARN / WARNING (probe monitor exclu)",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" | metadata_error != \"INVALID_CREDENTIALS\" | metadata_health_probe != \"true\"",
+          "refId": "A",
+          "legendFormat": "Warnings reels"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Tentatives login echouees (probe + utilisateurs)",
+      "type": "logs",
+      "gridPos": {
+        "h": 6,
+        "w": 16,
+        "x": 0,
+        "y": 55
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\" | metadata_health_probe != \"true\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Login KO / 5m",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 55
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_error=\"INVALID_CREDENTIALS\" | metadata_health_probe != \"true\" [5m]))",
+          "refId": "A",
+          "legendFormat": "login KO/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#E67E22"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          },
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.01
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          }
+        }
+      },
+      "description": "La probe silent-check genere 1 tentative toutes les 5 min \u2014 taux normal = ~0.003/s. Une hausse indique de vraies tentatives."
+    },
+    {
+      "title": "Taux WARN (5m)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 61
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" [5m]))",
+          "refId": "A",
+          "legendFormat": "warns/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#E67E22"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          },
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "title": "Chemins les plus en WARN",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 61
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)warn(ing)?\" | keep timestamp, level, action, metadata_path, metadata_statusCode, metadata_error",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Connexions utilisateurs",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 69 }
+    },
+    {
+      "title": "Connexions reussies (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logins OK"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#27AE60" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Echecs login reels (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logins KO"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#E74C3C" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 20 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Deconnexions (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGOUT\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logouts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#3498DB" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Taux echecs / connexions (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 70 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [1h])) / (sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"LOGIN_SUCCESS|LOGIN_FAILED\" [1h])) > 0) * 100",
+          "refId": "A",
+          "legendFormat": "taux echec %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+    },
+    {
+      "title": "Connexions dans le temps (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 74 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [5m]))",
+          "refId": "A",
+          "legendFormat": "login OK/s"
+        },
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [5m]))",
+          "refId": "B",
+          "legendFormat": "login KO/s"
+        },
+        {
+          "expr": "sum(rate({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGOUT\" [5m]))",
+          "refId": "C",
+          "legendFormat": "logout/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "unit": "reqps"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "login OK/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#27AE60" } }] },
+          { "matcher": { "id": "byName", "options": "login KO/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#E74C3C" } }] },
+          { "matcher": { "id": "byName", "options": "logout/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#3498DB" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Connexions par role (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 74 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (role) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{role}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Echecs login reels (detail)",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 82 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Traces Utilisateurs",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 90 }
+    },
+    {
+      "title": "Activite utilisateur \u2014 Audit (user_id)",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 91
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | user_id != \"\" | user_id != \"null\"",
+          "refId": "A",
+          "legendFormat": "Audit"
+        },
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | metadata_user_id != \"\" | metadata_user_id != \"null\"",
+          "refId": "B",
+          "legendFormat": "HTTP errors"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "title": "Activite par utilisateur (5m)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 101
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum by (user_id) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | user_id != \"\" | user_id != \"null\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{user_id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Erreurs et Warnings par utilisateur",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 101
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | level=~\"(?i)error|warn(ing)?\" | metadata_user_id != \"\" | metadata_user_id != \"null\" | keep timestamp, level, action, metadata_user_id, metadata_path, metadata_statusCode, metadata_error",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "title": "Clics utilisateurs",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 109
+      }
+    },
+    {
+      "title": "Flux de clics \u2014 temps reel",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 110
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "title": "Clics par element (5m)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 120
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum by (element) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{element}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Clics par page (5m)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 120
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum by (page) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"USER_CLICK\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{page}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Nombre de connexions",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 128 }
+    },
+    {
+      "title": "Logins reussis aujourd'hui (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [24h]))",
+          "refId": "A",
+          "legendFormat": "logins OK"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#27AE60" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Echecs login aujourd'hui (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [24h]))",
+          "refId": "A",
+          "legendFormat": "logins KO"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Utilisateurs connectes cette semaine (7j)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [7d]))",
+          "refId": "A",
+          "legendFormat": "logins semaine"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#8E44AD" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Taux echec / total (24h) %",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 129 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [24h])) / (sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"LOGIN_SUCCESS|LOGIN_FAILED\" [24h])) > 0) * 100",
+          "refId": "A",
+          "legendFormat": "taux echec %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Logins par heure (24h)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 134 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [1h]))",
+          "refId": "A",
+          "legendFormat": "logins OK / heure"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_FAILED\" [1h]))",
+          "refId": "B",
+          "legendFormat": "logins KO / heure"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true, "drawStyle": "bars", "barAlignment": 0 },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "logins OK / heure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#27AE60" } }] },
+          { "matcher": { "id": "byName", "options": "logins KO / heure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#E74C3C" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi" } }
+    },
+    {
+      "title": "Logins par role (24h)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 143 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (role) (count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"LOGIN_SUCCESS\" [1h]))",
+          "refId": "A",
+          "legendFormat": "{{role}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "spanNulls": true, "drawStyle": "bars" },
+          "unit": "short"
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" } }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "forges",
+    "edu",
+    "monitoring"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "FORGES Edu Monitoring",
+  "uid": "forges-edu-main",
+  "version": 1,
+  "refresh": "30s"
+}

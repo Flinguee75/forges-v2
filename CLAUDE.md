@@ -71,14 +71,16 @@ Emails : Nodemailer avec file/queue Redis ou SMTP de test.
 ### 5.1 Seed canonique de validation
 
 ```bash
-npm run db:seed:validation:reset
-npm run db:seed:validation:check
+cd forges-monorepo/backend
+node seed_for_test.js --reset
+node seed_for_test.js --check
 ```
 
 Commande combinée :
 
 ```bash
-npm run db:seed:validation -- --reset --check
+cd forges-monorepo/backend
+node seed_for_test.js --reset && node seed_for_test.js --check
 ```
 
 Règle : tout test de validation doit partir d'un état seedé, stable et documenté.
@@ -400,7 +402,7 @@ Tests obligatoires :
 
 ## 11. Discipline des seeds et fixtures
 
-Seed officiel : `prisma/seed-validation.js`.
+Seed officiel : `forges-monorepo/backend/seed_for_test.js`.
 
 Règles :
 
@@ -765,3 +767,19 @@ Quand tu modifies FORGES, pense comme un validateur système :
 
 La question centrale n'est pas “est-ce que le code marche ?”.
 La question centrale est “quelle preuve avons-nous que le comportement respecte les specs v4.8 dans les scénarios critiques ?”.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `Flinguee75/forges-v2`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo: one `CONTEXT.md` plus `docs/adr/` at the root. See `docs/agents/domain.md`.

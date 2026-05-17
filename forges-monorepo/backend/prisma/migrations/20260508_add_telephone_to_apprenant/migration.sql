@@ -1,0 +1,1 @@
+ALTER TABLE "Apprenant" ADD COLUMN IF NOT EXISTS "telephone" TEXT;

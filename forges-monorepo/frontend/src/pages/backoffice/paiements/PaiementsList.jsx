@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
+import { useAuth } from '../../../hooks/useAuth';
 import { paiementsApi } from '../../../api/paiements.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
@@ -19,6 +20,7 @@ import Pagination from '../../../components/ui/Pagination';
  */
 export default function PaiementsList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [paiements, setPaiements] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [filters, setFilters] = useState({
@@ -58,10 +60,29 @@ export default function PaiementsList() {
     setFilters({ ...filters, statut: e.target.value });
   };
 
+  const handleDeletePaiement = async (paiement) => {
+    const confirmed = window.confirm(
+      `Supprimer le dossier et le paiement ${paiement.reference || paiement.id.slice(0, 8)} ? Cette action est définitive.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await execute(() => paiementsApi.deleteAdmin(paiement.id), {
+      showSuccessToast: true,
+      successMessage: 'Paiement supprimé',
+      onSuccess: async () => {
+        await loadPaiements(meta.page);
+      },
+    });
+  };
+
   const getStatutBadge = (statut) => {
     const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      INITIE: { variant: 'gray', label: 'Initié' },
+      EN_ATTENTE: { variant: 'warning', label: 'Paiement initié' },
+      PENDING: { variant: 'warning', label: 'Paiement initié' },
+      INITIE: { variant: 'warning', label: 'Paiement initié' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       ECHOUE: { variant: 'danger', label: 'Échoué' },
       EXPIRE: { variant: 'warning', label: 'Expiré' },
@@ -72,15 +93,19 @@ export default function PaiementsList() {
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
-  const getMethodeBadge = (methode) => {
+  const getCanalBadge = (canal) => {
     const mapping = {
+      FINEO: { label: 'FineoPay' },
+      NGSER: { label: 'NGSER' },
       MOBILE_MONEY: { label: 'Mobile Money' },
       CARTE: { label: 'Carte bancaire' },
       VIREMENT: { label: 'Virement' },
       VOUCHER_ORG: { label: 'Voucher Org' },
+      VOUCHER_PROMO: { label: 'Voucher Promo' },
+      DIRECT: { label: 'Paiement direct' },
     };
 
-    const config = mapping[methode] || { label: methode };
+    const config = mapping[canal] || { label: canal || '-' };
     return <Badge variant="info" size="small">{config.label}</Badge>;
   };
 
@@ -101,24 +126,24 @@ export default function PaiementsList() {
       key: 'dossier',
       label: 'Apprenant',
       render: (_, paiement) => {
-        const etudiant = paiement.dossier?.etudiant;
-        if (!etudiant) return 'N/A';
-        return `${etudiant.nom} ${etudiant.prenom}`;
+        const apprenant = paiement.dossier?.apprenant || paiement.dossier?.etudiant;
+        if (!apprenant) return 'N/A';
+        return `${apprenant.nom || ''} ${apprenant.prenom || apprenant.prenoms || ''}`.trim();
       },
     },
     {
-      key: 'montant',
+      key: 'montant_final',
       label: 'Montant',
-      render: (value) => {
-        // Le montant est stocké en centimes dans la DB
-        const montantFCFA = value / 100;
+      render: (value, paiement) => {
+        const montant = value ?? paiement.montant_initie ?? paiement.montant ?? paiement.montant_catalogue ?? 0;
+        const montantFCFA = montant / 100;
         return `${montantFCFA.toLocaleString('fr-FR')} FCFA`;
       },
     },
     {
-      key: 'methode_paiement',
-      label: 'Méthode',
-      render: (value) => getMethodeBadge(value),
+      key: 'provider',
+      label: 'Canal',
+      render: (_value, paiement) => getCanalBadge(paiement.provider || paiement.methode_paiement || paiement.methode),
     },
     {
       key: 'statut',
@@ -142,6 +167,15 @@ export default function PaiementsList() {
           >
             Voir
           </Button>
+          {user?.role === 'ADMIN' && paiement.statut !== 'CONFIRME' && paiement.statut !== 'REMBOURSE' && (
+            <Button
+              variant="danger"
+              size="small"
+              onClick={() => handleDeletePaiement(paiement)}
+            >
+              Supprimer dossier
+            </Button>
+          )}
         </div>
       ),
     },
@@ -189,8 +223,9 @@ export default function PaiementsList() {
               className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none"
             >
               <option value="">Tous les statuts</option>
-              <option value="EN_ATTENTE">En attente</option>
-              <option value="INITIE">Initié</option>
+              <option value="EN_ATTENTE">Paiement initié</option>
+              <option value="PENDING">Paiement initié NGSER</option>
+              <option value="INITIE">Paiement initié</option>
               <option value="CONFIRME">Confirmé</option>
               <option value="ECHOUE">Échoué</option>
               <option value="EXPIRE">Expiré</option>

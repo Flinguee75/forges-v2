@@ -13,11 +13,28 @@ export class AuthService {
     private email: EmailService = new EmailService()
   ) {}
 
+  private isAccountActive(statut: string | undefined | null) {
+    return statut === 'ACTIF' || statut === 'ACTIVE';
+  }
+
+  private normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
   async login(email: string, password: string, ip: string) {
-    const user = await this.userRepo.findByEmail(email);
-    if (!user || !user.password_hash || user.statut !== 'ACTIF') throw new Error('INVALID_CREDENTIALS');
+    const normalizedEmail = this.normalizeEmail(email);
+    const user = await this.userRepo.findByEmail(normalizedEmail);
+
+    if (!user || !user.password_hash || !this.isAccountActive(user.statut)) {
+      await this.audit.warning('LOGIN_FAILED', { email: normalizedEmail, reason: 'USER_NOT_FOUND_OR_INACTIVE', ip });
+      throw new Error('INVALID_CREDENTIALS');
+    }
+
     const valid = await compare(password, user.password_hash);
-    if (!valid) throw new Error('INVALID_CREDENTIALS');
+    if (!valid) {
+      await this.audit.warning('LOGIN_FAILED', { userId: user.id, email: normalizedEmail, reason: 'WRONG_PASSWORD', ip });
+      throw new Error('INVALID_CREDENTIALS');
+    }
 
     const tokenPayload = {
       sub: user.id,
@@ -27,8 +44,12 @@ export class AuthService {
 
     const accessToken = sign(tokenPayload, process.env.JWT_SECRET!, { expiresIn: '1h' });
     const refreshToken = sign({ sub: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' });
-    await this.audit.info('LOGIN_SUCCESS', { userId: user.id, ip });
-    return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } };
+    await this.audit.info('LOGIN_SUCCESS', { userId: user.id, role: user.role, ip });
+    const userPayload: any = { id: user.id, email: user.email, role: user.role };
+    if (user.role === 'ORGANISATION' && (user as any).raison_sociale) {
+      userPayload.raison_sociale = (user as any).raison_sociale;
+    }
+    return { accessToken, refreshToken, user: userPayload };
   }
 
   async refresh(refreshToken: string) {
@@ -36,7 +57,7 @@ export class AuthService {
 
     // Récupérer l'utilisateur pour obtenir son role actuel
     const user = await this.userRepo.findById(payload.sub);
-    if (!user || user.statut === 'INACTIF') throw new Error('UNAUTHORIZED');
+    if (!user || !this.isAccountActive(user.statut)) throw new Error('UNAUTHORIZED');
 
     const tokenPayload = {
       sub: user.id,
@@ -49,12 +70,12 @@ export class AuthService {
   }
 
   async forgotPassword(email: string, ip: string) {
-    const user = await this.userRepo.findByEmail(email);
+    const user = await this.userRepo.findByEmail(this.normalizeEmail(email));
 
     if (
       !user ||
       !user.password_hash ||
-      user.statut !== 'ACTIF' ||
+      !this.isAccountActive(user.statut) ||
       !['APPRENANT', 'ORGANISATION'].includes(user.source)
     ) {
       return { message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' };
@@ -105,7 +126,8 @@ export class AuthService {
     if (
       !user ||
       !user.password_hash ||
-      !['APPRENANT', 'ORGANISATION'].includes(user.source)
+      !['APPRENANT', 'ORGANISATION'].includes(user.source) ||
+      !this.isAccountActive(user.statut)
     ) {
       throw new Error('USER_NOT_FOUND');
     }
@@ -155,5 +177,7 @@ export class AuthService {
     return { message: 'Email confirmé avec succès' };
   }
 
-  async logout(userId: string, token: string) { /* stocker token dans blacklist Redis */ }
+  async logout(userId: string, token: string) {
+    await this.audit.info('LOGOUT', { userId, ip: null });
+  }
 }

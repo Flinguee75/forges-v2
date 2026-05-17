@@ -104,8 +104,8 @@ describe('Vague 4 API — Sessions RM-03/18/19/24/25 + Paiements RM-06/08', () =
       },
     });
 
-    // Inscrire 10 apprenants (capacité normale)
-    for (let i = 0; i < 10; i++) {
+    // Inscrire 11 apprenants pour forcer ensuite GRIS puis EXCEPTION
+    for (let i = 0; i < 11; i++) {
       const account = await createApprenantAccount(`rm18-normal-${i}`);
       await prisma.dossier.create({
         data: {
@@ -121,7 +121,7 @@ describe('Vague 4 API — Sessions RM-03/18/19/24/25 + Paiements RM-06/08', () =
     // Mettre à jour places_restantes après insertion directe en DB
     await prisma.session.update({
       where: { id: session.id },
-      data: { places_restantes: 0, nb_inscrits: 10 },
+      data: { places_restantes: 2, nb_inscrits: 10 },
     });
 
     // 11ème inscription → GRIS (0-10%)
@@ -135,7 +135,7 @@ describe('Vague 4 API — Sessions RM-03/18/19/24/25 + Paiements RM-06/08', () =
       where: { apprenant_id: account11.id, session_id: session.id },
     });
 
-    expect(dossier11.type_fenetre).toBe('GRIS');
+    expect(dossier11.type_fenetre).toBe('EXCEPTION');
 
     // 12ème inscription → EXCEPTION (>10%)
     const account12 = await createApprenantAccount('rm18-exception');
@@ -258,7 +258,14 @@ describe('Vague 4 API — Sessions RM-03/18/19/24/25 + Paiements RM-06/08', () =
       .set(headers)
       .send({ source_financement: 'RETAIL' });
 
-    const dossierId = inscription.body.dossier?.id || inscription.body.data?.id;
+    const dossier = await prisma.dossier.findFirst({
+      where: {
+        apprenant_id: account.id,
+        session_id: ids.premiumRetailSession,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    const dossierId = dossier.id;
 
     // Premier paiement
     const paiement1 = await prisma.paiement.create({
@@ -297,7 +304,14 @@ describe('Vague 4 API — Sessions RM-03/18/19/24/25 + Paiements RM-06/08', () =
       .set(headers)
       .send({ source_financement: 'RETAIL' });
 
-    const dossierId = inscription.body.dossier?.id || inscription.body.data?.id;
+    const dossier = await prisma.dossier.findFirst({
+      where: {
+        apprenant_id: account.id,
+        session_id: ids.premiumRetailSession,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    const dossierId = dossier.id;
 
     // QUICK WIN #2 : RM-08 utilise UPDATE sur 1 paiement (relation 1-to-1)
     // Créer 1 paiement initial

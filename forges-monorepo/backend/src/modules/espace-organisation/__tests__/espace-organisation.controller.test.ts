@@ -15,6 +15,13 @@ describe('EspaceOrganisationController', () => {
       getRapportBailleur: jest.fn(),
       getDashboardB2B: jest.fn(),
       desactiverBeneficiaire: jest.fn(),
+      createMembre: jest.fn(),
+      commanderVouchers: jest.fn(),
+      inscrireBeneficiaire: jest.fn(),
+      getSuiviInscriptions: jest.fn(),
+      getMesPaiements: jest.fn(),
+      getMonProfil: jest.fn(),
+      updateMonProfil: jest.fn(),
     } as any;
 
     controller = new EspaceOrganisationController(service);
@@ -150,5 +157,208 @@ describe('EspaceOrganisationController', () => {
       next
     );
     expect(notFoundRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it('createMembre — 201 succes, 409 B2B_PLAFOND_ATTEINT, 409 EMAIL_DEJA_UTILISE', async () => {
+    const next = createNext();
+
+    const res1 = createMockRes();
+    service.createMembre.mockResolvedValueOnce({ message: 'ok', apprenant: { id: 'app-01' } } as any);
+    await controller.createMembre(
+      createMockReq({ body: { email: 'n@org.ci', nom: 'D', prenom: 'A' }, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res1, next
+    );
+    expect(res1.status).toHaveBeenCalledWith(201);
+
+    const res2 = createMockRes();
+    service.createMembre.mockRejectedValueOnce(new Error('B2B_PLAFOND_ATTEINT'));
+    await controller.createMembre(
+      createMockReq({ body: { email: 'n@org.ci' }, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res2, next
+    );
+    expect(res2.status).toHaveBeenCalledWith(409);
+
+    const res3 = createMockRes();
+    service.createMembre.mockRejectedValueOnce(new Error('EMAIL_DEJA_UTILISE'));
+    await controller.createMembre(
+      createMockReq({ body: { email: 'existant@org.ci' }, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res3, next
+    );
+    expect(res3.status).toHaveBeenCalledWith(409);
+  });
+
+  it('commanderVouchers — 201 succes, 404 FORMATION_NOT_FOUND', async () => {
+    const next = createNext();
+
+    const res1 = createMockRes();
+    service.commanderVouchers.mockResolvedValueOnce({ message: '3 vouchers crees', vouchers: [{}, {}, {}] } as any);
+    await controller.commanderVouchers(
+      createMockReq({ body: { formation_id: 'f-01', quantite: 3 }, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res1, next
+    );
+    expect(res1.status).toHaveBeenCalledWith(201);
+
+    const res2 = createMockRes();
+    service.commanderVouchers.mockRejectedValueOnce(new Error('FORMATION_NOT_FOUND'));
+    await controller.commanderVouchers(
+      createMockReq({ body: { formation_id: 'f-inconnue', quantite: 1 }, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res2, next
+    );
+    expect(res2.status).toHaveBeenCalledWith(404);
+  });
+
+  it('getSuiviInscriptions — 200 succes avec pagination', async () => {
+    const next = createNext();
+    const res = createMockRes();
+    service.getSuiviInscriptions.mockResolvedValueOnce({ dossiers: [], total: 0, page: 1, limit: 20 } as any);
+
+    await controller.getSuiviInscriptions(
+      createMockReq({ query: { page: '1', limit: '20' }, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res, next
+    );
+
+    expect(service.getSuiviInscriptions).toHaveBeenCalledWith('org-01', expect.any(Object));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ total: 0 }));
+  });
+
+  it('getMesPaiements — 200 succes', async () => {
+    const next = createNext();
+    const res = createMockRes();
+    service.getMesPaiements.mockResolvedValueOnce({ paiements: [], total: 0, page: 1, limit: 20 } as any);
+
+    await controller.getMesPaiements(
+      createMockReq({ query: {}, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res, next
+    );
+
+    expect(service.getMesPaiements).toHaveBeenCalledWith('org-01', expect.any(Object));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ total: 0 }));
+  });
+
+  it('getMonProfil — 200 succes, 404 ORGANISATION_NOT_FOUND', async () => {
+    const next = createNext();
+
+    const res1 = createMockRes();
+    service.getMonProfil.mockResolvedValueOnce({ id: 'org-01', raison_sociale: 'TechCorp' } as any);
+    await controller.getMonProfil(
+      createMockReq({ user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res1, next
+    );
+    expect(res1.json).toHaveBeenCalledWith(expect.objectContaining({ raison_sociale: 'TechCorp' }));
+
+    const res2 = createMockRes();
+    service.getMonProfil.mockRejectedValueOnce(new Error('ORGANISATION_NOT_FOUND'));
+    await controller.getMonProfil(
+      createMockReq({ user: { userId: 'org-inconnue', role: 'ORGANISATION', langue: 'FR' } }),
+      res2, next
+    );
+    expect(res2.status).toHaveBeenCalledWith(404);
+  });
+
+  it('inscrireBeneficiaire — 201 succes, 400 champs manquants, 403/409/422 erreurs metier', async () => {
+    const next = createNext();
+
+    // 400 — champs requis manquants
+    const res400 = createMockRes();
+    await controller.inscrireBeneficiaire(
+      createMockReq({ body: { session_id: 'sess-01' }, user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' } }),
+      res400, next
+    );
+    expect(res400.status).toHaveBeenCalledWith(400);
+
+    // 201 — inscription B2B réussie
+    const res201 = createMockRes();
+    service.inscrireBeneficiaire.mockResolvedValueOnce({ dossier_id: 'd-01', statut: 'PAYE_DIRECTEMENT' });
+    await controller.inscrireBeneficiaire(
+      createMockReq({
+        body: { beneficiaire_id: 'app-01', session_id: 'sess-01', source_financement: 'B2B' },
+        user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' },
+      }),
+      res201, next
+    );
+    expect(service.inscrireBeneficiaire).toHaveBeenCalledWith('org-01', {
+      beneficiaire_id: 'app-01',
+      session_id: 'sess-01',
+      source_financement: 'B2B',
+      voucher_organisation_id: undefined,
+    });
+    expect(res201.status).toHaveBeenCalledWith(201);
+
+    // 201 — inscription VOUCHER réussie
+    const res201v = createMockRes();
+    service.inscrireBeneficiaire.mockResolvedValueOnce({ dossier_id: 'd-02', statut: 'PAYE' });
+    await controller.inscrireBeneficiaire(
+      createMockReq({
+        body: { beneficiaire_id: 'app-01', session_id: 'sess-01', source_financement: 'VOUCHER', voucher_organisation_id: 'v-01' },
+        user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' },
+      }),
+      res201v, next
+    );
+    expect(res201v.status).toHaveBeenCalledWith(201);
+
+    // 403 — APPRENANT_NON_BENEFICIAIRE
+    const res403 = createMockRes();
+    service.inscrireBeneficiaire.mockRejectedValueOnce(new Error('APPRENANT_NON_BENEFICIAIRE'));
+    await controller.inscrireBeneficiaire(
+      createMockReq({
+        body: { beneficiaire_id: 'app-ext', session_id: 'sess-01', source_financement: 'B2B' },
+        user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' },
+      }),
+      res403, next
+    );
+    expect(res403.status).toHaveBeenCalledWith(403);
+
+    // 409 — INSCRIPTION_DEJA_EXISTANTE
+    const res409a = createMockRes();
+    service.inscrireBeneficiaire.mockRejectedValueOnce(new Error('INSCRIPTION_DEJA_EXISTANTE'));
+    await controller.inscrireBeneficiaire(
+      createMockReq({
+        body: { beneficiaire_id: 'app-01', session_id: 'sess-01', source_financement: 'B2B' },
+        user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' },
+      }),
+      res409a, next
+    );
+    expect(res409a.status).toHaveBeenCalledWith(409);
+
+    // 409 — B2B_PLAFOND_ATTEINT
+    const res409b = createMockRes();
+    service.inscrireBeneficiaire.mockRejectedValueOnce(new Error('B2B_PLAFOND_ATTEINT'));
+    await controller.inscrireBeneficiaire(
+      createMockReq({
+        body: { beneficiaire_id: 'app-01', session_id: 'sess-01', source_financement: 'B2B' },
+        user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' },
+      }),
+      res409b, next
+    );
+    expect(res409b.status).toHaveBeenCalledWith(409);
+
+    // 422 — VOUCHER_INVALIDE
+    const res422 = createMockRes();
+    service.inscrireBeneficiaire.mockRejectedValueOnce(new Error('VOUCHER_INVALIDE'));
+    await controller.inscrireBeneficiaire(
+      createMockReq({
+        body: { beneficiaire_id: 'app-01', session_id: 'sess-01', source_financement: 'VOUCHER', voucher_organisation_id: 'v-bad' },
+        user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' },
+      }),
+      res422, next
+    );
+    expect(res422.status).toHaveBeenCalledWith(422);
+  });
+
+  it('updateMonProfil — 200 succes', async () => {
+    const next = createNext();
+    const res = createMockRes();
+    service.updateMonProfil.mockResolvedValueOnce({ message: 'ok', organisation: { id: 'org-01' } } as any);
+
+    await controller.updateMonProfil(
+      createMockReq({
+        body: { raison_sociale: 'Nouveau nom', email: 'new@org.ci' },
+        user: { userId: 'org-01', role: 'ORGANISATION', langue: 'FR' },
+      }),
+      res, next
+    );
+
+    expect(service.updateMonProfil).toHaveBeenCalledWith('org-01', expect.objectContaining({ raison_sociale: 'Nouveau nom' }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'ok' }));
   });
 });

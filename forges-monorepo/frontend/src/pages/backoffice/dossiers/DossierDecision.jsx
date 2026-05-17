@@ -9,6 +9,9 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
 import Spinner from '../../../components/feedback/Spinner';
+import { getDossierStatutMeta, getPaiementMeta } from '../../../utils/dossierStatus';
+import { usePaymentExpirationHours } from '../../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationHours } from '../../../utils/paymentDeadline';
 
 /**
  * DossierDecision - Page de décision sur un dossier (RETENIR ou REFUSER)
@@ -22,9 +25,11 @@ export default function DossierDecision() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [dossier, setDossier] = useState(null);
+  const [loadError, setLoadError] = useState('');
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [motifRefus, setMotifRefus] = useState('');
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute, isLoading } = useApi();
   const { showToast } = useToast();
@@ -35,18 +40,27 @@ export default function DossierDecision() {
   }, [id]);
 
   const loadDossier = async () => {
-    await execute(() => inscriptionsApi.getByIdBackoffice(id), {
-      onSuccess: (data) => {
-        setDossier(data);
-      },
-    });
+    try {
+      const response = await execute(() => inscriptionsApi.getByIdBackoffice(id), {
+        showErrorToast: false,
+        onSuccess: (data) => {
+          setDossier(data?.data || data);
+        },
+      });
+      setLoadError('');
+      return response;
+    } catch (error) {
+      setLoadError(error?.message || error?.error || 'Impossible de charger le dossier');
+      setDossier(null);
+      return null;
+    }
   };
 
   const handleRetenir = () => {
     setConfirmAction({
       title: 'Confirmer la décision RETENU ?',
       message:
-        'L\'étudiant sera notifié et aura 72h pour effectuer le paiement. Cette décision est irréversible (RM-05).',
+        `L'étudiant sera notifié et aura ${formatPaymentExpirationHours(paymentExpirationHours)} pour effectuer le paiement. Cette décision est irréversible.`,
       action: async () => {
         await execute(() => inscriptionsApi.retenir(id), {
           onSuccess: () => {
@@ -93,7 +107,7 @@ export default function DossierDecision() {
       title: `Confirmer la décision ${decision} pour ce dossier EXCEPTION ?`,
       message:
         decision === 'RETENU'
-          ? 'L\'étudiant sera retenu malgré le dépassement de capacité. Cette décision est irréversible (RM-05).'
+          ? 'L\'étudiant sera retenu malgré le dépassement de capacité. Cette décision est irréversible.'
           : 'L\'étudiant sera refusé et notifié du motif.',
       action: async () => {
         const payload =
@@ -116,19 +130,22 @@ export default function DossierDecision() {
     setIsConfirmModalOpen(true);
   };
 
-  const getStatutBadge = (statut) => {
+  const getCanalBadge = (canal) => {
     const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Gris' },
-      EXCEPTION: { variant: 'danger', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
+      FINEO: 'FineoPay',
+      NGSER: 'NGSER',
+      MOBILE_MONEY: 'Mobile Money',
+      CARTE: 'Carte bancaire',
+      VIREMENT: 'Virement',
+      VOUCHER_ORG: 'Voucher Organisation',
+      VOUCHER_PROMO: 'Voucher Promo',
     };
+    const label = mapping[canal] || canal || '-';
+    return canal ? <Badge variant="info">{label}</Badge> : <span className="text-subtext">-</span>;
+  };
 
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+  const getStatutBadge = (statut) => {
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -147,6 +164,21 @@ export default function DossierDecision() {
   const canTakeDecision =
     user?.role === 'ADMIN' || user?.role === 'SUPERVISEUR';
 
+  const formatDate = (value) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('fr-FR');
+  };
+
+  const formatMontant = (value) => {
+    if (value === null || value === undefined) return '-';
+    return `${Math.round(Number(value) / 100).toLocaleString('fr-FR')} FCFA`;
+  };
+
+  const getPaiementLabel = (paiementValue) => {
+    const config = getPaiementMeta(paiementValue, dossier?.statut);
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
   if (isLoading && !dossier) {
     return (
       <div className="flex justify-center py-12">
@@ -156,15 +188,46 @@ export default function DossierDecision() {
   }
 
   if (!dossier) {
-    return null;
+    return (
+      <div className="mx-auto max-w-4xl">
+        <Card>
+          <div className="py-10 text-center">
+            <h2 className="text-xl font-semibold text-primary">
+              Dossier indisponible
+            </h2>
+            <p className="mt-2 text-sm text-subtext">
+              {loadError || 'Le dossier n’a pas pu être chargé.'}
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button variant="outline" onClick={loadDossier}>
+                Réessayer
+              </Button>
+              <Button variant="primary" onClick={() => navigate('/backoffice/dossiers')}>
+                Retour à la liste
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
-  const etudiant = dossier.etudiant || {};
+  const etudiant = dossier.apprenant || dossier.etudiant || {};
   const session = dossier.session || {};
-  const formation = session.formation || {};
+  const formation = dossier.formation || session.formation || {};
+  const organisation = etudiant.organisation || dossier.organisation || {};
+  const paiement = dossier.paiement || {};
+  const voucherOrganisation = dossier.voucher_organisation || dossier.voucherOrganisation || {};
+  const codeApporteur = dossier.paiement?.code_apporteur || dossier.code_apporteur || {};
+  const codeApporteurLabel =
+    typeof codeApporteur === 'string'
+      ? codeApporteur
+      : codeApporteur.code
+        ? `${codeApporteur.code}${codeApporteur.apporteur?.nom ? ` (${codeApporteur.apporteur.nom})` : ''}`
+        : '-';
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       <div className="mb-6 rounded-lg bg-white p-6 shadow">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -175,13 +238,21 @@ export default function DossierDecision() {
               {getStatutBadge(dossier.statut)}
             </div>
             <h2 className="mt-3 text-2xl font-semibold text-primary">
-              Dossier de {etudiant.nom} {etudiant.prenom}
+              Dossier de {etudiant.nom} {etudiant.prenom || etudiant.prenoms}
             </h2>
             <p className="mt-1 text-sm text-subtext">
-              Formation: {formation.titre}
+              Formation: {formation.titre || formation.intitule}
             </p>
           </div>
           <div className="flex gap-2">
+            {paiement.id && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/backoffice/paiements/${paiement.id}`)}
+              >
+                Voir le paiement
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => navigate('/backoffice/dossiers')}
@@ -193,81 +264,26 @@ export default function DossierDecision() {
       </div>
 
       <div className="grid gap-6">
-        <Card title="Informations du dossier">
-          <dl className="grid grid-cols-2 gap-4">
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Apprenant
-              </dt>
-              <dd className="mt-1 text-sm text-text">
-                {etudiant.nom} {etudiant.prenom}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Email
-              </dt>
-              <dd className="mt-1 text-sm text-text">{etudiant.email}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Formation
-              </dt>
-              <dd className="mt-1 text-sm text-text">{formation.titre}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Session
-              </dt>
-              <dd className="mt-1 text-sm text-text">
-                Du {new Date(session.date_debut).toLocaleDateString('fr-FR')} au{' '}
-                {new Date(session.date_fin).toLocaleDateString('fr-FR')}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Date de dépôt
-              </dt>
-              <dd className="mt-1 text-sm text-text">
-                {new Date(dossier.created_at).toLocaleDateString('fr-FR')}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-subtext">
-                Statut
-              </dt>
-              <dd className="mt-1 text-sm text-text">
-                {getStatutBadge(dossier.statut)}
-              </dd>
-            </div>
-          </dl>
-        </Card>
-
         {canTakeDecision && (
           <Card title="Prendre une décision">
-            {/* Message RM-05 si le dossier est déjà RETENU */}
             {dossier.statut === 'RETENU' && (
               <div className="mb-4 rounded-lg border-l-4 border-warning bg-warning/10 p-4">
                 <p className="text-sm font-medium text-warning">
-                  <span className="mr-2">⚠</span>
-                  Ce dossier a déjà été RETENU et ne peut plus être refusé (RM-05).
-                  L'étudiant dispose de 72h pour effectuer son paiement.
+                  Ce dossier a déjà été retenu et ne peut plus être refusé.
+                  L'étudiant dispose de {formatPaymentExpirationHours(paymentExpirationHours)} pour effectuer son paiement.
                 </p>
               </div>
             )}
 
-            {/* Message pour dossiers EXCEPTION */}
             {isException && (
               <div className="mb-4 rounded-lg border-l-4 border-danger bg-danger/10 p-4">
                 <p className="text-sm font-medium text-danger">
-                  <span className="mr-2">⚠</span>
                   Ce dossier est en EXCEPTION (capacité dépassée de plus de 10%). Une
                   décision manuelle est requise.
                 </p>
               </div>
             )}
 
-            {/* Champ motif de refus */}
             {(canRefuser || isException) && (
               <div className="mb-6">
                 <label className="mb-1 block text-sm font-medium text-text">
@@ -283,7 +299,6 @@ export default function DossierDecision() {
               </div>
             )}
 
-            {/* Boutons de décision */}
             <div className="flex gap-3">
               {canRetenir && !isException && (
                 <Button variant="success" onClick={handleRetenir}>
@@ -299,16 +314,10 @@ export default function DossierDecision() {
 
               {isException && (
                 <>
-                  <Button
-                    variant="success"
-                    onClick={() => handleTraiterException('RETENU')}
-                  >
+                  <Button variant="success" onClick={() => handleTraiterException('RETENU')}>
                     Accepter malgré l'exception
                   </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => handleTraiterException('REFUSE')}
-                  >
+                  <Button variant="danger" onClick={() => handleTraiterException('REFUSE')}>
                     Refuser définitivement
                   </Button>
                 </>
@@ -323,8 +332,7 @@ export default function DossierDecision() {
 
             {canRefuser && (
               <p className="mt-3 text-xs text-subtext">
-                Note: Une fois un dossier RETENU, il ne pourra plus être refusé
-                (RM-05).
+                Note: Une fois un dossier retenu, il ne pourra plus être refusé.
               </p>
             )}
           </Card>
@@ -338,6 +346,264 @@ export default function DossierDecision() {
             </p>
           </Card>
         )}
+
+        <Card title="Informations du dossier">
+          <dl className="grid grid-cols-2 gap-4">
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Formation
+              </dt>
+              <dd className="mt-1 text-sm text-text">{formation.intitule || formation.titre || formation.id || '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Session
+              </dt>
+              <dd className="mt-1 text-sm text-text">
+                Du {formatDate(session.date_debut)} au {formatDate(session.date_fin)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Source de financement
+              </dt>
+              <dd className="mt-1 text-sm text-text">{dossier.source_financement || '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Fenêtre
+              </dt>
+              <dd className="mt-1 text-sm text-text">{dossier.type_fenetre || '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Date de dépôt
+              </dt>
+              <dd className="mt-1 text-sm text-text">
+                {formatDate(dossier.created_at)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-subtext">
+                Statut
+              </dt>
+              <dd className="mt-1 text-sm text-text">
+                {getStatutBadge(dossier.statut)}
+              </dd>
+            </div>
+          </dl>
+        </Card>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title="Apprenant">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Nom</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {etudiant.nom || '-'} {etudiant.prenoms || etudiant.prenom || ''}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Email</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.email || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Type</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.type_apprenant || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Pays</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {[etudiant.pays_residence, etudiant.pays_nationalite].filter(Boolean).join(' / ') || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Secteur</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.secteur_activite || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Niveau</dt>
+                <dd className="mt-1 text-sm text-text">{etudiant.niveau_etude || '-'}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card title="Organisation">
+            <dl className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase text-subtext">Raison sociale</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {organisation.raison_sociale || 'Aucune organisation rattachée'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Email</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.email || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Type</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.type || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Contact</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.contact_referent || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Pays</dt>
+                <dd className="mt-1 text-sm text-text">{organisation.pays || '-'}</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title="Session">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Statut</dt>
+                <dd className="mt-1 text-sm text-text">{session.statut || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Lieu</dt>
+                <dd className="mt-1 text-sm text-text">{session.lieu || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Dates</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {session.date_debut ? `Du ${formatDate(session.date_debut)} au ${formatDate(session.date_fin)}` : '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Capacité</dt>
+                <dd className="mt-1 text-sm text-text">{session.capacite ?? '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Inscrits</dt>
+                <dd className="mt-1 text-sm text-text">{session.nb_inscrits ?? '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Places restantes</dt>
+                <dd className="mt-1 text-sm text-text">{session.places_restantes ?? '-'}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card title="Paiement">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Statut</dt>
+                <dd className="mt-1 text-sm text-text">{getPaiementLabel(paiement)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Canal</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {getCanalBadge(paiement.provider || paiement.methode_paiement || paiement.methode)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Montant catalogue</dt>
+                <dd className="mt-1 text-sm text-text">{formatMontant(paiement.montant_catalogue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Montant final</dt>
+                <dd className="mt-1 text-sm text-text">{formatMontant(paiement.montant_final)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Réduction</dt>
+                <dd className="mt-1 text-sm font-medium text-success">
+                  {paiement.reduction_appliquee > 0 ? `-${formatMontant(paiement.reduction_appliquee)}` : '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Confirmé le</dt>
+                <dd className="mt-1 text-sm text-text">{formatDate(paiement.confirmed_at)}</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title="Voucher / apporteur">
+            <dl className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase text-subtext">Voucher organisation</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {voucherOrganisation.code
+                    ? `${voucherOrganisation.code} (${voucherOrganisation.statut || '-'})`
+                    : 'Aucun'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Type</dt>
+                <dd className="mt-1 text-sm text-text">{voucherOrganisation.type_valeur || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Valeur</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {voucherOrganisation.valeur === null || voucherOrganisation.valeur === undefined
+                    ? '-'
+                    : voucherOrganisation.type_valeur === 'POURCENTAGE'
+                      ? `${voucherOrganisation.valeur}%`
+                      : formatMontant(voucherOrganisation.valeur)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Quota</dt>
+                <dd className="mt-1 text-sm text-text">
+                  {voucherOrganisation.code
+                    ? `${voucherOrganisation.quota_utilise || 0} / ${voucherOrganisation.quota_max || 0}`
+                    : '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase text-subtext">Expiration</dt>
+                <dd className="mt-1 text-sm text-text">{formatDate(voucherOrganisation.date_expiration)}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-xs font-medium uppercase text-subtext">Code apporteur</dt>
+                <dd className="mt-1 text-sm text-text">{codeApporteurLabel}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          {codeApporteur?.code && (
+            <Card title="Commission apporteur">
+              <dl className="grid grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Apporteur</dt>
+                  <dd className="mt-1 text-sm text-text">{codeApporteur.apporteur?.nom || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-subtext">Code</dt>
+                  <dd className="mt-1 text-sm text-text">{codeApporteur.code}</dd>
+                </div>
+                {paiement.commission_apporteur && (
+                  <>
+                    <div>
+                      <dt className="text-xs font-medium uppercase text-subtext">Montant commission</dt>
+                      <dd className="mt-1 text-sm text-text">
+                        {formatMontant(paiement.commission_apporteur.montant)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-medium uppercase text-subtext">Statut reversement</dt>
+                      <dd className="mt-1 text-sm text-text">
+                        {paiement.commission_apporteur.statut || '-'}
+                      </dd>
+                    </div>
+                  </>
+                )}
+              </dl>
+            </Card>
+          )}
+        </div>
+
+        {dossier.motif_refus && (
+          <Card title="Motif de refus">
+            <p className="text-sm text-danger">{dossier.motif_refus}</p>
+          </Card>
+        )}
+
       </div>
 
       <Modal

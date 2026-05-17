@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
 import { organisationApi } from '../../api/espace-organisation.api';
+import { trackClick } from '../../utils/analytics';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/feedback/Spinner';
 import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import ProgressBar from '../../components/ui/ProgressBar';
-import BotWidget from '../../components/bot/BotWidget';
 import {
   getB2BProgressMessage,
   getB2BProgressVariant,
@@ -75,6 +76,7 @@ function getStatusBadgeMeta(statut) {
  */
 export default function OrgDashboard() {
   const [dashboard, setDashboard] = useState(createDefaultDashboard);
+  const { updateUser } = useAuth();
 
   const { execute, isLoading } = useApi();
 
@@ -83,7 +85,12 @@ export default function OrgDashboard() {
       () => organisationApi.getDashboard(),
       {
         onSuccess: (data) => {
-          setDashboard(normalizeDashboardData(data));
+          const normalized = normalizeDashboardData(data);
+          setDashboard(normalized);
+          const raisonSociale = normalized.organisation?.raison_sociale || normalized.organisation?.nom;
+          if (raisonSociale) {
+            updateUser({ raison_sociale: raisonSociale });
+          }
         },
       }
     );
@@ -147,16 +154,21 @@ export default function OrgDashboard() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-secondary">
-                    Priorite essai
+                    Essai gratuit
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold text-text">
-                    Essai gratuit - {trialDaysRemaining ?? '-'} jour{trialDaysRemaining === 1 ? '' : 's'} restants
+                    {trialDaysRemaining ?? '-'} jour{trialDaysRemaining === 1 ? '' : 's'} restants
                   </h2>
                   <p className="mt-2 text-sm text-subtext">
-                    Votre organisation est en periode d essai, avec acces complet aux fonctions principales.
+                    Souscrivez avant la fin de l&apos;essai pour conserver l&apos;accès à toutes les sections B2B.
                   </p>
                 </div>
-                <Badge variant={orgStatusMeta.variant} size="small">{orgStatusMeta.label}</Badge>
+                <div className="flex flex-col items-end gap-3">
+                  <Badge variant={orgStatusMeta.variant} size="small">{orgStatusMeta.label}</Badge>
+                  <Link to="/organisation/abonnement/souscrire" onClick={() => trackClick('btn-souscrire', { statut: orgSubscription?.statut })}>
+                    <Button variant="primary" size="small">Souscrire maintenant</Button>
+                  </Link>
+                </div>
               </div>
             </Card>
           )}
@@ -169,7 +181,7 @@ export default function OrgDashboard() {
                     Offre bienvenue
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-text">
-                    -20% sur la conversion pendant la fenetre J+25
+                    -20% sur la conversion pendant la fenêtre J+25
                   </h2>
                   <p className="mt-2 text-sm text-subtext">
                     {orgSubscription?.welcome_offer_expires_at
@@ -193,31 +205,10 @@ export default function OrgDashboard() {
             Pilotage de votre organisation
           </h2>
           <p className="mt-2 text-subtext">
-            {(organisation?.nom || organisation?.raison_sociale || 'Votre organisation')} : suivez en temps réel vos effectifs, budget et vouchers.
+            {(organisation?.nom || organisation?.raison_sociale || 'Votre organisation')} : suivez vos membres, vos vouchers et votre consommation B2B.
           </p>
         </div>
       </div>
-
-      {orgSubscription?.statut === 'ESSAI' && (
-        <Card className="mb-6 border-l-4 border-success">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-success">
-                Souscription recommandee
-              </p>
-              <h3 className="mt-2 text-xl font-semibold text-text">
-                Activez votre abonnement organisation avant la fin de l essai
-              </h3>
-              <p className="mt-2 text-sm text-subtext">
-                Choisissez une offre et gardez l acces a toutes les sections B2B.
-              </p>
-            </div>
-            <Link to="/organisation/abonnement/souscrire">
-              <Button variant="primary">Souscrire maintenant</Button>
-            </Link>
-          </div>
-        </Card>
-      )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
         <Card className="border-l-4 border-primary">
@@ -235,12 +226,12 @@ export default function OrgDashboard() {
         <Card className="border-l-4 border-warning">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-subtext">Budget engagé</div>
+              <div className="text-sm text-subtext">Quota B2B utilisé</div>
               <div className="mt-2 text-3xl font-bold text-warning">
-                {formatMontant(stats.budget_engage)}
+                {stats.b2b_utilisation_pct ?? 0}%
               </div>
             </div>
-            <Icon name="cash" size={40} className="text-warning opacity-20" />
+            <Icon name="ticket" size={40} className="text-warning opacity-20" />
           </div>
         </Card>
 
@@ -380,7 +371,7 @@ export default function OrgDashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <Link to="/organisation/abonnement" className="block">
+        <Link to="/organisation/abonnement" className="block" onClick={() => trackClick('nav-abonnement')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="creditCard" size={28} className="text-primary flex-shrink-0" />
@@ -394,21 +385,21 @@ export default function OrgDashboard() {
           </Card>
         </Link>
 
-        <Link to="/organisation/b2b" className="block">
+        <Link to="/organisation/b2b" className="block" onClick={() => trackClick('nav-b2b')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="folder" size={28} className="text-primary flex-shrink-0" />
               <div>
                 <h3 className="font-semibold text-primary">B2B</h3>
                 <p className="mt-1 text-sm text-subtext">
-                  Suivez le palier et les suggestions de montee.
+                  Suivez le palier et les suggestions de montée.
                 </p>
               </div>
             </div>
           </Card>
         </Link>
 
-        <Link to="/organisation/vouchers" className="block">
+        <Link to="/organisation/vouchers" className="block" onClick={() => trackClick('nav-vouchers')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="ticket" size={28} className="text-primary flex-shrink-0" />
@@ -422,7 +413,7 @@ export default function OrgDashboard() {
           </Card>
         </Link>
 
-        <Link to="/organisation/inscriptions" className="block">
+        <Link to="/organisation/inscriptions" className="block" onClick={() => trackClick('nav-inscriptions')}>
           <Card className="h-full hover:border-primary transition-colors cursor-pointer">
             <div className="flex items-start gap-3">
               <Icon name="clipboardList" size={28} className="text-primary flex-shrink-0" />
@@ -437,7 +428,6 @@ export default function OrgDashboard() {
         </Link>
       </div>
       </div>
-      <BotWidget />
     </>
   );
 }

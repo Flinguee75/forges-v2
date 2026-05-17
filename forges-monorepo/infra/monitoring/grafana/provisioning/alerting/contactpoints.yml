@@ -1,0 +1,12 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: forges-team-email
+    receivers:
+      - uid: forges-email-receiver
+        type: email
+        settings:
+          addresses: TidianeCisse9@outlook.fr
+          singleEmail: true
+        disableResolveMessage: false

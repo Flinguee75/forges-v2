@@ -7,10 +7,9 @@ import { RapportService } from './rapport.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Services partagés
 const auditLogger = new AuditLogger();
@@ -54,6 +53,10 @@ router.get('/membres', authenticate, authorize('ORGANISATION'), (req, res, next)
   orgController.getBeneficiaires(req, res, next);
 });
 
+router.get('/apprenants', authenticate, authorize('ORGANISATION'), (req, res, next) => {
+  orgController.getBeneficiaires(req, res, next);
+});
+
 // POST /api/organisation/membres - Créer un membre
 router.post('/membres', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   orgController.createMembre(req, res, next);
@@ -91,6 +94,11 @@ router.post('/vouchers/commander', authenticate, authorize('ORGANISATION'), (req
 // ============================================
 // INSCRIPTIONS & PAIEMENTS
 // ============================================
+
+// POST /api/organisation/inscrire-beneficiaire - Inscrire un bénéficiaire (UCS12)
+router.post('/inscrire-beneficiaire', authenticate, authorize('ORGANISATION'), (req, res, next) => {
+  orgController.inscrireBeneficiaire(req, res, next);
+});
 
 // GET /api/organisation/inscriptions - Suivi des inscriptions
 router.get('/inscriptions', authenticate, authorize('ORGANISATION'), (req, res, next) => {

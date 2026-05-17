@@ -33,6 +33,7 @@ describe('formations.api', () => {
     await formationsApi.create({ intitule: 'Alpha' });
     await formationsApi.update('f-1', { intitule: 'Beta' });
     await formationsApi.archiver('f-1');
+    await formationsApi.lierPartenaireBackoffice('f-1', { partenaire_id: 'p-1', prix_coutant_soumis: 120000 });
 
     expect(apiClient.get).toHaveBeenCalledWith('/formations/backoffice/list', {
       params: { search: 'Alpha' },
@@ -41,5 +42,9 @@ describe('formations.api', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/formations', { intitule: 'Alpha' });
     expect(apiClient.patch).toHaveBeenCalledWith('/formations/f-1', { intitule: 'Beta' });
     expect(apiClient.delete).toHaveBeenCalledWith('/formations/f-1/archive');
+    expect(apiClient.patch).toHaveBeenCalledWith('/formations/backoffice/f-1/lier-partenaire', {
+      partenaire_id: 'p-1',
+      prix_coutant_soumis: 120000,
+    });
   });
 });

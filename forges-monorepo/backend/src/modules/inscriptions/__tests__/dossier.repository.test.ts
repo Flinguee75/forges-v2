@@ -38,7 +38,7 @@ describe('DossierRepository', () => {
     const result = await repository.findBySession('session-01');
 
     expect(prisma.dossier.findMany).toHaveBeenCalledWith({
-      where: { session_id: 'session-01' },
+      where: { session_id: 'session-01', statut: { notIn: ['ANNULE', 'REJETE', 'REFUSE'] } },
       include: {
         apprenant: {
           select: {

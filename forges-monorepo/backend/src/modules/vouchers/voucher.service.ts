@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { VoucherRepository } from './voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
+import { EmailService } from '../../shared/email/email.service';
 import {
   CreateVoucherDto,
   CreateVoucherPromotionnelDto,
@@ -14,7 +15,8 @@ export class VoucherService {
   constructor(
     private readonly voucherRepo: VoucherRepository,
     private readonly audit: AuditLogger,
-    private readonly prisma: PrismaClient
+    private readonly prisma: PrismaClient,
+    private readonly email: EmailService
   ) {}
 
   private serializeVoucher(voucher: any) {
@@ -47,8 +49,32 @@ export class VoucherService {
     }
   }
 
-  async createVoucher(dto: CreateVoucherDto, organisationId: string) {
-    const organisation = await this.prisma.organisation.findUnique({ where: { id: dto.organisation_id } });
+  async createVoucher(dto: CreateVoucherDto, creatorId: string) {
+    const formation = await this.prisma.formation.findUnique({ where: { id: dto.formation_id } });
+    if (!formation) {
+      throw new Error('FORMATION_NOT_FOUND');
+    }
+
+    let organisationId = creatorId;
+
+    if (dto.devis_id) {
+      const devis = await this.prisma.devis.findUnique({
+        where: { id: dto.devis_id },
+        select: { id: true, organisation_id: true, statut: true, formation_id: true },
+      });
+
+      if (!devis) {
+        throw new Error('DEVIS_NOT_FOUND');
+      }
+
+      if (devis.formation_id !== dto.formation_id) {
+        throw new Error('DEVIS_FORMATION_MISMATCH');
+      }
+
+      organisationId = devis.organisation_id;
+    }
+
+    const organisation = await this.prisma.organisation.findUnique({ where: { id: organisationId } });
     if (!organisation) {
       throw new Error('ORGANISATION_NOT_FOUND');
     }
@@ -57,14 +83,10 @@ export class VoucherService {
       throw new Error('ORGANISATION_NOT_ACTIVE');
     }
 
-    const formation = await this.prisma.formation.findUnique({ where: { id: dto.formation_id } });
-    if (!formation) {
-      throw new Error('FORMATION_NOT_FOUND');
-    }
-
     const voucher = await this.voucherRepo.create({
       organisation_id: organisationId,
       formation_id: dto.formation_id,
+      devis_id: dto.devis_id || null,
       code: uuidv4(),
       type: 'ORGANISATION',
       valeur: dto.valeur,
@@ -73,7 +95,7 @@ export class VoucherService {
       quota_utilise: 0,
       date_expiration: dto.date_expiration,
       statut: 'ACTIF',
-      cree_par: organisationId,
+      // note: cree_par not in VoucherOrganisation schema
     });
 
     await this.audit.info('VOUCHER_ORGANISATION_CREE', {
@@ -81,6 +103,17 @@ export class VoucherService {
       organisation_id: organisationId,
       formation_id: dto.formation_id,
     });
+
+    if (!dto.devis_id) {
+      this.email.sendVouchersOrganisation(
+        organisation.email,
+        [voucher.code],
+        formation.intitule,
+        organisation.raison_sociale
+      ).catch((error) => {
+        console.error('[VoucherService] Email voucher manuel non bloquant:', error?.message || error);
+      });
+    }
 
     return this.serializeVoucher(voucher);
   }
@@ -215,9 +248,11 @@ export class VoucherService {
   }
 
   async validateVoucher(code: string, formation_id: string, apprenant_id?: string) {
-    const voucher = await this.prisma.voucherApporteur.findUnique({
+    const voucher = await this.prisma.voucherOrganisation.findUnique({
       where: { code },
-      include: { formation: true },
+    }) || await this.prisma.voucherApporteur.findUnique({
+      where: { code },
+      include: { formation: true, apporteur: true },
     });
 
     if (!voucher) {
@@ -255,23 +290,23 @@ export class VoucherService {
       }
     }
 
-    const montantCatalogue = Number(voucher.formation?.cout_catalogue || 0);
+    const montantCatalogue = Number((voucher as any).formation?.cout_catalogue || 0);
     let montant_reduit = 0;
 
-    if (voucher.organisation_id) {
+    if ((voucher as any).organisation_id) {
       montant_reduit = 0;
-    } else if (voucher.type_valeur === 'MONTANT') {
-      montant_reduit = Math.max(0, montantCatalogue - Number(voucher.valeur || 0));
-    } else if (voucher.type_valeur === 'POURCENTAGE') {
-      montant_reduit = Math.floor(montantCatalogue * (1 - Number(voucher.valeur || 0) / 100));
+    } else if ((voucher as any).type_valeur === 'MONTANT') {
+      montant_reduit = Math.max(0, montantCatalogue - Number((voucher as any).valeur || 0));
+    } else if ((voucher as any).type_valeur === 'POURCENTAGE') {
+      montant_reduit = Math.floor(montantCatalogue * (1 - Number((voucher as any).valeur || 0) / 100));
     }
 
     return {
       valid: true,
       voucher_id: voucher.id,
-      type: voucher.type,
+      type: (voucher as any).type,
       montant_reduit,
-      quota_restant: Math.max(0, Number(voucher.quota_max || 0) - Number(voucher.quota_utilise || 0)),
+      quota_restant: Math.max(0, Number((voucher as any).quota_max || 0) - Number((voucher as any).quota_utilise || 0)),
     };
   }
 
@@ -336,5 +371,54 @@ export class VoucherService {
       taux_commission_pct: byVoucherCode.apporteur.taux_commission_pct,
       nom: byVoucherCode.apporteur.nom,
     };
+  }
+
+  async updateVoucher(id: string, data: { quota_max?: number; date_expiration?: string; statut?: string }) {
+    const voucher = await this.voucherRepo.findById(id);
+    if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
+
+    const updateData: Record<string, unknown> = {};
+    if (data.quota_max !== undefined) updateData.quota_max = data.quota_max;
+    if (data.date_expiration !== undefined) updateData.date_expiration = new Date(data.date_expiration);
+    if (data.statut !== undefined) updateData.statut = data.statut;
+
+    const updated = await this.voucherRepo.update(id, updateData, voucher.type as any);
+    return this.serializeVoucher({ ...voucher, ...updated });
+  }
+
+  async deleteVoucher(id: string) {
+    const voucher = await this.voucherRepo.findById(id);
+    if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
+    await this.voucherRepo.delete(id, voucher.type as any);
+  }
+
+  async getUtilisateurs(id: string) {
+    const voucher = await this.voucherRepo.findById(id);
+    if (!voucher) throw new Error('VOUCHER_NOT_FOUND');
+
+    const dossiers = await this.prisma.dossier.findMany({
+      where: {
+        OR: [
+          { voucher_organisation_id: id },
+          { voucher_code: voucher.code },
+        ],
+      },
+      select: {
+        id: true,
+        statut: true,
+        created_at: true,
+        apprenant: {
+          select: { id: true, nom: true, prenoms: true, email: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    } as any);
+
+    return (dossiers as any[]).map((d) => ({
+      dossier_id: d.id,
+      statut: d.statut,
+      date_utilisation: d.created_at,
+      apprenant: d.apprenant,
+    }));
   }
 }

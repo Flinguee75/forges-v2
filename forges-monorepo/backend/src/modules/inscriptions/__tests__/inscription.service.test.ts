@@ -12,6 +12,7 @@ describe('InscriptionService', () => {
   let mockSessionRepo: jest.Mocked<SessionRepository>;
   let mockFormationRepo: jest.Mocked<FormationRepository>;
   let mockVoucherValidation: jest.Mocked<VoucherValidationService>;
+  let mockRetailRepo: any;
   let mockAudit: jest.Mocked<AuditLogger>;
   let mockEmail: jest.Mocked<EmailService>;
   let mockPrisma: any;
@@ -22,6 +23,9 @@ describe('InscriptionService', () => {
     places_restantes: 5,
     nb_inscrits: 2,
     capacite: 10,
+    date_debut: new Date('2026-06-01T00:00:00.000Z'),
+    date_fin: new Date('2026-06-11T00:00:00.000Z'),
+    lieu: 'AIGF, Abidjan',
   };
 
   beforeEach(() => {
@@ -29,6 +33,9 @@ describe('InscriptionService', () => {
       findActiveByApprenantAndSession: jest.fn(),
       findBySession: jest.fn(),
       create: jest.fn(),
+      findById: jest.fn(),
+      updateStatut: jest.fn(),
+      setDelaiPaiement: jest.fn(),
     } as any;
 
     mockSessionRepo = {
@@ -41,7 +48,13 @@ describe('InscriptionService', () => {
 
     mockVoucherValidation = {
       validateApporteur: jest.fn(),
+      validerVoucher: jest.fn(),
     } as any;
+
+    mockRetailRepo = {
+      countFormationsActives: jest.fn(),
+      findActifByApprenant: jest.fn().mockResolvedValue(null),
+    };
 
     mockAudit = {
       info: jest.fn(),
@@ -51,20 +64,32 @@ describe('InscriptionService', () => {
 
     mockEmail = {
       notifyResponsable: jest.fn(),
+      sendEnrolementConfirmationApprenant: jest.fn(),
+      sendPaiementConfirme: jest.fn(),
     } as any;
 
     mockPrisma = {
-      dossier: { count: jest.fn() },
+      dossier: { count: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
       apprenant: { findUnique: jest.fn() },
+      organisation: { findUnique: jest.fn() },
+      paiement: { findUnique: jest.fn(), create: jest.fn() },
+      abonnementRetail: { findFirst: jest.fn() },
       voucherApporteur: { findFirst: jest.fn(), update: jest.fn() },
+      voucherOrganisation: { update: jest.fn() },
       session: { update: jest.fn() },
     };
+    mockPrisma.dossier.findFirst.mockResolvedValue(null);
+    mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
+    mockPrisma.voucherApporteur.findFirst.mockResolvedValue(null);
+    mockPrisma.paiement.findUnique.mockResolvedValue(null);
+    mockPrisma.paiement.create.mockResolvedValue({ id: 'paiement-default' } as any);
 
     service = new InscriptionService(
       mockDossierRepo,
       mockSessionRepo,
       mockFormationRepo,
       mockVoucherValidation,
+      mockRetailRepo,
       mockAudit,
       mockEmail,
       mockPrisma
@@ -101,12 +126,13 @@ describe('InscriptionService', () => {
     ).rejects.toThrow('VOUCHER_CUMUL_INTERDIT');
   });
 
-  it('crée un dossier payé directement pour une formation non premium retail', async () => {
+  it('crée un dossier payé directement avec une ligne paiement en attente pour une formation non premium retail', async () => {
     mockSessionRepo.findById.mockResolvedValue(baseSession as any);
     mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
     mockPrisma.dossier.count.mockResolvedValue(2); // 2 dossiers actifs → (2+1)/10 = 30% NORMAL
     mockFormationRepo.findById.mockResolvedValue({ id: 'formation-01', type_formation: 'STANDARD', cout_catalogue: 100000 } as any);
     mockDossierRepo.create.mockResolvedValue({ id: 'dossier-01', statut: 'PAYE_DIRECTEMENT' } as any);
+    mockPrisma.paiement.create.mockResolvedValue({ id: 'paiement-direct' } as any);
     mockAudit.info.mockResolvedValue(undefined);
 
     const result = await service.inscrire({
@@ -121,6 +147,17 @@ describe('InscriptionService', () => {
       apprenant_id: 'app-01',
       statut: 'PAYE_DIRECTEMENT',
       type_fenetre: 'NORMAL',
+    }));
+    expect(mockPrisma.paiement.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        dossier_id: 'dossier-01',
+        montant_catalogue: 100000,
+        montant_final: 100000,
+        reduction_appliquee: 0,
+        methode: 'DIRECT',
+        statut: 'EN_ATTENTE',
+        expires_at: expect.any(Date),
+      }),
     }));
     expect(mockAudit.info).toHaveBeenCalledWith('DOSSIER_CREE', { dossier_id: 'dossier-01', statut: 'PAYE_DIRECTEMENT' });
     expect(result).toMatchObject({ id: 'dossier-01', statut: 'PAYE_DIRECTEMENT', montant_total: 100000, montant_apres_reduction: 100000 });
@@ -152,6 +189,64 @@ describe('InscriptionService', () => {
     expect(mockEmail.notifyResponsable).toHaveBeenCalledWith('NOUVEAU_DOSSIER_A_VERIFIER', { dossier_id: 'dossier-02' });
   });
 
+  it('crée un dossier PAYE_DIRECTEMENT quand l’apprenant utilise un voucher promotionnel', async () => {
+    mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+    mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+    mockPrisma.dossier.count.mockResolvedValue(2);
+    mockFormationRepo.findById.mockResolvedValue({
+      id: 'formation-01',
+      intitule: 'Masterclass Cyber',
+      type_formation: 'STANDARD',
+      cout_catalogue: 150000,
+    } as any);
+    mockPrisma.voucherApporteur.findFirst.mockResolvedValue({
+      id: 'voucher-promo-01',
+      code: 'PROMO-001',
+      type: 'PROMOTIONNEL',
+      type_valeur: 'MONTANT',
+      valeur: 15000,
+      quota_max: 5,
+      quota_utilise: 0,
+    } as any);
+    mockDossierRepo.create.mockResolvedValue({ id: 'dossier-voucher', statut: 'PAYE_DIRECTEMENT' } as any);
+    mockPrisma.paiement.create.mockResolvedValue({
+      id: 'paiement-voucher',
+      statut: 'EN_ATTENTE',
+    } as any);
+    mockPrisma.voucherApporteur.update.mockResolvedValue({
+      id: 'voucher-promo-01',
+      quota_max: 5,
+      quota_utilise: 1,
+    } as any);
+
+    const result = await service.inscrire({
+      session_id: 'session-01',
+      apprenantId: 'app-01',
+      source_financement: 'RETAIL',
+      voucher_code: 'PROMO-001',
+      code_apporteur: null,
+    });
+
+    expect(mockDossierRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      apprenant_id: 'app-01',
+      statut: 'PAYE_DIRECTEMENT',
+      source_financement: 'RETAIL',
+      voucher_code: 'PROMO-001',
+    }));
+    expect(mockPrisma.paiement.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        dossier_id: 'dossier-voucher',
+        montant_catalogue: 150000,
+        montant_final: 135000,
+        reduction_appliquee: 15000,
+        methode: 'VOUCHER_PROMO',
+        statut: 'EN_ATTENTE',
+        expires_at: expect.any(Date),
+      }),
+    }));
+    expect(result).toMatchObject({ id: 'dossier-voucher', statut: 'PAYE_DIRECTEMENT' });
+  });
+
   it('retourne les dossiers d une session via le repository', async () => {
     mockDossierRepo.findBySession.mockResolvedValue([{ id: 'dossier-01' }] as any);
 
@@ -159,5 +254,687 @@ describe('InscriptionService', () => {
 
     expect(mockDossierRepo.findBySession).toHaveBeenCalledWith('session-01');
     expect(result).toEqual([{ id: 'dossier-01' }]);
+  });
+
+  it('retourne le détail complet du dossier avec les relations utiles', async () => {
+    mockPrisma.dossier.findUnique.mockResolvedValue({
+      id: 'dossier-01',
+      apprenant: {
+        id: 'app-01',
+        email: 'app@test.com',
+        nom: 'Cisse',
+        prenoms: 'Tidiane',
+        type_apprenant: 'APPRENANT',
+        langue_preferee: 'FR',
+        secteur_activite: 'IT',
+        niveau_etude: 'Master',
+        pays_residence: 'Côte d’Ivoire',
+        pays_nationalite: 'Sénégal',
+        organisation: {
+          id: 'org-01',
+          raison_sociale: 'Forges Org',
+          email: 'org@test.com',
+          type: 'ENTREPRISE',
+          contact_referent: 'Mme Test',
+          pays: 'Côte d’Ivoire',
+        },
+      },
+      formation: {
+        id: 'formation-01',
+        intitule: 'Masterclass Cyber',
+        type_formation: 'PREMIUM',
+      },
+      session: {
+        id: 'session-01',
+        date_debut: baseSession.date_debut,
+        date_fin: baseSession.date_fin,
+        statut: 'PLANIFIEE',
+        lieu: 'AIGF, Abidjan',
+        capacite: 10,
+        nb_inscrits: 4,
+        places_restantes: 6,
+      },
+      voucher_organisation: {
+        id: 'voucher-01',
+        code: 'VCHR-001',
+        statut: 'ACTIF',
+        quota_max: 1,
+        quota_utilise: 0,
+      },
+      paiement: {
+        id: 'paiement-01',
+        statut: 'CONFIRME',
+        methode: 'VOUCHER_ORG',
+      },
+    });
+
+    const result = await service.getDetail('dossier-01');
+
+    expect(mockPrisma.dossier.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'dossier-01' },
+        include: expect.objectContaining({
+          apprenant: expect.objectContaining({
+            select: expect.objectContaining({
+              organisation: expect.any(Object),
+            }),
+          }),
+          voucher_organisation: expect.any(Object),
+        }),
+      })
+    );
+    expect(result).toMatchObject({
+      id: 'dossier-01',
+      apprenant: expect.objectContaining({ organisation: expect.objectContaining({ raison_sociale: 'Forges Org' }) }),
+      voucher_organisation: expect.objectContaining({ code: 'VCHR-001' }),
+    });
+  });
+
+  it('applique correctement la réduction d un voucher promotionnel MONTANT en centimes', async () => {
+    // valeur = 15000 centimes = 150 FCFA de réduction sur une formation à 1000 FCFA (100000 centimes)
+    mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+    mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+    mockPrisma.dossier.count.mockResolvedValue(2);
+    mockFormationRepo.findById.mockResolvedValue({
+      id: 'formation-01',
+      type_formation: 'STANDARD',
+      cout_catalogue: 100000,
+    } as any);
+    mockPrisma.voucherApporteur.findFirst.mockResolvedValue({
+      id: 'voucher-promo-01',
+      type: 'PROMOTIONNEL',
+      type_valeur: 'MONTANT',
+      valeur: 15000,
+      quota_max: 5,
+      quota_utilise: 0,
+    } as any);
+    mockDossierRepo.create.mockResolvedValue({ id: 'dossier-promo', statut: 'PAYE' } as any);
+    mockPrisma.paiement.create.mockResolvedValue({
+      id: 'paiement-promo',
+      statut: 'EN_ATTENTE',
+    } as any);
+    mockPrisma.voucherApporteur.update.mockResolvedValue({
+      id: 'voucher-promo-01',
+      quota_max: 5,
+      quota_utilise: 1,
+    });
+    mockAudit.info.mockResolvedValue(undefined);
+
+    const result = await service.inscrire({
+      session_id: 'session-01',
+      apprenantId: 'app-01',
+      source_financement: 'RETAIL',
+      voucher_code: 'PROMO-001',
+      code_apporteur: null,
+    });
+
+    // montant_remise doit etre 15000 centimes (la valeur stockée, issue du frontend converti en centimes)
+    expect(mockDossierRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      statut: 'PAYE_DIRECTEMENT',
+      montant_remise: 15000,
+    }));
+    // montant_apres_reduction = 100000 - 15000 = 85000 centimes = 850 FCFA
+    expect(result).toMatchObject({
+      montant_total: 100000,
+      montant_apres_reduction: 85000,
+    });
+  });
+
+  // ─── retenir (UCS08, RM-05, RM-07, RM-140) ───────────────────────────────
+
+  describe('retenir', () => {
+    const baseDossier = {
+      id: 'dossier-ret-01',
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      session_id: 'session-01',
+      apprenant_id: 'app-01',
+      voucher_organisation_id: null,
+      voucher_code: null,
+    };
+    const premiumFormation = { id: 'formation-01', intitule: 'Cert Premium', type_formation: 'PREMIUM' };
+    const session = { id: 'session-01', formation_id: 'formation-01', date_debut: new Date('2026-06-01'), date_fin: new Date('2026-06-11') };
+
+    beforeEach(() => {
+      mockDossierRepo.findById.mockResolvedValue(baseDossier as any);
+      mockSessionRepo.findById.mockResolvedValue(session as any);
+      mockFormationRepo.findById.mockResolvedValue(premiumFormation as any);
+      mockDossierRepo.updateStatut.mockResolvedValue(undefined);
+      mockDossierRepo.setDelaiPaiement.mockResolvedValue(undefined);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockAudit.warning.mockResolvedValue(undefined);
+      mockPrisma.apprenant.findUnique.mockResolvedValue({
+        id: 'app-01',
+        email: 'apprenant@test.ci',
+        nom: 'Cisse',
+        prenoms: 'Tidiane',
+        langue_preferee: 'FR',
+      } as any);
+      (mockEmail as any).sendDossierRetenu = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('[RED] retenir — dossier non trouvé → DOSSIER_NOT_FOUND', async () => {
+      mockDossierRepo.findById.mockResolvedValue(null);
+      await expect(service.retenir('inexistant', 'resp-01')).rejects.toThrow('DOSSIER_NOT_FOUND');
+    });
+
+    it('[RED] retenir — dossier déjà RETENU → succès silencieux', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossier, statut: 'RETENU' } as any);
+      const result = await service.retenir('dossier-ret-01', 'resp-01');
+      expect(result.success).toBe(true);
+      expect(mockDossierRepo.updateStatut).not.toHaveBeenCalled();
+    });
+
+    it('[RED] retenir — dossier déjà traité (PAYE) → DOSSIER_ALREADY_PROCESSED', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossier, statut: 'PAYE' } as any);
+      await expect(service.retenir('dossier-ret-01', 'resp-01')).rejects.toThrow('DOSSIER_ALREADY_PROCESSED');
+    });
+
+    it('[RED] retenir — formation non PREMIUM → NOT_PREMIUM_RETAIL', async () => {
+      mockFormationRepo.findById.mockResolvedValue({ ...premiumFormation, type_formation: 'STANDARD' } as any);
+      await expect(service.retenir('dossier-ret-01', 'resp-01')).rejects.toThrow('NOT_PREMIUM_RETAIL');
+    });
+
+    it('[RED] retenir — source non RETAIL → NOT_PREMIUM_RETAIL', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossier, source_financement: 'B2B' } as any);
+      await expect(service.retenir('dossier-ret-01', 'resp-01')).rejects.toThrow('NOT_PREMIUM_RETAIL');
+    });
+
+    it('[GREEN] retenir — happy path : transitions RETENU + délai 72h + email', async () => {
+      const result = await service.retenir('dossier-ret-01', 'resp-01');
+
+      expect(mockDossierRepo.updateStatut).toHaveBeenCalledWith('dossier-ret-01', 'RETENU');
+      expect(mockDossierRepo.setDelaiPaiement).toHaveBeenCalledWith('dossier-ret-01', expect.any(Date));
+      expect(mockAudit.info).toHaveBeenCalledWith('DOSSIER_RETENU', expect.objectContaining({ dossier_id: 'dossier-ret-01' }));
+      expect((mockEmail as any).sendDossierRetenu).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+    });
+
+    it('[GREEN] retenir — email échoue → audit warning, pas d exception', async () => {
+      (mockEmail as any).sendDossierRetenu = jest.fn().mockRejectedValue(new Error('SMTP_DOWN'));
+      const result = await service.retenir('dossier-ret-01', 'resp-01');
+
+      expect(result.success).toBe(true);
+      expect(mockAudit.warning).toHaveBeenCalledWith('DOSSIER_RETENU_EMAIL_FAILED', expect.objectContaining({ dossier_id: 'dossier-ret-01' }));
+    });
+  });
+
+  // ─── rejeter (RM-140) ────────────────────────────────────────────────────
+
+  describe('rejeter', () => {
+    const baseDossier = {
+      id: 'dossier-rej-01',
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      session_id: 'session-01',
+      apprenant_id: 'app-01',
+      voucher_organisation_id: null,
+      voucher_code: null,
+    };
+    const premiumFormation = { id: 'formation-01', intitule: 'Cert Premium', type_formation: 'PREMIUM' };
+    const session = { id: 'session-01', formation_id: 'formation-01', date_debut: new Date('2026-06-01'), date_fin: new Date('2026-06-11') };
+
+    beforeEach(() => {
+      mockDossierRepo.findById.mockResolvedValue(baseDossier as any);
+      mockSessionRepo.findById.mockResolvedValue(session as any);
+      mockFormationRepo.findById.mockResolvedValue(premiumFormation as any);
+      mockPrisma.dossier.update = jest.fn().mockResolvedValue({});
+      mockPrisma.voucherOrganisation.update.mockResolvedValue({});
+      mockPrisma.voucherApporteur.findFirst.mockResolvedValue(null);
+      mockPrisma.voucherApporteur.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+      mockAudit.warning.mockResolvedValue(undefined);
+      mockPrisma.apprenant.findUnique.mockResolvedValue({
+        id: 'app-01',
+        email: 'apprenant@test.ci',
+        nom: 'Cisse',
+        prenoms: 'Tidiane',
+        langue_preferee: 'FR',
+      } as any);
+      (mockEmail as any).sendDossierRejete = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('[RED] rejeter — dossier non trouvé → DOSSIER_NOT_FOUND', async () => {
+      mockDossierRepo.findById.mockResolvedValue(null);
+      await expect(service.rejeter('inexistant', 'resp-01', 'Dossier incomplet')).rejects.toThrow('DOSSIER_NOT_FOUND');
+    });
+
+    it('[RED] rejeter — dossier déjà REJETE → succès silencieux', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossier, statut: 'REJETE' } as any);
+      const result = await service.rejeter('dossier-rej-01', 'resp-01', 'Motif');
+      expect(result.success).toBe(true);
+      expect(mockPrisma.dossier.update).not.toHaveBeenCalled();
+    });
+
+    it('[RED] rejeter — dossier non EN_ATTENTE_VERIFICATION → DOSSIER_ALREADY_PROCESSED', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossier, statut: 'RETENU' } as any);
+      await expect(service.rejeter('dossier-rej-01', 'resp-01', 'Motif')).rejects.toThrow('DOSSIER_ALREADY_PROCESSED');
+    });
+
+    it('[RED] rejeter — formation non PREMIUM → NOT_PREMIUM_RETAIL', async () => {
+      mockFormationRepo.findById.mockResolvedValue({ ...premiumFormation, type_formation: 'STANDARD' } as any);
+      await expect(service.rejeter('dossier-rej-01', 'resp-01', 'Motif')).rejects.toThrow('NOT_PREMIUM_RETAIL');
+    });
+
+    it('[GREEN] rejeter — happy path : statut REJETE + audit + email', async () => {
+      const result = await service.rejeter('dossier-rej-01', 'resp-01', 'Documents manquants');
+
+      expect(mockPrisma.dossier.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'dossier-rej-01' },
+        data: expect.objectContaining({ statut: 'REJETE', motif_refus: 'Documents manquants' }),
+      }));
+      expect(mockAudit.info).toHaveBeenCalledWith('DOSSIER_REJETE', expect.objectContaining({ dossier_id: 'dossier-rej-01' }));
+      expect((mockEmail as any).sendDossierRejete).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+    });
+
+    it('[GREEN] rejeter — libère voucher organisation si présent', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossier, voucher_organisation_id: 'voucher-org-01' } as any);
+
+      await service.rejeter('dossier-rej-01', 'resp-01', 'Refus');
+
+      expect(mockPrisma.voucherOrganisation.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'voucher-org-01' },
+        data: expect.objectContaining({ quota_utilise: { decrement: 1 }, statut: 'ACTIF' }),
+      }));
+    });
+
+    it('[GREEN] rejeter — libère voucher promo si présent', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossier, voucher_code: 'PROMO-XYZ' } as any);
+      mockPrisma.voucherApporteur.findFirst.mockResolvedValue({
+        id: 'va-01',
+        type: 'PROMOTIONNEL',
+        quota_max: 5,
+        quota_utilise: 1,
+        statut: 'ACTIF',
+      } as any);
+
+      await service.rejeter('dossier-rej-01', 'resp-01', 'Refus');
+
+      expect(mockPrisma.voucherApporteur.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'va-01' },
+      }));
+    });
+
+    it('[GREEN] rejeter — email échoue → audit warning, pas d exception', async () => {
+      (mockEmail as any).sendDossierRejete = jest.fn().mockRejectedValue(new Error('SMTP_DOWN'));
+      const result = await service.rejeter('dossier-rej-01', 'resp-01', 'Refus');
+
+      expect(result.success).toBe(true);
+      expect(mockAudit.warning).toHaveBeenCalledWith('DOSSIER_REJETE_EMAIL_FAILED', expect.objectContaining({ dossier_id: 'dossier-rej-01' }));
+    });
+  });
+
+  describe('RM-72 — Source ABONNEMENT', () => {
+    it('rejette si aucun abonnement actif (ABONNEMENT_REQUIS)', async () => {
+      mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockRetailRepo.findActifByApprenant.mockResolvedValue(null);
+
+      await expect(
+        service.inscrire({ session_id: 'session-01', apprenantId: 'app-01', source_financement: 'ABONNEMENT' })
+      ).rejects.toThrow('ABONNEMENT_REQUIS');
+    });
+
+    it('rejette si 3 formations actives déjà en cours (FORMATION_LIMIT_REACHED — RM-72)', async () => {
+      mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockRetailRepo.findActifByApprenant.mockResolvedValue({ id: 'abo-01', statut: 'ACTIF' });
+      mockRetailRepo.countFormationsActives.mockResolvedValue(3);
+
+      await expect(
+        service.inscrire({ session_id: 'session-01', apprenantId: 'app-01', source_financement: 'ABONNEMENT' })
+      ).rejects.toThrow('FORMATION_LIMIT_REACHED');
+    });
+  });
+
+  describe('RM-18 — Fenêtre GRIS (taux exactement 110%)', () => {
+    it('marque le dossier GRIS si taux > 100% et <= 110%', async () => {
+      // count=10, capacite=10 → taux = (10+1)/10*100 = 110% → GRIS (>100 mais pas >110)
+      mockSessionRepo.findById.mockResolvedValue({ ...baseSession, capacite: 10 } as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockFormationRepo.findById.mockResolvedValue({ id: 'formation-01', type_formation: 'STANDARD', cout_catalogue: 100000 } as any);
+      mockPrisma.dossier.count.mockResolvedValue(10);
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-gris', statut: 'PAYE_DIRECTEMENT' } as any);
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-gris' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.inscrire({ session_id: 'session-01', apprenantId: 'app-01', source_financement: 'RETAIL' });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ type_fenetre: 'GRIS' })
+      );
+    });
+  });
+
+  describe('RM-88 — réduction -15% abonnement Premium', () => {
+    beforeEach(() => {
+      mockSessionRepo.findById.mockResolvedValue({ ...baseSession, capacite: 10 } as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      // Premier findFirst (RM-15 unicité formation) → null
+      mockPrisma.dossier.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.dossier.count.mockResolvedValue(2);
+      mockFormationRepo.findById.mockResolvedValue({
+        id: 'formation-01',
+        type_formation: 'PREMIUM',
+        cout_catalogue: 100000,
+      } as any);
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-premium', statut: 'EN_ATTENTE_VERIFICATION' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockEmail.notifyResponsable.mockResolvedValue(undefined);
+    });
+
+    it('abonné Premium actif → montant_remise = 15000 (15% de 100000)', async () => {
+      mockPrisma.abonnementRetail.findFirst.mockResolvedValue({
+        id: 'abo-premium-01',
+        apprenant_id: 'app-01',
+        offre: 'PREMIUM',
+        statut: 'ACTIF',
+      } as any);
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'RETAIL',
+        voucher_code: null,
+        code_apporteur: null,
+      });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ montant_remise: 15000 })
+      );
+    });
+
+    it('pas d abonnement Premium actif → montant_remise = 0', async () => {
+      mockPrisma.abonnementRetail.findFirst.mockResolvedValue(null);
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'RETAIL',
+        voucher_code: null,
+        code_apporteur: null,
+      });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ montant_remise: 0 })
+      );
+    });
+  });
+
+  // ─── getDossiersByApprenant (RM-19 tri desc) ─────────────────────────────
+
+  describe('getDossiersByApprenant', () => {
+    it('retourne la liste des dossiers pour un apprenant avec orderBy created_at desc', async () => {
+      const dossiers = [
+        { id: 'dossier-02', apprenant_id: 'app-01', statut: 'PAYE', created_at: new Date('2026-06-02') },
+        { id: 'dossier-01', apprenant_id: 'app-01', statut: 'RETENU', created_at: new Date('2026-06-01') },
+      ];
+      mockPrisma.dossier.findMany.mockResolvedValue(dossiers);
+
+      const result = await service.getDossiersByApprenant('app-01');
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ apprenant_id: 'app-01' }),
+          orderBy: { created_at: 'desc' },
+        })
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('dossier-02');
+    });
+
+    it('filtre par statut quand le filtre est fourni', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([
+        { id: 'dossier-01', apprenant_id: 'app-01', statut: 'PAYE' },
+      ]);
+
+      await service.getDossiersByApprenant('app-01', { statut: 'PAYE' });
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { apprenant_id: 'app-01', statut: 'PAYE' },
+        })
+      );
+    });
+
+    it('retourne un tableau vide si l apprenant n a aucun dossier', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+      const result = await service.getDossiersByApprenant('app-inconnu');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ─── getDossiersBackoffice (RM-19 tri priorité EXCEPTION > GRIS > NORMAL) ─
+
+  describe('getDossiersBackoffice', () => {
+    it('retourne tous les dossiers avec orderBy created_at desc par defaut', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([
+        { id: 'dossier-01', statut: 'PAYE', type_fenetre: 'NORMAL' },
+      ]);
+
+      const result = await service.getDossiersBackoffice();
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { created_at: 'desc' },
+        })
+      );
+      expect(result).toHaveLength(1);
+    });
+
+    it('trie EXCEPTION avant GRIS avant NORMAL (RM-19 priorité)', async () => {
+      const rawDossiers = [
+        { id: 'd-normal', statut: 'PAYE', type_fenetre: 'NORMAL' },
+        { id: 'd-exception', statut: 'EN_ATTENTE_VERIFICATION', type_fenetre: 'EXCEPTION' },
+        { id: 'd-gris', statut: 'EN_ATTENTE_VERIFICATION', type_fenetre: 'GRIS' },
+      ];
+      mockPrisma.dossier.findMany.mockResolvedValue(rawDossiers);
+
+      const result = await service.getDossiersBackoffice();
+
+      expect(result[0].id).toBe('d-exception');
+      expect(result[1].id).toBe('d-gris');
+      expect(result[2].id).toBe('d-normal');
+    });
+
+    it('filtre par statut quand le filtre est fourni', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+      await service.getDossiersBackoffice({ statut: 'EN_ATTENTE_VERIFICATION' });
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ statut: 'EN_ATTENTE_VERIFICATION' }),
+        })
+      );
+    });
+  });
+
+  // ─── traiterException (RM-05, UCS08) ────────────────────────────────────
+
+  describe('traiterException', () => {
+    const baseDossierException = {
+      id: 'dossier-exc-01',
+      statut: 'EN_ATTENTE_VERIFICATION',
+      source_financement: 'RETAIL',
+      session_id: 'session-01',
+      apprenant_id: 'app-01',
+      type_fenetre: 'EXCEPTION',
+      voucher_organisation_id: null,
+      voucher_code: null,
+    };
+    const premiumFormation = { id: 'formation-01', intitule: 'Cert Premium', type_formation: 'PREMIUM' };
+    const session = { id: 'session-01', formation_id: 'formation-01', date_debut: new Date('2026-06-01'), date_fin: new Date('2026-06-11') };
+
+    beforeEach(() => {
+      mockDossierRepo.findById.mockResolvedValue(baseDossierException as any);
+      mockSessionRepo.findById.mockResolvedValue(session as any);
+      mockFormationRepo.findById.mockResolvedValue(premiumFormation as any);
+      mockDossierRepo.updateStatut.mockResolvedValue(undefined);
+      mockDossierRepo.setDelaiPaiement.mockResolvedValue(undefined);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockAudit.warning.mockResolvedValue(undefined);
+      mockPrisma.apprenant.findUnique.mockResolvedValue({
+        id: 'app-01',
+        email: 'apprenant@test.ci',
+        nom: 'Cisse',
+        prenoms: 'Tidiane',
+        langue_preferee: 'FR',
+      } as any);
+      (mockEmail as any).sendDossierRetenu = jest.fn().mockResolvedValue(undefined);
+      (mockEmail as any).sendDossierRejete = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('[RED] traiterException — dossier non trouvé → DOSSIER_NOT_FOUND', async () => {
+      mockDossierRepo.findById.mockResolvedValue(null);
+      await expect(service.traiterException('inexistant', 'RETENU', undefined, 'resp-01')).rejects.toThrow('DOSSIER_NOT_FOUND');
+    });
+
+    it('[RED] traiterException — dossier non EXCEPTION → NOT_EXCEPTION', async () => {
+      mockDossierRepo.findById.mockResolvedValue({ ...baseDossierException, type_fenetre: 'NORMAL' } as any);
+      await expect(service.traiterException('dossier-exc-01', 'RETENU', undefined, 'resp-01')).rejects.toThrow('NOT_EXCEPTION');
+    });
+
+    it('[RED] traiterException — décision REFUSE sans motif → MOTIF_OBLIGATOIRE', async () => {
+      mockPrisma.dossier.update = jest.fn().mockResolvedValue({});
+      await expect(service.traiterException('dossier-exc-01', 'REFUSE', undefined, 'resp-01')).rejects.toThrow('MOTIF_OBLIGATOIRE');
+    });
+
+    it('[RED] traiterException — décision REFUSE avec motif trop court (< 5 chars) → MOTIF_OBLIGATOIRE', async () => {
+      mockPrisma.dossier.update = jest.fn().mockResolvedValue({});
+      await expect(service.traiterException('dossier-exc-01', 'REFUSE', 'Non', 'resp-01')).rejects.toThrow('MOTIF_OBLIGATOIRE');
+    });
+
+    it('[GREEN] traiterException — décision RETENU → délègue à retenir() avec succès', async () => {
+      const result = await service.traiterException('dossier-exc-01', 'RETENU', undefined, 'resp-01');
+
+      expect(mockDossierRepo.updateStatut).toHaveBeenCalledWith('dossier-exc-01', 'RETENU');
+      expect(mockDossierRepo.setDelaiPaiement).toHaveBeenCalledWith('dossier-exc-01', expect.any(Date));
+      expect(result).toMatchObject({ success: true });
+    });
+
+    it('[GREEN] traiterException — décision REFUSE avec motif valide → délègue à rejeter()', async () => {
+      mockPrisma.dossier.update = jest.fn().mockResolvedValue({});
+      mockPrisma.voucherApporteur.findFirst.mockResolvedValue(null);
+
+      const result = await service.traiterException('dossier-exc-01', 'REFUSE', 'Documents incomplets', 'resp-01');
+
+      expect(mockPrisma.dossier.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'dossier-exc-01' },
+        data: expect.objectContaining({ statut: 'REJETE', motif_refus: 'Documents incomplets' }),
+      }));
+      expect(result).toMatchObject({ success: true });
+    });
+  });
+
+  // ─── getDossiersPrioritaires (RM-19) ─────────────────────────────────────
+
+  describe('getDossiersPrioritaires', () => {
+    it('[GREEN] retourne les dossiers prioritaires via le repository', async () => {
+      const dossiersPrio = [
+        { id: 'dossier-exc', type_fenetre: 'EXCEPTION', statut: 'EN_ATTENTE_VERIFICATION' },
+        { id: 'dossier-gris', type_fenetre: 'GRIS', statut: 'EN_ATTENTE_VERIFICATION' },
+      ];
+      (mockDossierRepo as any).findPrioritairesByResponsable = jest.fn().mockResolvedValue(dossiersPrio);
+
+      const result = await service.getDossiersPrioritaires('resp-01');
+
+      expect((mockDossierRepo as any).findPrioritairesByResponsable).toHaveBeenCalledWith('resp-01');
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('dossier-exc');
+    });
+
+    it('[GREEN] retourne un tableau vide si aucun dossier prioritaire', async () => {
+      (mockDossierRepo as any).findPrioritairesByResponsable = jest.fn().mockResolvedValue([]);
+
+      const result = await service.getDossiersPrioritaires('resp-01');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('RM-41 — Voucher ORGANISATION → statut PAYE', () => {
+    const voucherOrg = {
+      id: 'voucher-org-01',
+      type: 'ORGANISATION',
+      organisation_id: 'org-01',
+      quota_max: 10,
+      quota_utilise: 2,
+      statut: 'ACTIF',
+    };
+
+    beforeEach(() => {
+      mockSessionRepo.findById.mockResolvedValue(baseSession as any);
+      mockDossierRepo.findActiveByApprenantAndSession.mockResolvedValue(null);
+      mockFormationRepo.findById.mockResolvedValue({ id: 'formation-01', type_formation: 'STANDARD', cout_catalogue: 100000, intitule: 'Cert Test' } as any);
+      mockPrisma.dossier.count.mockResolvedValue(2);
+      mockVoucherValidation.validerVoucher.mockResolvedValue(voucherOrg as any);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockPrisma.voucherOrganisation.update.mockResolvedValue({ ...voucherOrg, quota_utilise: 3 });
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-org' } as any);
+      mockPrisma.apprenant.findUnique.mockResolvedValue({ id: 'app-01', email: 'a@test.ci', nom: 'Cisse', prenoms: 'Tidiane', langue_preferee: 'FR' } as any);
+      mockPrisma.organisation.findUnique.mockResolvedValue({ raison_sociale: 'ACME Corp' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+      (mockEmail as any).sendEnrolementConfirmationApprenant = jest.fn().mockResolvedValue(undefined);
+      (mockEmail as any).sendPaiementConfirme = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('crée un dossier PAYE avec voucher_organisation_id positionné', async () => {
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-org', statut: 'PAYE' } as any);
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'VOUCHER',
+        voucher_code: 'ORG-CODE-01',
+      });
+
+      expect(mockDossierRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statut: 'PAYE',
+          voucher_organisation_id: 'voucher-org-01',
+        })
+      );
+    });
+
+    it('rejette VOUCHER_ALREADY_USED si le voucher a déjà été utilisé', async () => {
+      // Premier findFirst : unicité formation (doit retourner null)
+      // Deuxième findFirst : voucher déjà utilisé (retourne un dossier)
+      mockPrisma.dossier.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'dossier-existant' });
+
+      await expect(
+        service.inscrire({
+          session_id: 'session-01',
+          apprenantId: 'app-01',
+          source_financement: 'VOUCHER',
+          voucher_code: 'ORG-CODE-01',
+        })
+      ).rejects.toThrow('VOUCHER_ALREADY_USED');
+    });
+
+    it('marque le voucher EPUISE quand quota_utilise atteint quota_max', async () => {
+      const voucherPlein = { ...voucherOrg, quota_max: 3, quota_utilise: 2 };
+      mockVoucherValidation.validerVoucher.mockResolvedValue(voucherPlein as any);
+      mockDossierRepo.create.mockResolvedValue({ id: 'dossier-org', statut: 'PAYE' } as any);
+      mockPrisma.voucherOrganisation.update
+        .mockResolvedValueOnce({ ...voucherPlein, quota_utilise: 3 })
+        .mockResolvedValueOnce({ statut: 'EPUISE' });
+
+      await service.inscrire({
+        session_id: 'session-01',
+        apprenantId: 'app-01',
+        source_financement: 'VOUCHER',
+        voucher_code: 'ORG-CODE-01',
+      });
+
+      expect(mockPrisma.voucherOrganisation.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ statut: 'EPUISE' }) })
+      );
+    });
   });
 });

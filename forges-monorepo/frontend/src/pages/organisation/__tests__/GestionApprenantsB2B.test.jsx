@@ -71,7 +71,7 @@ describe('GestionApprenantsB2B', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
-      expect(screen.getByText(/Erreurs detectees/)).toBeInTheDocument();
+      expect(screen.getByText(/Erreurs détectées/)).toBeInTheDocument();
       expect(screen.getByText(/Email invalide/)).toBeInTheDocument();
     });
 

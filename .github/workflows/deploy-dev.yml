@@ -1,8 +1,9 @@
 name: Deploy → https://dev.forges-group.com
 
 on:
-  push:
-    branches: [develop]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
   workflow_dispatch:
 
 # Tous les deploys (test, dev, demo) ciblent le meme serveur Docker.
@@ -182,6 +183,16 @@ jobs:
           sleep 8
           HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://dev.forges-group.com/health || echo "000")
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
+
+      - name: Déclencher deploy edu
+        if: success()
+        run: |
+          gh workflow run "Deploy → https://edu.forges-group.com" \
+            --repo ${{ github.repository }} \
+            --ref develop \
+            --field image_sha=${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Résumé
         if: always()

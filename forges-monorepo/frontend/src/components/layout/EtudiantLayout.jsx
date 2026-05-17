@@ -81,6 +81,7 @@ export default function EtudiantLayout() {
           title="Espace Apprenant"
           user={user}
           onLogout={handleLogout}
+          showSystemStatus={true}
         />
 
         <main className="flex-1 p-6">

@@ -37,19 +37,19 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     const account = await createApprenantAccount('rm79');
     const headers = await auth(account);
 
-    await request(API_URL).post('/api/abonnements/retail').set(headers).send({ offre: 'ESSENTIEL' }).expect(201);
+    const created = await request(API_URL).post('/api/abonnements/retail').set(headers).send({ offre: 'ESSENTIEL' }).expect(201);
 
     const upgrade = await request(API_URL).put('/api/abonnements/retail/upgrade').set(headers).send({});
     expect(upgrade.status).toBe(200);
     expect(upgrade.body.data.effectif).toBe('immediat');
     expect(upgrade.body.data.montant_prorata).toBeGreaterThanOrEqual(0);
 
-    const afterUpgrade = await prisma.abonnementRetail.findUnique({ where: { apprenant_id: account.id } });
+    const afterUpgrade = await prisma.abonnementRetail.findUnique({ where: { id: created.body.data.abonnement.id } });
     expect(afterUpgrade.offre).toBe('PREMIUM');
 
     const downgrade = await request(API_URL).put('/api/abonnements/retail/downgrade').set(headers).send({});
     expect(downgrade.status).toBe(200);
-    const afterDowngrade = await prisma.abonnementRetail.findUnique({ where: { apprenant_id: account.id } });
+    const afterDowngrade = await prisma.abonnementRetail.findUnique({ where: { id: created.body.data.abonnement.id } });
     expect(afterDowngrade.offre).toBe('PREMIUM');
     expect(afterDowngrade.downgrade_planifie).toBe('ESSENTIEL');
 
@@ -71,12 +71,12 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(suspendedAccess.statut).toBe('SUSPENDU');
 
     await prisma.abonnementRetail.update({
-      where: { apprenant_id: account.id },
+      where: { id: created.body.data.abonnement.id },
       data: { statut: 'ACTIF' },
     });
     const resilier = await request(API_URL).delete('/api/abonnements/retail').set(headers).send({});
     expect(resilier.status).toBe(200);
-    const afterResiliation = await prisma.abonnementRetail.findUnique({ where: { apprenant_id: account.id } });
+    const afterResiliation = await prisma.abonnementRetail.findUnique({ where: { id: created.body.data.abonnement.id } });
     expect(afterResiliation.statut).toBe('EN_RESILIATION');
   });
 
@@ -96,12 +96,25 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(me.status).toBe(200);
     expect(me.body.data.nb_gestionnaires_max).toBe(5);
 
+    // EN_ATTENTE_PAIEMENT → idempotence : retourne 201 avec la meme URL paiement
     const duplicate = await request(API_URL)
       .post('/api/abonnements/organisation')
       .set(headers)
       .send({ offre: 'BASIQUE' });
-    expect(duplicate.status).toBe(409);
-    expect(duplicate.body.error).toBe('ABONNEMENT_ORG_DEJA_ACTIF');
+    expect(duplicate.status).toBe(201);
+    expect(duplicate.body.data.payment_url).toBeTruthy();
+
+    // Forcer ACTIF pour tester le 409 strict (RM-84)
+    await prisma.abonnementOrganisation.update({
+      where: { id: first.body.data.id },
+      data: { statut: 'ACTIF' },
+    });
+    const duplicateActif = await request(API_URL)
+      .post('/api/abonnements/organisation')
+      .set(headers)
+      .send({ offre: 'BASIQUE' });
+    expect(duplicateActif.status).toBe(409);
+    expect(duplicateActif.body.error).toBe('ABONNEMENT_ORG_DEJA_ACTIF');
   });
 
   test('RM-60/RM-61/RM-64/RM-65/RM-68 — B2B lie organisation, plafonne et monte en palier au prorata', async () => {
@@ -115,6 +128,12 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(first.status).toBe(201);
     expect(first.body.data.organisation_id).toBe(account.id);
     expect(first.body.data.nb_max).toBe(20);
+
+    // Activer l'abonnement (simule le paiement NGSER reçu)
+    await prisma.abonnementB2B.update({
+      where: { id: first.body.data.id },
+      data: { statut: 'ACTIF' },
+    });
 
     const duplicate = await request(API_URL)
       .post('/api/abonnements/b2b')
@@ -131,8 +150,8 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     expect(upgrade.body.data.nouveau_palier).toBe('BUSINESS');
     expect(upgrade.body.data.montant_prorata).toBeGreaterThanOrEqual(0);
 
-    const org = await prisma.organisation.findUnique({ where: { id: account.id } });
-    const b2b = await prisma.abonnementB2B.findUnique({ where: { id: org.abonnement_b2b_id } });
+    const b2b = await prisma.abonnementB2B.findFirst({ where: { organisation_id: account.id, statut: 'ACTIF' } });
+    expect(b2b).not.toBeNull();
     expect(b2b.palier).toBe('BUSINESS');
     expect(b2b.nb_max).toBe(50);
 

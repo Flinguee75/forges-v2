@@ -8,6 +8,8 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationHours } from '../../utils/paymentDeadline';
 
 /**
  * InscriptionSessionPage - Page d'inscription à une session avec voucher
@@ -22,7 +24,11 @@ export default function InscriptionSessionPage() {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
   const [apporteurCode, setApporteurCode] = useState('');
-  const [sourceFinancement, setSourceFinancement] = useState('VOUCHER');
+  const [sourceFinancement, setSourceFinancement] = useState('RETAIL');
+  const [formError, setFormError] = useState('');
+  const [abonnementActif, setAbonnementActif] = useState(null);
+  const [loadingAbonnement, setLoadingAbonnement] = useState(true);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute: executeFormation, isLoading: loadingFormation } = useApi();
   const { execute: executeSessions, isLoading: loadingSessions } = useApi();
@@ -49,11 +55,19 @@ export default function InscriptionSessionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formationId]);
 
+  useEffect(() => {
+    apprenantApi.getMonAbonnementRetail()
+      .then((data) => setAbonnementActif(data?.statut === 'ACTIF' ? data : null))
+      .catch(() => setAbonnementActif(null))
+      .finally(() => setLoadingAbonnement(false));
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setFormError('');
     if (!selectedSessionId) {
-      alert('Veuillez sélectionner une session');
+      setFormError('Veuillez sélectionner une session.');
       return;
     }
 
@@ -70,10 +84,26 @@ export default function InscriptionSessionPage() {
     }
 
     await executeInscription(() => apprenantApi.inscrireSession(selectedSessionId, payload), {
-      onSuccess: () => {
-        navigate('/apprenant/mes-dossiers', {
-          state: { message: 'Inscription réussie ! Votre dossier a été créé.' },
-        });
+      onSuccess: (data) => {
+        const dossier = data?.data || data;
+        // Paiement direct si RETAIL/STANDARD — pas de détour par la liste des dossiers
+        if (dossier?.id && sourceFinancement === 'RETAIL') {
+          navigate(`/apprenant/paiements/initier/${dossier.id}`);
+        } else {
+          navigate('/apprenant/dossiers');
+        }
+      },
+      onError: (err) => {
+        const code = err?.message || '';
+        if (code.includes('ABONNEMENT_REQUIS')) {
+          setFormError('Vous devez avoir un abonnement actif pour utiliser cette option.');
+        } else if (code.includes('FORMATION_LIMIT_REACHED')) {
+          setFormError('Vous avez atteint la limite de 3 formations simultanées avec votre abonnement.');
+        } else if (code.includes('ALREADY_ENROLLED')) {
+          setFormError('Vous êtes déjà inscrit à cette formation.');
+        } else {
+          setFormError(code || 'Une erreur est survenue lors de l\'inscription.');
+        }
       },
     });
   };
@@ -94,7 +124,7 @@ export default function InscriptionSessionPage() {
           title="Aucune session disponible"
           message="Il n'y a pas de session ouverte pour cette formation."
           action={
-            <Button onClick={() => navigate('/catalogue')}>
+            <Button onClick={() => navigate('/apprenant/catalogue')}>
               Retour au catalogue
             </Button>
           }
@@ -106,12 +136,24 @@ export default function InscriptionSessionPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => navigate('/apprenant/catalogue')}
+          className="mb-3 text-sm text-primary hover:underline"
+        >
+          &larr; Retour au catalogue
+        </button>
         <h1 className="text-3xl font-bold text-text mb-2">
           Inscription à une session
         </h1>
         <p className="text-subtext">
           {formation.titre || formation.intitule}
         </p>
+        {formation.tarif && (
+          <p className="mt-1 text-sm font-semibold text-primary">
+            {Math.round(Number(formation.tarif || 0) / 100).toLocaleString('fr-FR')} FCFA
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -184,22 +226,26 @@ export default function InscriptionSessionPage() {
                 onChange={(e) => setSourceFinancement(e.target.value)}
               />
               <div>
-                <div className="font-medium text-text">Paiement direct</div>
-                <div className="text-sm text-subtext">Payer directement les frais d'inscription</div>
+                <div className="font-medium text-text">Paiement apprenant</div>
+                <div className="text-sm text-subtext">Créer le dossier puis payer les frais d'inscription</div>
               </div>
             </label>
 
-            <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:border-secondary transition-colors">
+            <label className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${abonnementActif ? 'cursor-pointer hover:border-secondary' : 'cursor-not-allowed opacity-50'}`}>
               <input
                 type="radio"
                 name="source_financement"
                 value="ABONNEMENT"
                 checked={sourceFinancement === 'ABONNEMENT'}
                 onChange={(e) => setSourceFinancement(e.target.value)}
+                disabled={!abonnementActif || loadingAbonnement}
               />
               <div>
                 <div className="font-medium text-text">Mon abonnement</div>
-                <div className="text-sm text-subtext">Utiliser mon abonnement actif</div>
+                {abonnementActif
+                  ? <div className="text-sm text-subtext">Abonnement {abonnementActif.offre} actif</div>
+                  : <div className="text-sm text-danger">Aucun abonnement actif — <button type="button" className="underline" onClick={() => navigate('/apprenant/abonnement/souscrire')}>Souscrire</button></div>
+                }
               </div>
             </label>
           </div>
@@ -232,12 +278,36 @@ export default function InscriptionSessionPage() {
           )}
         </Card>
 
+        {formError && (
+          <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger" data-testid="inscription-error">
+            {formError}
+          </div>
+        )}
+
+        {/* Avertissement engagement paiement (RM-140, RM-07) */}
+        {(sourceFinancement === 'RETAIL' || sourceFinancement === 'DIRECT') && (
+          <div className="rounded-lg border border-warning bg-warning/10 p-4 text-sm text-warning" data-testid="engagement-paiement-warning">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-semibold">Engagement de paiement</p>
+                <p className="mt-1">
+                  En validant cette inscription, vous vous engagez à effectuer le paiement dans les <strong>{formatPaymentExpirationHours(paymentExpirationHours)}</strong>.
+                  Passé ce délai, votre dossier sera automatiquement annulé (RM-07).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-4 justify-end">
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/catalogue/${formationId}`)}
+            onClick={() => navigate('/apprenant/catalogue')}
           >
             Annuler
           </Button>

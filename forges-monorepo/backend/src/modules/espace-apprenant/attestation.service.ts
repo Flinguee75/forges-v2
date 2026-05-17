@@ -106,6 +106,7 @@ export class AttestationService {
     const cipher = createCipheriv('aes-256-gcm', key, iv);
     const payload = JSON.stringify({ token, dossier_id, apprenant_id, expiration });
     const encrypted = cipher.update(payload, 'utf8', 'hex') + cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
 
     await this.audit.info('ATTESTATION_GENEREE', {
       dossier_id,
@@ -113,7 +114,7 @@ export class AttestationService {
       formation: dossier.formation?.intitule
     });
 
-    return `/api/attestations/${dossier_id}/download?token=${encrypted}&iv=${iv.toString('hex')}`;
+    return `/api/attestations/${dossier_id}/download?token=${encrypted}&iv=${iv.toString('hex')}&tag=${tag}`;
   }
 
   // Génération PDF simple pour téléchargement local
@@ -125,7 +126,7 @@ export class AttestationService {
     const pdfBuffer = this.buildPdfBuffer([
       'ATTESTATION DE FORMATION',
       `Dossier: ${dossierData.id || dossier_id}`,
-      `Apprenant: ${dossierData.apprenant?.prenoms || dossierData.apprenant?.nom || dossierData.apprenant_id || apprenant_id}`,
+      `Apprenant: ${[dossierData.apprenant?.prenoms, dossierData.apprenant?.nom].filter(Boolean).join(' ') || dossierData.apprenant_id || apprenant_id}`,
       `Formation: ${formation.intitule || formation.titre || 'N/A'}`,
       `Session: ${session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-FR') : '-'} au ${session.date_fin ? new Date(session.date_fin).toLocaleDateString('fr-FR') : '-'}`,
       `Date de generation: ${new Date().toLocaleDateString('fr-FR')}`,

@@ -24,6 +24,15 @@ export class VoucherController {
       if (error.message === 'FORMATION_NOT_FOUND') {
         return res.status(404).json({ statusCode: 404, error: 'FORMATION_NOT_FOUND' });
       }
+      if (error.message === 'DEVIS_NOT_FOUND') {
+        return res.status(404).json({ statusCode: 404, error: 'DEVIS_NOT_FOUND' });
+      }
+      if (error.message === 'DEVIS_ORGANISATION_MISMATCH') {
+        return res.status(409).json({ statusCode: 409, error: 'DEVIS_ORGANISATION_MISMATCH' });
+      }
+      if (error.message === 'DEVIS_FORMATION_MISMATCH') {
+        return res.status(409).json({ statusCode: 409, error: 'DEVIS_FORMATION_MISMATCH' });
+      }
       next(error);
     }
   }
@@ -154,6 +163,36 @@ export class VoucherController {
     } catch (error: any) {
       if (error.message === 'APPORTEUR_CODE_INVALID') return res.status(422).json({ statusCode: 422, error: 'APPORTEUR_CODE_INVALID' });
       if (error.message === 'VOUCHER_CUMUL_INTERDIT') return res.status(422).json({ statusCode: 422, error: 'VOUCHER_CUMUL_INTERDIT' });
+      next(error);
+    }
+  }
+
+  async updateVoucher(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.voucherService.updateVoucher(req.params.id, req.body);
+      res.status(200).json({ statusCode: 200, data: result });
+    } catch (error: any) {
+      if (error.message === 'VOUCHER_NOT_FOUND') return res.status(404).json({ statusCode: 404, error: 'VOUCHER_NOT_FOUND' });
+      next(error);
+    }
+  }
+
+  async deleteVoucher(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.voucherService.deleteVoucher(req.params.id);
+      res.status(200).json({ statusCode: 200, message: 'Voucher supprime' });
+    } catch (error: any) {
+      if (error.message === 'VOUCHER_NOT_FOUND') return res.status(404).json({ statusCode: 404, error: 'VOUCHER_NOT_FOUND' });
+      next(error);
+    }
+  }
+
+  async getUtilisateurs(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await this.voucherService.getUtilisateurs(req.params.id);
+      res.status(200).json({ statusCode: 200, data });
+    } catch (error: any) {
+      if (error.message === 'VOUCHER_NOT_FOUND') return res.status(404).json({ statusCode: 404, error: 'VOUCHER_NOT_FOUND' });
       next(error);
     }
   }

@@ -4,21 +4,53 @@ import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { VoucherRepository } from '../vouchers/voucher.repository';
 import { PrismaClient } from '@prisma/client';
-import { InitierPaiementDto } from './dto/paiement.dto';
+import { InitierPaiementDto, InitierPaiementNgserDto } from './dto/paiement.dto';
+import { PaiementNgserService } from './paiement-ngser.service';
+import { IpnNgserService } from './ipn-ngser.service';
+import { PaiementFineoService } from './paiement-fineo.service';
+import { IpnFineoService, FineoCbPayload } from './ipn-fineo.service';
+import { CommissionService } from './commission.service';
+import { PaiementReglementService } from './paiement-reglement.service';
+import { getDelaiPaiementH } from '../../config/env.config';
 
 const MAX_TENTATIVES = 3;      // RM-08
-const DELAI_PAIEMENT_H = 72;  // RM-07
 const TIMEOUT_API_S = 30;      // RM-09
 
 export class PaiementService {
+  private ipnNgserService: IpnNgserService;
+  private ipnFineoService: IpnFineoService;
+  private commissionService: CommissionService;
+  private paiementFineoService: PaiementFineoService;
+  private reglementService: PaiementReglementService;
+
   constructor(
     private readonly paiementRepo: PaiementRepository,
     private readonly commissionRepo: CommissionRepository,
     private readonly voucherRepo: VoucherRepository,
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
-    private readonly email: EmailService
-  ) {}
+    private readonly email: EmailService,
+    private readonly paiementNgserService = new PaiementNgserService(prisma, voucherRepo, audit)
+  ) {
+    this.commissionService = new CommissionService(prisma, audit);
+    this.reglementService = new PaiementReglementService(prisma, audit, this.commissionService);
+    this.ipnNgserService = new IpnNgserService(prisma, audit, this.commissionService);
+    this.paiementFineoService = new PaiementFineoService(prisma, voucherRepo, audit);
+    this.ipnFineoService = new IpnFineoService(prisma, audit, this.commissionService);
+  }
+
+  async initierPaiementNgser(dto: InitierPaiementNgserDto, apprenantId: string) {
+    return this.paiementNgserService.initierPaiement(dto, apprenantId);
+  }
+
+  // FineoPay — top 1
+  async initierPaiementFineo(dossierId: string, apprenantId: string, clientAccount?: string, canal?: string) {
+    return this.paiementFineoService.initierPaiement(dossierId, apprenantId, clientAccount, canal);
+  }
+
+  async traiterCallbackFineo(payload: FineoCbPayload) {
+    return this.ipnFineoService.traiterCallback(payload);
+  }
 
   async initierPaiement(dto: InitierPaiementDto, apprenantId: string) {
     const dossier = await this.prisma.dossier.findUnique({
@@ -49,7 +81,7 @@ export class PaiementService {
       await this.paiementRepo.incrementerTentatives(paiementExistant.id);
 
       // Appel agrégateur externe
-      const paymentUrl = await this.appelAgregateur(dto, paiementExistant.montant_final);
+      const paymentUrl = await this.appelAgregateur(dto, paiementExistant.montant_final, apprenantId);
       return { paiement_id: paiementExistant.id, payment_url: paymentUrl };
     }
 
@@ -63,7 +95,7 @@ export class PaiementService {
     const reduction = dossier.formation.cout_catalogue - montantFinal;
 
     // Création paiement
-    const expires_at = new Date(Date.now() + DELAI_PAIEMENT_H * 3600 * 1000); // RM-07
+    const expires_at = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000); // RM-07
     const paiement = await this.paiementRepo.create({
       dossier_id: dto.dossier_id,
       montant_catalogue: dossier.formation.cout_catalogue,
@@ -80,7 +112,7 @@ export class PaiementService {
       apprenant_id: apprenantId
     });
 
-    const paymentUrl = await this.appelAgregateur(dto, montantFinal);
+    const paymentUrl = await this.appelAgregateur(dto, montantFinal, apprenantId);
     return { paiement_id: paiement.id, payment_url: paymentUrl };
   }
 
@@ -113,11 +145,27 @@ export class PaiementService {
     return montant;
   }
 
-  // RM-09 : appel agrégateur avec timeout 30s
-  private async appelAgregateur(dto: InitierPaiementDto, montant: number): Promise<string> {
-    // Intégration MTN/Orange Money — URL de paiement retournée par l'agrégateur
-    // En production : appel API avec timeout 30s
-    return `https://pay.aggregateur.ci/checkout?ref=${dto.dossier_id}&amount=${montant}&method=${dto.methode}`;
+  // RM-09 : Fineo top 1, NGSER en backup
+  private async appelAgregateur(dto: InitierPaiementDto, montant: number, apprenantId: string): Promise<string> {
+    try {
+      const result = await this.paiementFineoService.initierPaiement(dto.dossier_id, apprenantId);
+      return result.checkout_link;
+    } catch (errFineo: any) {
+      if (errFineo.message === 'MONTANT_FINEO_MINIMUM') {
+        throw errFineo;
+      }
+
+      await this.audit.warning('FINEO_FALLBACK_NGSER', {
+        dossier_id: dto.dossier_id,
+        raison: errFineo.message,
+      });
+
+      const ngserDto: InitierPaiementNgserDto = {
+        dossier_id: dto.dossier_id,
+      };
+      const result = await this.paiementNgserService.initierPaiement(ngserDto, apprenantId);
+      return result.payment_url;
+    }
   }
 
   // Webhook — confirmation paiement (RM-09)
@@ -131,62 +179,76 @@ export class PaiementService {
     const existant = await this.paiementRepo.findByTransactionId(webhookData.transaction_id);
     if (existant) return { message: 'ALREADY_PROCESSED' };
 
-    const paiement = await this.paiementRepo.findByDossierId(webhookData.dossier_id);
+    let paiement = await this.prisma.paiement.findUnique({
+      where: { dossier_id: webhookData.dossier_id },
+      include: {
+        dossier: {
+          include: {
+            apprenant: true,
+            formation: { include: { partenaire: true, formation_partenaire: true } },
+            session: true,
+          },
+        },
+      },
+    });
+    if (!paiement) {
+      const paiementLegacy = await this.paiementRepo.findByDossierId(webhookData.dossier_id);
+      if (paiementLegacy) {
+        const dossier = await this.prisma.dossier.findUnique({
+          where: { id: webhookData.dossier_id },
+          include: {
+            apprenant: true,
+            formation: { include: { partenaire: true, formation_partenaire: true } },
+            session: true,
+          },
+        });
+        paiement = { ...paiementLegacy, dossier } as any;
+      }
+    }
     if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
 
+    // Idempotence par statut : un paiement déjà CONFIRME ne doit pas être retraité
+    // même si le webhook arrive avec un nouveau transaction_id (RM-158/RM-160)
+    if (paiement.statut === 'CONFIRME') return { message: 'ALREADY_PROCESSED' };
+
     if (webhookData.statut === 'SUCCESS') {
-      // Confirmer le paiement
-      await this.paiementRepo.confirmer(paiement.id, webhookData.transaction_id);
-
-      // Passer le dossier en PAYE
-      await this.prisma.dossier.update({
-        where: { id: webhookData.dossier_id },
-        data: { statut: 'PAYE' }
-      });
-
-      // Calcul commissions
-      await this.calculerCommissions(paiement, webhookData.dossier_id);
-
-      // Utiliser le voucher si présent (incrémenter quota)
-      const dossier = await this.prisma.dossier.findUnique({ where: { id: webhookData.dossier_id } });
-      if (dossier?.voucher_code) {
-        const voucher = await this.voucherRepo.findByCode(dossier.voucher_code);
-        if (voucher) await this.voucherRepo.utiliser(voucher.id);
+      // ✅ RM-160: Valider que montant IPN == montant initié (idempotence strict)
+      const montantAttendu = paiement.montant_initie ?? paiement.montant_final ?? paiement.montant_catalogue;
+      if (webhookData.montant !== montantAttendu) {
+        await this.audit.warning('PAIEMENT_MONTANT_MISMATCH', {
+          paiement_id: paiement.id,
+          montant_attendu: montantAttendu,
+          montant_recu: webhookData.montant,
+          dossier_id: webhookData.dossier_id
+        });
+        return { message: 'MONTANT_INVALIDE', statut: 'REJECTED' };
       }
 
-      await this.audit.info('PAIEMENT_CONFIRME', {
-        paiement_id: paiement.id,
-        transaction_id: webhookData.transaction_id,
-        montant: webhookData.montant
+      const result = await this.reglementService.confirmerProvider({
+        paiement,
+        transactionId: webhookData.transaction_id,
+        providerStatus: 'SUCCESS',
+        payload: {
+          source: 'LEGACY_WEBHOOK',
+          ...webhookData,
+        },
       });
 
-      // RM-100 : notification email apprenant
-      const dossierComplet = await this.prisma.dossier.findUnique({
-        where: { id: webhookData.dossier_id },
-        include: { apprenant: true, formation: true }
-      });
-      if (dossierComplet) {
-        try {
-          await this.email.sendPaiementConfirme(
-            dossierComplet.apprenant.email,
-            dossierComplet.formation.intitule,
-            dossierComplet.apprenant.langue_preferee
-          );
-        } catch (error: any) {
-          await this.audit.warning('PAIEMENT_CONFIRME_EMAIL_FAILED', {
-            paiement_id: paiement.id,
-            dossier_id: webhookData.dossier_id,
-            error: error?.message || 'UNKNOWN_ERROR'
-          });
-        }
-      }
-
+      return { statut: webhookData.statut, ...result };
     } else {
-      await this.paiementRepo.echouer(paiement.id);
-      await this.audit.warning('PAIEMENT_ECHOUE', { paiement_id: paiement.id });
-    }
+      const result = await this.reglementService.echouerProvider({
+        paiement,
+        transactionId: webhookData.transaction_id,
+        providerStatus: 'FAILED',
+        payload: {
+          source: 'LEGACY_WEBHOOK',
+          ...webhookData,
+        },
+        annulerDossier: true,
+      });
 
-    return { statut: webhookData.statut };
+      return { statut: webhookData.statut, ...result };
+    }
   }
 
   // Calcul commissions partenaire et apporteur
@@ -287,10 +349,17 @@ export class PaiementService {
         include: { apprenant: true }
       });
       if (dossierComplet) {
-        await this.email.sendDossierAnnuleExpiration(
-          dossierComplet.apprenant.email,
-          dossierComplet.apprenant.langue_preferee
-        );
+        try {
+          await this.email.sendDossierAnnuleExpiration(
+            dossierComplet.apprenant.email,
+            dossierComplet.apprenant.langue_preferee
+          );
+        } catch (error: any) {
+          await this.audit.warning('EXPIRATION_EMAIL_FAILED', {
+            dossier_id: paiement.dossier_id,
+            error: error?.message || 'UNKNOWN_ERROR',
+          });
+        }
       }
     }
 
@@ -323,8 +392,176 @@ export class PaiementService {
     });
   }
 
+  async getPaiementById(id: string) {
+    const paiement = await this.prisma.paiement.findUnique({
+      where: { id },
+      include: {
+        dossier: {
+          include: {
+            apprenant: true,
+            formation: true,
+            session: true,
+            voucher_organisation: true,
+          },
+        },
+        code_apporteur: {
+          include: { apporteur: { select: { nom: true, code_apporteur: true } } },
+        },
+      },
+    });
+
+    if (!paiement) return null;
+
+    // Résoudre le nom de l'organisation via voucher_organisation.organisation_id
+    let organisationNom: string | null = null;
+    const orgId = (paiement.dossier as any)?.voucher_organisation?.organisation_id;
+    if (orgId) {
+      const org = await this.prisma.organisation.findUnique({
+        where: { id: orgId },
+        select: { raison_sociale: true },
+      });
+      organisationNom = org?.raison_sociale ?? null;
+    }
+
+    return { ...paiement, _organisation_voucher_nom: organisationNom };
+  }
+
+  async getPaiementsStats(period = '24h') {
+    const hoursByPeriod: Record<string, number> = {
+      '1h': 1,
+      '24h': 24,
+      '7d': 24 * 7,
+      '30d': 24 * 30,
+    };
+    const hours = hoursByPeriod[period] ?? 24;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const pendingThreshold = new Date(Date.now() - 30 * 60 * 1000);
+
+    const paiements = await this.prisma.paiement.findMany({
+      where: { created_at: { gte: since } },
+      select: {
+        statut: true,
+        created_at: true,
+        confirmed_at: true,
+        provider: true,
+      },
+    });
+
+    const total = paiements.length;
+    const success = paiements.filter((paiement) => paiement.statut === 'CONFIRME').length;
+    const fail = paiements.filter((paiement) => ['ECHOUE', 'ECHEC', 'ANNULE'].includes(paiement.statut)).length;
+    const pending = paiements.filter((paiement) => ['PENDING', 'EN_ATTENTE'].includes(paiement.statut)).length;
+    const confirmedDurations = paiements
+      .filter((paiement) => paiement.confirmed_at)
+      .map((paiement) => (paiement.confirmed_at!.getTime() - paiement.created_at.getTime()) / 1000);
+
+    const pendingOver30min = await this.prisma.paiement.count({
+      where: {
+        statut: 'PENDING',
+        provider: 'NGSER',
+        created_at: { lt: pendingThreshold },
+      },
+    });
+
+    return {
+      period,
+      total,
+      success,
+      fail,
+      pending,
+      success_rate: total > 0 ? Number(((success / total) * 100).toFixed(2)) : 0,
+      avg_confirmation_time_seconds: confirmedDurations.length > 0
+        ? Number((confirmedDurations.reduce((sum, value) => sum + value, 0) / confirmedDurations.length).toFixed(2))
+        : 0,
+      pending_over_30min: pendingOver30min,
+    };
+  }
+
   // GET /api/paiements — Liste paiements apprenant (Sprint 1 Semaine 2)
   async getPaiementsByApprenant(apprenantId: string) {
     return this.paiementRepo.findByApprenant(apprenantId);
+  }
+
+  // Traiter IPN NGSER (RM-158/160)
+  async traiterIpnNgser(payload: any) {
+    return this.ipnNgserService.traiterIpn(payload);
+  }
+
+  // Déclencher réconciliation manuelle NGSER (Phase 1 v4.9)
+  async reconcilierPaiementsPendingNgser() {
+    const { reconciliationNgserScheduler } = await import('../../schedulers/reconciliation-ngser.scheduler');
+    const delaiMinutes = Number(process.env.NGSER_RECONCILIATION_PENDING_MINUTES) || 0;
+    const paiements = await reconciliationNgserScheduler.getPaiementsPendingEligibles(delaiMinutes);
+
+    const results = [];
+    for (const paiement of paiements) {
+      try {
+        const result = await reconciliationNgserScheduler.reconcilierPaiement(paiement.order_ngser!);
+        results.push({ order_ngser: paiement.order_ngser, ...result });
+      } catch (error: any) {
+        results.push({ order_ngser: paiement.order_ngser, error: error.message });
+      }
+    }
+
+    return {
+      nb_paiements_trouves: paiements.length,
+      nb_paiements_traites: results.length,
+      results,
+    };
+  }
+
+  // RM-10 : remboursement manuel par admin
+  async rembourserPaiement(paiementId: string, motif: string, adminId: string) {
+    const paiement = await this.paiementRepo.findById(paiementId);
+    if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
+    if (paiement.statut !== 'CONFIRME') throw new Error('PAIEMENT_NON_REMBOURSABLE');
+
+    await this.paiementRepo.rembourser(paiementId);
+
+    await this.prisma.dossier.update({
+      where: { id: paiement.dossier_id },
+      data: { statut: 'ANNULE' },
+    });
+
+    await this.audit.info('PAIEMENT_REMBOURSE', {
+      paiement_id: paiementId,
+      dossier_id: paiement.dossier_id,
+      admin_id: adminId,
+      motif,
+    });
+
+    return { statut: 'REMBOURSE', motif };
+  }
+
+  // Suppression manuelle par admin pour nettoyer un paiement de test ou invalide
+  async supprimerPaiement(paiementId: string, adminId: string, motif?: string) {
+    const paiement = await this.paiementRepo.findById(paiementId);
+    if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
+
+    if (['CONFIRME', 'REMBOURSE'].includes(paiement.statut)) {
+      throw new Error('PAIEMENT_SUPPRESSION_INTERDITE');
+    }
+
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      await tx.commissionPartenaire.deleteMany({ where: { paiement_id: paiementId } });
+      await tx.commissionApporteur.deleteMany({ where: { paiement_id: paiementId } });
+      const paiementSupprime = await tx.paiement.delete({ where: { id: paiementId } });
+      await tx.dossier.delete({ where: { id: paiement.dossier_id } });
+      return paiementSupprime;
+    });
+
+    await this.audit.info('PAIEMENT_ET_DOSSIER_SUPPRIMES', {
+      paiement_id: paiementId,
+      dossier_id: paiement.dossier_id,
+      admin_id: adminId,
+      motif: motif || null,
+      statut: paiement.statut,
+    });
+
+    return {
+      statut: 'SUPPRIME',
+      paiement_id: deleted.id,
+      dossier_id: paiement.dossier_id,
+    };
   }
 }

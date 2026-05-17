@@ -2,17 +2,39 @@ const ORGANISATION_OFFERS = {
   BASIQUE: {
     label: 'Basique',
     annualAmount: Number(import.meta.env.VITE_ABO_ORG_BASIQUE_XOF || 5000000),
-    description: 'Acces plateforme essentiel apres la periode d essai.',
+    description: 'Accès complet à la plateforme après la période d\'essai. Idéal pour démarrer.',
+    features: [
+      'Tableau de bord organisation',
+      'Gestion des vouchers',
+      'Export PDF des rapports',
+      'Gestion des inscriptions de vos employés',
+      '1 gestionnaire de compte',
+      'Support standard',
+    ],
   },
   PRO: {
     label: 'Pro',
     annualAmount: Number(import.meta.env.VITE_ABO_ORG_PRO_XOF || 15000000),
-    description: 'Pour les organisations qui veulent plus de capacite et de souplesse.',
+    description: 'Pour les organisations à fort volume de formations. Statistiques avancées et exports enrichis.',
+    features: [
+      'Tout le Basique',
+      'Statistiques avancées',
+      'Export Excel des données',
+      '1 gestionnaire de compte',
+      'Support prioritaire',
+    ],
   },
   ENTERPRISE: {
     label: 'Enterprise',
     annualAmount: Number(import.meta.env.VITE_ABO_ORG_ENTERPRISE_XOF || 40000000),
-    description: 'Offre avancee avec accompagnement et volumes plus importants.',
+    description: 'Offre complète pour les grandes organisations avec SLA garanti et accès API.',
+    features: [
+      'Tout le Pro',
+      'Accès API FORGES',
+      'SLA 99,9% garanti',
+      'Jusqu\'à 5 gestionnaires de compte',
+      'Support 7j/7',
+    ],
   },
 };
 
@@ -20,26 +42,30 @@ const B2B_PALIERS = {
   STARTER: {
     label: 'Starter',
     annualAmount: 25000000,
-    nbMax: 10,
-    range: '1 - 10',
+    nbMax: 20,
+    range: '1 - 20',
+    description: 'Pour les petites équipes. Idéal pour un premier déploiement B2B.',
   },
   BUSINESS: {
     label: 'Business',
     annualAmount: 50000000,
-    nbMax: 25,
-    range: '11 - 25',
+    nbMax: 50,
+    range: '21 - 50',
+    description: 'Pour les équipes en croissance avec des besoins de formation réguliers.',
   },
   ENTERPRISE: {
     label: 'Enterprise',
     annualAmount: 90000000,
     nbMax: 100,
-    range: '26 - 100',
+    range: '51 - 100',
+    description: 'Pour les grandes organisations. Inclut 2 formations Premium par an.',
   },
   SUR_DEVIS: {
     label: 'Sur devis',
     annualAmount: 0,
     nbMax: 0,
     range: 'Plus de 100',
+    description: 'Contactez FORGES pour un tarif adapté à vos volumes.',
   },
 };
 
@@ -106,14 +132,14 @@ export function getB2BProgressVariant(ratio = 0) {
 
 export function getB2BProgressMessage(ratio = 0) {
   if (ratio >= 1) {
-    return 'Capacite atteinte';
+    return 'Capacité atteinte';
   }
 
   if (ratio >= 0.8) {
-    return 'Proposer une montee de palier';
+    return 'Bientôt à capacité — envisagez un palier supérieur';
   }
 
-  return 'Capacite confortable';
+  return 'Capacité disponible';
 }
 
 export function getTrialDaysRemaining(dateFinEssai) {

@@ -1,0 +1,114 @@
+name: forges-monitoring-demo
+
+services:
+  loki:
+    image: grafana/loki:3.1.0
+    container_name: forges-loki-demo
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-demo-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forges-monitoring
+
+  promtail:
+    image: grafana/promtail:3.1.0
+    container_name: forges-promtail-demo
+    restart: unless-stopped
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - forges-monitoring
+      - forges-demo
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: forges-grafana-demo
+    restart: unless-stopped
+    ports:
+      - "3050:3000"
+    env_file:
+      - .env
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-forges2026}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3050}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/forges-demo.json
+      GF_UNIFIED_ALERTING_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-demo-data:/var/lib/grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forges-monitoring
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: forges-uptime-demo
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime-demo-data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/entry-page || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - forges-monitoring
+
+  checker:
+    image: alpine/curl:latest
+    container_name: forges-checker-demo
+    restart: unless-stopped
+    volumes:
+      - ./silent-check.sh:/silent-check.sh:ro
+    command: sh /silent-check.sh
+    environment:
+      FORGES_BASE_URL: http://forges-backend-demo:3003
+      CHECK_INTERVAL: "300"
+    depends_on:
+      - loki
+    networks:
+      - forges-monitoring
+      - forges-demo
+
+networks:
+  forges-monitoring:
+    name: forges-monitoring
+    driver: bridge
+  forges-demo:
+    name: forges-demo
+    external: true
+
+volumes:
+  loki-demo-data:
+    name: forges-loki-demo
+  grafana-demo-data:
+    name: forges-grafana-demo
+  uptime-demo-data:
+    name: forges-uptime-demo

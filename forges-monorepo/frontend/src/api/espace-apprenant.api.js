@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { getAccessToken } from '../utils/authStorage';
 
 function cleanQueryParams(params = {}) {
   return Object.fromEntries(
@@ -28,8 +29,17 @@ export const apprenantApi = {
   }),
   annulerDossier: (dossierId) => apiClient.delete(`/espace-apprenant/dossiers/${dossierId}`),
 
-  getMonAbonnementRetail: async () => unwrapData(await apiClient.get('/abonnements/retail/me')),
-  souscrireAbonnementRetail: async (data) => unwrapData(await apiClient.post('/abonnements/retail', data)),
+  getMonAbonnementRetail: async () => {
+    if (!getAccessToken()) {
+      return null;
+    }
+
+    return unwrapData(await apiClient.get('/abonnements/retail/me'));
+  },
+  souscrireAbonnementRetail: async (data) => {
+    // Retourne { abonnement, montant_premier_mois, payment_url, order_ngser }
+    return unwrapData(await apiClient.post('/abonnements/retail', data));
+  },
   upgradeAbonnementRetail: async (data) => unwrapData(await apiClient.put('/abonnements/retail/upgrade', data)),
   downgradeAbonnementRetail: async (data) => unwrapData(await apiClient.put('/abonnements/retail/downgrade', data)),
   suspendreAbonnementRetail: async (data = {}) => unwrapData(await apiClient.put('/abonnements/retail/suspendre', data)),
@@ -46,6 +56,22 @@ export const apprenantApi = {
       progression: Number(progression),
     })),
   accederFormationDemande: (formationId) => apiClient.post(`/formations/${formationId}/acceder`),
+  proxyAccesFormation: async (accesId) => {
+    const { getAccessToken } = await import('../utils/authStorage');
+    const token = getAccessToken();
+    const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') ?? '';
+    const response = await fetch(`${baseUrl}/api/formations-demande/${accesId}/acceder`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      redirect: 'follow',
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body.error || 'Acces refuse');
+      err.statusCode = response.status;
+      throw err;
+    }
+    return response.url;
+  },
   inscrireSession: (sessionId, data) => apiClient.post(`/sessions/${sessionId}/inscrire`, data),
 };
 

@@ -1,12 +1,24 @@
 import nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getDelaiPaiementH } from '../../config/env.config';
+import { buildEnrollmentConfirmationEmail } from './enrollment-confirmation-email.formatter';
 
 interface EmailOptions {
   to: string;
   subject: string;
   text?: string;
   html?: string;
+}
+
+interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
+interface EmailWithAttachmentOptions extends EmailOptions {
+  attachment?: EmailAttachment;
 }
 
 type Langue = 'FR' | 'EN' | 'ES' | 'PT';
@@ -16,19 +28,26 @@ export class EmailService {
   private translationsCache: Map<string, Record<string, any>> = new Map();
 
   constructor() {
-    const smtpHost = process.env.BREVO_SMTP_HOST || process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-    const smtpPort = parseInt(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || '587', 10);
-    const smtpSecure = (process.env.BREVO_SMTP_SECURE || process.env.SMTP_SECURE || 'false') === 'true';
-    const smtpUser = process.env.BREVO_SMTP_USER || process.env.SMTP_USER;
-    const smtpPass = process.env.BREVO_SMTP_KEY || process.env.SMTP_PASS;
+    // Priorité au SMTP "runtime" (Plesk/deploy) pour permettre de forcer Office 365.
+    // Les variables BREVO_* restent en fallback de compatibilité.
+    const smtpHost = process.env.SMTP_HOST || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || process.env.BREVO_SMTP_PORT || '587', 10);
+    const smtpSecure = (process.env.SMTP_SECURE || process.env.BREVO_SMTP_SECURE || 'false') === 'true';
+    const smtpUser = process.env.SMTP_USER || process.env.BREVO_SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.BREVO_SMTP_KEY;
 
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
+      requireTLS: smtpPort === 587,
       auth: {
         user: smtpUser,
         pass: smtpPass,
+      },
+      tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: false,
       },
     });
   }
@@ -103,7 +122,7 @@ export class EmailService {
         t_team_signature: commonTranslations.team_signature || "L'équipe FORGES",
         t_footer_copyright: commonTranslations.footer_copyright || '© 2026 FORGES',
         t_footer_visit_site: commonTranslations.footer_visit_site || 'Visiter notre site',
-        t_footer_support: commonTranslations.footer_support || 'Support',
+        t_footer_support: commonTranslations.footer_support || 'Contact',
         t_contact_us: commonTranslations.contact_us || '',
         // Traductions spécifiques au template (préfixées t_)
         t_title: emailTranslations.title || '',
@@ -132,6 +151,12 @@ export class EmailService {
         t_days_elapsed_label: emailTranslations.days_elapsed_label || '',
         t_action_required: emailTranslations.action_required || '',
         t_escalation_notice: emailTranslations.escalation_notice || '',
+        // Toutes les clés du template courant (permet aux nouveaux templates d'ajouter des t_ sans modifier ce fichier)
+        ...Object.fromEntries(
+          Object.entries(emailTranslations)
+            .filter(([k]) => k !== 'subject')
+            .map(([k, v]) => [`t_${k}`, String(v || '')])
+        ),
         // Variables dynamiques fournies
         ...variables,
       };
@@ -179,7 +204,8 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<void> {
     try {
-      const fromAddress = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'support@forges.local';
+      const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'contact@forges.local';
+      const fromAddress = `"FORGES AGRÉGATEUR" <${fromEmail}>`;
 
       await this.transporter.sendMail({
         from: fromAddress,
@@ -193,6 +219,53 @@ export class EmailService {
       // Les callers peuvent logger via AuditLogger pour suivi.
       console.error('Email send error (non-bloquant):', (error as Error).message);
     }
+  }
+
+  async sendEmailFromTemplateWithAttachment(
+    to: string,
+    templateName: string,
+    langue: Langue,
+    variables: Record<string, string>,
+    conditionals: Record<string, boolean>,
+    attachment: EmailAttachment
+  ): Promise<void> {
+    try {
+      const { subject, html: rawHtml } = this.loadTemplate(templateName, langue, variables);
+      let html = rawHtml;
+
+      // Blocs conditionnels {{#if_xxx}}...{{/if_xxx}}
+      Object.entries(conditionals).forEach(([key, show]) => {
+        const openTag = new RegExp(`{{#if_${key}}}`, 'g');
+        const closeTag = new RegExp(`{{/if_${key}}}`, 'g');
+        if (!show) {
+          // Supprimer le bloc entier
+          const blockRe = new RegExp(`{{#if_${key}}}[\\s\\S]*?{{/if_${key}}}`, 'g');
+          html = html.replace(blockRe, '');
+        } else {
+          html = html.replace(openTag, '').replace(closeTag, '');
+        }
+      });
+
+      await this.sendEmailWithAttachment({ to, subject, html, attachment });
+    } catch (err) {
+      console.error('[EmailService] sendEmailFromTemplateWithAttachment error:', (err as Error).message);
+    }
+  }
+
+  async sendEmailWithAttachment(options: EmailWithAttachmentOptions): Promise<void> {
+    const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'contact@forges.local';
+    const fromAddress = `"FORGES AGRÉGATEUR" <${fromEmail}>`;
+
+    await this.transporter.sendMail({
+      from: fromAddress,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+      attachments: options.attachment
+        ? [{ filename: options.attachment.filename, content: options.attachment.content, contentType: options.attachment.contentType }]
+        : [],
+    });
   }
 
   async sendWelcomeEmail(email: string, nom: string): Promise<void> {
@@ -278,26 +351,179 @@ export class EmailService {
     });
   }
 
-  async sendTempPassword(email: string, tempPassword: string, langue: string): Promise<void> {
-    const title = 'Mot de passe temporaire FORGES';
+  async sendTempPassword(
+    email: string,
+    tempPassword: string,
+    langue: string,
+    typeCompte: 'APPRENANT' | 'ORGANISATION' = 'APPRENANT',
+  ): Promise<void> {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+    const typeLabel = typeCompte === 'ORGANISATION' ? 'Organisation' : 'Apprenant';
+    const subject = `Bienvenue sur FORGES — Vos identifiants de connexion (compte ${typeLabel})`;
+
     await this.sendEmail({
       to: email,
-      subject: title,
+      subject,
       text: this.buildTextEmail([
         'Bonjour,',
         '',
-        'Un mot de passe temporaire a été généré pour votre compte FORGES.',
-        `Mot de passe temporaire: ${tempPassword}`,
-        'Connectez-vous puis changez-le immédiatement.',
-        `Langue du message: ${langue}`,
+        `Votre compte ${typeLabel} FORGES vient d'être créé par notre équipe.`,
+        '',
+        'Vos identifiants de connexion :',
+        `  Email : ${email}`,
+        `  Mot de passe temporaire : ${tempPassword}`,
+        '',
+        `Connectez-vous ici : ${loginUrl}`,
+        '',
+        'IMPORTANT : Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
+        '',
+        'Si vous n\'etes pas a l\'origine de cette creation ou pour toute question, contactez-nous : contact@forges-group.com',
+        '',
+        'L\'equipe FORGES',
       ]),
-      html: this.buildHtmlEmail(title, [
-        'Bonjour,',
-        'Un mot de passe temporaire a été généré pour votre compte FORGES.',
-        `<strong>Mot de passe temporaire :</strong> ${tempPassword}`,
-        'Connectez-vous puis changez-le immédiatement.',
-        `Langue du message : ${langue}`,
+      html: this.buildHtmlEmail(subject, [
+        `Votre compte <strong>${typeLabel}</strong> FORGES vient d'être créé par notre équipe.`,
+        '<br>',
+        'Vos identifiants de connexion :',
+        `<strong>Email :</strong> ${email}`,
+        `<strong>Mot de passe temporaire :</strong> <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${tempPassword}</code>`,
+        '<br>',
+        `<a href="${loginUrl}" style="display:inline-block;background:#1B4F72;color:#FFFFFF;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">Accéder à mon espace</a>`,
+        `<p style="font-size:12px;color:#666;">Si le bouton ne fonctionne pas, copiez ce lien : <a href="${loginUrl}">${loginUrl}</a></p>`,
+        '<br>',
+        '<strong>Important :</strong> Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
+        '<br>',
+        'Si vous n\'êtes pas à l\'origine de cette création ou pour toute question, contactez-nous : <a href="mailto:contact@forges-group.com">contact@forges-group.com</a>',
       ]),
+    });
+  }
+
+  async sendTempPasswordBackoffice(
+    email: string,
+    nom: string,
+    tempPassword: string,
+    role: 'ADMIN' | 'SUPERVISEUR' | 'RESPONSABLE' | 'AGENT' | 'GESTIONNAIRE',
+  ): Promise<void> {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+
+    const roleConfig: Record<string, { label: string; description: string; permissions: string[] }> = {
+      SUPERVISEUR: {
+        label: 'Superviseur',
+        description: "Vous supervisez l'ensemble des activités de la plateforme : formations, sessions, dossiers apprenants, organisations et tableau de bord analytique.",
+        permissions: [
+          'Consulter et gérer toutes les formations et sessions',
+          'Accéder aux dossiers et inscriptions de tous les apprenants',
+          'Visualiser les tableaux de bord et statistiques',
+          'Superviser les partenaires et organisations',
+          'Consulter les reversements et commissions',
+        ],
+      },
+      AGENT: {
+        label: 'Agent comptable',
+        description: "Vous gérez la partie financière et commerciale de FORGES : devis, factures, paiements et suivi des règlements.",
+        permissions: [
+          'Créer et gérer les devis et factures (B2B et individuels)',
+          'Suivre les paiements et reversements partenaires',
+          'Marquer les devis comme payés',
+          'Accéder aux rapports financiers',
+          'Envoyer les factures par email aux organisations et apprenants',
+        ],
+      },
+      RESPONSABLE: {
+        label: 'Responsable pédagogique',
+        description: "Vous validez les dossiers apprenants et les formations soumises par les partenaires.",
+        permissions: [
+          'Valider ou rejeter les dossiers en attente',
+          'Valider les formations soumises par les partenaires',
+          'Accéder aux informations apprenants de votre périmètre',
+        ],
+      },
+      ADMIN: {
+        label: 'Administrateur',
+        description: "Vous avez un accès complet à toutes les fonctionnalités de la plateforme FORGES.",
+        permissions: [
+          'Accès complet à tous les modules',
+          'Gestion des comptes et des rôles',
+          'Configuration de la plateforme',
+        ],
+      },
+      GESTIONNAIRE: {
+        label: 'Gestionnaire',
+        description: "Vous gérez les opérations courantes de la plateforme.",
+        permissions: ['Gestion des formations et sessions', 'Suivi des apprenants'],
+      },
+    };
+
+    const config = roleConfig[role] || roleConfig.GESTIONNAIRE;
+    const subject = `Bienvenue sur FORGES — Votre compte ${config.label} est prêt`;
+
+    const permissionsHtml = config.permissions
+      .map(p => `<li style="margin:6px 0;color:#1C2833;">${p}</li>`)
+      .join('');
+
+    const permissionsText = config.permissions.map(p => `  • ${p}`).join('\n');
+
+    await this.sendEmail({
+      to: email,
+      subject,
+      text: this.buildTextEmail([
+        `Bonjour ${nom},`,
+        '',
+        `Votre compte ${config.label} FORGES vient d'être créé.`,
+        '',
+        config.description,
+        '',
+        'Ce que vous pouvez faire sur la plateforme :',
+        permissionsText,
+        '',
+        'Vos identifiants de connexion :',
+        `  Email : ${email}`,
+        `  Mot de passe temporaire : ${tempPassword}`,
+        '',
+        `Connectez-vous ici : ${loginUrl}`,
+        '',
+        'IMPORTANT : Ce mot de passe est temporaire. Changez-le dès votre première connexion.',
+        '',
+        "Pour toute question, contactez-nous : contact@forges-group.com",
+        '',
+        "L'equipe FORGES",
+      ]),
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#1C2833;line-height:1.6;max-width:600px;">
+          <h2 style="color:#1B4F72;margin-bottom:4px;">Bienvenue sur FORGES</h2>
+          <p style="color:#566573;margin-top:0;font-size:14px;">Votre espace <strong>${config.label}</strong> est prêt</p>
+
+          <p>Bonjour <strong>${nom}</strong>,</p>
+          <p>${config.description}</p>
+
+          <div style="background:#EBF5FB;border-left:4px solid #1B4F72;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;">
+            <p style="margin:0 0 10px;font-weight:bold;color:#1B4F72;">Ce que vous pouvez faire sur FORGES :</p>
+            <ul style="margin:0;padding-left:20px;">
+              ${permissionsHtml}
+            </ul>
+          </div>
+
+          <div style="background:#F9F9F9;border:1px solid #E8E8E8;border-radius:8px;padding:16px 20px;margin:20px 0;">
+            <p style="margin:0 0 8px;font-weight:bold;color:#1B4F72;">Vos identifiants de connexion</p>
+            <p style="margin:4px 0;">Email : <strong>${email}</strong></p>
+            <p style="margin:4px 0;">Mot de passe temporaire : <code style="background:#F0F0F0;padding:3px 8px;border-radius:4px;font-size:14px;">${tempPassword}</code></p>
+          </div>
+
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${loginUrl}" style="display:inline-block;background:#1B4F72;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Accéder à mon espace FORGES</a>
+          </p>
+          <p style="font-size:12px;color:#888;text-align:center;">Si le bouton ne fonctionne pas : <a href="${loginUrl}" style="color:#1B4F72;">${loginUrl}</a></p>
+
+          <p style="background:#FEF9E7;border:1px solid #F9E79F;border-radius:6px;padding:12px 16px;font-size:13px;">
+            <strong>Important :</strong> Ce mot de passe est temporaire. Vous devrez le modifier des votre premiere connexion.
+          </p>
+
+          <p style="color:#566573;font-size:12px;margin-top:24px;border-top:1px solid #EEE;padding-top:16px;">
+            Pour toute question, contactez-nous : <a href="mailto:contact@forges-group.com" style="color:#1B4F72;">contact@forges-group.com</a><br>
+            &copy; 2026 FORGES AGREGATEUR
+          </p>
+        </div>
+      `,
     });
   }
 
@@ -346,24 +572,136 @@ export class EmailService {
     });
   }
 
-  async sendCodeApporteur(email: string, code: string, langue: string): Promise<void> {
-    const title = 'Votre code apporteur FORGES';
+  async sendCodeApporteur(
+    email: string,
+    code: string,
+    langue: string,
+    nom?: string,
+    tauxCommissionPct?: number,
+  ): Promise<void> {
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+    const registerUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/register?ref=${code}`;
+    const taux = tauxCommissionPct ?? 5;
+    const greeting = nom ? `Bonjour <strong>${nom}</strong>,` : 'Bonjour,';
+    const greetingText = nom ? `Bonjour ${nom},` : 'Bonjour,';
+    const subject = 'Bienvenue sur FORGES — Votre compte Apporteur est activé';
+
+    await this.sendEmail({
+      to: email,
+      subject,
+      text: this.buildTextEmail([
+        greetingText,
+        '',
+        'Votre compte Apporteur FORGES est activé. Vous pouvez désormais recommander nos formations et percevoir une commission sur chaque inscription réalisée via votre lien.',
+        '',
+        `Votre taux de commission : ${taux}%`,
+        'Ce taux s\'applique sur le montant encaissé par FORGES pour chaque inscription générée par votre code.',
+        '',
+        'Comment ça marche :',
+        '  1. Partagez votre code ou lien de parrainage à vos contacts',
+        '  2. Ils s\'inscrivent via votre lien ou saisissent votre code',
+        '  3. A chaque paiement validé, une commission est créditée sur votre compte',
+        `  4. Dès que votre cumul atteint 5 000 XOF, le reversement est traité`,
+        '',
+        `Votre code apporteur : ${code}`,
+        `Votre lien de parrainage : ${registerUrl}`,
+        '',
+        `Accédez à votre tableau de bord pour suivre vos commissions : ${loginUrl}`,
+        '',
+        'Pour toute question : contact@forges-group.com',
+        '',
+        "L'equipe FORGES",
+      ]),
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#1C2833;line-height:1.6;max-width:600px;">
+          <h2 style="color:#6C3483;margin-bottom:4px;">Bienvenue sur FORGES</h2>
+          <p style="color:#566573;margin-top:0;font-size:14px;">Votre compte <strong>Apporteur</strong> est activé</p>
+
+          <p>${greeting}</p>
+          <p>Vous pouvez désormais recommander les formations FORGES et percevoir une commission sur chaque inscription réalisée via votre lien ou code.</p>
+
+          <div style="background:#F5EEF8;border-left:4px solid #6C3483;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;">
+            <p style="margin:0 0 10px;font-weight:bold;color:#6C3483;">Comment ça marche :</p>
+            <ol style="margin:0;padding-left:20px;color:#1C2833;">
+              <li style="margin:6px 0;">Partagez votre code ou lien de parrainage à vos contacts</li>
+              <li style="margin:6px 0;">Ils s'inscrivent via votre lien ou saisissent votre code à l'inscription</li>
+              <li style="margin:6px 0;">A chaque paiement validé, une commission est créditée sur votre compte</li>
+              <li style="margin:6px 0;">Dès que votre cumul atteint <strong>5 000 XOF</strong>, le reversement est traité</li>
+            </ol>
+          </div>
+
+          <div style="background:#F9F9F9;border:1px solid #E8E8E8;border-radius:8px;padding:16px 20px;margin:20px 0;">
+            <p style="margin:0 0 12px;font-weight:bold;color:#6C3483;">Vos informations d'apporteur</p>
+            <p style="margin:4px 0;font-size:13px;">Taux de commission : <strong style="font-size:20px;color:#6C3483;">${taux}%</strong></p>
+            <p style="margin:12px 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;">Votre code permanent</p>
+            <p style="margin:0;"><code style="background:#EEE;padding:6px 12px;border-radius:6px;font-size:13px;word-break:break-all;">${code}</code></p>
+            <p style="margin:12px 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;">Votre lien de parrainage</p>
+            <p style="margin:0;word-break:break-all;font-size:13px;"><a href="${registerUrl}" style="color:#6C3483;">${registerUrl}</a></p>
+          </div>
+
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${loginUrl}" style="display:inline-block;background:#6C3483;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Accéder à mon tableau de bord</a>
+          </p>
+          <p style="font-size:12px;color:#888;text-align:center;">Si le bouton ne fonctionne pas : <a href="${loginUrl}" style="color:#6C3483;">${loginUrl}</a></p>
+
+          <p style="color:#566573;font-size:12px;margin-top:24px;border-top:1px solid #EEE;padding-top:16px;">
+            Pour toute question : <a href="mailto:contact@forges-group.com" style="color:#6C3483;">contact@forges-group.com</a><br>
+            &copy; 2026 FORGES AGREGATEUR
+          </p>
+        </div>
+      `,
+    });
+  }
+
+  async sendVouchersOrganisation(
+    email: string,
+    codes: string[],
+    formationLabel: string,
+    organisationLabel?: string
+  ): Promise<void> {
+    const title = 'Vos vouchers organisation FORGES';
+    const intro = organisationLabel
+      ? `Suite au paiement de votre devis, vos vouchers pour l'organisation ${organisationLabel} sont prêts.`
+      : 'Suite au paiement de votre devis, vos vouchers organisation sont prêts.';
     await this.sendEmail({
       to: email,
       subject: title,
       text: this.buildTextEmail([
         'Bonjour,',
         '',
-        'Votre code apporteur a été activé.',
-        `Code apporteur: ${code}`,
-        'Partagez-le avec vos contacts pour suivre vos commissions.',
+        intro,
+        `Formation : ${formationLabel}`,
+        `Codes : ${codes.join(', ')}`,
+        'Merci de les distribuer à vos employés pour leurs inscriptions.',
+      ]),
+      html: this.buildHtmlEmail(title, [
+        'Bonjour,',
+        organisationLabel
+          ? `Suite au paiement de votre devis, vos vouchers pour l'organisation <strong>${organisationLabel}</strong> sont prêts.`
+          : 'Suite au paiement de votre devis, vos vouchers organisation sont prêts.',
+        `<strong>Formation :</strong> ${formationLabel}`,
+        `<strong>Codes :</strong> ${codes.join(', ')}`,
+        'Merci de les distribuer à vos employés pour leurs inscriptions.',
+      ]),
+    });
+  }
+
+  async sendVoucherRefuse(email: string, motif: string, langue: string): Promise<void> {
+    const title = 'Voucher promotionnel refusé';
+    await this.sendEmail({
+      to: email,
+      subject: title,
+      text: this.buildTextEmail([
+        'Bonjour,',
+        '',
+        'Votre voucher promotionnel a été refusé.',
+        `Motif: ${motif}`,
         `Langue du message: ${langue}`,
       ]),
       html: this.buildHtmlEmail(title, [
         'Bonjour,',
-        'Votre code apporteur a été activé.',
-        `<strong>Code apporteur :</strong> ${code}`,
-        'Partagez-le avec vos contacts pour suivre vos commissions.',
+        'Votre voucher promotionnel a été refusé.',
+        `<strong>Motif :</strong> ${motif}`,
         `Langue du message : ${langue}`,
       ]),
     });
@@ -478,7 +816,7 @@ export class EmailService {
     });
   }
 
-  async sendPaiementConfirme(email: string, formation: string, langue: string): Promise<void> {
+  async sendPaiementConfirme(email: string, formation: string): Promise<void> {
     const title = 'Paiement confirmé';
     await this.sendEmail({
       to: email,
@@ -488,13 +826,11 @@ export class EmailService {
         '',
         `Votre paiement pour la formation ${formation} a été confirmé.`,
         'Votre dossier peut continuer son traitement.',
-        `Langue du message: ${langue}`,
       ]),
       html: this.buildHtmlEmail(title, [
         'Bonjour,',
         `Votre paiement pour la formation <strong>${formation}</strong> a été confirmé.`,
         'Votre dossier peut continuer son traitement.',
-        `Langue du message : ${langue}`,
       ]),
     });
   }
@@ -670,6 +1006,7 @@ export class EmailService {
       date_debut: date_debut_session,
       date_fin: date_fin_session,
       delai_expiration,
+      delai_paiement_heures: getDelaiPaiementH().toString(),
       lien_paiement,
       site_url: process.env.FRONTEND_URL || 'https://forges.local',
       support_email: process.env.EMAIL_FROM || 'support@forges.local',
@@ -722,6 +1059,7 @@ export class EmailService {
       date_debut: date_debut_session,
       date_fin: date_fin_session,
       delai_expiration,
+      delai_paiement_heures: getDelaiPaiementH().toString(),
       heures_restantes: heures_restantes.toString(),
       lien_paiement,
       site_url: process.env.FRONTEND_URL || 'https://forges.local',
@@ -873,6 +1211,147 @@ export class EmailService {
     });
 
     await this.sendEmail({ to: admin_email, subject, html });
+  }
+
+  async sendAlerteFinEssai(email: string, dateFinEssai: Date, langue: string): Promise<void> {
+    const title = "Votre periode d'essai FORGES arrive a echeance";
+    await this.sendEmail({
+      to: email,
+      subject: title,
+      text: this.buildTextEmail([
+        'Bonjour,',
+        '',
+        `Votre periode d'essai se termine le ${dateFinEssai.toLocaleDateString('fr-FR')}.`,
+        'Souscrivez un abonnement Organisation pour conserver votre acces.',
+        `Langue du message: ${langue}`,
+      ]),
+      html: this.buildHtmlEmail(title, [
+        'Bonjour,',
+        `Votre periode d'essai se termine le <strong>${dateFinEssai.toLocaleDateString('fr-FR')}</strong>.`,
+        'Souscrivez un abonnement Organisation pour conserver votre acces.',
+        `Langue du message : ${langue}`,
+      ]),
+    });
+  }
+
+  async sendEnrolementConfirmationApprenant(options: {
+    to: string;
+    prenoms: string;
+    nom: string;
+    fonction?: string;
+    organisation: string;
+    formation: string;
+    session?: {
+      date_debut?: Date | string | null;
+      date_fin?: Date | string | null;
+      lieu?: string | null;
+    } | null;
+  }): Promise<void> {
+    const { to, prenoms, nom, organisation, formation, session } = options;
+    const { subject, text, html } = buildEnrollmentConfirmationEmail({
+      prenoms,
+      nom,
+      organisation,
+      formation,
+      session,
+    });
+
+    await this.sendEmail({
+      to,
+      subject,
+      text,
+      html,
+    });
+  }
+
+  async sendEnrolementDevisOrganisation(options: {
+    to: string;
+    contactReferent: string;
+    organisation: string;
+    formation: string;
+    numeroDevis: string;
+    nbPlaces: number;
+    tarifUnitaire: number;
+    montantTotal: number;
+    notesAdmin?: string;
+    pdfBuffer?: Buffer;
+    pdfFilename?: string;
+  }): Promise<void> {
+    const {
+      to, contactReferent, organisation, formation,
+      numeroDevis, nbPlaces, tarifUnitaire, montantTotal,
+      notesAdmin, pdfBuffer, pdfFilename,
+    } = options;
+
+    const tarifFormate = tarifUnitaire.toLocaleString('fr-FR');
+    const montantFormate = montantTotal.toLocaleString('fr-FR');
+    const sujet = `Devis ${numeroDevis} — Masterclass GWU/CCDL — FORGES`;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;">
+        <div style="background:#1a1a2e;padding:24px 32px;border-radius:8px 8px 0 0;">
+          <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700;letter-spacing:1px;">FORGES AGRÉGATEUR</h1>
+          <p style="color:#a0a8c0;margin:4px 0 0;font-size:13px;">Devis de formation — réf. ${numeroDevis}</p>
+        </div>
+
+        <div style="background:#f8f9fb;padding:32px;border-radius:0 0 8px 8px;">
+          <p style="font-size:15px;color:#333;margin-top:0;">Bonjour <strong>${contactReferent}</strong>,</p>
+          <p style="font-size:14px;color:#555;">
+            Veuillez trouver ci-joint le devis de participation de <strong>${organisation}</strong>
+            à la <strong>${formation}</strong>.
+          </p>
+
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:24px 0;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr style="background:#f1f5f9;">
+                <td style="padding:12px 16px;color:#666;font-weight:600;">Organisation</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:700;">${organisation}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;color:#666;">Formation</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:600;">${formation}</td>
+              </tr>
+              <tr style="background:#f1f5f9;">
+                <td style="padding:12px 16px;color:#666;">Nombre de places</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:600;">${nbPlaces}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;color:#666;">Tarif unitaire</td>
+                <td style="padding:12px 16px;text-align:right;font-weight:600;">${tarifFormate} FCFA</td>
+              </tr>
+              <tr style="border-top:2px solid #1a1a2e;">
+                <td style="padding:16px;font-weight:700;font-size:15px;">MONTANT TOTAL</td>
+                <td style="padding:16px;text-align:right;font-weight:700;font-size:18px;color:#1a1a2e;">${montantFormate} FCFA</td>
+              </tr>
+            </table>
+          </div>
+
+          ${notesAdmin ? `<p style="font-size:13px;color:#888;font-style:italic;border-left:3px solid #e2e8f0;padding-left:12px;">${notesAdmin}</p>` : ''}
+
+          <p style="font-size:14px;color:#555;">
+            Le devis en PDF est joint à cet email. Pour valider votre participation et procéder au règlement,
+            contactez notre équipe en répondant à ce message.
+          </p>
+
+          <div style="border-top:1px solid #e2e8f0;margin-top:32px;padding-top:20px;">
+            <p style="font-size:13px;color:#888;margin:0;">
+              FORGES AGRÉGATEUR — <a href="mailto:contact@forges-group.com" style="color:#1a1a2e;font-weight:600;">contact@forges-group.com</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (pdfBuffer && pdfFilename) {
+      await this.sendEmailWithAttachment({
+        to,
+        subject: sujet,
+        html,
+        attachment: { filename: pdfFilename, content: pdfBuffer, contentType: 'application/pdf' },
+      });
+    } else {
+      await this.sendEmail({ to, subject: sujet, html });
+    }
   }
 }
 

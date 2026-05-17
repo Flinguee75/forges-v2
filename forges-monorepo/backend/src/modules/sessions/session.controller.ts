@@ -131,6 +131,17 @@ export class SessionController {
     }
   }
 
+  // GET /api/backoffice/sessions/:id/dossiers - SUPERVISEUR|ADMIN|RESPONSABLE
+  async getDossiers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const dossiers = await this.sessionService.getDossiers(req.params.id);
+      res.status(200).json({ statusCode: 200, data: dossiers });
+    } catch (error: any) {
+      if (error.message === 'SESSION_NOT_FOUND') return res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+      next(error);
+    }
+  }
+
   // PATCH /api/backoffice/sessions/:id/close - SUPERVISEUR|ADMIN
   async closeManually(req: Request, res: Response, next: NextFunction) {
     try {

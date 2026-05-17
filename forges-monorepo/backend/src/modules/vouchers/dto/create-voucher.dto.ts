@@ -2,15 +2,15 @@ import { z } from 'zod';
 
 const baseVoucherSchema = z.object({
   formation_id: z.string().min(1),
+  devis_id: z.string().min(1).optional(),
   valeur: z.coerce.number().int().positive(),
   type_valeur: z.enum(['MONTANT', 'POURCENTAGE']),
   quota_max: z.coerce.number().int().positive(),
   date_expiration: z.coerce.date(),
 });
 
-export const CreateVoucherSchema = baseVoucherSchema.extend({
-  organisation_id: z.string().min(1),
-});
+// organisation_id comes from JWT token (req.user.userId), not from body
+export const CreateVoucherSchema = baseVoucherSchema;
 
 export const CreateVoucherPromotionnelSchema = baseVoucherSchema;
 

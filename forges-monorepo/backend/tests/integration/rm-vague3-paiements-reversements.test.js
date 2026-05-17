@@ -82,13 +82,24 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
   });
 
   test('RM-10 — remboursement manuel possible par admin', async () => {
+    const { createApprenantAccount, createPaiementAndConfirm: confirmPaiement } = require('./helpers');
     const adminHeaders = await auth(accounts.admin);
-    
-    // Créer un paiement confirmé
-    const paiement = await prisma.paiement.findFirst({ 
-      where: { statut: 'CONFIRME' }
+
+    // Créer un paiement CONFIRME dédié pour ce test (ne pas réutiliser le seed)
+    const apprenant = await createApprenantAccount('rm10-rembourse');
+    const apprenantHeaders = await auth(apprenant);
+    const inscription = await request(API_URL)
+      .post(`/api/sessions/${ids.standardSession}/inscrire`)
+      .set(apprenantHeaders)
+      .send({ source_financement: 'RETAIL' });
+    expect(inscription.status).toBe(201);
+    const dossierId = inscription.body.dossier?.id || inscription.body.data?.id;
+    expect(dossierId).toBeTruthy();
+    await confirmPaiement(apprenantHeaders, dossierId, 'rm10-rembourse', 150000);
+
+    const paiement = await prisma.paiement.findFirst({
+      where: { dossier_id: dossierId, statut: 'CONFIRME' },
     });
-    
     expect(paiement).toBeTruthy();
 
     // Tenter remboursement manuel
@@ -97,13 +108,10 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
       .set(adminHeaders)
       .send({ motif: 'Test remboursement manuel RM-10' });
 
-    // Vérifier que le remboursement est possible (endpoint existe)
-    expect([200, 201, 404, 400]).toContain(res.status);
-    
-    if (res.status === 200 || res.status === 201) {
-      expect(res.body.statut).toBe('REMBOURSE');
-      expect(res.body.motif).toBe('Test remboursement manuel RM-10');
-    }
+    // RM-10 : remboursement manuel admin — endpoint opérationnel
+    expect(res.status).toBe(200);
+    expect(res.body.data.statut).toBe('REMBOURSE');
+    expect(res.body.data.motif).toBe('Test remboursement manuel RM-10');
   });
 
   // ===== COMMISSIONS PARTENAIRES =====

@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { formationsApi } from '../../api/formations.api';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
+import { useSEO, getFormationSchema } from '../../hooks/useSEO';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -32,6 +33,10 @@ export default function FormationDetailPage() {
     item?.description || item?.description_courte || item?.description_longue || '';
   const getFormationDuree = (item) => item?.duree ?? item?.duree_jours;
   const getFormationTarif = (item) => item?.tarif ?? item?.cout_catalogue;
+  const getFormationDescriptionLongue = (item) => item?.description_longue || '';
+  const getFormationPrerequis = (item) => item?.prerequis || '';
+  const getFormationCompetences = (item) => item?.objectifs_pedagogiques || [];
+  const getCertificationDelivree = (item) => item?.certification_delivree || false;
 
   const loadFormationDetail = async () => {
     await executeFormation(() => formationsApi.getFormationDetail(id), {
@@ -55,6 +60,21 @@ export default function FormationDetailPage() {
     loadSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // SEO Hook - Mettre à jour les meta tags quand la formation est chargée
+  useSEO({
+    title: formation ? `${getFormationTitre(formation)} | FORGES` : 'FORGES',
+    description:
+      formation && getFormationDescription(formation)
+        ? getFormationDescription(formation)
+        : 'Découvrez cette formation certifiante',
+    keywords: formation
+      ? `${getFormationTitre(formation)}, formation, certification, FORGES`
+      : 'formation, certification',
+    canonical: `https://edu.forges-group.com/formations/${id}`,
+    ogImage: '/logo_forges.png',
+    schema: formation ? getFormationSchema(formation) : null,
+  });
 
   const handleInscription = () => {
     if (!user) {
@@ -118,11 +138,15 @@ export default function FormationDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* En-tête */}
             <Card>
-              <div className="mb-3">
-                <Badge variant="success" size="medium">
-                  {formation.statut || 'Publiée'}
-                </Badge>
-              </div>
+              {formation.image_url && (
+                <div className="-mx-6 -mt-6 mb-5 overflow-hidden rounded-t-lg">
+                  <img
+                    src={formation.image_url}
+                    alt={getFormationTitre(formation)}
+                    className="h-56 w-full object-cover"
+                  />
+                </div>
+              )}
               <h1 className="text-3xl font-bold text-primary mb-4">
                 {getFormationTitre(formation)}
               </h1>
@@ -131,13 +155,89 @@ export default function FormationDetailPage() {
 
             {/* Détails */}
             <Card title="Détails de la formation">
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Description courte */}
                 <div>
-                  <h3 className="font-semibold text-text mb-2">Description</h3>
-                  <p className="text-subtext whitespace-pre-line">
+                  <h3 className="font-semibold text-text mb-2">Aperçu</h3>
+                  <p className="text-subtext">
                     {getFormationDescription(formation) || 'Aucune description disponible.'}
                   </p>
                 </div>
+
+                {/* Description longue */}
+                {getFormationDescriptionLongue(formation) && (
+                  <div>
+                    <h3 className="font-semibold text-text mb-2">Description détaillée</h3>
+                    <div className="text-subtext whitespace-pre-wrap prose prose-sm max-w-none">
+                      {/* Parser HTML si présent */}
+                      {getFormationDescriptionLongue(formation).includes('<') ? (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: getFormationDescriptionLongue(formation),
+                          }}
+                          className="prose prose-sm max-w-none dark:prose-invert"
+                        />
+                      ) : (
+                        <p>{getFormationDescriptionLongue(formation)}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Prérequis */}
+                {getFormationPrerequis(formation) && (
+                  <div className="bg-blue-100 border-l-4 border-blue-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <svg className="w-5 h-5 text-blue-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 className="font-bold text-blue-900 text-base">
+                        Prérequis
+                      </h3>
+                    </div>
+                    <p className="text-blue-900 text-sm ml-8">
+                      {getFormationPrerequis(formation)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Compétences acquises / Objectifs pédagogiques */}
+                {getFormationCompetences(formation).length > 0 && (
+                  <div className="bg-green-100 border-l-4 border-green-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <svg className="w-5 h-5 text-green-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <h3 className="font-bold text-green-900 text-base">
+                        Compétences acquises
+                      </h3>
+                    </div>
+                    <ul className="space-y-2 ml-8">
+                      {getFormationCompetences(formation).map((competence, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-green-900 text-sm">
+                          <svg className="w-4 h-4 text-green-700 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                          </svg>
+                          <span>{competence}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Certification */}
+                {getCertificationDelivree(formation) && (
+                  <div className="bg-amber-100 border-l-4 border-amber-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 className="font-bold text-amber-900 text-base">
+                        Certification délivrée à l'issue de cette formation
+                      </h3>
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -230,25 +330,37 @@ export default function FormationDetailPage() {
                   </div>
                 )}
 
-                <div className="flex items-start gap-3">
-                  <svg
-                    className="w-5 h-5 text-secondary mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-text">Statut</p>
-                    <p className="text-sm text-subtext">{formation.statut}</p>
+
+
+                {formation.mode_formation && (
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-secondary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-text">Mode</p>
+                      <p className="text-sm text-subtext">
+                        {formation.mode_formation === 'PRESENTIEL' ? 'Présentiel'
+                          : formation.mode_formation === 'EN_LIGNE' ? 'En ligne'
+                          : formation.mode_formation === 'A_LA_DEMANDE' ? 'À la demande'
+                          : 'Sessions programmées'}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {formation.lieu && (
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-secondary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-text">Lieu</p>
+                      <p className="text-sm text-subtext">{formation.lieu}</p>
+                    </div>
+                  </div>
+                )}
 
                 {formation.responsable_id && (
                   <div className="flex items-start gap-3">
@@ -269,7 +381,7 @@ export default function FormationDetailPage() {
                       <p className="text-sm font-medium text-text">
                         Référence
                       </p>
-                      <p className="text-sm text-subtext font-mono">
+                      <p className="text-sm text-subtext font-mono text-xs">
                         {formation.id}
                       </p>
                     </div>
@@ -282,9 +394,6 @@ export default function FormationDetailPage() {
             {sessions.length > 0 && (
               <Card>
                 <div className="text-center">
-                  <p className="text-sm text-subtext mb-4">
-                    {sessions.length} session(s) ouverte(s) aux inscriptions
-                  </p>
                   <Button
                     variant="primary"
                     size="large"
@@ -373,6 +482,8 @@ function formatDate(dateString) {
   });
 }
 
-function formatDuration(hours) {
-  return `${hours} h`;
+function formatDuration(days) {
+  if (!days) return 'N/A';
+  if (days === 1) return '1 jour';
+  return `${days} jours`;
 }

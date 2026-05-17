@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { organisationApi } from '../../api/espace-organisation.api';
+import { authApi } from '../../api/auth.api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -16,6 +17,7 @@ import Badge from '../../components/ui/Badge';
 export default function ProfilOrganisationPage() {
   const [profil, setProfil] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [formData, setFormData] = useState({
     nom_legal: '',
     email_contact: '',
@@ -23,8 +25,15 @@ export default function ProfilOrganisationPage() {
     pays: '',
     langue_preferee: 'FR',
   });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [passwordError, setPasswordError] = useState('');
 
-  const { execute, isLoading } = useApi();
+  const { execute, isLoading, error } = useApi();
+  const { execute: executePassword, isLoading: isChangingPassword } = useApi();
   const { showToast } = useToast();
 
   const loadProfil = async () => {
@@ -88,6 +97,49 @@ export default function ProfilOrganisationPage() {
     });
   };
 
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('Les nouveaux mots de passe ne correspondent pas.');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('Le nouveau mot de passe doit contenir au moins 8 caractères.');
+      return;
+    }
+
+    if (!/[A-Z]/.test(passwordData.newPassword)) {
+      setPasswordError('Le nouveau mot de passe doit contenir au moins une majuscule.');
+      return;
+    }
+
+    if (!/[0-9]/.test(passwordData.newPassword)) {
+      setPasswordError('Le nouveau mot de passe doit contenir au moins un chiffre.');
+      return;
+    }
+
+    await executePassword(() => authApi.changePassword(
+      passwordData.currentPassword,
+      passwordData.newPassword
+    ), {
+      onSuccess: () => {
+        setShowPasswordForm(false);
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        showToast('Mot de passe modifié avec succès', 'success');
+      },
+      onError: (err) => {
+        setPasswordError(err?.message || 'Mot de passe actuel incorrect.');
+      },
+    });
+  };
+
   const getStatutBadge = (statut) => {
     const mapping = {
       ACTIVE: { variant: 'success', label: 'Active' },
@@ -116,7 +168,16 @@ export default function ProfilOrganisationPage() {
   }
 
   if (!profil) {
-    return null;
+    return (
+      <div className="mx-auto max-w-4xl">
+        <div className="rounded-lg border border-danger bg-danger/5 p-6">
+          <p className="font-semibold text-danger">Impossible de charger le profil</p>
+          <p className="mt-1 text-sm text-subtext">
+            {error || 'Une erreur est survenue. Veuillez recharger la page.'}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -288,6 +349,83 @@ export default function ProfilOrganisationPage() {
                   <p className="font-medium text-text">{profil.contact_referent || '-'}</p>
                 </div>
               </div>
+            </div>
+
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-primary">
+                  Sécurité
+                </h3>
+                {!showPasswordForm && (
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setShowPasswordForm(true)}
+                  >
+                    Changer le mot de passe
+                  </Button>
+                )}
+              </div>
+
+              {showPasswordForm ? (
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <Input
+                    label="Mot de passe actuel"
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData((current) => ({ ...current, currentPassword: e.target.value }))}
+                    required
+                  />
+                  <Input
+                    label="Nouveau mot de passe"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData((current) => ({ ...current, newPassword: e.target.value }))}
+                    required
+                  />
+                  <p className="text-xs text-subtext">
+                    Minimum 8 caractères, une majuscule et un chiffre.
+                  </p>
+                  <Input
+                    label="Confirmer le nouveau mot de passe"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData((current) => ({ ...current, confirmPassword: e.target.value }))}
+                    required
+                  />
+
+                  {passwordError && (
+                    <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger">
+                      {passwordError}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowPasswordForm(false);
+                        setPasswordError('');
+                        setPasswordData({
+                          currentPassword: '',
+                          newPassword: '',
+                          confirmPassword: '',
+                        });
+                      }}
+                    >
+                      Annuler
+                    </Button>
+                    <Button type="submit" loading={isChangingPassword}>
+                      Confirmer
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <p className="text-sm text-subtext">
+                  Votre mot de passe est chiffré. Vous pouvez le modifier ici à tout moment.
+                </p>
+              )}
             </div>
           </div>
         )}

@@ -9,6 +9,8 @@ export default function Modal({
   footer,
   size = 'medium',
   closeOnOverlay = true,
+  headerClassName = '',
+  titleClassName = '',
 }) {
   useEffect(() => {
     if (isOpen) {
@@ -54,8 +56,8 @@ export default function Modal({
       <div className={`bg-white rounded-lg shadow-xl w-full ${sizes[size]} max-h-[90vh] flex flex-col`}>
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <h2 className="text-xl font-semibold text-text">{title}</h2>
+          <div className={`flex items-center justify-between px-6 py-4 border-b border-border ${headerClassName}`}>
+            <h2 className={`text-xl font-semibold text-text ${titleClassName}`}>{title}</h2>
             <button
               onClick={onClose}
               className="text-subtext hover:text-text transition-colors"
@@ -92,4 +94,6 @@ Modal.propTypes = {
   footer: PropTypes.node,
   size: PropTypes.oneOf(['small', 'medium', 'large', 'xlarge']),
   closeOnOverlay: PropTypes.bool,
+  headerClassName: PropTypes.string,
+  titleClassName: PropTypes.string,
 };

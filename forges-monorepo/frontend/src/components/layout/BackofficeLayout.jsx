@@ -44,6 +44,15 @@ export default function BackofficeLayout() {
         { name: 'Dossiers', href: '/backoffice/dossiers', icon: 'clipboardList', roles: ['ADMIN', 'SUPERVISEUR'] },
         { name: 'Paiements', href: '/backoffice/paiements', icon: 'cash', roles: ['ADMIN', 'AGENT'] },
         { name: 'Vouchers', href: '/backoffice/vouchers', icon: 'ticket', roles: ['ADMIN', 'AGENT'] },
+        { name: 'Devis', href: '/backoffice/devis', icon: 'document', roles: ['ADMIN', 'AGENT'] },
+      ],
+    },
+    {
+      title: 'Utilisateurs',
+      items: [
+        { name: 'Apprenants', href: '/backoffice/apprenants', icon: 'user', roles: ['ADMIN', 'SUPERVISEUR'] },
+        { name: 'Organisations', href: '/backoffice/organisations', icon: 'building', roles: ['ADMIN', 'SUPERVISEUR'] },
+        { name: 'Equipe backoffice', href: '/backoffice/equipe', icon: 'users', roles: ['ADMIN'] },
       ],
     },
     {
@@ -71,14 +80,13 @@ export default function BackofficeLayout() {
     {
       title: 'Bot admin',
       items: [
-        { name: 'Enquêtes catalogue', href: '/backoffice/bot/enquetes-catalogue', icon: 'clipboardList', roles: ['ADMIN', 'SUPERVISEUR'] },
-        { name: 'Feedbacks formations', href: '/backoffice/bot/feedbacks', icon: 'chartBar', roles: ['ADMIN', 'SUPERVISEUR', 'RESPONSABLE'] },
+        { name: 'Enquêtes catalogue', href: '/backoffice/bot/enquetes-catalogue', icon: 'clipboardList', roles: ['ADMIN'] },
+        { name: 'Feedbacks formations', href: '/backoffice/bot/feedbacks', icon: 'chartBar', roles: ['ADMIN', 'RESPONSABLE'] },
       ],
     },
     {
       title: 'Administration',
       items: [
-        { name: 'Comptes', href: '/backoffice/comptes', icon: 'users', roles: ['ADMIN'] },
         { name: 'Configuration', href: '/backoffice/config', icon: 'cog', roles: ['ADMIN'] },
       ],
     },
@@ -90,7 +98,7 @@ export default function BackofficeLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-bg md:flex">
+    <div className="flex min-h-screen bg-bg">
       <Sidebar
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -103,15 +111,16 @@ export default function BackofficeLayout() {
           .filter((section) => section.items.length > 0)}
       />
 
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Navbar
           variant="private"
           title="Espace Backoffice"
           user={user}
           onLogout={handleLogout}
+          onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
 

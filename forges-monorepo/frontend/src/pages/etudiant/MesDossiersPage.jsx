@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { etudiantApi } from '../../api/espace-etudiant.api';
+import { trackClick } from '../../utils/analytics';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
 import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 /**
  * MesDossiersPage - Liste des dossiers d'inscription de l'apprenant
@@ -51,24 +53,15 @@ export default function MesDossiersPage() {
   }, [filters]);
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'gray', label: 'En attente de verification' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'success', label: 'Paiement direct' },
-      PAYE: { variant: 'success', label: 'Paye' },
-      CONFIRME: { variant: 'success', label: 'Confirme' },
-      REJETE: { variant: 'danger', label: 'Rejete' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Liste grise' },
-      EXCEPTION: { variant: 'warning', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  const isPaiementConfirme = (dossier) =>
+    dossier?.paiement?.statut === 'CONFIRME' || dossier?.statut === 'PAYE';
+
+  const canPay = (dossier) =>
+    ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && !isPaiementConfirme(dossier);
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -114,9 +107,8 @@ export default function MesDossiersPage() {
       key: 'montant',
       label: 'Montant',
       render: (_, dossier) => {
-        const montant = getFormationTarif(dossier);
-        const remise = dossier.montant_remise || 0;
-        const final = montant - remise;
+        const final = dossier.paiement?.montant_final ?? getFormationTarif(dossier);
+        const remise = dossier.paiement?.reduction_appliquee || 0;
         return (
           <div>
             <div className="font-medium">
@@ -138,21 +130,24 @@ export default function MesDossiersPage() {
         <div className="flex flex-col gap-1">
           <Link
             to={`/apprenant/dossiers/${dossier.id}`}
+            onClick={() => trackClick('link-dossier-detail', { dossierId: dossier.id, statut: dossier.statut })}
             className="text-sm text-primary hover:underline"
           >
             Voir détails
           </Link>
-          {(dossier.statut === 'PAYE' || dossier.statut === 'CONFIRME') && (
+          {isPaiementConfirme(dossier) && (
             <Link
               to={`/apprenant/attestations?dossier=${dossier.id}`}
+              onClick={() => trackClick('link-attestation-pdf', { dossierId: dossier.id })}
               className="text-sm text-success hover:underline"
             >
               Attestation
             </Link>
           )}
-          {(dossier.statut === 'RETENU' || dossier.statut === 'PAYE_DIRECTEMENT') && (
+          {canPay(dossier) && (
             <Link
               to="/apprenant/paiements"
+              onClick={() => trackClick('btn-payer', { dossierId: dossier.id, statut: dossier.statut })}
               className="text-sm text-warning hover:underline"
             >
               Payer
@@ -180,16 +175,17 @@ export default function MesDossiersPage() {
             </label>
             <select
               value={filters.statut}
-              onChange={(e) =>
-                setFilters({ ...filters, statut: e.target.value, page: 1 })
-              }
+              onChange={(e) => {
+                trackClick('filter-statut', { statut: e.target.value });
+                setFilters({ ...filters, statut: e.target.value, page: 1 });
+              }}
               className="w-full rounded-lg border border-border px-3 py-2 focus:border-primary focus:outline-none"
             >
               <option value="">Tous les statuts</option>
               <option value="EN_ATTENTE">En attente</option>
               <option value="EN_ATTENTE_VERIFICATION">En attente de verification</option>
               <option value="RETENU">Retenu</option>
-              <option value="PAYE_DIRECTEMENT">Paiement direct</option>
+              <option value="PAYE_DIRECTEMENT">Paiement requis</option>
               <option value="PAYE">Paye</option>
               <option value="CONFIRME">Confirme</option>
               <option value="REJETE">Rejete</option>

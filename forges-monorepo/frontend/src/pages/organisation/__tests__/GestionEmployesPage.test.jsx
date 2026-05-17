@@ -39,6 +39,10 @@ const mockMembresData = {
       nom: 'Dupont',
       prenom: 'Jean',
       statut: 'ACTIF',
+      derniere_inscription: {
+        id: 'dossier-1',
+        statut: 'PAYE',
+      },
     },
     {
       id: '2',
@@ -82,6 +86,18 @@ describe('GestionEmployesPage - Tests', () => {
       expect(screen.getByText('Dupont')).toBeInTheDocument();
       expect(screen.getByText('Jean')).toBeInTheDocument();
       expect(screen.getByText('marie.martin@example.com')).toBeInTheDocument();
+    });
+  });
+
+  it('affiche le statut du dernier dossier quand il est fourni par l API', async () => {
+    render(
+      <BrowserRouter>
+        <GestionEmployesPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Payé')).toBeInTheDocument();
     });
   });
 
@@ -132,13 +148,19 @@ describe('GestionEmployesPage - Tests', () => {
     const emailInputs = screen.getAllByLabelText(/Email/i);
     const nomInputs = screen.getAllByLabelText(/Nom/i);
     const prenomInputs = screen.getAllByLabelText(/Prénom/i);
+    const secteurInputs = screen.getAllByLabelText(/Secteur d'activité/i);
+    const comboboxes = screen.getAllByRole('combobox');
 
     expect(emailInputs.length).toBeGreaterThan(0);
     expect(nomInputs.length).toBeGreaterThan(0);
     expect(prenomInputs.length).toBeGreaterThan(0);
+    expect(secteurInputs.length).toBeGreaterThan(0);
+    expect(comboboxes.length).toBeGreaterThan(0);
   });
 
-  it('affiche les boutons Supprimer pour chaque employé', async () => {
+  it('rattache automatiquement le membre à l organisation lors de la création', async () => {
+    const user = userEvent.setup();
+
     render(
       <BrowserRouter>
         <GestionEmployesPage />
@@ -146,7 +168,38 @@ describe('GestionEmployesPage - Tests', () => {
     );
 
     await waitFor(() => {
-      const deleteButtons = screen.getAllByText('Supprimer');
+      expect(screen.getByText('Ajouter un employé')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Ajouter un employé'));
+    await user.type(screen.getAllByLabelText(/Email/i)[0], 'nouveau@orga.ci');
+    await user.type(screen.getAllByLabelText(/Nom/i)[0], 'Diallo');
+    await user.type(screen.getAllByLabelText(/Prénom/i)[0], 'Amina');
+    await user.type(screen.getAllByLabelText(/Secteur d'activité/i)[0], 'Finance');
+
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }));
+
+    await waitFor(() => {
+      expect(organisationApi.organisationApi.createMembre).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'nouveau@orga.ci',
+          nom: 'Diallo',
+          prenom: 'Amina',
+          secteur_activite: 'Finance',
+        })
+      );
+    });
+  });
+
+  it('affiche les boutons Désactiver pour chaque employé', async () => {
+    render(
+      <BrowserRouter>
+        <GestionEmployesPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      const deleteButtons = screen.getAllByText('Désactiver');
       expect(deleteButtons.length).toBe(2);
     });
   });

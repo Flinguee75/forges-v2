@@ -281,7 +281,7 @@ export default function ValidationFormation() {
       <Card className="mb-6 border-2 border-primary">
         <div className="mb-4 rounded-lg bg-primary/10 p-3">
           <p className="text-sm font-semibold text-primary">
-            ⚠️ Section critique (RM-127): type_formation assignable UNIQUEMENT ici
+            Ces champs sont assignés exclusivement lors de la validation. Toute modification ultérieure nécessite une nouvelle validation.
           </p>
         </div>
 
@@ -301,7 +301,7 @@ export default function ValidationFormation() {
             >
               <option value="STANDARD">STANDARD - Formation incluse dans les abonnements</option>
               <option value="PREMIUM">PREMIUM - Formation avec vérification responsable</option>
-              <option value="SUR_DEVIS">SUR_DEVIS - Tarification personnalisée</option>
+              <option value="SUR_DEVIS">Sur devis - Tarification personnalisée</option>
             </select>
             <p className="mt-1 text-xs text-subtext">
               Ce champ détermine le parcours d'inscription et l'éligibilité aux abonnements.
@@ -325,7 +325,7 @@ export default function ValidationFormation() {
               <option value="TOUS">TOUS - Tous les types d'abonnés</option>
             </select>
             <p className="mt-1 text-xs text-subtext">
-              Définit qui peut accéder à cette formation via abonnement (RM-102).
+              Définit qui peut accéder à cette formation via abonnement.
             </p>
           </div>
         </div>
@@ -359,12 +359,12 @@ export default function ValidationFormation() {
           </div>
 
           <div className="rounded-lg border-2 border-success bg-success/10 p-4">
-            <h4 className="mb-3 font-semibold text-success">Calcul automatique (RM-137)</h4>
+            <h4 className="mb-3 font-semibold text-success">Prix catalogue calculé automatiquement</h4>
             <p className="text-sm text-text">
               Le prix catalogue est calculé par FORGES côté backend à partir du prix coûtant et de la configuration globale.
             </p>
             <p className="mt-2 text-xs text-subtext">
-              Le partenaire ne saisit ni ne voit la commission FORGES dans cette étape (RM-129 / RM-130).
+              Le partenaire reçoit le montant net indiqué ci-dessus. La commission FORGES est déduite en interne et n'est pas visible dans cette interface.
             </p>
           </div>
         </div>

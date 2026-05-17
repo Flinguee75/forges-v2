@@ -86,8 +86,8 @@ export default function FormationsList() {
             </h2>
             <p className="mt-2 text-subtext">
               {user?.role === 'RESPONSABLE'
-                ? 'Gérez vos formations assignées.'
-                : 'Gérez toutes les formations de la plateforme.'}
+                ? 'Formations à valider ou à suivre.'
+                : 'Catalogue des formations actives et en attente.'}
             </p>
           </div>
           <Button onClick={() => navigate('/backoffice/formations/new')}>

@@ -7,10 +7,9 @@ import { AbonnementRetailRepository } from './retail/abonnement-retail.repositor
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Shared services
 const auditLogger = new AuditLogger();
@@ -27,7 +26,7 @@ const orgService = new AbonnementOrganisationService(prisma, auditLogger, emailS
 const b2bService = new AbonnementB2BService(prisma, auditLogger, emailService);
 
 // Controller
-const abonnementController = new AbonnementController(retailService, orgService, b2bService);
+const abonnementController = new AbonnementController(retailService, orgService, b2bService, prisma);
 
 // ============================================
 // ROUTES RETAIL (Apprenant individuel)
@@ -68,6 +67,14 @@ router.delete('/retail', authenticate, authorize('APPRENANT'), (req, res, next) 
   abonnementController.resilierRetail(req, res, next);
 });
 
+// Alias pour Newman UCS12
+router.delete('/retail/cancel', authenticate, authorize('APPRENANT'), (req, res, next) => {
+  abonnementController.resilierRetail(req, res, next);
+});
+router.post('/retail/cancel', authenticate, authorize('APPRENANT'), (req, res, next) => {
+  abonnementController.resilierRetail(req, res, next);
+});
+
 // ============================================
 // ROUTES ORGANISATION
 // ============================================
@@ -99,6 +106,37 @@ router.post('/b2b', authenticate, authorize('ORGANISATION'), (req, res, next) =>
 // PUT /api/abonnements/b2b/monter-palier - Changer palier B2B
 router.put('/b2b/monter-palier', authenticate, authorize('ORGANISATION'), (req, res, next) => {
   abonnementController.monterPalierB2B(req, res, next);
+});
+
+// GET /api/abonnements/b2b/apprenants - Liste apprenants liés au B2B
+router.get('/b2b/apprenants', authenticate, authorize('ORGANISATION'), async (req, res, next) => {
+  try {
+    const abonnement = await b2bService.getAbonnementActif(req.user!.userId);
+    return res.status(200).json({
+      statusCode: 200,
+      data: {
+        palier: abonnement?.palier || null,
+        nb_max: abonnement?.nb_max || 0,
+        apprenants: []
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================
+// ROUTES BACKOFFICE
+// ============================================
+
+// GET /api/abonnements/backoffice - Vue consolidée tous les abonnements (ADMIN, SUPERVISEUR, AGENT)
+router.get('/backoffice', authenticate, authorize('ADMIN', 'SUPERVISEUR', 'AGENT'), (req, res, next) => {
+  abonnementController.getAllAbonnementsBackoffice(req, res, next);
+});
+
+// GET /api/abonnements/backoffice/contrat-institutionnel - Contrats institutionnels (ADMIN)
+router.get('/backoffice/contrat-institutionnel', authenticate, authorize('ADMIN'), (req, res, next) => {
+  abonnementController.getContratsInstitutionnelsBackoffice(req, res, next);
 });
 
 // ============================================

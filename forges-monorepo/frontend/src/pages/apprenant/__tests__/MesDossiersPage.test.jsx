@@ -49,8 +49,8 @@ describe('MesDossiersPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Formation test')).toBeInTheDocument();
-      expect(screen.getByText('Retenu')).toBeInTheDocument();
-      expect(screen.getByText(/Paiement direct/)).toBeInTheDocument();
+      expect(screen.getAllByText('Retenu').length).toBeGreaterThan(1);
+      expect(screen.getByText(/Paiement apprenant/)).toBeInTheDocument();
     });
 
     expect(apprenantApi.getMesDossiers).toHaveBeenCalledWith();

@@ -24,7 +24,7 @@ export const inscriptionsApi = {
    * @returns {Promise} Liste paginée de dossiers
    */
   getAllBackoffice: async (params = {}) => {
-    return apiClient.get('/dossiers/list', {
+    return apiClient.get('/backoffice/dossiers', {
       params: cleanQueryParams(params),
     });
   },

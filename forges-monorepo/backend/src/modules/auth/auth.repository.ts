@@ -23,6 +23,7 @@ export class UserRepository {
       role: 'ORGANISATION' as const,
       statut: organisation.statut,
       langue_preferee: organisation.langue_preferee,
+      raison_sociale: organisation.raison_sociale,
       source: 'ORGANISATION' as const,
     };
   }

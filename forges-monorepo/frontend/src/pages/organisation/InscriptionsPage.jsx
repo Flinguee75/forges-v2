@@ -7,6 +7,7 @@ import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Spinner from '../../components/feedback/Spinner';
 import Pagination from '../../components/ui/Pagination';
+import { getDossierStatutMeta } from '../../utils/dossierStatus';
 
 /**
  * InscriptionsPage - Liste des inscriptions des employés
@@ -60,21 +61,7 @@ export default function InscriptionsPage() {
   }, [filters]);
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En attente de vérification' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      PAYE_DIRECTEMENT: { variant: 'success', label: 'Payé directement' },
-      PAYE: { variant: 'success', label: 'Payé' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REJETE: { variant: 'danger', label: 'Rejeté' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Liste grise' },
-      EXCEPTION: { variant: 'warning', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
@@ -85,13 +72,13 @@ export default function InscriptionsPage() {
 
   const formatMontant = (montant) => {
     if (!montant) return '0 FCFA';
-    return `${Math.round(Number(montant || 0)).toLocaleString('fr-FR')} FCFA`;
+    return `${Math.round(Number(montant) / 100).toLocaleString('fr-FR')} FCFA`;
   };
 
   const columns = [
     {
       key: 'etudiant',
-      label: 'Employé',
+      label: 'Employe',
       render: (_, dossier) => {
         const etudiant = dossier.etudiant || {};
         return `${etudiant.prenom || ''} ${etudiant.nom || ''}`.trim() || 'N/A';
@@ -100,7 +87,7 @@ export default function InscriptionsPage() {
     {
       key: 'formation',
       label: 'Formation',
-      render: (_, dossier) => dossier.session?.formation?.titre || 'N/A',
+      render: (_, dossier) => dossier.formation?.intitule || dossier.session?.formation?.titre || 'N/A',
     },
     {
       key: 'session',
@@ -111,15 +98,26 @@ export default function InscriptionsPage() {
       key: 'montant',
       label: 'Montant',
       render: (_, dossier) => {
-        const tarif = dossier.session?.formation?.tarif || 0;
-        const remise = dossier.montant_remise || 0;
-        return formatMontant(tarif - remise);
+        const montant_final = dossier.paiement?.montant_final;
+        const montant = (montant_final != null && montant_final > 0)
+          ? montant_final
+          : dossier.session?.formation?.tarif ?? dossier.formation?.cout_catalogue ?? 0;
+        return formatMontant(montant);
       },
     },
     {
       key: 'statut',
       label: 'Statut',
-      render: (value) => getStatutBadge(value),
+      render: (_, dossier) => (
+        <div className="flex flex-col gap-1">
+          {getStatutBadge(dossier.statut)}
+          {dossier.organisation_inscriptrice_id && (
+            <Badge variant="info" size="small" data-testid="badge-inscrit-par-org">
+              Inscrit par l'org
+            </Badge>
+          )}
+        </div>
+      ),
     },
     {
       key: 'created_at',
@@ -188,16 +186,11 @@ export default function InscriptionsPage() {
               >
                 <option value="">Tous</option>
                 <option value="EN_ATTENTE">En attente</option>
-                <option value="EN_ATTENTE_VERIFICATION">En attente de vérification</option>
-                <option value="RETENU">Retenu</option>
-                <option value="PAYE_DIRECTEMENT">Payé directement</option>
-                <option value="PAYE">Payé</option>
+                <option value="EN_ATTENTE_VERIFICATION">En vérification</option>
+              <option value="PAYE_DIRECTEMENT">Paiement requis</option>
+                <option value="PAYE">Payé (confirmé)</option>
                 <option value="CONFIRME">Confirmé</option>
                 <option value="REJETE">Rejeté</option>
-                <option value="REFUSE">Refusé</option>
-                <option value="GRIS">Liste grise</option>
-                <option value="EXCEPTION">Exception</option>
-                <option value="ARCHIVE">Archivé</option>
                 <option value="ANNULE">Annulé</option>
               </select>
             </div>

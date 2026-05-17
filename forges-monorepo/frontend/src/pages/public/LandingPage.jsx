@@ -4,15 +4,75 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FeatureIcon from '../../components/ui/FeatureIcon';
 import logoForges from '../../assets/logo_forges.png';
-import StatusBadge from '../../components/ui/StatusBadge';
+import logoForgesWebp from '../../assets/logo_forges.webp';
+import logoAspire from '../../assets/logo_aspire.png';
+import logoAiCrafters from '../../assets/logo_ai_crafters.png';
+import imageCcdlGw from '../../assets/image_ccdl_gw.png';
+import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { formatPaymentExpirationShort } from '../../utils/paymentDeadline';
 
 /**
  * LandingPage - Page d'accueil publique haute conversion
  * Référence: CLAUDE.md section 17 - Étape F-5
  * Optimisée pour conversions et SEO
  */
+const COLLABORATEURS = [
+  { sigle: 'GWU/CCDL', nom: 'George Washington University & CCDL', logo: imageCcdlGw },
+  { sigle: 'ASPIRE', nom: 'Aspire Institute', logo: logoAspire },
+  { sigle: 'AIC', nom: 'AI Crafters', logo: logoAiCrafters },
+];
+
+const COULEURS_SIGLE = [
+  { bg: 'bg-primary', text: 'text-white' },
+  { bg: 'bg-secondary', text: 'text-white' },
+  { bg: 'bg-success', text: 'text-white' },
+  { bg: 'bg-apporteur', text: 'text-white' },
+];
+
+function CarouselCollaborateurs() {
+  const items = [...COLLABORATEURS, ...COLLABORATEURS];
+  return (
+    <div className="overflow-hidden relative w-full">
+      <style>{`
+        @keyframes scroll-left {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .carousel-track {
+          display: flex;
+          width: max-content;
+          animation: scroll-left 18s linear infinite;
+        }
+        .carousel-track:hover { animation-play-state: paused; }
+      `}</style>
+      <div
+        className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(to right, white, transparent)' }}
+      />
+      <div
+        className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(to left, white, transparent)' }}
+      />
+      <div className="carousel-track gap-8 px-4">
+        {items.map((c, idx) => (
+          <div key={idx} className="flex flex-col items-center gap-3 w-48 flex-shrink-0">
+            <div className="w-36 h-36 rounded-2xl flex items-center justify-center shadow-md overflow-hidden bg-white border border-gray-100">
+              {c.logo
+                ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain p-3 mix-blend-multiply" />
+                : <span className={`text-sm text-center px-2 font-bold drop-shadow-md ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].bg} ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].text}`}>{c.sigle}</span>}
+            </div>
+            <p className="text-xs text-center text-subtext font-medium leading-tight max-w-[10rem]">{c.nom}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -36,11 +96,14 @@ export default function LandingPage() {
               <div className="relative">
                 {/* Glow effect */}
                 <div className="absolute inset-0 bg-white/40 rounded-full blur-3xl scale-110" aria-hidden="true"></div>
-                <img
-                  src={logoForges}
-                  alt="FORGES"
-                  className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full object-cover shadow-2xl ring-8 ring-white/20"
-                />
+                <picture>
+                  <source srcSet={logoForgesWebp} type="image/webp" />
+                  <img
+                    src={logoForges}
+                    alt="FORGES"
+                    className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full object-cover shadow-2xl ring-8 ring-white/20"
+                  />
+                </picture>
               </div>
             </div>
 
@@ -63,21 +126,16 @@ export default function LandingPage() {
             </p>
 
             {/* Value Proposition */}
-            <p className="text-base md:text-lg mb-10 opacity-95 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg mb-10 text-white/95 max-w-2xl mx-auto leading-relaxed">
               Inscription en ligne, paiements sécurisés, suivi en temps réel et attestations officielles.
               Tout ce dont vous avez besoin pour gérer vos formations du début à la fin.
             </p>
 
             {/* Strong CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to="/register">
-                <Button variant="white" size="large" className="min-w-[240px] font-semibold">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
+              <Link to="/register" className="min-h-[48px] min-w-[280px] inline-flex items-center justify-center">
+                <Button variant="white" size="large" className="min-w-[280px] min-h-[48px] font-semibold px-8 py-3">
                   Créer un compte gratuit
-                </Button>
-              </Link>
-              <Link to="/catalogue">
-                <Button variant="white" size="large" className="min-w-[240px] font-semibold bg-transparent border-2 border-white hover:bg-white hover:bg-opacity-10">
-                  Explorer le catalogue
                 </Button>
               </Link>
             </div>
@@ -86,23 +144,115 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto pt-10 border-t border-white border-opacity-20">
               <div className="flex flex-col items-center">
                 <div className="text-4xl md:text-5xl font-bold mb-2">100%</div>
-                <div className="text-sm md:text-base opacity-90">Digital & Mobile</div>
+                <div className="text-sm md:text-base text-white/95">Digital & Mobile</div>
               </div>
               <div className="flex flex-col items-center">
                 <div className="text-4xl md:text-5xl font-bold mb-2">Sécurisé</div>
-                <div className="text-sm md:text-base opacity-90">Paiements Mobile Money</div>
+                <div className="text-sm md:text-base text-white/95">Paiements Mobile Money</div>
               </div>
               <div className="flex flex-col items-center">
                 <div className="text-4xl md:text-5xl font-bold mb-2">Rapide</div>
-                <div className="text-sm md:text-base opacity-90">Inscription en 2 minutes</div>
+                <div className="text-sm md:text-base text-white/95">Inscription en 2 minutes</div>
               </div>
             </div>
 
             {/* Social Proof Teaser */}
-            <div className="mt-12 text-sm opacity-80">
+            <div className="mt-12 text-sm text-white/90">
               Rejoignez les professionnels et organisations qui développent leurs compétences avec FORGES
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Formation Vedette — Masterclass GWU/CCDL */}
+      <section className="py-20 bg-gradient-to-br from-primary to-secondary text-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-10">
+              <span className="inline-block bg-white bg-opacity-20 text-white text-xs font-bold uppercase tracking-widest px-4 py-1 rounded-full mb-4">
+                Formation Bientôt Disponible
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-3">
+                Masterclass GWU/CCDL — Cybersécurité & IA
+              </h2>
+              <p className="text-lg text-white/95">
+                Masterclass internationale co-délivrée par la George Washington University et le CCDL. 10 jours intensifs sur la cybersécurité stratégique et la gouvernance IA, du 1er au 11 juin 2026 à Abidjan. Certification reconnue par le gouvernement ivoirien, badge numérique vérifiable.
+              </p>
+            </div>
+
+            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white border-opacity-20">
+              <div className="grid md:grid-cols-2">
+                {/* Image GWU/CCDL */}
+                <div className="relative min-h-64 md:min-h-0">
+                  <picture>
+                    <source srcSet={imageCcdlGwWebp} type="image/webp" />
+                    <img
+                      src={imageCcdlGw}
+                      alt="Masterclass GWU CCDL"
+                      className="w-full h-full object-contain bg-white/10"
+                    />
+                  </picture>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                </div>
+
+                {/* Infos */}
+                <div className="p-8 space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Durée</p>
+                      <p className="font-semibold text-sm">10 jours</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Format</p>
+                      <p className="font-semibold text-sm">Présentiel</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Lieu</p>
+                      <p className="font-semibold text-sm">AIGF, Anoumabo, Abidjan</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
+                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Tarif</p>
+                      <p className="font-bold text-lg">3 000 000 FCFA</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 text-sm text-white/95">
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      Maîtriser le paysage mondial des menaces cyber et cadres de gouvernance
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      Comprendre opportunités, risques et implications stratégiques de l'IA
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      Certification Certified Strategic Cybersecurity & AI Governance Analyst
+                    </li>
+                  </ul>
+                  <Link to="/catalogue">
+                    <Button variant="white" size="large" className="w-full font-semibold">
+                      S'inscrire à cette formation
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Nos Partenaires */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
+              Nos Partenaires
+            </h2>
+            <p className="text-lg text-subtext max-w-2xl mx-auto">
+              FORGES s'appuie sur un réseau de partenaires académiques, institutionnels et privés de premier plan
+            </p>
+          </div>
+          <CarouselCollaborateurs />
         </div>
       </section>
 
@@ -248,7 +398,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Paiements locaux acceptés</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Paiements locaux acceptés</h3>
                 <p className="text-sm text-subtext">Mobile Money, Orange Money, Wave, cartes bancaires et virements : tous les modes de paiement africains sont pris en charge</p>
               </div>
             </div>
@@ -258,7 +408,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Attestations officielles en PDF</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Attestations officielles en PDF</h3>
                 <p className="text-sm text-subtext">Téléchargez vos attestations certifiées immédiatement après validation de votre formation, sans déplacement</p>
               </div>
             </div>
@@ -268,7 +418,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Sécurité certifiée</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Sécurité certifiée</h3>
                 <p className="text-sm text-subtext">Vos données personnelles et paiements protégés par chiffrement AES-256 et conformes aux standards internationaux</p>
               </div>
             </div>
@@ -278,7 +428,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Accessible 24/7 partout</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Accessible 24/7 partout</h3>
                 <p className="text-sm text-subtext">Plateforme responsive accessible depuis mobile, tablette ou ordinateur, même avec une connexion faible</p>
               </div>
             </div>
@@ -288,7 +438,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Support client réactif</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Support client réactif</h3>
                 <p className="text-sm text-subtext">Équipe support disponible par email et téléphone pour vous accompagner à chaque étape de votre parcours</p>
               </div>
             </div>
@@ -298,7 +448,7 @@ export default function LandingPage() {
                 <FeatureIcon type="check" color="success" size="small" />
               </div>
               <div>
-                <h4 className="font-semibold text-primary mb-2">Vouchers pour organisations</h4>
+                <h3 className="font-semibold text-primary mb-2 text-lg">Vouchers pour organisations</h3>
                 <p className="text-sm text-subtext">Système de vouchers prépayés pour former vos employés ou membres en masse avec tableau de bord consolidé</p>
               </div>
             </div>
@@ -395,8 +545,8 @@ export default function LandingPage() {
                 {openFaq === 2 && (
                   <div className="px-6 pb-4 text-subtext">
                     Une fois votre dossier d'inscription soumis, il est examiné par l'équipe de la formation
-                    dans un délai de 24 à 72 heures. Vous recevez une notification par email dès que votre
-                    dossier est validé. Le paiement doit être effectué dans les 72 heures suivant la validation.
+                    dans un délai de 24 à {formatPaymentExpirationShort(paymentExpirationHours)}. Vous recevez une notification par email dès que votre
+                    dossier est validé. Le paiement doit être effectué dans les {formatPaymentExpirationShort(paymentExpirationHours)} suivant la validation.
                   </div>
                 )}
               </div>
@@ -593,11 +743,6 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
-
-      {/* Status Bar */}
-      <div className="py-4 bg-bg border-t border-border flex justify-center">
-        <StatusBadge />
-      </div>
     </>
   );
 }

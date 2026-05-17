@@ -5,6 +5,9 @@ services:
     image: postgres:16-alpine
     container_name: forges-postgres-demo
     restart: unless-stopped
+    labels:
+      environment: demo
+      service: postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -23,6 +26,9 @@ services:
     image: redis:7-alpine
     container_name: forges-redis-demo
     restart: unless-stopped
+    labels:
+      environment: demo
+      service: redis
     command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$REDIS_PASSWORD\""]
     volumes:
       - redis-demo-data:/data
@@ -38,6 +44,9 @@ services:
     image: ${BACKEND_IMAGE}:demo-${IMAGE_TAG}
     container_name: forges-backend-demo
     restart: unless-stopped
+    labels:
+      environment: demo
+      service: backend
     env_file:
       - /var/www/vhosts/demo.forges-group.com/httpdocs/.env
     environment:

@@ -185,8 +185,8 @@ export default function MesAttestationsPage() {
           </li>
           <li>
             • En cas de problème, contactez le support à{' '}
-            <a href="mailto:support@forges.ci" className="text-primary hover:underline">
-              support@forges.ci
+            <a href="mailto:contact@forges.ci" className="text-primary hover:underline">
+              contact@forges.ci
             </a>
           </li>
         </ul>

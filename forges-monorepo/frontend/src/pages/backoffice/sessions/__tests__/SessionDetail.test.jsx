@@ -19,12 +19,25 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../../../../hooks/useApi', () => ({
   useApi: () => ({
     execute: vi.fn(async (fn, options) => {
-      const data = await fn();
-      options?.onSuccess?.(data);
-      return data;
+      try {
+        const data = await fn();
+        options?.onSuccess?.(data);
+        return data;
+      } catch (err) {
+        options?.onError?.(err);
+        throw err;
+      }
     }),
     isLoading: false,
     error: null,
+  }),
+}));
+
+const showToast = vi.fn();
+
+vi.mock('../../../../hooks/useToast', () => ({
+  useToast: () => ({
+    showToast,
   }),
 }));
 
@@ -40,6 +53,7 @@ vi.mock('../../../../api/sessions.api', () => ({
 describe('SessionDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    showToast.mockClear();
     sessionsApi.getById.mockResolvedValue({
       data: {
         id: 's-1',
@@ -77,6 +91,7 @@ describe('SessionDetail', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('Formation 1').length).toBeGreaterThan(0);
+      expect(screen.getByRole('button', { name: /Modifier/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Clôturer/i })).toBeInTheDocument();
       expect(screen.getByText('Awa Diop')).toBeInTheDocument();
     });
@@ -86,6 +101,29 @@ describe('SessionDetail', () => {
     await waitFor(() => {
       expect(sessionsApi.cloturerManuellement).toHaveBeenCalledWith('s-1');
       expect(sessionsApi.getDossiers).toHaveBeenCalledWith('s-1');
+    });
+  });
+
+  it('affiche une erreur claire quand l annulation échoue', async () => {
+    const user = userEvent.setup();
+    sessionsApi.annuler.mockRejectedValue({
+      response: { data: { error: 'INVALID_STATUT', message: 'La session ne peut pas être annulée.' } },
+    });
+
+    render(
+      <BrowserRouter>
+        <SessionDetail />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Annuler/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /Annuler/i }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('La session ne peut pas être annulée.', 'error');
     });
   });
 });

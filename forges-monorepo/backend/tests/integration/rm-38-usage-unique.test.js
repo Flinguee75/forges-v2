@@ -1,6 +1,29 @@
 const { auth, accounts, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
 
 describe('RM-38 — Usage Unique Voucher Organisation (Criticité 5)', () => {
+  async function cleanupVoucherInscription(voucherCode, extraWhere = {}) {
+    const dossiers = await prisma.dossier.findMany({
+      where: { voucher_code: voucherCode, ...extraWhere },
+      select: { id: true },
+    });
+    const dossierIds = dossiers.map((dossier) => dossier.id);
+
+    if (dossierIds.length > 0) {
+      const paiements = await prisma.paiement.findMany({
+        where: { dossier_id: { in: dossierIds } },
+        select: { id: true },
+      });
+      const paiementIds = paiements.map((paiement) => paiement.id);
+
+      if (paiementIds.length > 0) {
+        await prisma.commissionApporteur.deleteMany({ where: { paiement_id: { in: paiementIds } } });
+        await prisma.commissionPartenaire.deleteMany({ where: { paiement_id: { in: paiementIds } } });
+        await prisma.paiement.deleteMany({ where: { id: { in: paiementIds } } });
+      }
+      await prisma.dossier.deleteMany({ where: { id: { in: dossierIds } } });
+    }
+  }
+
   // Créer des vouchers uniques par test pour éviter pollution entre tests
   async function createTestVoucher(testId, quotaMax = 10) {
     const voucherCode = `ORG-RM38-${testId}-${Date.now()}`;
@@ -43,7 +66,7 @@ describe('RM-38 — Usage Unique Voucher Organisation (Criticité 5)', () => {
     expect(dossier.voucher_code).toBe(voucherCode);
 
     // Cleanup
-    await prisma.dossier.deleteMany({ where: { voucher_code: voucherCode } });
+    await cleanupVoucherInscription(voucherCode);
     await prisma.voucherApporteur.delete({ where: { code: voucherCode } });
   });
 
@@ -92,7 +115,7 @@ describe('RM-38 — Usage Unique Voucher Organisation (Criticité 5)', () => {
     // Cleanup
     await prisma.dossier.deleteMany({ where: { session_id: session2Id } });
     await prisma.session.delete({ where: { id: session2Id } });
-    await prisma.dossier.deleteMany({ where: { voucher_code: voucherCode } });
+    await cleanupVoucherInscription(voucherCode);
     await prisma.voucherApporteur.delete({ where: { code: voucherCode } });
 
     if (res2.status !== 422) {
@@ -157,7 +180,7 @@ describe('RM-38 — Usage Unique Voucher Organisation (Criticité 5)', () => {
     expect(voucher.quota_utilise).toBe(2);
 
     // Cleanup
-    await prisma.dossier.deleteMany({ where: { voucher_code: voucherCode } });
+    await cleanupVoucherInscription(voucherCode);
     await prisma.voucherApporteur.delete({ where: { code: voucherCode } });
   });
 
@@ -202,7 +225,7 @@ describe('RM-38 — Usage Unique Voucher Organisation (Criticité 5)', () => {
     expect(voucher.statut).toBe('EPUISE');
 
     // Cleanup
-    await prisma.dossier.deleteMany({ where: { voucher_code: voucherCode } });
+    await cleanupVoucherInscription(voucherCode);
     await prisma.voucherApporteur.delete({ where: { code: voucherCode } });
   });
 });

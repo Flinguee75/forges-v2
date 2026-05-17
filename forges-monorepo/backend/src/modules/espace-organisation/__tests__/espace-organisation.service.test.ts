@@ -5,6 +5,9 @@ import { RapportService } from '../rapport.service';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 
+jest.mock('bcrypt', () => ({ hash: jest.fn().mockResolvedValue('hashed-password') }));
+jest.mock('uuid', () => ({ v4: jest.fn().mockReturnValue('uuid-12345678901') }));
+
 describe('EspaceOrganisationService', () => {
   let service: EspaceOrganisationService;
   let mockRepo: jest.Mocked<EspaceOrganisationRepository>;
@@ -51,16 +54,65 @@ describe('EspaceOrganisationService', () => {
     } as any;
 
     mockPrisma = {
-      apprenant: { findFirst: jest.fn(), update: jest.fn() },
+      apprenant: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       abonnementB2B: { update: jest.fn() },
+      dossier: { findMany: jest.fn(), count: jest.fn(), findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+      paiement: { findMany: jest.fn(), count: jest.fn(), aggregate: jest.fn(), findUnique: jest.fn(), create: jest.fn(), updateMany: jest.fn() },
+      formation: { findUnique: jest.fn() },
+      voucherApporteur: { create: jest.fn() },
+      voucherOrganisation: { findFirst: jest.fn(), update: jest.fn() },
+      session: { findUnique: jest.fn() },
+      organisation: { update: jest.fn() },
+      $transaction: jest.fn(async (callback) => callback(mockPrisma)),
     };
 
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
-    mockEmail = {} as any;
+    mockEmail = {
+      sendTempPassword: jest.fn().mockResolvedValue(undefined),
+      sendEmail: jest.fn().mockResolvedValue(undefined),
+    } as any;
 
     service = new EspaceOrganisationService(
       mockRepo, mockImportCSV, mockRapport, mockPrisma, mockAudit, mockEmail
     );
+  });
+
+  // B3 — Dashboard doit retourner recent_inscriptions
+  describe('Dashboard — recent_inscriptions (B3)', () => {
+    it('retourne les inscriptions récentes de l\'organisation dans le dashboard', async () => {
+      const dossiersRecents = [
+        {
+          id: 'd-01',
+          statut: 'PAYE_DIRECTEMENT',
+          created_at: new Date(),
+          apprenant: { id: 'app-01', nom: 'Cisse', prenoms: 'Hassan', email: 'h@org.ci' },
+          formation: { id: 'f-01', intitule: 'Cybersécurité', type_formation: 'CERTIFIANTE' },
+          session: { date_debut: new Date('2026-06-01'), date_fin: new Date('2026-06-05'), statut: 'INSCRIPTIONS_OUVERTES' },
+        },
+      ];
+
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.getStatsOrganisation.mockResolvedValue({ nb_beneficiaires: 1, nb_inscriptions: 1, nb_vouchers_actifs: 0, montant_paye_total: 0 });
+      mockPrisma.dossier.findMany.mockResolvedValue(dossiersRecents);
+
+      const result = await service.getDashboard('org-01');
+
+      expect(result.recent_inscriptions).toBeDefined();
+      expect(Array.isArray(result.recent_inscriptions)).toBe(true);
+      expect(result.recent_inscriptions).toHaveLength(1);
+      expect(result.recent_inscriptions[0].apprenant.nom).toBe('Cisse');
+      expect(result.recent_inscriptions[0].formation.intitule).toBe('Cybersécurité');
+    });
+
+    it('retourne un tableau vide si aucune inscription récente', async () => {
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.getStatsOrganisation.mockResolvedValue({ nb_beneficiaires: 0, nb_inscriptions: 0, nb_vouchers_actifs: 0, montant_paye_total: 0 });
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+      const result = await service.getDashboard('org-01');
+
+      expect(result.recent_inscriptions).toEqual([]);
+    });
   });
 
   // RM-80/83 : essai et abonnement organisation
@@ -160,6 +212,96 @@ describe('EspaceOrganisationService', () => {
     });
   });
 
+  // B1 — getSuiviInscriptions doit retourner montant_final et cout_catalogue
+  describe('getSuiviInscriptions — montant (B1)', () => {
+    it('retourne montant_final du paiement dans les dossiers', async () => {
+      const dossiers = [
+        {
+          id: 'd-01',
+          statut: 'PAYE_DIRECTEMENT',
+          created_at: new Date(),
+          apprenant: { id: 'app-01', nom: 'Cisse', prenoms: 'Hassan', email: 'h@org.ci' },
+          formation: { id: 'f-01', intitule: 'Cybersécurité', type_formation: 'CERTIFIANTE', cout_catalogue: 300000000 },
+          session: { date_debut: new Date('2026-06-01'), date_fin: new Date('2026-06-05'), statut: 'INSCRIPTIONS_OUVERTES' },
+          paiement: { statut: 'EN_ATTENTE', confirmed_at: null, montant_final: 300000000 },
+        },
+      ];
+      mockPrisma.dossier.findMany.mockResolvedValue(dossiers);
+      mockPrisma.dossier.count.mockResolvedValue(1);
+
+      const result = await service.getSuiviInscriptions('org-01', {});
+
+      expect(result.dossiers[0].paiement.montant_final).toBe(300000000);
+      expect(result.dossiers[0].formation.cout_catalogue).toBe(300000000);
+    });
+
+    it('retourne null comme montant si pas de paiement', async () => {
+      const dossiers = [
+        {
+          id: 'd-02',
+          statut: 'EN_ATTENTE',
+          created_at: new Date(),
+          apprenant: { id: 'app-02', nom: 'Diallo', prenoms: 'Mariama', email: 'm@org.ci' },
+          formation: { id: 'f-01', intitule: 'Cybersécurité', type_formation: 'CERTIFIANTE', cout_catalogue: 300000000 },
+          session: { date_debut: new Date('2026-06-01'), date_fin: new Date('2026-06-05'), statut: 'INSCRIPTIONS_OUVERTES' },
+          paiement: null,
+        },
+      ];
+      mockPrisma.dossier.findMany.mockResolvedValue(dossiers);
+      mockPrisma.dossier.count.mockResolvedValue(1);
+
+      const result = await service.getSuiviInscriptions('org-01', {});
+
+      expect(result.dossiers[0].paiement).toBeNull();
+      expect(result.dossiers[0].formation.cout_catalogue).toBe(300000000);
+    });
+  });
+
+  // B2 — getSuiviInscriptions ne doit pas exposer les inscriptions personnelles
+  describe('getSuiviInscriptions — isolation inscriptions org (B2)', () => {
+    it('ne retourne que les dossiers B2B ou voucher organisation, pas les inscriptions personnelles RETAIL', async () => {
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+      mockPrisma.dossier.count.mockResolvedValue(0);
+
+      await service.getSuiviInscriptions('org-01', {});
+
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([
+              expect.objectContaining({ source_financement: 'B2B' }),
+              expect.objectContaining({ voucher_organisation_id: expect.objectContaining({ not: null }) }),
+            ]),
+          }),
+        })
+      );
+    });
+
+    it('un dossier RETAIL d\'un apprenant de l\'org n\'est pas retourné', async () => {
+      const dossierRetail = {
+        id: 'd-retail',
+        statut: 'PAYE_DIRECTEMENT',
+        source_financement: 'RETAIL',
+        voucher_organisation_id: null,
+        created_at: new Date(),
+        apprenant: { id: 'app-01', nom: 'Cisse', prenoms: 'Hassan', email: 'h@org.ci' },
+        formation: { id: 'f-01', intitule: 'Cyber', type_formation: 'CERTIFIANTE', cout_catalogue: 300000000 },
+        session: { date_debut: new Date(), date_fin: new Date(), statut: 'INSCRIPTIONS_OUVERTES' },
+        paiement: { statut: 'EN_ATTENTE', confirmed_at: null, montant_final: 300000000 },
+      };
+      // Le mock ne retourne rien car Prisma filtre en DB — on vérifie juste le where
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+      mockPrisma.dossier.count.mockResolvedValue(0);
+
+      const result = await service.getSuiviInscriptions('org-01', {});
+
+      // Un dossier RETAIL ne doit jamais passer le filtre
+      const whereArg = mockPrisma.dossier.findMany.mock.calls[0][0].where;
+      expect(JSON.stringify(whereArg)).not.toContain('"source_financement":"RETAIL"');
+      expect(result.dossiers).toHaveLength(0);
+    });
+  });
+
   // RM-69 : alerte plafond B2B proche
   describe('RM-69 — Alerte plafond B2B à 90%', () => {
     it('déclenche alerte si nb_actifs >= 90% de nb_max', async () => {
@@ -181,6 +323,495 @@ describe('EspaceOrganisationService', () => {
 
       const result = await service.getDashboardB2B('org-01');
       expect(result.alerte_plafond).toBe(false);
+    });
+  });
+
+  // Error case : getDashboard ORGANISATION_NOT_FOUND
+  describe('getDashboard — ORGANISATION_NOT_FOUND', () => {
+    it('lance ORGANISATION_NOT_FOUND si l\'organisation est introuvable', async () => {
+      mockRepo.findOrganisationById.mockResolvedValue(null);
+      mockRepo.getStatsOrganisation.mockResolvedValue({} as any);
+      mockPrisma.dossier.findMany.mockResolvedValue([]);
+
+      await expect(service.getDashboard('org-inconnue')).rejects.toThrow('ORGANISATION_NOT_FOUND');
+      expect(mockRepo.findOrganisationById).toHaveBeenCalledWith('org-inconnue');
+    });
+  });
+
+  // Error case : getDashboardB2B ABONNEMENT_B2B_INACTIF
+  describe('getDashboardB2B — ABONNEMENT_B2B_INACTIF', () => {
+    it('lance ABONNEMENT_B2B_INACTIF si l\'organisation n\'a pas d\'abonnement B2B', async () => {
+      const orgSansB2B = { ...orgAvecB2B, abonnement_b2b: null };
+      mockRepo.findOrganisationById.mockResolvedValue(orgSansB2B as any);
+
+      await expect(service.getDashboardB2B('org-01')).rejects.toThrow('ABONNEMENT_B2B_INACTIF');
+    });
+
+    it('lance ABONNEMENT_B2B_INACTIF si l\'organisation est introuvable', async () => {
+      mockRepo.findOrganisationById.mockResolvedValue(null);
+
+      await expect(service.getDashboardB2B('org-inconnue')).rejects.toThrow('ABONNEMENT_B2B_INACTIF');
+    });
+  });
+
+  // Error case : desactiverBeneficiaire APPRENANT_NOT_FOUND
+  describe('desactiverBeneficiaire — APPRENANT_NOT_FOUND', () => {
+    it('lance APPRENANT_NOT_FOUND si l\'apprenant n\'appartient pas à l\'organisation', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.desactiverBeneficiaire('app-inexistant', 'org-01', 'user-01')
+      ).rejects.toThrow('APPRENANT_NOT_FOUND');
+      expect(mockPrisma.apprenant.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createMembre — RM-61', () => {
+    const dataCreation = {
+      email: 'nouveau@org.ci',
+      nom: 'Diallo',
+      prenom: 'Aissatou',
+      secteur_activite: 'TECH',
+      niveau_etude: 'BAC+5',
+    };
+
+    it('lance EMAIL_DEJA_UTILISE si l email existe deja', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue({ id: 'app-existant' });
+
+      await expect(service.createMembre('org-01', dataCreation)).rejects.toThrow('EMAIL_DEJA_UTILISE');
+      expect(mockPrisma.apprenant.create).not.toHaveBeenCalled();
+    });
+
+    it('lance B2B_PLAFOND_ATTEINT si quota depasse', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      const orgPleine = { ...orgAvecB2B, abonnement_b2b: { ...orgAvecB2B.abonnement_b2b, nb_max: 30 } };
+      mockRepo.findOrganisationById.mockResolvedValue(orgPleine as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+
+      await expect(service.createMembre('org-01', dataCreation)).rejects.toThrow('B2B_PLAFOND_ATTEINT');
+      expect(mockPrisma.apprenant.create).not.toHaveBeenCalled();
+    });
+
+    it('cree l apprenant et incremente nb_actifs B2B', async () => {
+      mockPrisma.apprenant.findUnique.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      const apprenantCree = { id: 'app-nouveau', email: 'nouveau@org.ci', nom: 'Diallo', prenoms: 'Aissatou' };
+      mockPrisma.apprenant.create.mockResolvedValue(apprenantCree);
+      mockPrisma.abonnementB2B.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.createMembre('org-01', dataCreation);
+
+      expect(mockPrisma.apprenant.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'nouveau@org.ci',
+            nom: 'Diallo',
+            organisation_id: 'org-01',
+            statut: 'ACTIF',
+          }),
+        })
+      );
+      expect(mockPrisma.abonnementB2B.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { nb_actifs: { increment: 1 } } })
+      );
+      expect(result.apprenant.id).toBe('app-nouveau');
+    });
+  });
+
+  describe('commanderVouchers', () => {
+    it('lance FORMATION_NOT_FOUND si la formation est introuvable', async () => {
+      mockPrisma.formation.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.commanderVouchers('org-01', { formation_id: 'f-inconnue', quantite: 5 })
+      ).rejects.toThrow('FORMATION_NOT_FOUND');
+      expect(mockPrisma.voucherApporteur.create).not.toHaveBeenCalled();
+    });
+
+    it('cree le bon nombre de vouchers et journalise', async () => {
+      const formation = { id: 'f-01', cout_catalogue: 150000 };
+      mockPrisma.formation.findUnique.mockResolvedValue(formation as any);
+      mockPrisma.voucherApporteur.create.mockResolvedValue({ id: 'v-01', code: 'ORG-xxx', statut: 'ACTIF' });
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.commanderVouchers('org-01', { formation_id: 'f-01', quantite: 3 });
+
+      expect(mockPrisma.voucherApporteur.create).toHaveBeenCalledTimes(3);
+      expect(mockPrisma.voucherApporteur.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            organisation_id: 'org-01',
+            formation_id: 'f-01',
+            statut: 'ACTIF',
+            type: 'PROMOTIONNEL',
+            valeur: 150000,
+          }),
+        })
+      );
+      expect(result.vouchers).toHaveLength(3);
+      expect(mockAudit.info).toHaveBeenCalledWith('VOUCHERS_COMMANDES', expect.objectContaining({ quantite: 3 }));
+    });
+  });
+
+  describe('getMesPaiements', () => {
+    const paiementFixture = [
+      {
+        id: 'p-01',
+        statut: 'CONFIRME',
+        confirmed_at: new Date('2026-03-15'),
+        montant_final: 200000,
+        dossier: {
+          apprenant: { nom: 'Cisse', prenoms: 'Tidiane', email: 't@org.ci' },
+          formation: { intitule: 'Cloud AWS' },
+        },
+      },
+    ];
+
+    it('retourne la liste paginee des paiements', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue(paiementFixture);
+      mockPrisma.paiement.count.mockResolvedValue(1);
+
+      const result = await service.getMesPaiements('org-01', { page: 1, limit: 20 });
+
+      expect(result.paiements).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+    });
+
+    it('limite les paiements aux prises en charge organisation (B2B ou voucher organisation)', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue([]);
+      mockPrisma.paiement.count.mockResolvedValue(0);
+
+      await service.getMesPaiements('org-01', { page: 1, limit: 20 });
+
+      const whereArg = mockPrisma.paiement.findMany.mock.calls[0][0].where;
+      expect(whereArg).toEqual({
+        dossier: {
+          apprenant: { organisation_id: 'org-01' },
+          OR: [
+            { source_financement: 'B2B' },
+            { voucher_organisation_id: { not: null } },
+          ],
+        },
+      });
+    });
+
+    it('applique le filtre date_debut dans le where Prisma', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue([]);
+      mockPrisma.paiement.count.mockResolvedValue(0);
+
+      await service.getMesPaiements('org-01', { date_debut: '2026-01-01', page: 1, limit: 20 });
+
+      const whereArg = mockPrisma.paiement.findMany.mock.calls[0][0].where;
+      expect(whereArg.confirmed_at).toBeDefined();
+      expect(whereArg.confirmed_at.gte).toEqual(new Date('2026-01-01'));
+    });
+
+    it('applique date_debut et date_fin ensemble', async () => {
+      mockPrisma.paiement.findMany.mockResolvedValue([]);
+      mockPrisma.paiement.count.mockResolvedValue(0);
+
+      await service.getMesPaiements('org-01', { date_debut: '2026-01-01', date_fin: '2026-03-31', page: 1, limit: 20 });
+
+      const whereArg = mockPrisma.paiement.findMany.mock.calls[0][0].where;
+      expect(whereArg.confirmed_at.gte).toEqual(new Date('2026-01-01'));
+      expect(whereArg.confirmed_at.lte).toEqual(new Date('2026-03-31'));
+    });
+  });
+
+  describe('getMonProfil', () => {
+    it('retourne le profil de l organisation', async () => {
+      const orgComplete = {
+        ...orgAvecB2B,
+        email: 'contact@techcorp.ci',
+        contact_referent: 'Moussa Koné',
+        type: 'ENTREPRISE',
+        sous_types: ['PME'],
+        pays: 'CI',
+        langue_preferee: 'FR',
+      };
+      mockRepo.findOrganisationById.mockResolvedValue(orgComplete as any);
+
+      const result = await service.getMonProfil('org-01');
+
+      expect(result.raison_sociale).toBe('TechCorp CI');
+      expect(result.email).toBe('contact@techcorp.ci');
+      expect(result.statut).toBe('ACTIF');
+      expect((result as any).password_hash).toBeUndefined();
+    });
+
+    it('lance ORGANISATION_NOT_FOUND si l organisation est introuvable', async () => {
+      mockRepo.findOrganisationById.mockResolvedValue(null);
+
+      await expect(service.getMonProfil('org-inconnue')).rejects.toThrow('ORGANISATION_NOT_FOUND');
+    });
+  });
+
+  // =====================================================
+  // inscrireBeneficiaire — UCS12 (inscription par org)
+  // =====================================================
+  describe('inscrireBeneficiaire — UCS12', () => {
+    const beneficiaire = {
+      id: 'app-01',
+      email: 'emp@org.ci',
+      nom: 'Diallo',
+      prenoms: 'Hassan',
+      organisation_id: 'org-01',
+    };
+    const session = { id: 'sess-01', formation_id: 'f-01', places_restantes: 20, formation: { id: 'f-01', cout_catalogue: 150000 } };
+    const dossierCree = { id: 'd-01', statut: 'PAYE' };
+
+    // B1 — Tracer bullet : inscription B2B réussie
+    it('cree un dossier B2B avec organisation_inscriptrice_id et statut PAYE', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
+      mockPrisma.dossier.create.mockResolvedValue(dossierCree);
+      mockPrisma.paiement.findUnique.mockResolvedValue(null);
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-01', dossier_id: 'd-01', statut: 'PENDING' });
+      mockPrisma.paiement.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.dossier.update.mockResolvedValue({ id: 'd-01', statut: 'PAYE' });
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.inscrireBeneficiaire('org-01', {
+        beneficiaire_id: 'app-01',
+        session_id: 'sess-01',
+        source_financement: 'B2B',
+      });
+
+      expect(result.dossier_id).toBe('d-01');
+      expect(result.statut).toBe('PAYE');
+      expect(mockPrisma.dossier.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            source_financement: 'B2B',
+            statut: 'PAYE',
+            organisation_inscriptrice_id: 'org-01',
+            apprenant_id: 'app-01',
+            session_id: 'sess-01',
+            formation_id: 'f-01',
+          }),
+        })
+      );
+      expect(mockPrisma.paiement.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            methode: 'B2B_ORG',
+            statut: 'PENDING',
+          }),
+        })
+      );
+      expect(mockPrisma.paiement.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'p-01', statut: { not: 'CONFIRME' } },
+          data: expect.objectContaining({ statut: 'CONFIRME' }),
+        })
+      );
+    });
+
+    // B2 — Inscription via VoucherOrganisation
+    it('cree un dossier VOUCHER avec statut PAYE et voucher_organisation_id', async () => {
+      const voucher = { id: 'v-01', statut: 'ACTIF', organisation_id: 'org-01' };
+      const dossierVoucher = { id: 'd-02', statut: 'PAYE' };
+
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockPrisma.voucherOrganisation.findFirst.mockResolvedValue(voucher);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
+      mockPrisma.dossier.create.mockResolvedValue(dossierVoucher);
+      mockPrisma.paiement.findUnique.mockResolvedValue(null);
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-02', dossier_id: 'd-02', statut: 'PENDING' });
+      mockPrisma.paiement.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.dossier.update.mockResolvedValue({ id: 'd-02', statut: 'PAYE' });
+      mockPrisma.voucherOrganisation.update.mockResolvedValue({ id: 'v-01', quota_utilise: 1, quota_max: null });
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.inscrireBeneficiaire('org-01', {
+        beneficiaire_id: 'app-01',
+        session_id: 'sess-01',
+        source_financement: 'VOUCHER',
+        voucher_organisation_id: 'v-01',
+      });
+
+      expect(result.statut).toBe('PAYE');
+      expect(mockPrisma.dossier.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            statut: 'PAYE',
+            source_financement: 'VOUCHER',
+            voucher_organisation_id: 'v-01',
+            organisation_inscriptrice_id: 'org-01',
+          }),
+        })
+      );
+    });
+
+    // B3 — Bénéficiaire n'appartient pas à l'org
+    it('rejette si le beneficiaire n\'appartient pas a l\'organisation', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-externe',
+          session_id: 'sess-01',
+          source_financement: 'B2B',
+        })
+      ).rejects.toThrow('APPRENANT_NON_BENEFICIAIRE');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+    });
+
+    it('rejette si la session est complete avant de creer le dossier', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      mockPrisma.session.findUnique.mockResolvedValue({
+        ...session,
+        places_restantes: 0,
+      } as any);
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-01',
+          session_id: 'sess-01',
+          source_financement: 'B2B',
+        })
+      ).rejects.toThrow('SESSION_COMPLETE');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+      expect(mockPrisma.paiement.create).not.toHaveBeenCalled();
+    });
+
+    it('rejette si le beneficiaire est deja inscrit a la meme formation sur une autre session', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'dossier-autre-session' });
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-01',
+          session_id: 'sess-01',
+          source_financement: 'B2B',
+        })
+      ).rejects.toThrow('INSCRIPTION_DEJA_EXISTANTE');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+      expect(mockPrisma.paiement.create).not.toHaveBeenCalled();
+    });
+
+    // B4 — Quota B2B dépassé
+    it('rejette si le quota B2B est depasse', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
+      const orgPleine = { ...orgAvecB2B, abonnement_b2b: { ...orgAvecB2B.abonnement_b2b, nb_max: 30 } };
+      mockRepo.findOrganisationById.mockResolvedValue(orgPleine as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-01',
+          session_id: 'sess-01',
+          source_financement: 'B2B',
+        })
+      ).rejects.toThrow('B2B_PLAFOND_ATTEINT');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+    });
+
+    // B5 — Voucher invalide
+    it('rejette si le voucher n\'appartient pas a l\'organisation ou est inactif', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
+      mockPrisma.voucherOrganisation.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-01',
+          session_id: 'sess-01',
+          source_financement: 'VOUCHER',
+          voucher_organisation_id: 'v-inexistant',
+        })
+      ).rejects.toThrow('VOUCHER_INVALIDE');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+    });
+
+    // B6 — Déjà inscrit à la session
+    it('rejette si le beneficiaire est deja inscrit a cette session', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue({ id: 'd-existant' });
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-01',
+          session_id: 'sess-01',
+          source_financement: 'B2B',
+        })
+      ).rejects.toThrow('INSCRIPTION_DEJA_EXISTANTE');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+    });
+
+    // B7 — Email de notification envoyé
+    it('envoie un email de notification au beneficiaire apres inscription', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
+      mockPrisma.dossier.create.mockResolvedValue(dossierCree);
+      mockPrisma.paiement.findUnique.mockResolvedValue(null);
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-03', dossier_id: 'd-01', statut: 'PENDING' });
+      mockPrisma.paiement.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.dossier.update.mockResolvedValue({ id: 'd-01', statut: 'PAYE' });
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.inscrireBeneficiaire('org-01', {
+        beneficiaire_id: 'app-01',
+        session_id: 'sess-01',
+        source_financement: 'B2B',
+      });
+
+      expect(mockEmail.sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'emp@org.ci' })
+      );
+    });
+  });
+
+  describe('updateMonProfil', () => {
+    it('met a jour et journalise PROFIL_ORGANISATION_MIS_A_JOUR', async () => {
+      const updated = { id: 'org-01', raison_sociale: 'TechCorp Nouvelle', email: 'new@techcorp.ci' };
+      mockPrisma.organisation.update.mockResolvedValue(updated);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.updateMonProfil('org-01', {
+        raison_sociale: 'TechCorp Nouvelle',
+        email: 'new@techcorp.ci',
+        contact_referent: 'Moussa',
+        pays: 'CI',
+        langue_preferee: 'FR',
+      });
+
+      expect(mockPrisma.organisation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'org-01' },
+          data: expect.objectContaining({ raison_sociale: 'TechCorp Nouvelle', email: 'new@techcorp.ci' }),
+        })
+      );
+      expect(mockAudit.info).toHaveBeenCalledWith('PROFIL_ORGANISATION_MIS_A_JOUR', expect.objectContaining({ organisation_id: 'org-01' }));
+      expect(result.organisation.raison_sociale).toBe('TechCorp Nouvelle');
     });
   });
 });

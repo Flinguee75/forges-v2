@@ -1,6 +1,8 @@
+import { randomBytes } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
+import { PaiementCheckoutService } from '../../paiements/paiement-checkout.service';
 
 // Paliers B2B
 export const PALIERS_B2B = {
@@ -14,7 +16,8 @@ export class AbonnementB2BService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
-    private readonly email: EmailService
+    private readonly email: EmailService,
+    private readonly checkoutService = new PaiementCheckoutService(audit)
   ) {}
 
   // GET Mon abonnement B2B actif
@@ -30,15 +33,23 @@ export class AbonnementB2BService {
       return null;
     }
 
+    // RM-61 : Calcul dynamique du nombre d'apprenants actifs B2B
+    const nb_actifs = await this.prisma.apprenant.count({
+      where: {
+        organisation_id,
+        statut: 'ACTIF'
+      }
+    });
+
     // RM-115 : calcul taux_utilisation (déclencheur bot si > 80%)
-    const taux_utilisation = abo.nb_max > 0 ? Math.round((abo.nb_actifs / abo.nb_max) * 100) : 0;
+    const taux_utilisation = abo.nb_max > 0 ? Math.round((nb_actifs / abo.nb_max) * 100) : 0;
 
     return {
       id: abo.id,
       palier: abo.palier,
       statut: abo.statut,
       nb_max: abo.nb_max,
-      nb_actifs: abo.nb_actifs,
+      nb_actifs,
       taux_utilisation,
       prix_annuel: abo.prix_annuel,
       premium_inclus_par_an: abo.premium_inclus_par_an,
@@ -50,7 +61,7 @@ export class AbonnementB2BService {
     };
   }
 
-  // UCS03.2 — Souscrire AbonnementB2B
+  // UCS03.2 — Souscrire AbonnementB2B avec paiement NGSER
   async souscrire(organisation_id: string, palier: keyof typeof PALIERS_B2B) {
     const normalizedPalier = this.normaliserPalier(palier);
     const config = PALIERS_B2B[normalizedPalier];
@@ -59,12 +70,27 @@ export class AbonnementB2BService {
       throw new Error('PALIER_INVALIDE');
     }
 
+    // Palier SUR_DEVIS : pas de paiement en ligne
+    if (normalizedPalier === 'SUR_DEVIS') {
+      throw new Error('PALIER_SUR_DEVIS_HORS_LIGNE');
+    }
+
     const existant = await this.prisma.abonnementB2B.findFirst({
-      where: { organisation_id, statut: 'ACTIF' },
+      where: { organisation_id, statut: { in: ['ACTIF', 'EN_ATTENTE_PAIEMENT'] } },
     });
-    if (existant) throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
+
+    if (existant) {
+      if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
+        const session = await this.creerSessionPaiement(existant.id, existant.prix_annuel);
+        const paymentUrl = session.payment_url;
+        return { abonnement: existant, payment_url: paymentUrl, order_ngser: existant.order_ngser };
+      }
+      // RM-84 : unicité stricte
+      throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
+    }
 
     const date_fin = new Date(Date.now() + 365 * 24 * 3600 * 1000);
+    const orderNgser = this.generateOrderNgser();
 
     const abo = await this.prisma.abonnementB2B.create({
       data: {
@@ -77,17 +103,54 @@ export class AbonnementB2BService {
         premium_consommes: 0,
         date_debut: new Date(),
         date_fin,
-        statut: 'ACTIF',
-      }
+        statut: 'EN_ATTENTE_PAIEMENT',
+        order_ngser: orderNgser,
+      },
     });
 
-    await this.prisma.organisation.update({
-      where: { id: organisation_id },
-      data: { abonnement_b2b_id: abo.id }
+    const session = await this.creerSessionPaiement(abo.id, config.prix_annuel);
+
+    await this.audit.info('ABONNEMENT_B2B_EN_ATTENTE_PAIEMENT', {
+      organisation_id,
+      palier: normalizedPalier,
+      prix_annuel: config.prix_annuel,
+      order_ngser: orderNgser,
     });
 
-    await this.audit.info('ABONNEMENT_B2B_SOUSCRIT', { organisation_id, palier: normalizedPalier });
-    return abo;
+    return {
+      abonnement: abo,
+      payment_url: session.payment_url,
+      order_ngser: orderNgser,
+    };
+  }
+
+  private generateOrderNgser(date = new Date()): string {
+    const year = date.getUTCFullYear();
+    const start = Date.UTC(year, 0, 0);
+    const dayOfYear = Math.floor((date.getTime() - start) / 86400000)
+      .toString()
+      .padStart(3, '0');
+    const suffix = randomBytes(3).toString('hex').toUpperCase();
+    return `ABO-B2B-${year}-${dayOfYear}-${suffix}`;
+  }
+
+  private async creerSessionPaiement(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
+    const abo = await this.prisma.abonnementB2B.findUnique({ where: { id: abonnement_id } });
+    const order = abo?.order_ngser ?? this.generateOrderNgser();
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+    const notificationUrl = process.env.FINEO_CALLBACK_URL || `${backendUrl}/webhooks/fineo`;
+    const returnUrl = `${frontendUrl}/organisation/b2b/callback`;
+
+    const session = await this.checkoutService.initierCheckout({
+      order,
+      amountXof: montantXof,
+      title: `Abonnement B2B — ${abo?.palier || 'FORGES'}`,
+      callbackUrl: notificationUrl,
+      returnUrl,
+    });
+
+    return { payment_url: session.payment_url };
   }
 
   // UCS12.1 — Montée en palier prorata (RM-68)
@@ -128,6 +191,50 @@ export class AbonnementB2BService {
     return { montant_prorata: montantProrata, nouveau_palier: normalizedPalier };
   }
 
+  // RM-69 : alerte quand le plafond de palier est atteint
+  async trouverAlertesPlafond() {
+    const abos = await this.prisma.abonnementB2B.findMany({
+      where: { statut: 'ACTIF' },
+      include: { organisation: true },
+    });
+
+    return abos.filter((abo) => abo.nb_actifs >= abo.nb_max);
+  }
+
+  // RM-89 : palier Enterprise inclut 2 certifications Premium par an
+  async consommerPremiumEnterprise(organisation_id: string) {
+    const abo = await this.prisma.abonnementB2B.findFirst({
+      where: { organisation_id, statut: 'ACTIF', palier: 'ENTERPRISE' },
+    });
+    if (!abo) throw new Error('PREMIUM_ENTERPRISE_NON_DISPONIBLE');
+
+    const quota = abo.premium_inclus_par_an || 0;
+    if (abo.premium_consommes >= quota) {
+      throw new Error('QUOTA_PREMIUM_ENTERPRISE_EPUISE');
+    }
+
+    return this.prisma.abonnementB2B.update({
+      where: { id: abo.id },
+      data: { premium_consommes: { increment: 1 } },
+    });
+  }
+
+  async resetPremiumEnterpriseAnnuel(organisation_id: string) {
+    const abo = await this.prisma.abonnementB2B.findFirst({
+      where: { organisation_id, statut: 'ACTIF', palier: 'ENTERPRISE' },
+    });
+    if (!abo) throw new Error('PREMIUM_ENTERPRISE_NON_DISPONIBLE');
+
+    return this.prisma.abonnementB2B.update({
+      where: { id: abo.id },
+      data: {
+        premium_consommes: 0,
+        compteur_premium_used: 0,
+        compteur_premium_reset_at: new Date(),
+      },
+    });
+  }
+
   // Scheduler — alertes expiration J-45 et J-15 (RM-66)
   async envoyerAlertesExpiration() {
     const now = new Date();
@@ -165,11 +272,17 @@ export class AbonnementB2BService {
         data: { statut: 'EXPIRE' }
       });
 
-      // RM-111 : suspension accès formations B2B
-      // TODO: Implémenter la suspension des accès formations B2B
-      // Model AccesFormationDemande non défini dans le schéma
+      // RM-111 : suspension des accès à la demande financés par B2B.
+      await this.prisma.accesFormationDemande.updateMany({
+        where: {
+          statut: 'ACTIF',
+          source_financement: 'B2B',
+          apprenant: { organisation_id: abo.organisation_id },
+        },
+        data: { statut: 'SUSPENDU' },
+      });
 
-      // await this.audit.warning('ABONNEMENT_B2B_EXPIRE', { organisation_id: abo.organisation_id });
+      await this.audit.warning('ABONNEMENT_B2B_EXPIRE', { organisation_id: abo.organisation_id });
     }
 
     return abosExpires.length;

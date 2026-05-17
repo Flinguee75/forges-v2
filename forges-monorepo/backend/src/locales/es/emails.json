@@ -7,7 +7,7 @@
     "team_signature": "El equipo FORGES",
     "footer_copyright": "© 2026 FORGES - Plataforma de Formaciones Certificadas",
     "footer_visit_site": "Visite nuestro sitio",
-    "footer_support": "Soporte",
+    "footer_support": "Contacto",
     "contact_us": "Si tiene alguna pregunta, no dude en contactarnos."
   },
   "dossier-retenu": {
@@ -18,7 +18,7 @@
     "session_label": "📅 Sesión:",
     "session_dates": "Del {{date_debut}} al {{date_fin}}",
     "important_title": "⏰ IMPORTANTE: Plazo de pago",
-    "payment_deadline": "Tiene <strong>72 horas</strong> para completar el pago y confirmar su inscripción.",
+    "payment_deadline": "Tiene <strong>{{delai_paiement_heures}} horas</strong> para completar el pago y confirmar su inscripción.",
     "deadline_label": "Fecha límite:",
     "deadline_warning": "Después de este plazo, su lugar se liberará automáticamente para otros candidatos.",
     "cta_button": "Proceder al pago"
@@ -37,7 +37,7 @@
     "title": "⏰ Recordatorio: Su plazo de pago expira en {{heures_restantes}}h",
     "intro": "Su solicitud para la formación <strong>{{formation_intitule}}</strong> ha sido aceptada.",
     "warning_title": "🚨 Acción requerida",
-    "warning_message": "Su plazo de pago de 72 horas expira el <strong>{{delai_expiration}}</strong>.",
+    "warning_message": "Su plazo de pago de <strong>{{delai_paiement_heures}} horas</strong> expira el <strong>{{delai_expiration}}</strong>.",
     "consequence": "Sin pago antes de esta fecha, su lugar se liberará automáticamente.",
     "cta_button": "Pagar ahora"
   },

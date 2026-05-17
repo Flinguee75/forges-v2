@@ -16,6 +16,7 @@ function buildInitialForm(current = {}) {
     taux_commission_apporteur_pct: String(current.default_commission_apporteur_pct ?? 5),
     seuil_reversement_partenaire_xof: String(current.seuil_reversement_partenaire_xof ?? 50000),
     seuil_reversement_apporteur_xof: String(current.seuil_reversement_apporteur_xof ?? 5000),
+    paiement_expiration_heures: String(current.paiement_expiration_heures ?? 72),
   };
 }
 
@@ -58,6 +59,7 @@ export default function ConfigAdmin() {
         () => dashboardApi.updateAdminConfig({
           DEFAULT_COMMISSION_FORGES_PCT: Number(form.commission_forges_pct),
           DEFAULT_COMMISSION_APPORTEUR_PCT: Number(form.taux_commission_apporteur_pct),
+          PAIEMENT_EXPIRATION_HEURES: Number(form.paiement_expiration_heures),
           seuil_reversement_partenaire_xof: Number(form.seuil_reversement_partenaire_xof),
           seuil_reversement_apporteur_xof: Number(form.seuil_reversement_apporteur_xof),
         }),
@@ -87,13 +89,13 @@ export default function ConfigAdmin() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
-          UCS13
+          Configuration
         </p>
         <h1 className="mt-3 text-2xl font-semibold text-primary">
           Configuration globale
         </h1>
         <p className="mt-2 text-sm text-subtext">
-          Les valeurs courantes sont affichées avant modification. Les seuils restent saisis en XOF et la grille tarifaire est fournie en lecture.
+          Les valeurs courantes sont affichées avant modification. Les seuils restent saisis en XOF, le délai de paiement en heures et la grille tarifaire est fournie en lecture.
         </p>
       </div>
 
@@ -104,7 +106,7 @@ export default function ConfigAdmin() {
       )}
 
       <Card title="Valeurs courantes" bodyClassName="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-lg border border-border p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-subtext">Commission FORGES</p>
             <p className="mt-2 text-2xl font-semibold text-text">{config?.default_commission_forges_pct ?? 0}%</p>
@@ -121,6 +123,10 @@ export default function ConfigAdmin() {
             <p className="text-xs uppercase tracking-[0.22em] text-subtext">Seuil apporteur</p>
             <p className="mt-2 text-2xl font-semibold text-text">{formatFcfa(config?.seuil_reversement_apporteur_xof)}</p>
           </div>
+          <div className="rounded-lg border border-border p-4">
+            <p className="text-xs uppercase tracking-[0.22em] text-subtext">Délai paiement</p>
+            <p className="mt-2 text-2xl font-semibold text-text">{config?.paiement_expiration_heures ?? 0}h</p>
+          </div>
         </div>
       </Card>
 
@@ -130,7 +136,7 @@ export default function ConfigAdmin() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Input
               type="number"
               label="Commission FORGES (%)"
@@ -151,7 +157,7 @@ export default function ConfigAdmin() {
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Input
               type="number"
               label="Seuil reversement partenaire (XOF)"
@@ -168,6 +174,14 @@ export default function ConfigAdmin() {
               min="0"
               required
             />
+            <Input
+              type="number"
+              label="Délai de paiement (heures)"
+              value={form.paiement_expiration_heures}
+              onChange={handleChange('paiement_expiration_heures')}
+              min="1"
+              required
+            />
           </div>
 
           <div className="flex justify-end">
@@ -178,9 +192,9 @@ export default function ConfigAdmin() {
         </form>
       </Card>
 
-      <Card title="Rappel runtime" bodyClassName="space-y-4">
+      <Card title="Note" bodyClassName="space-y-4">
         <p className="text-sm text-subtext">
-          Le backend runtime n'expose que les valeurs globales ci-dessus. Les sections de tarification détaillée ne sont pas montées côté API.
+          Seules les valeurs globales ci-dessus sont modifiables depuis cette interface. La tarification détaillée est gérée directement en base.
         </p>
       </Card>
     </div>

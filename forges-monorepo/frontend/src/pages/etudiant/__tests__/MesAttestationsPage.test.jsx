@@ -171,4 +171,16 @@ describe('MesAttestationsPage - Checklist Tests', () => {
       expect(screen.getByText('Aucune attestation disponible')).toBeInTheDocument();
     });
   });
+
+  it('affiche le bon contact de support sur la page des attestations', async () => {
+    render(
+      <BrowserRouter>
+        <MesAttestationsPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('contact@forges.ci')).toBeInTheDocument();
+    });
+  });
 });

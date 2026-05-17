@@ -28,26 +28,32 @@ async function generateTokens() {
       let user;
 
       if (role === 'APPRENANT') {
-        user = await prisma.apprenant.findUnique({ where: { email: 'apprenant@forges-dev.ci' } })
+        user = await prisma.apprenant.findUnique({ where: { email: 'apprenant1@forges-test.ci' } })
+          || await prisma.apprenant.findUnique({ where: { email: 'apprenant@forges-dev.ci' } })
           || await prisma.apprenant.findFirst({ where: { role: 'APPRENANT' } })
           || await prisma.apprenant.findFirst();
       } else if (role === 'ORGANISATION') {
-        user = await prisma.organisation.findUnique({ where: { email: 'org@forges-dev.ci' } })
+        user = await prisma.organisation.findUnique({ where: { email: 'org@forges-test.ci' } })
+          || await prisma.organisation.findUnique({ where: { email: 'org@forges-dev.ci' } })
           || await prisma.organisation.findFirst();
       } else if (role === 'PARTENAIRE') {
-        user = await prisma.partenaire.findUnique({ where: { email_principal: 'partenaire@forges-dev.ci' } })
+        user = await prisma.partenaire.findUnique({ where: { email_principal: 'partenaire@forges-test.ci' } })
+          || await prisma.partenaire.findUnique({ where: { email_principal: 'partenaire@forges-dev.ci' } })
           || await prisma.partenaire.findFirst();
       } else if (role === 'APPORTEUR') {
-        user = await prisma.apporteur.findUnique({ where: { email: 'apporteur@forges-dev.ci' } })
+        user = await prisma.apporteur.findUnique({ where: { email: 'apporteur@forges-test.ci' } })
+          || await prisma.apporteur.findUnique({ where: { email: 'apporteur@forges-dev.ci' } })
           || await prisma.apporteur.findFirst();
       } else if (role === 'RESPONSABLE') {
-        user = await prisma.apprenant.findUnique({ where: { email: 'responsable@forges-dev.ci' } }) || {
-          id: `test-${role.toLowerCase()}-${Date.now()}`,
+        user = await prisma.apprenant.findUnique({ where: { email: 'responsable@forges-test.ci' } }) 
+          || await prisma.apprenant.findUnique({ where: { email: 'responsable@forges-dev.ci' } }) || {
+          id: 'usr-resp-0001-0000-0000-0000000000002',
           role: role
         };
       } else if (role === 'ADMIN') {
-        user = await prisma.apprenant.findUnique({ where: { email: 'admin@forges-dev.ci' } }) || {
-          id: `test-${role.toLowerCase()}-${Date.now()}`,
+        user = await prisma.apprenant.findUnique({ where: { email: 'admin@forges-test.ci' } })
+          || await prisma.apprenant.findUnique({ where: { email: 'admin@forges-dev.ci' } }) || {
+          id: 'usr-admin-0001-0000-0000-0000000000001',
           role: role
         };
       } else {
@@ -84,16 +90,19 @@ async function generateTokens() {
     }
   }
 
-  const apprenantDev = await prisma.apprenant.findUnique({ where: { email: 'apprenant@forges-dev.ci' } });
+  const apprenantDev = await prisma.apprenant.findUnique({ where: { email: 'apprenant1@forges-test.ci' } })
+    || await prisma.apprenant.findUnique({ where: { email: 'apprenant@forges-dev.ci' } });
   const dossierAttestation = await prisma.dossier.findFirst({
-    where: { apprenant_id: apprenantDev?.id, statut: 'PAYE', session: { statut: 'CLOTUREE' } },
+    where: { 
+      apprenant_id: apprenantDev?.id, 
+      statut: 'PAYE'
+    },
     select: { id: true }
   });
   const dossiersPremium = await prisma.dossier.findMany({
     where: {
       statut: 'EN_ATTENTE_VERIFICATION',
-      source_financement: 'RETAIL',
-      formation: { type_formation: 'PREMIUM' }
+      source_financement: 'RETAIL'
     },
     orderBy: { created_at: 'asc' },
     select: { id: true }
@@ -102,38 +111,36 @@ async function generateTokens() {
     where: { apprenant_id: apprenantDev?.id },
     select: { id: true }
   });
-  const formation = await prisma.formation.findFirst({ where: { id: 'F-DEV-STD-01' }, select: { id: true } })
+  const formation = await prisma.formation.findFirst({ where: { id: 'frm-std-00001-0000-0000-000000000001' }, select: { id: true } })
     || await prisma.formation.findFirst({ select: { id: true } });
   const session = await prisma.session.findFirst({
-    where: { id: 'S-DEV-OPEN-02' },
+    where: { id: 'ses-open-00001-0000-0000-000000000001' },
     select: { id: true }
   }) || await prisma.session.findFirst({
-    where: {
-      statut: 'OUVERTE',
-      dossiers: {
-        none: {
-          apprenant_id: apprenantDev?.id
-        }
-      }
-    },
-    orderBy: { date_debut: 'asc' },
+    where: { statut: 'INSCRIPTIONS_OUVERTES' },
     select: { id: true }
-  }) || await prisma.session.findFirst({ where: { statut: 'OUVERTE' }, select: { id: true } });
+  });
   const formationPartenaire = await prisma.formationPartenaire.findFirst({
-    where: { statut_validation: 'EN_ATTENTE' },
+    where: { statut_validation: 'EN_ATTENTE_VALIDATION' },
     orderBy: { date_soumission: 'desc' },
     select: { id: true }
   });
   const formationPartenaireReject = await prisma.formationPartenaire.findFirst({
-    where: { statut_validation: 'EN_ATTENTE', id: { not: formationPartenaire?.id || 'FP-DEV-01' } },
+    where: { statut_validation: 'EN_ATTENTE_VALIDATION', id: { not: formationPartenaire?.id || 'fpa-part-00001-0000-0000-000000000001' } },
     orderBy: { date_soumission: 'asc' },
     select: { id: true }
   });
   const partenaire = await prisma.partenaire.findUnique({
+    where: { email_principal: 'partenaire@forges-test.ci' },
+    select: { id: true, email_principal: true }
+  }) || await prisma.partenaire.findUnique({
     where: { email_principal: 'partenaire@forges-dev.ci' },
     select: { id: true, email_principal: true }
   }) || await prisma.partenaire.findFirst({ select: { id: true, email_principal: true } });
   const apporteur = await prisma.apporteur.findUnique({
+    where: { email: 'apporteur@forges-test.ci' },
+    select: { id: true, code_apporteur: true }
+  }) || await prisma.apporteur.findUnique({
     where: { email: 'apporteur@forges-dev.ci' },
     select: { id: true, code_apporteur: true }
   }) || await prisma.apporteur.findFirst({ select: { id: true, code_apporteur: true } });
@@ -157,6 +164,29 @@ async function generateTokens() {
   generated.apporteur_code = apporteur?.code_apporteur || '550e8400-e29b-41d4-a716-446655440001';
   generated.confirmation_token_test = 'token-test-invalide';
   generated.conversation_id_test = conversationBot?.id || CONVERSATION_FIXTURE_ID;
+
+  // === Tokens pour données alternatives (UCS12, UCS13) ===
+  const apprenant3 = await prisma.apprenant.findUnique({ where: { email: 'apprenant3@forges-test.ci' } });
+  if (apprenant3) {
+    const token3 = jwt.sign(
+      { sub: apprenant3.id, role: 'APPRENANT', langue: apprenant3.langue_preferee },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    console.log(`APPRENANT3: Bearer ${token3}\n`);
+    generated.token_apprenant3 = token3;
+  }
+
+  const org2 = await prisma.organisation.findUnique({ where: { email: 'org2@forges-test.ci' } });
+  if (org2) {
+    const token2 = jwt.sign(
+      { sub: org2.id, role: 'ORGANISATION', langue: org2.langue_preferee },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    console.log(`ORGANISATION2: Bearer ${token2}\n`);
+    generated.token_organisation2 = token2;
+  }
 
   const environmentPath = require('path').join(__dirname, '../tests/forges-v4.8-complete.postman_environment.json');
   if (require('fs').existsSync(environmentPath)) {

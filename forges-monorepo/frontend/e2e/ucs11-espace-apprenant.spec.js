@@ -10,7 +10,7 @@ test('UCS11: l’espace apprenant affiche les dossiers avec leurs statuts', asyn
   await expect(dossierPaye).toBeVisible();
   await expect(dossierPaye).toContainText('Payé');
 
-  const dossierRetenu = page.getByTestId(`dossier-card-${E2E_SCENARIO.dossierRetenuId}`);
+  const dossierRetenu = page.getByTestId(`dossier-card-${E2E_SCENARIO.dossierRetenuUiId}`);
   await expect(dossierRetenu).toBeVisible();
   await expect(dossierRetenu).toContainText('Retenu');
 });
@@ -22,7 +22,7 @@ test('UCS11 RM-26: l’attestation est disponible uniquement pour PAYE + session
   expect(valid.ok()).toBeTruthy();
   expect(valid.headers()['content-type']).toContain('application/pdf');
 
-  const invalid = await request.get(`${API_BASE_URL}/attestations/${E2E_SCENARIO.dossierRetenuId}/download`, { headers });
+  const invalid = await request.get(`${API_BASE_URL}/attestations/${E2E_SCENARIO.dossierRetenuUiId}/download`, { headers });
   expect(invalid.status()).toBe(403);
   expect((await invalid.json()).error).toBe('ATTESTATION_DOSSIER_NON_PAYE');
 });
@@ -33,7 +33,7 @@ test('UCS11 RM-27: annulation autorisée en attente, refusée après RETENU', as
   const annulable = await request.delete(`${API_BASE_URL}/espace-apprenant/dossiers/${E2E_SCENARIO.dossierAnnulableId}`, { headers });
   expect(annulable.ok()).toBeTruthy();
 
-  const retenu = await request.delete(`${API_BASE_URL}/espace-apprenant/dossiers/${E2E_SCENARIO.dossierRetenuId}`, { headers });
+  const retenu = await request.delete(`${API_BASE_URL}/espace-apprenant/dossiers/${E2E_SCENARIO.dossierRetenuUiId}`, { headers });
   expect(retenu.status()).toBe(409);
   expect((await retenu.json()).error).toBe('DOSSIER_RETENU_CONTACT_RESPONSABLE');
 });

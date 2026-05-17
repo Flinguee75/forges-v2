@@ -29,9 +29,11 @@ function isNotFound(error) {
 function statusMeta(statut) {
   const mapping = {
     ACTIF: { variant: 'success', label: 'Actif' },
+    EN_ATTENTE_PAIEMENT: { variant: 'warning', label: 'Paiement en cours' },
     ESSAI: { variant: 'info', label: 'Essai' },
     SUSPENDU: { variant: 'warning', label: 'Suspendu' },
-    EXPIRE: { variant: 'danger', label: 'Expire' },
+    ANNULE: { variant: 'danger', label: 'Annulé' },
+    EXPIRE: { variant: 'danger', label: 'Expiré' },
     ABSENT: { variant: 'gray', label: 'Aucun abonnement' },
     INACTIF: { variant: 'gray', label: 'Inactif' },
   };
@@ -121,10 +123,13 @@ export default function AbonnementB2B() {
       : () => organisationApi.souscrireB2B({ palier });
 
     await execute(action, {
-      showSuccessToast: true,
-      successMessage: isExisting ? 'Palier B2B mis a jour' : 'Abonnement B2B active',
-      onSuccess: async () => {
-        await loadData(meta.page);
+      showSuccessToast: false,
+      onSuccess: async (data) => {
+        if (data?.payment_url) {
+          window.location.href = data.payment_url;
+        } else {
+          await loadData(meta.page);
+        }
       },
     });
   };
@@ -134,7 +139,7 @@ export default function AbonnementB2B() {
 
     await execute(() => organisationApi.createMembre(formData), {
       showSuccessToast: true,
-      successMessage: 'Apprenant B2B ajoute',
+      successMessage: 'Apprenant B2B ajouté',
       onSuccess: async () => {
         setIsModalOpen(false);
         setFormData({ email: '', nom: '', prenom: '' });
@@ -146,7 +151,7 @@ export default function AbonnementB2B() {
   const handleDelete = async (membreId) => {
     await execute(() => organisationApi.deleteMembre(membreId), {
       showSuccessToast: true,
-      successMessage: 'Apprenant B2B retire',
+      successMessage: 'Apprenant B2B retiré',
       onSuccess: async () => {
         await loadData(meta.page);
       },
@@ -184,7 +189,7 @@ export default function AbonnementB2B() {
   const columns = [
     { key: 'email', label: 'Email' },
     { key: 'nom', label: 'Nom' },
-    { key: 'prenom', label: 'Prenom' },
+    { key: 'prenom', label: 'Prénom' },
     { key: 'statut', label: 'Statut' },
     {
       key: 'actions',
@@ -213,10 +218,10 @@ export default function AbonnementB2B() {
     return (
       <EmptyState
         title="Abonnement organisation requis"
-        message="Activez ou reservez votre abonnement organisation avant de souscrire un palier B2B."
+        message="Activez ou réservez votre abonnement organisation avant de souscrire un palier B2B."
         action={(
           <Link to="/organisation/abonnement">
-            <Button variant="primary">Aller a l abonnement organisation</Button>
+            <Button variant="primary">Aller à l&apos;abonnement organisation</Button>
           </Link>
         )}
       />
@@ -235,15 +240,22 @@ export default function AbonnementB2B() {
               Abonnement B2B
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-text">
-              Gestion multi-apprenants
+              Gestion des bénéficiaires de votre organisation
             </h1>
             <p className="mt-2 text-sm text-subtext">
-              Gerez votre palier B2B, suivez votre consommation et administrez vos apprenants.
+              Cette page sert à souscrire ou faire évoluer un palier B2B, puis à suivre les membres actifs rattachés à votre quota.
             </p>
           </div>
           <Badge variant={currentStatus.variant} size="small">{currentStatus.label}</Badge>
         </div>
       </div>
+
+      <Card>
+        <p className="text-sm text-subtext">
+          En pratique, le B2B vous permet de gérer les apprenants de votre organisation sur un quota annuel:
+          souscription du palier, ajout de membres, import CSV et contrôle de consommation.
+        </p>
+      </Card>
 
       {/* Tabs */}
       <div className="border-b border-border bg-white rounded-t-lg">
@@ -274,7 +286,29 @@ export default function AbonnementB2B() {
       {/* Tab: Abonnement */}
       {activeTab === 'abonnement' && (
         <div className="space-y-6">
-          {b2b?.message && (
+          {b2b?.statut === 'EN_ATTENTE_PAIEMENT' && (
+            <Card className="border-l-4 border-warning">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-text">Paiement B2B en cours de traitement</p>
+                  <p className="mt-1 text-sm text-subtext">
+                    Votre palier B2B sera activé dès confirmation du paiement par NGSER.
+                    Si vous n&apos;avez pas été redirigé, cliquez sur le bouton ci-dessous pour reprendre.
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => handleSubmit(b2b.palier)}
+                  disabled={isLoading}
+                  loading={isLoading}
+                >
+                  Reprendre le paiement
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {b2b?.message && b2b?.statut !== 'EN_ATTENTE_PAIEMENT' && (
             <Card className={`border-l-4 ${progressVariant === 'danger' ? 'border-danger' : progressVariant === 'warning' ? 'border-warning' : 'border-success'}`}>
               <p className="text-sm font-semibold text-text">{b2b.message}</p>
               {b2b?.downgrade_message && (
@@ -289,7 +323,7 @@ export default function AbonnementB2B() {
               <p className="mt-2 text-xl font-semibold text-text">{getB2BPalierLabel(b2b?.palier)}</p>
             </Card>
             <Card>
-              <p className="text-xs uppercase tracking-[0.22em] text-subtext">Actifs / capacite</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-subtext">Actifs / capacité</p>
               <p className="mt-2 text-xl font-semibold text-text">
                 {b2b?.nb_actifs || 0} / {b2b?.nb_max || 0}
               </p>
@@ -312,10 +346,10 @@ export default function AbonnementB2B() {
             />
             <div className="flex flex-wrap gap-3">
               <Button variant="outline" onClick={() => setActiveTab('apprenants')}>
-                Gerer les apprenants
+                Gérer les apprenants
               </Button>
               {b2b?.upgrade_recommande && (
-                <Badge variant="warning" size="small">Montee en palier recommandee</Badge>
+                <Badge variant="warning" size="small">Montée en palier recommandée</Badge>
               )}
               {b2b?.downgrade_planifie && (
                 <Badge variant="info" size="small">Effectif au renouvellement</Badge>
@@ -339,17 +373,24 @@ export default function AbonnementB2B() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-lg font-semibold text-text">{palier.label}</p>
-                        <p className="mt-1 text-sm text-subtext">Capacite: {palier.range}</p>
+                        <p className="mt-1 text-xs font-semibold text-subtext uppercase tracking-wide">
+                          {palier.range} apprenant{palier.nbMax !== 1 ? 's' : ''}
+                        </p>
                       </div>
                       {isCurrent && <Badge variant="success" size="small">Actuel</Badge>}
                     </div>
+                    {palier.description && (
+                      <p className="mt-2 text-sm text-subtext">{palier.description}</p>
+                    )}
                     <div className="mt-4">
-                      <p className="text-sm text-subtext">Annuel</p>
-                      <p className="mt-1 text-2xl font-semibold text-text">{formatFcfa(palier.annualAmount)}</p>
+                      <p className="text-sm text-subtext">Tarif annuel</p>
+                      <p className="mt-1 text-2xl font-semibold text-text">
+                        {palier.annualAmount > 0 ? formatFcfa(palier.annualAmount) : 'Sur devis'}
+                      </p>
                     </div>
                     {isDowngradeBlocked && (
                       <p className="mt-3 text-xs text-danger">
-                        Descente impossible: {b2b.nb_actifs} actifs pour une capacite cible de {palier.nbMax}.
+                        Descente impossible : {b2b.nb_actifs} actifs pour une capacité cible de {palier.nbMax}.
                       </p>
                     )}
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -358,7 +399,7 @@ export default function AbonnementB2B() {
                         onClick={() => setSelectedPalier(palier.key)}
                         disabled={isSurDevis}
                       >
-                        {isSelected ? 'Selectionne' : 'Choisir'}
+                        {isSelected ? 'Sélectionné' : 'Choisir'}
                       </Button>
                       {isSurDevis && (
                         <Badge variant="warning" size="small">Contact FORGES</Badge>
@@ -371,9 +412,9 @@ export default function AbonnementB2B() {
 
             {upgradePreview && selectedPalier !== b2b?.palier && (
               <div className="rounded-lg border border-border bg-bg p-4">
-                <p className="text-sm font-semibold text-text">Previsualisation du changement de palier</p>
+                <p className="text-sm font-semibold text-text">Prévisualisation du changement de palier</p>
                 <p className="mt-1 text-sm text-subtext">
-                  Differentiel annuel estime: {upgradePreview.formattedDifferentialAmount}.
+                  Différentiel annuel estimé : {upgradePreview.formattedDifferentialAmount}.
                 </p>
               </div>
             )}
@@ -398,7 +439,7 @@ export default function AbonnementB2B() {
           {!hasB2B ? (
             <EmptyState
               title="Aucun abonnement B2B"
-              message="Souscrivez un palier B2B avant de gerer vos apprenants."
+              message="Souscrivez un palier B2B avant de gérer vos apprenants."
               action={
                 <Button variant="primary" onClick={() => setActiveTab('abonnement')}>
                   Souscrire un palier B2B
@@ -434,7 +475,7 @@ export default function AbonnementB2B() {
                 />
                 {csvFeedback?.errors?.length > 0 && (
                   <div className="rounded-lg border border-danger bg-danger/5 p-4">
-                    <p className="text-sm font-semibold text-danger">Erreurs detectees</p>
+                    <p className="text-sm font-semibold text-danger">Erreurs détectées</p>
                     <ul className="mt-2 space-y-1 text-sm text-danger">
                       {csvFeedback.errors.map((item) => (
                         <li key={`${item.row}-${item.field || item.code}`}>
@@ -446,7 +487,7 @@ export default function AbonnementB2B() {
                 )}
                 {csvFeedback?.warnings?.length > 0 && (
                   <div className="rounded-lg border border-warning bg-warning/5 p-4">
-                    <p className="text-sm font-semibold text-warning">Lignes ignorees</p>
+                    <p className="text-sm font-semibold text-warning">Lignes ignorées</p>
                     <ul className="mt-2 space-y-1 text-sm text-warning">
                       {csvFeedback.warnings.map((item) => (
                         <li key={`${item.row}-${item.field || 'warning'}`}>
@@ -458,13 +499,13 @@ export default function AbonnementB2B() {
                 )}
                 {csvFeedback?.serverResult && (
                   <div className="rounded-lg border border-success bg-success/5 p-4 text-sm text-text">
-                    Import: {csvFeedback.serverResult.imported} cree(s), {csvFeedback.serverResult.linked} rattache(s), {csvFeedback.serverResult.skipped} ignore(s).
+                    Import : {csvFeedback.serverResult.imported} créé(s), {csvFeedback.serverResult.linked} rattaché(s), {csvFeedback.serverResult.skipped} ignoré(s).
                   </div>
                 )}
               </Card>
 
               <Card title="Liste des apprenants B2B">
-                <Table columns={columns} data={membres} emptyMessage="Aucun apprenant rattache a ce palier." />
+                <Table columns={columns} data={membres} emptyMessage="Aucun apprenant rattaché à ce palier." />
               </Card>
             </>
           )}
@@ -492,7 +533,7 @@ export default function AbonnementB2B() {
             required
           />
           <Input
-            label="Prenom"
+            label="Prénom"
             value={formData.prenom}
             onChange={(event) => setFormData((current) => ({ ...current, prenom: event.target.value }))}
             required

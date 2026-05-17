@@ -23,9 +23,12 @@ export default function OrgLayout() {
 
   const navigation = [
     { name: 'Tableau de bord', href: '/organisation/dashboard', icon: 'chartBar' },
+    { name: 'Catalogue', href: '/organisation/catalogue', icon: 'bookOpen' },
     { name: 'Abonnement', href: '/organisation/abonnement', icon: 'creditCard' },
     { name: 'Abonnement B2B', href: '/organisation/b2b', icon: 'folder' },
+    { name: 'Employés', href: '/organisation/employes', icon: 'users' },
     { name: 'Vouchers', href: '/organisation/vouchers', icon: 'ticket' },
+    { name: 'Devis', href: '/organisation/devis', icon: 'document' },
     { name: 'Inscriptions', href: '/organisation/inscriptions', icon: 'clipboardList' },
     { name: 'Paiements', href: '/organisation/paiements', icon: 'cash' },
     { name: 'Profil Organisation', href: '/organisation/profil', icon: 'building' },
@@ -80,6 +83,8 @@ export default function OrgLayout() {
           title="Espace Organisation"
           user={user}
           onLogout={handleLogout}
+          showApiBadge={false}
+          showSystemStatus={true}
         />
 
         <main className="flex-1 p-6">

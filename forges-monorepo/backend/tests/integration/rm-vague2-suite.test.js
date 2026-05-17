@@ -22,6 +22,13 @@
  *  (les schedulers ne sont pas exposés en HTTP par défaut).
  */
 
+// Bloquer tout envoi SMTP reel — nodemailer mocke avant tout require de EmailService
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn(() => ({
+    sendMail: jest.fn().mockResolvedValue({ messageId: 'mock-test' }),
+  })),
+}));
+
 const { accounts, auth, createApprenantAccount, createOrganisationAccount, ids, prisma, request, API_URL } = require('./helpers');
 
 const { AbonnementB2BService } = require('../../src/modules/abonnements/b2b/abonnement-b2b.service');
@@ -134,24 +141,13 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
   // ============================================================
   // Vague 2B — RM-85 / RM-86 : Schedulers Organisation
   // ============================================================
-  test('RM-85 — Scheduler envoie alertes expiration Organisation (J-30 et J-7)', async () => {
-    const orgJ30 = await createOrganisationAccount('rm85-j30');
+  test('RM-85 — Scheduler envoie alertes expiration Organisation (J-7 et J-2)', async () => {
     const orgJ7 = await createOrganisationAccount('rm85-j7');
+    const orgJ2 = await createOrganisationAccount('rm85-j2');
 
-    const dateJ30 = new Date(Date.now() + 30 * 24 * 3600 * 1000 + 12 * 3600 * 1000);
     const dateJ7 = new Date(Date.now() + 7 * 24 * 3600 * 1000 + 12 * 3600 * 1000);
+    const dateJ2 = new Date(Date.now() + 2 * 24 * 3600 * 1000 + 12 * 3600 * 1000);
 
-    await prisma.abonnementOrganisation.create({
-      data: {
-        organisation_id: orgJ30.id,
-        offre: 'PRO',
-        montant_annuel: 150000,
-        statut: 'ACTIF',
-        date_debut: new Date(),
-        date_fin: dateJ30,
-        renouvellement_auto: true,
-      },
-    });
     await prisma.abonnementOrganisation.create({
       data: {
         organisation_id: orgJ7.id,
@@ -163,10 +159,21 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
         renouvellement_auto: true,
       },
     });
+    await prisma.abonnementOrganisation.create({
+      data: {
+        organisation_id: orgJ2.id,
+        offre: 'PRO',
+        montant_annuel: 150000,
+        statut: 'ACTIF',
+        date_debut: new Date(),
+        date_fin: dateJ2,
+        renouvellement_auto: true,
+      },
+    });
 
     const result = await orgService.envoyerAlertesExpiration();
-    expect(result.alertes_j30).toBeGreaterThanOrEqual(1);
     expect(result.alertes_j7).toBeGreaterThanOrEqual(1);
+    expect(result.alertes_j2).toBeGreaterThanOrEqual(1);
   });
 
   // ============================================================
@@ -242,10 +249,15 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
       .send({ offre: 'ESSENTIEL', consentement_auto: true });
     expect(sub.status).toBe(201);
 
+    const abonnement = await prisma.abonnementRetail.findFirst({
+      where: { apprenant_id: account.id },
+    });
+    expect(abonnement).not.toBeNull();
+
     // Forcer la date de fin à demain pour passer dans le scheduler
     const demain = new Date(Date.now() + 12 * 3600 * 1000);
     await prisma.abonnementRetail.update({
-      where: { apprenant_id: account.id },
+      where: { id: abonnement.id },
       data: { date_fin: demain },
     });
 
@@ -323,14 +335,32 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
   test('RM-03 — Dossiers EN_ATTENTE_VERIFICATION peuvent être identifiés pour archivage', async () => {
     const apprenant = await createApprenantAccount('rm03');
     const dossierId = `D-RM03-${Date.now()}`;
+    const formationId = `F-RM03-${Date.now()}`;
     const dateAncienne = new Date(Date.now() - 91 * 24 * 3600 * 1000); // > 90 jours
+
+    await prisma.formation.create({
+      data: {
+        id: formationId,
+        intitule: 'Formation RM-03',
+        description_courte: 'Fixture archivage dossier',
+        responsable_id: ids.responsable,
+        type_formation: 'STANDARD',
+        mode_formation: 'AVEC_SESSION',
+        pilier_abonnement: 'RETAIL',
+        inclus_abonnement: true,
+        cout_catalogue: 500000,
+        duree_jours: 5,
+        statut: 'ACTIVE',
+        objectifs_pedagogiques: ['Archivage'],
+        langues_disponibles: ['FR'],
+      },
+    });
 
     await prisma.dossier.create({
       data: {
         id: dossierId,
         apprenant_id: apprenant.id,
-        formation_id: ids.premiumRetailFormation,
-        session_id: ids.premiumRetailSession,
+        formation_id: formationId,
         statut: 'EN_ATTENTE_VERIFICATION',
         source_financement: 'RETAIL',
         created_at: dateAncienne,
@@ -354,5 +384,8 @@ describe('Vague 2 — Suite (B2B / Organisation / Partenaires / Sessions)', () =
 
     const dossierArchive = await prisma.dossier.findUnique({ where: { id: dossierId } });
     expect(dossierArchive.statut).toBe('ARCHIVE');
+
+    await prisma.dossier.delete({ where: { id: dossierId } });
+    await prisma.formation.delete({ where: { id: formationId } });
   });
 });

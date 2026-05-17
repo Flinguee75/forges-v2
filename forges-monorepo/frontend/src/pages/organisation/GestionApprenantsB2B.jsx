@@ -81,7 +81,7 @@ export default function GestionApprenantsB2B() {
 
     await execute(() => organisationApi.createMembre(formData), {
       showSuccessToast: true,
-      successMessage: 'Apprenant B2B ajoute',
+      successMessage: 'Apprenant B2B ajouté',
       onSuccess: async () => {
         setIsModalOpen(false);
         setFormData({ email: '', nom: '', prenom: '' });
@@ -93,7 +93,7 @@ export default function GestionApprenantsB2B() {
   const handleDelete = async (membreId) => {
     await execute(() => organisationApi.deleteMembre(membreId), {
       showSuccessToast: true,
-      successMessage: 'Apprenant B2B retire',
+      successMessage: 'Apprenant B2B retiré',
       onSuccess: async () => {
         await loadPage(meta.page);
       },
@@ -131,7 +131,7 @@ export default function GestionApprenantsB2B() {
   const columns = [
     { key: 'email', label: 'Email' },
     { key: 'nom', label: 'Nom' },
-    { key: 'prenom', label: 'Prenom' },
+    { key: 'prenom', label: 'Prénom' },
     { key: 'statut', label: 'Statut' },
     {
       key: 'actions',
@@ -160,10 +160,10 @@ export default function GestionApprenantsB2B() {
     return (
       <EmptyState
         title="Abonnement organisation requis"
-        message="Souscrivez un abonnement organisation avant de gerer les apprenants B2B."
+        message="Souscrivez un abonnement organisation avant de gérer les apprenants B2B."
         action={(
           <Link to="/organisation/abonnement">
-            <Button variant="primary">Aller a l abonnement organisation</Button>
+            <Button variant="primary">Aller à l&apos;abonnement organisation</Button>
           </Link>
         )}
       />
@@ -174,7 +174,7 @@ export default function GestionApprenantsB2B() {
     return (
       <EmptyState
         title="Aucun abonnement B2B"
-        message="Souscrivez un palier B2B avant de gerer vos apprenants."
+        message="Souscrivez un palier B2B avant de gérer vos apprenants."
         action={(
           <Link to="/organisation/b2b">
             <Button variant="primary">Souscrire un palier B2B</Button>
@@ -193,7 +193,7 @@ export default function GestionApprenantsB2B() {
               Apprenants B2B
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-text">
-              Gerer les apprenants rattaches a votre palier
+              Gérer les apprenants rattachés à votre palier
             </h1>
             <p className="mt-2 text-sm text-subtext">
               Ajoutez des apprenants individuellement ou via CSV, puis suivez votre consommation en temps reel.
@@ -226,7 +226,7 @@ export default function GestionApprenantsB2B() {
         />
         {csvFeedback?.errors?.length > 0 && (
           <div className="rounded-lg border border-danger bg-danger/5 p-4">
-            <p className="text-sm font-semibold text-danger">Erreurs detectees</p>
+            <p className="text-sm font-semibold text-danger">Erreurs détectées</p>
             <ul className="mt-2 space-y-1 text-sm text-danger">
               {csvFeedback.errors.map((item) => (
                 <li key={`${item.row}-${item.field || item.code}`}>
@@ -238,7 +238,7 @@ export default function GestionApprenantsB2B() {
         )}
         {csvFeedback?.warnings?.length > 0 && (
           <div className="rounded-lg border border-warning bg-warning/5 p-4">
-            <p className="text-sm font-semibold text-warning">Lignes ignorees</p>
+            <p className="text-sm font-semibold text-warning">Lignes ignorées</p>
             <ul className="mt-2 space-y-1 text-sm text-warning">
               {csvFeedback.warnings.map((item) => (
                 <li key={`${item.row}-${item.field || 'warning'}`}>
@@ -250,13 +250,13 @@ export default function GestionApprenantsB2B() {
         )}
         {csvFeedback?.serverResult && (
           <div className="rounded-lg border border-success bg-success/5 p-4 text-sm text-text">
-            Import: {csvFeedback.serverResult.imported} cree(s), {csvFeedback.serverResult.linked} rattache(s), {csvFeedback.serverResult.skipped} ignore(s).
+            Import : {csvFeedback.serverResult.imported} créé(s), {csvFeedback.serverResult.linked} rattaché(s), {csvFeedback.serverResult.skipped} ignoré(s).
           </div>
         )}
       </Card>
 
       <Card title="Liste des apprenants B2B">
-        <Table columns={columns} data={membres} emptyMessage="Aucun apprenant rattache a ce palier." />
+        <Table columns={columns} data={membres} emptyMessage="Aucun apprenant rattaché à ce palier." />
       </Card>
 
       <Modal
@@ -279,7 +279,7 @@ export default function GestionApprenantsB2B() {
             required
           />
           <Input
-            label="Prenom"
+            label="Prénom"
             value={formData.prenom}
             onChange={(event) => setFormData((current) => ({ ...current, prenom: event.target.value }))}
             required

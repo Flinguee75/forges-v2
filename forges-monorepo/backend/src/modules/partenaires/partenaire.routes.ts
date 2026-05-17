@@ -5,12 +5,13 @@ import { ValidationFormationService } from './validation-formation.service';
 import { PartenaireRepository } from './partenaire.repository';
 import { FormationPartenaireRepository } from './formation-partenaire.repository';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
+import { ExportCsvService } from './export-csv.service';
+import { ExportCsvController } from './export-csv.controller';
 
 const router = Router();
-const prisma = new PrismaClient();
 const audit = new AuditLogger();
 const emailService = new EmailService();
 
@@ -24,6 +25,10 @@ const validationService = new ValidationFormationService(fpRepo, prisma, audit, 
 
 // Controller
 const controller = new PartenaireController(partenaireService, validationService);
+
+// Export CSV (RM-155)
+const exportCsvService = new ExportCsvService(prisma);
+const exportCsvController = new ExportCsvController(exportCsvService, partenaireRepo);
 
 // ============================================
 // ROUTES PUBLIQUES (Inscription - RM-126)
@@ -42,6 +47,11 @@ router.post('/activate', (req, res, next) => {
 // ============================================
 // ROUTES PARTENAIRE (authentifié)
 // ============================================
+
+// GET /api/partenaires/export-csv - Export CSV anonymise (RM-155)
+router.get('/export-csv', authenticate, authorize('PARTENAIRE'), (req, res, next) => {
+  exportCsvController.exportCsv(req, res, next);
+});
 
 // GET /api/partenaires/dashboard - Dashboard partenaire (RM-130)
 router.get('/dashboard', authenticate, authorize('PARTENAIRE'), (req, res, next) => {

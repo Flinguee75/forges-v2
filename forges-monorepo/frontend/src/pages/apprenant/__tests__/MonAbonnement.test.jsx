@@ -57,8 +57,8 @@ describe('MonAbonnement', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Aucun abonnement Retail')).toBeInTheDocument();
-      expect(screen.getByText('Choisir une offre')).toBeInTheDocument();
+      expect(screen.getByText('Passez à la vitesse supérieure')).toBeInTheDocument();
+      expect(screen.getByText('Voir les offres')).toBeInTheDocument();
     });
   });
 
@@ -87,7 +87,7 @@ describe('MonAbonnement', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Essentiel' })).toBeInTheDocument();
-      expect(screen.getByText(/15\s?000 FCFA|15 000 FCFA/)).toBeInTheDocument();
+      expect(screen.getByText(/1\s?500\s?000 FCFA|1 500 000 FCFA/)).toBeInTheDocument();
       expect(screen.getByText(/Code:\s*f-1/i)).toBeInTheDocument();
       expect(screen.getByText(/20 j/)).toBeInTheDocument();
       expect(screen.getAllByText(/5\s?000 FCFA|5 000 FCFA/).length).toBeGreaterThan(0);

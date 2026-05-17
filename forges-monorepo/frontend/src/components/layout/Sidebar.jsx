@@ -11,11 +11,23 @@ export default function Sidebar({
   const isActive = (path) => currentPath === path || currentPath.startsWith(`${path}/`);
 
   return (
-    <aside
-      className={`${
-        isOpen ? 'w-64' : 'w-20'
-      } border-r border-border bg-white transition-all duration-300 flex flex-col overflow-y-auto`}
-    >
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/30 md:hidden"
+          onClick={onToggle}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 flex flex-col overflow-y-auto border-r border-border bg-white transition-all duration-300
+          md:static md:z-auto md:translate-x-0
+          ${
+            isOpen
+              ? 'w-64 translate-x-0'
+              : 'w-20 -translate-x-full md:translate-x-0'
+          }`}
+      >
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
         {isOpen ? (
           <Link to="/backoffice" className="text-xl font-bold text-primary">
@@ -46,6 +58,7 @@ export default function Sidebar({
               <Link
                 key={item.href}
                 to={item.href}
+                onClick={() => { if (window.innerWidth < 768) onToggle(); }}
                 className={`flex w-full min-h-12 items-center gap-3 overflow-hidden border-r-4 border-transparent px-4 py-3 transition-colors ${
                   isActive(item.href)
                     ? 'border-primary bg-primary/10 text-primary'
@@ -60,7 +73,8 @@ export default function Sidebar({
           </div>
         ))}
       </nav>
-    </aside>
+      </aside>
+    </>
   );
 }
 

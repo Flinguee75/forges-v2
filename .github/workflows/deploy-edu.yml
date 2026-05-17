@@ -1,0 +1,287 @@
+name: Deploy → https://edu.forges-group.com
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_sha:
+        description: 'SHA de commit de l image backend a deployer'
+        required: false
+        default: ''
+
+# Groupe separe : edu tourne apres dev, pas de race Docker possible
+concurrency:
+  group: forges-edu-deploy
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-frontend:
+    name: Build frontend Vite (EDU)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: forges-monorepo/frontend/package-lock.json
+
+      - name: Installer dependances frontend
+        working-directory: forges-monorepo/frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Vite (EDU)
+        working-directory: forges-monorepo/frontend
+        env:
+          VITE_API_URL: https://edu.forges-group.com/api
+          VITE_ENV: edu
+          VITE_COMMIT_SHA: ${{ inputs.image_sha || github.sha }}
+        run: npm run build
+
+      - name: Upload dist frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-edu
+          path: forges-monorepo/frontend/dist/
+          retention-days: 1
+          include-hidden-files: true
+
+  deploy:
+    name: Deploiement sur edu
+    runs-on: ubuntu-22.04
+    needs: [build-frontend]
+    environment:
+      name: edu
+      url: https://edu.forges-group.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download dist frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-edu
+          path: frontend-dist/
+
+      - name: Configurer SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Transferer frontend (rsync)
+        run: |
+          rsync -rltz --delete --omit-dir-times --no-perms --no-group \
+            --chmod=D755,F644 \
+            --exclude='.env' --exclude='infra/' --exclude='uploads/' --exclude='prisma/' \
+            frontend-dist/ \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.EDU_FRONTEND_DEPLOY_PATH }}/
+
+      - name: Corriger permissions frontend
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} \
+            "find ${{ secrets.EDU_FRONTEND_DEPLOY_PATH }} -not -path '*/.env' -not -path '*/infra/*' -not -path '*/uploads/*' -type f -exec chmod 644 {} \; && find ${{ secrets.EDU_FRONTEND_DEPLOY_PATH }} -type d -exec chmod 755 {} \;"
+
+      - name: Transferer docker-compose edu et scripts (rsync)
+        run: |
+          rsync -avz --mkpath \
+            infra/docker/docker-compose.edu.deploy.yml \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra/docker/
+          rsync -avz --mkpath \
+            infra/scripts/backup-edu.sh \
+            infra/scripts/restore-edu.sh \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }}:${{ secrets.DEV_DEPLOY_PATH }}/infra/scripts/
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER_HOST }} \
+            "chmod +x ${{ secrets.DEV_DEPLOY_PATH }}/infra/scripts/backup-edu.sh \
+                      ${{ secrets.DEV_DEPLOY_PATH }}/infra/scripts/restore-edu.sh"
+
+      - name: Lire image precedente (base rollback)
+        id: prev-image
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          EDU_ENV_DEPLOY: ${{ secrets.EDU_ENV_DEPLOY }}
+        run: |
+          PREV=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            "grep '^BACKEND_IMAGE_REF=' $DEPLOY_PATH/infra/env/.env.edu.deploy 2>/dev/null | cut -d= -f2 || echo ''")
+          echo "prev_image=${PREV}" >> $GITHUB_OUTPUT
+          echo "Image precedente: ${PREV:-aucune}"
+
+      - name: Verifier et pull image backend
+        env:
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE_TAG: ${{ inputs.image_sha || github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            GHCR_TOKEN="$GHCR_TOKEN" GHCR_USER="$GHCR_USER" IMAGE_TAG="$IMAGE_TAG" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+              if ! docker manifest inspect ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG >/dev/null 2>&1; then
+                echo "Image introuvable: ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
+                exit 1
+              fi
+              docker pull ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG
+              echo "Pull OK: ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG"
+          ENDSSH
+
+      - name: Backup pre-deploy (forges_edu)
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" bash -s << 'ENDSSH'
+              set -euo pipefail
+              SCRIPT="$DEPLOY_PATH/infra/scripts/backup-edu.sh"
+              if [ -f "$SCRIPT" ]; then
+                bash "$SCRIPT" --pre-deploy
+              else
+                echo "[backup-edu] Script absent (premier deploy) — backup ignore"
+              fi
+          ENDSSH
+
+      - name: Deployer nouvelle version
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          IMAGE_TAG: ${{ inputs.image_sha || github.sha }}
+          EDU_ENV_DEPLOY: ${{ secrets.EDU_ENV_DEPLOY }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" IMAGE_TAG="$IMAGE_TAG" EDU_ENV_DEPLOY="$EDU_ENV_DEPLOY" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              mkdir -p "$DEPLOY_PATH/infra/docker" "$DEPLOY_PATH/infra/env"
+              cd "$DEPLOY_PATH"
+              if [ ! -f infra/env/.env.edu.deploy ]; then
+                echo "$EDU_ENV_DEPLOY" | base64 -d > infra/env/.env.edu.deploy
+              fi
+              sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
+              echo "BACKEND_IMAGE_REF=ghcr.io/flinguee75/forges-backend:dev-$IMAGE_TAG" >> infra/env/.env.edu.deploy
+              ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-edu$' || true)
+              [ -n "$ZOMBIES" ] && echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
+              docker compose -f infra/docker/docker-compose.edu.deploy.yml \
+                --env-file infra/env/.env.edu.deploy up -d
+          ENDSSH
+
+      - name: Healthcheck container (150s)
+        env:
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST bash -s << 'ENDSSH'
+            set -euo pipefail
+            HEALTHY=false
+            for i in $(seq 1 30); do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
+              echo "  [$i/30] $STATUS"
+              [ "$STATUS" = "healthy" ] && HEALTHY=true && break
+              sleep 5
+            done
+            [ "$HEALTHY" = "true" ] || { echo "Backend non healthy apres 150s"; exit 1; }
+          ENDSSH
+
+      - name: Appliquer migrations Prisma
+        env:
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST bash -s << 'ENDSSH'
+            set -euo pipefail
+            RESULT=$(docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy 2>&1' || true)
+            echo "$RESULT"
+            if echo "$RESULT" | grep -q "P3005"; then
+              echo "P3005 detecte : DB existante sans historique migrations — baseline en cours..."
+              docker exec forges-backend-edu sh -c '
+                cd /app
+                for dir in prisma/migrations/*/; do
+                  [ -d "$dir" ] || continue
+                  name=$(basename "$dir")
+                  npx prisma migrate resolve --applied "$name" 2>/dev/null && echo "  Baseline: $name" || true
+                done
+              '
+              echo "Baseline termine — application des migrations restantes..."
+              docker exec forges-backend-edu sh -c 'cd /app && npx prisma migrate deploy'
+            elif echo "$RESULT" | grep -qE "error|Error|ERROR"; then
+              echo "Erreur migration inattendue"
+              exit 1
+            fi
+            echo "Migrations OK"
+          ENDSSH
+
+      - name: Rollback vers version precedente
+        if: failure()
+        env:
+          DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+          PREV_IMAGE: ${{ steps.prev-image.outputs.prev_image }}
+        run: |
+          if [ -z "$PREV_IMAGE" ]; then
+            echo "Aucune image precedente — rollback impossible (premier deploy ?)"
+            exit 0
+          fi
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" PREV_IMAGE="$PREV_IMAGE" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              cd "$DEPLOY_PATH"
+              echo "Rollback vers: $PREV_IMAGE"
+              sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
+              echo "BACKEND_IMAGE_REF=$PREV_IMAGE" >> infra/env/.env.edu.deploy
+              docker compose -f infra/docker/docker-compose.edu.deploy.yml \
+                --env-file infra/env/.env.edu.deploy up -d forges-backend-edu
+              sleep 20
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
+              echo "Statut apres rollback: $STATUS"
+              [ "$STATUS" = "healthy" ] \
+                && echo "Rollback OK — ancienne version restauree" \
+                || echo "Rollback: container non healthy ($STATUS)"
+          ENDSSH
+
+      - name: Healthcheck public (edu.forges-group.com)
+        run: |
+          sleep 8
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://edu.forges-group.com/health || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "EDU OK"
+          else
+            echo "Healthcheck EDU echoue: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Resume
+        if: always()
+        run: |
+          echo "## Deploy EDU -- ${{ inputs.image_sha || github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | https://edu.forges-group.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA déployé | ${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image demandee | ghcr.io/flinguee75/forges-backend:dev-${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fallback | image precedente si healthcheck KO |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | forges-backend-edu (port 3006) |" >> $GITHUB_STEP_SUMMARY
+          echo "| DB | forges_edu (independante de dev) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploye par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Nettoyer cle SSH
+        if: always()
+        run: rm -f ~/.ssh/id_rsa

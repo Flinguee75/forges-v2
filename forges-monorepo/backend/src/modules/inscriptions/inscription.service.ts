@@ -1,4 +1,5 @@
 import { DossierRepository } from './dossier.repository';
+import { getDelaiPaiementMs, getDelaiPaiementH } from '../../config/env.config';
 import { SessionRepository } from '../sessions/session.repository';
 import { FormationRepository } from '../formations/formation.repository';
 import { VoucherValidationService } from '../vouchers/voucher-validation.service';
@@ -22,6 +23,7 @@ export class InscriptionService {
   async inscrire(params: any) {
     const session = await this.sessionRepo.findById(params.session_id);
     if (!session) throw new Error('SESSION_NOT_FOUND');
+    if ((session.places_restantes ?? 0) <= 0) throw new Error('SESSION_COMPLETE');
 
     // RM-01 : Unicité apprenant/session
     const existant = await this.dossierRepo.findActiveByApprenantAndSession(params.apprenantId, params.session_id);
@@ -37,12 +39,14 @@ export class InscriptionService {
     });
     if (inscriptionFormation) throw new Error('ALREADY_ENROLLED');
 
-    // RM-72 : Limite 3 formations simultanées pour abonnés Retail
+    // Vérification abonnement actif requis pour source_financement=ABONNEMENT
     if (params.source_financement === 'ABONNEMENT') {
+      const abonnementActif = await this.retailRepo.findActifByApprenant(params.apprenantId);
+      if (!abonnementActif) throw new Error('ABONNEMENT_REQUIS');
+
+      // RM-72 : Limite 3 formations simultanées pour abonnés Retail
       const nbActives = await this.retailRepo.countFormationsActives(params.apprenantId);
-      if (nbActives >= 3) {
-        throw new Error('FORMATION_LIMIT_REACHED');
-      }
+      if (nbActives >= 3) throw new Error('FORMATION_LIMIT_REACHED');
     }
 
     if (params.code_apporteur) {
@@ -143,12 +147,30 @@ export class InscriptionService {
 
     const montant_apres_reduction = montant_total - montant_reduction;
 
+    // Statut dossier selon le mode de financement (RM-140, RM-41)
+    // - Voucher ORGANISATION → PAYE (l'org couvre le paiement — RM-41)
+    // - Voucher PROMOTIONNEL → PAYE_DIRECTEMENT (réduction appliquée, paiement à initier)
+    // - Premium+Retail → EN_ATTENTE_VERIFICATION (RM-140)
+    // - Tous les autres (paiement direct) → PAYE_DIRECTEMENT (RM-140)
+    let statutDossier: string;
+    if (voucher?.type === 'ORGANISATION') {
+      // Voucher organisation : paiement couvert, pas d'action requise
+      statutDossier = 'PAYE';
+    } else if (voucherPromo) {
+      // Voucher promo : réduction appliquée, paiement reste à initier
+      statutDossier = 'PAYE_DIRECTEMENT';
+    } else if (estPremiumEtRetail) {
+      statutDossier = 'EN_ATTENTE_VERIFICATION';
+    } else {
+      statutDossier = 'PAYE_DIRECTEMENT';
+    }
+
     const dossierData: any = {
       apprenant_id: params.apprenantId,
       formation_id: session.formation_id,
       session_id: params.session_id,
       source_financement: params.source_financement,
-      statut: estPremiumEtRetail ? 'EN_ATTENTE_VERIFICATION' : 'PAYE_DIRECTEMENT',
+      statut: statutDossier,
       type_fenetre: typeFenetre,
       voucher_code: params.voucher_code,
       code_apporteur: params.code_apporteur,
@@ -178,6 +200,14 @@ export class InscriptionService {
             data: { statut: 'EPUISE' },
           });
         }
+
+        await this.creerPaiementVoucherOrganisation(dossier.id, formation.cout_catalogue);
+        await this.notifierApprenantVoucherOrganisation(
+          params.apprenantId,
+          voucher.organisation_id,
+          formation.intitule,
+          session
+        );
       } else {
         const updatedVoucher = await this.prisma.voucherApporteur.update({
           where: { id: voucher.id },
@@ -190,6 +220,23 @@ export class InscriptionService {
             data: { statut: 'EPUISE' },
           });
         }
+
+      }
+    }
+
+    if (statutDossier === 'PAYE_DIRECTEMENT') {
+      if (voucherPromo) {
+        await this.creerPaiementVoucherPromo(
+          dossier.id,
+          montant_total,
+          montant_apres_reduction,
+          montant_reduction
+        );
+      } else {
+        await this.creerPaiementDirect(
+          dossier.id,
+          montant_total
+        );
       }
     }
 
@@ -216,12 +263,167 @@ export class InscriptionService {
     };
   }
 
+  private async creerPaiementVoucherOrganisation(dossierId: string, montantCatalogue: number) {
+    const paiement = await this.creerPaiementInitial(
+      dossierId,
+      montantCatalogue,
+      montantCatalogue,
+      0,
+      'VOUCHER_ORG',
+      'CONFIRME',
+      `VOUCHER_ORG-${dossierId}`,
+      new Date()
+    );
+
+    await this.audit.info('PAIEMENT_VOUCHER_ORG_CONFIRME', {
+      paiement_id: paiement.id,
+      dossier_id: dossierId,
+      montant: montantCatalogue,
+    });
+
+    return paiement;
+  }
+
+  private async creerPaiementDirect(
+    dossierId: string,
+    montantCatalogue: number
+  ) {
+    const paiement = await this.creerPaiementInitial(
+      dossierId,
+      montantCatalogue,
+      montantCatalogue,
+      0,
+      'DIRECT'
+    );
+
+    await this.audit.info('PAIEMENT_DIRECT_EN_ATTENTE', {
+      paiement_id: paiement.id,
+      dossier_id: dossierId,
+      montant_catalogue: montantCatalogue,
+      montant_final: montantCatalogue,
+    });
+
+    return paiement;
+  }
+
+  private async creerPaiementVoucherPromo(
+    dossierId: string,
+    montantCatalogue: number,
+    montantFinal: number,
+    reductionAppliquee: number
+  ) {
+    const paiement = await this.creerPaiementInitial(
+      dossierId,
+      montantCatalogue,
+      montantFinal,
+      reductionAppliquee,
+      'VOUCHER_PROMO'
+    );
+
+    await this.audit.info('PAIEMENT_VOUCHER_PROMO_EN_ATTENTE', {
+      paiement_id: paiement.id,
+      dossier_id: dossierId,
+      montant_catalogue: montantCatalogue,
+      montant_final: montantFinal,
+      reduction_appliquee: reductionAppliquee,
+    });
+
+    return paiement;
+  }
+
+  private async creerPaiementInitial(
+    dossierId: string,
+    montantCatalogue: number,
+    montantFinal: number,
+    reductionAppliquee: number,
+    methode: string,
+    statut: 'EN_ATTENTE' | 'CONFIRME' = 'EN_ATTENTE',
+    transactionId: string | null = null,
+    confirmedAt: Date | null = null
+  ) {
+    const paiementExistant = await this.prisma.paiement.findUnique({
+      where: { dossier_id: dossierId },
+    });
+
+    if (paiementExistant) return paiementExistant;
+
+    return this.prisma.paiement.create({
+      data: {
+        dossier_id: dossierId,
+        montant_catalogue: montantCatalogue,
+        montant_final: montantFinal,
+        reduction_appliquee: reductionAppliquee,
+        methode,
+        statut,
+        transaction_id: transactionId ?? undefined,
+        confirmed_at: confirmedAt ?? undefined,
+        expires_at: statut === 'EN_ATTENTE' ? new Date(Date.now() + getDelaiPaiementMs()) : undefined,
+      },
+    });
+  }
+
+  private async notifierApprenantVoucherOrganisation(
+    apprenantId: string,
+    organisationId: string,
+    formationIntitule: string,
+    session?: {
+      date_debut?: Date;
+      date_fin?: Date;
+      lieu?: string | null;
+    }
+  ) {
+    const [apprenant, organisation] = await Promise.all([
+      this.prisma.apprenant.findUnique({
+        where: { id: apprenantId },
+        select: {
+          email: true,
+          nom: true,
+          prenoms: true,
+          langue_preferee: true,
+        },
+      }),
+      this.prisma.organisation.findUnique({
+        where: { id: organisationId },
+        select: { raison_sociale: true },
+      }),
+    ]);
+
+    if (!apprenant) return;
+
+    await this.email.sendEnrolementConfirmationApprenant({
+      to: apprenant.email,
+      prenoms: apprenant.prenoms,
+      nom: apprenant.nom,
+      organisation: organisation?.raison_sociale || 'votre organisation',
+      formation: formationIntitule,
+      session: session
+        ? {
+            date_debut: session.date_debut,
+            date_fin: session.date_fin,
+            lieu: session.lieu || null,
+          }
+        : null,
+    });
+    await this.email.sendPaiementConfirme(
+      apprenant.email,
+      formationIntitule
+    );
+
+    await this.audit.info('EMAILS_VOUCHER_ORG_APPRENANT_ENVOYES', {
+      apprenant_id: apprenantId,
+      formation: formationIntitule,
+    });
+  }
+
   // UCS08 — Rétention dossier Premium (RM-05 : irréversible, RM-140)
   async retenir(dossierId: string, responsableId: string) {
     const dossier = await this.dossierRepo.findById(dossierId);
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
 
     // RM-05 : RETENU irréversible — vérifier statut actuel
+    if (dossier.statut === 'RETENU') {
+      return { success: true, message: 'Dossier déjà retenu.' };
+    }
     if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
       throw new Error('DOSSIER_ALREADY_PROCESSED');
     }
@@ -235,15 +437,15 @@ export class InscriptionService {
     }
 
     // RM-05 : Transition EN_ATTENTE_VERIFICATION → RETENU (irréversible)
-    const updated = await this.dossierRepo.updateStatut(dossierId, 'RETENU');
+    await this.dossierRepo.updateStatut(dossierId, 'RETENU');
 
-    // RM-07 : Déclencher délai 72h pour paiement
-    await this.dossierRepo.setDelaiPaiement(dossierId, new Date(Date.now() + 72 * 3600 * 1000));
+    // RM-07 : Déclencher délai de paiement configurable
+    await this.dossierRepo.setDelaiPaiement(dossierId, new Date(Date.now() + getDelaiPaiementMs()));
 
     await this.audit.info('DOSSIER_RETENU', {
       dossier_id: dossierId,
       responsable_id: responsableId,
-      delai_expiration: new Date(Date.now() + 72 * 3600 * 1000)
+      delai_expiration: new Date(Date.now() + getDelaiPaiementMs())
     });
 
     // Notifier l'apprenant du statut RETENU (RM-100)
@@ -252,7 +454,7 @@ export class InscriptionService {
     });
 
     if (apprenant) {
-      const delaiExpiration = new Date(Date.now() + 72 * 3600 * 1000);
+      const delaiExpiration = new Date(Date.now() + getDelaiPaiementMs());
       try {
         await this.email.sendDossierRetenu(
           apprenant.email,
@@ -279,7 +481,7 @@ export class InscriptionService {
       }
     }
 
-    return { success: true, message: 'Dossier retenu avec succès. Délai 72h activé pour paiement.' };
+    return { success: true, message: `Dossier retenu avec succès. Délai ${getDelaiPaiementH()}h activé pour paiement.` };
   }
 
   // UCS08 — Rejet dossier Premium (RM-140)
@@ -288,6 +490,9 @@ export class InscriptionService {
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
 
     // Vérifier statut actuel
+    if (dossier.statut === 'REJETE') {
+      return { success: true, message: 'Dossier déjà rejeté.' };
+    }
     if (dossier.statut !== 'EN_ATTENTE_VERIFICATION') {
       throw new Error('DOSSIER_ALREADY_PROCESSED');
     }
@@ -308,6 +513,34 @@ export class InscriptionService {
         motif_refus
       }
     });
+
+    if (dossier.voucher_organisation_id) {
+      await this.prisma.voucherOrganisation.update({
+        where: { id: dossier.voucher_organisation_id },
+        data: {
+          quota_utilise: { decrement: 1 },
+          statut: 'ACTIF',
+        },
+      });
+    }
+
+    if (dossier.voucher_code) {
+      const voucherPromo = await this.prisma.voucherApporteur.findFirst({
+        where: {
+          code: dossier.voucher_code,
+          type: 'PROMOTIONNEL',
+        },
+      });
+      if (voucherPromo) {
+        await this.prisma.voucherApporteur.update({
+          where: { id: voucherPromo.id },
+          data: {
+            quota_utilise: { decrement: 1 },
+            statut: voucherPromo.quota_max && voucherPromo.quota_utilise <= 1 ? 'ACTIF' : voucherPromo.statut,
+          },
+        });
+      }
+    }
 
     await this.audit.info('DOSSIER_REJETE', {
       dossier_id: dossierId,
@@ -342,33 +575,47 @@ export class InscriptionService {
   }
 
   // GET /api/dossiers — Liste dossiers apprenant (Sprint 1)
-  async getDossiersByApprenant(apprenantId: string) {
+  async getDossiersByApprenant(apprenantId: string, filters: { statut?: string } = {}) {
     return this.prisma.dossier.findMany({
-      where: { apprenant_id: apprenantId },
+      where: {
+        apprenant_id: apprenantId,
+        ...(filters.statut ? { statut: filters.statut } : {}),
+      },
       include: {
         formation: { select: { id: true, intitule: true, type_formation: true, cout_catalogue: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
-        paiement: { select: { id: true, statut: true, montant_final: true } }
+        paiement: { select: { id: true, statut: true, montant_final: true, methode: true, expires_at: true, confirmed_at: true } }
       },
       orderBy: { created_at: 'desc' }
     });
   }
 
-  async getDossiersBackoffice() {
-    const dossiers = await this.prisma.dossier.findMany({
-      where: {
+  async getDossiersBackoffice(filters: { statut?: string; search?: string } = {}) {
+    const where: any = {};
+
+    if (filters.statut) {
+      where.statut = filters.statut;
+    }
+
+    if (filters.search) {
+      where.apprenant = {
         OR: [
-          { statut: 'EN_ATTENTE_VERIFICATION' },
-          { statut: { in: ['GRIS', 'EXCEPTION'] } },
-          { type_fenetre: { in: ['GRIS', 'EXCEPTION'] } },
+          { nom: { contains: filters.search, mode: 'insensitive' } },
+          { prenoms: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
         ],
-      },
+      };
+    }
+
+    const dossiers = await this.prisma.dossier.findMany({
+      where,
       include: {
         apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
-        formation: { select: { id: true, intitule: true, type_formation: true, cout_catalogue: true } },
+        formation: { select: { id: true, intitule: true, type_formation: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
+        paiement: { select: { id: true, statut: true, montant_final: true, methode: true, expires_at: true, confirmed_at: true } },
       },
-      orderBy: { created_at: 'asc' }
+      orderBy: { created_at: 'desc' },
     });
 
     const priority = (dossier: any) => {
@@ -378,11 +625,7 @@ export class InscriptionService {
       return 2;
     };
 
-    return dossiers.sort((a, b) => {
-      const byPriority = priority(a) - priority(b);
-      if (byPriority !== 0) return byPriority;
-      return a.created_at.getTime() - b.created_at.getTime();
-    });
+    return dossiers.sort((a, b) => priority(a) - priority(b));
   }
 
   async getDossiersBySession(sessionId: string) {
@@ -396,17 +639,105 @@ export class InscriptionService {
       include: {
         apprenant: {
           select: {
-            id: true, email: true, nom: true, prenoms: true,
-            type_apprenant: true, langue_preferee: true,
+            id: true,
+            email: true,
+            nom: true,
+            prenoms: true,
+            type_apprenant: true,
+            langue_preferee: true,
+            secteur_activite: true,
+            niveau_etude: true,
+            pays_residence: true,
+            pays_nationalite: true,
+            organisation: {
+              select: {
+                id: true,
+                raison_sociale: true,
+                email: true,
+                type: true,
+                contact_referent: true,
+                pays: true,
+              },
+            },
           }
         },
-        formation: true,
-        session: true,
-        paiement: true,
+        formation: {
+          select: {
+            id: true,
+            intitule: true,
+            type_formation: true,
+            mode_formation: true,
+            cout_catalogue: true,
+            lieu: true,
+            responsable_id: true,
+          },
+        },
+        session: {
+          select: {
+            id: true,
+            date_debut: true,
+            date_fin: true,
+            statut: true,
+            lieu: true,
+            capacite: true,
+            nb_inscrits: true,
+            places_restantes: true,
+          },
+        },
+        voucher_organisation: {
+          select: {
+            id: true,
+            code: true,
+            statut: true,
+            type_valeur: true,
+            valeur: true,
+            quota_max: true,
+            quota_utilise: true,
+            date_expiration: true,
+            devis_id: true,
+          },
+        },
+        paiement: {
+          select: {
+            id: true,
+            statut: true,
+            methode: true,
+            montant_catalogue: true,
+            montant_final: true,
+            reduction_appliquee: true,
+            confirmed_at: true,
+            expires_at: true,
+            transaction_id: true,
+            order_ngser: true,
+            provider: true,
+            code_apporteur: {
+              select: {
+                id: true,
+                code: true,
+                type: true,
+                valeur: true,
+                type_valeur: true,
+                apporteur: { select: { nom: true, code_apporteur: true } },
+              },
+            },
+          },
+        },
       }
     });
     if (!dossier) throw new Error('DOSSIER_NOT_FOUND');
-    return dossier;
+
+    // Résoudre la raison_sociale de l'organisation via voucher_organisation.organisation_id
+    let organisationVoucherNom: string | null = null;
+    const orgId = (dossier as any).voucher_organisation?.organisation_id;
+    if (orgId) {
+      const org = await this.prisma.organisation.findUnique({
+        where: { id: orgId },
+        select: { raison_sociale: true },
+      });
+      organisationVoucherNom = org?.raison_sociale ?? null;
+    }
+
+    return { ...dossier, _organisation_voucher_nom: organisationVoucherNom };
   }
 
   // UCS08 — Traiter dossier EXCEPTION (RM-05)

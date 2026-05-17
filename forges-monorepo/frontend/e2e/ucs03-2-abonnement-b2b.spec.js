@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { E2E_ACCOUNTS } from './e2e-data';
-import { authHeaders, getJson, loginAsOrganisation, putJson } from './helpers';
+import { authHeaders, getJson, loginAsOrganisation, postJson, putJson } from './helpers';
 
 test('UCS03.2: Organisation voit son palier B2B STARTER et sa limite de 5 apprenants', async ({ page, request }) => {
   await loginAsOrganisation(page);
@@ -36,4 +36,15 @@ test('UCS03.2: montée BUSINESS recalcule la capacité B2B', async ({ request })
   const status = await getJson(request, '/abonnements/b2b/me', headers);
   expect(status.data?.palier).toBe('BUSINESS');
   expect(status.data?.nb_max).toBe(50);
+});
+
+test('UCS03.2: palier Sur devis et abonnement déjà actif sont encadrés', async ({ request }) => {
+  const headers = await authHeaders(request, E2E_ACCOUNTS.organisation);
+
+  const duplicate = await postJson(request, '/abonnements/b2b', {
+    palier: 'SUR_DEVIS',
+  }, headers);
+
+  expect(duplicate.status).toBe(500);
+  expect(duplicate.payload?.error ?? duplicate.payload?.message).toMatch(/PALIER_SUR_DEVIS_HORS_LIGNE/i);
 });

@@ -8,10 +8,12 @@ describe('VoucherService', () => {
   let mockRepo: jest.Mocked<VoucherRepository>;
   let mockAudit: jest.Mocked<AuditLogger>;
   let mockPrisma: jest.Mocked<PrismaClient>;
+  let mockEmail: { sendVouchersOrganisation: jest.Mock };
 
   beforeEach(() => {
     mockRepo = {
       findById: jest.fn(),
+      create: jest.fn(),
       update: jest.fn(),
     } as any;
 
@@ -25,10 +27,16 @@ describe('VoucherService', () => {
       organisation: {
         findUnique: jest.fn(),
       },
+      devis: {
+        findUnique: jest.fn(),
+      },
       formation: {
         findUnique: jest.fn(),
       },
       voucherApporteur: {
+        findUnique: jest.fn(),
+      },
+      voucherOrganisation: {
         findUnique: jest.fn(),
       },
       apporteur: {
@@ -37,13 +45,18 @@ describe('VoucherService', () => {
       },
       dossier: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
       },
       paiement: {
         findFirst: jest.fn(),
       },
     } as any;
 
-    service = new VoucherService(mockRepo, mockAudit, mockPrisma);
+    mockEmail = {
+      sendVouchersOrganisation: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new VoucherService(mockRepo, mockAudit, mockPrisma, mockEmail as any);
   });
 
   it('valide un voucher promotionnel brouillon', async () => {
@@ -103,7 +116,7 @@ describe('VoucherService', () => {
   });
 
   it('calcule une réduction promotionnelle pour un voucher montant', async () => {
-    (mockPrisma.voucherApporteur.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.voucherOrganisation.findUnique as jest.Mock).mockResolvedValue({
       id: 'voucher-03',
       formation_id: 'formation-01',
       statut: 'ACTIF',
@@ -139,5 +152,133 @@ describe('VoucherService', () => {
     await expect(
       service.checkApporteurCode('CODE-1', { dossier_id: 'dossier-01' })
     ).rejects.toThrow('VOUCHER_CUMUL_INTERDIT');
+  });
+
+  it('liait un voucher manuel a un devis valide de la meme organisation et formation', async () => {
+    (mockPrisma.devis.findUnique as jest.Mock).mockResolvedValue({
+      id: 'devis-01',
+      organisation_id: 'org-01',
+      formation_id: 'formation-01',
+      statut: 'CREE',
+    } as any);
+    (mockPrisma.organisation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'org-01',
+      raison_sociale: 'Org Test',
+      email: 'org@test.ci',
+      langue_preferee: 'FR',
+      statut: 'ACTIF',
+    } as any);
+    (mockPrisma.formation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'formation-01',
+      intitule: 'Formation Test',
+    } as any);
+    (mockRepo.create as jest.Mock).mockResolvedValue({
+      id: 'voucher-04',
+      code: 'V-04',
+      organisation_id: 'org-01',
+      formation_id: 'formation-01',
+      devis_id: 'devis-01',
+    } as any);
+
+    await expect(service.createVoucher({
+      formation_id: 'formation-01',
+      devis_id: 'devis-01',
+      valeur: 10000,
+      type_valeur: 'MONTANT',
+      quota_max: 1,
+      date_expiration: new Date(Date.now() + 86_400_000),
+    }, 'admin-01')).resolves.toEqual(expect.objectContaining({
+      devis_id: 'devis-01',
+    }));
+
+    expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      devis_id: 'devis-01',
+    }));
+    expect(mockPrisma.organisation.findUnique).toHaveBeenCalledWith({
+      where: { id: 'org-01' },
+    });
+    expect(mockEmail.sendVouchersOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('envoie un mail pour un voucher manuel sans devis', async () => {
+    (mockPrisma.organisation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'org-01',
+      raison_sociale: 'Org Test',
+      email: 'org@test.ci',
+      langue_preferee: 'FR',
+      statut: 'ACTIF',
+    } as any);
+    (mockPrisma.formation.findUnique as jest.Mock).mockResolvedValue({
+      id: 'formation-01',
+      intitule: 'Formation Test',
+    } as any);
+    (mockRepo.create as jest.Mock).mockResolvedValue({
+      id: 'voucher-05',
+      code: 'V-05',
+      organisation_id: 'org-01',
+      formation_id: 'formation-01',
+      devis_id: null,
+    } as any);
+
+    await service.createVoucher({
+      formation_id: 'formation-01',
+      valeur: 10000,
+      type_valeur: 'MONTANT',
+      quota_max: 1,
+      date_expiration: new Date(Date.now() + 86_400_000),
+    }, 'admin-01');
+
+    expect(mockEmail.sendVouchersOrganisation).toHaveBeenCalledWith(
+      'org@test.ci',
+      ['V-05'],
+      'Formation Test',
+      'Org Test'
+    );
+  });
+
+  describe('getUtilisateurs', () => {
+    it('retourne la liste des apprenants ayant utilisé le voucher', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', code: 'CODE-ORG-01', type: 'ORGANISATION' } as any);
+      (mockPrisma.dossier.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'dossier-01',
+          statut: 'PAYE',
+          created_at: new Date('2026-05-01'),
+          apprenant: { id: 'app-01', nom: 'DOGBA', prenoms: 'Benjamin', email: 'dogba@test.ci' },
+        },
+        {
+          id: 'dossier-02',
+          statut: 'RETENU',
+          created_at: new Date('2026-05-02'),
+          apprenant: { id: 'app-02', nom: 'DJE', prenoms: 'Hiba', email: 'dje@test.ci' },
+        },
+      ]);
+
+      const result = await service.getUtilisateurs('voucher-01');
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        dossier_id: 'dossier-01',
+        statut: 'PAYE',
+        date_utilisation: new Date('2026-05-01'),
+        apprenant: { id: 'app-01', nom: 'DOGBA', prenoms: 'Benjamin', email: 'dogba@test.ci' },
+      });
+      expect(mockPrisma.dossier.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { OR: [{ voucher_organisation_id: 'voucher-01' }, { voucher_code: 'CODE-ORG-01' }] },
+      }));
+    });
+
+    it('lève VOUCHER_NOT_FOUND si le voucher n\'existe pas', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+      await expect(service.getUtilisateurs('inexistant')).rejects.toThrow('VOUCHER_NOT_FOUND');
+    });
+
+    it('retourne une liste vide si aucun dossier n\'utilise le voucher', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 'voucher-01', code: 'CODE-ORG-01', type: 'ORGANISATION' } as any);
+      (mockPrisma.dossier.findMany as jest.Mock).mockResolvedValue([]);
+
+      const result = await service.getUtilisateurs('voucher-01');
+      expect(result).toEqual([]);
+    });
   });
 });

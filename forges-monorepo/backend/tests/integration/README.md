@@ -34,7 +34,8 @@ npm run dev
 
 # Terminal 2 — Charger seeds validation
 cd ../../seeds
-node seed-validation.js --reset
+cd ../forges-monorepo/backend
+node seed_for_test.js --reset
 
 # Terminal 3 — Lancer tests
 cd forges-monorepo/backend

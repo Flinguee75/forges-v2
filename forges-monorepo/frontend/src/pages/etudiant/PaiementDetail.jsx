@@ -35,6 +35,7 @@ export default function PaiementDetail() {
   const getStatutBadge = (statut) => {
     const mapping = {
       EN_ATTENTE: { variant: 'gray', label: 'En attente' },
+      PENDING: { variant: 'warning', label: 'En attente' },
       INITIE: { variant: 'info', label: 'Initié' },
       CONFIRME: { variant: 'success', label: 'Confirmé' },
       ECHOUE: { variant: 'danger', label: 'Échoué' },
@@ -51,6 +52,7 @@ export default function PaiementDetail() {
       CARTE: 'Carte bancaire',
       VIREMENT: 'Virement bancaire',
       VOUCHER_ORG: 'Voucher Organisation',
+      DIRECT: 'Paiement direct',
     };
     return mapping[methode] || methode;
   };
@@ -71,6 +73,15 @@ export default function PaiementDetail() {
 
   const formation = paiement?.dossier?.formation || paiement?.dossier?.session?.formation;
   const formationTitre = formation?.titre || formation?.intitule || 'N/A';
+  const montantPaiement =
+    paiement?.montant_final ?? paiement?.montant_initie ?? paiement?.montant ?? paiement?.montant_catalogue ?? 0;
+  const methodePaiementLabel = paiement?.methode
+    ? getMethodeLabel(paiement.methode)
+    : paiement?.methode_paiement
+      ? getMethodeLabel(paiement.methode_paiement)
+      : paiement?.provider || '-';
+  const confirmedAt = paiement?.confirmed_at || paiement?.date_confirmation;
+  const tentatives = paiement?.tentatives ?? paiement?.tentatives_echouees ?? 0;
 
   if (isLoading || !paiement) {
     return (
@@ -101,7 +112,7 @@ export default function PaiementDetail() {
             Votre paiement n'a pas pu être traité. Veuillez réessayer ou utiliser une autre
             méthode de paiement.
           </p>
-          {paiement.tentatives_echouees >= 3 && (
+          {tentatives >= 3 && (
             <p className="mt-2 text-sm text-danger font-semibold">
               Nombre maximum de tentatives atteint (3/3). Contactez le support. (RM-08)
             </p>
@@ -129,28 +140,40 @@ export default function PaiementDetail() {
             <div className="flex justify-between">
               <span className="text-subtext">Montant</span>
               <span className="text-lg font-bold text-primary">
-                {formatMontant(paiement.montant)}
+                {formatMontant(montantPaiement)}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-subtext">Méthode de paiement</span>
-              <span className="font-medium">{getMethodeLabel(paiement.methode_paiement)}</span>
+              <span className="font-medium">{methodePaiementLabel}</span>
             </div>
+            {paiement.order_ngser && (
+              <div className="flex justify-between">
+                <span className="text-subtext">Référence de paiement</span>
+                <span className="font-medium">{paiement.order_ngser}</span>
+              </div>
+            )}
+            {paiement.transaction_id && (
+              <div className="flex justify-between">
+                <span className="text-subtext">Transaction</span>
+                <span className="font-medium">{paiement.transaction_id}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-subtext">Date d'initialisation</span>
               <span className="font-medium">{formatDate(paiement.created_at)}</span>
             </div>
-            {paiement.date_confirmation && (
+            {confirmedAt && (
               <div className="flex justify-between">
                 <span className="text-subtext">Date de confirmation</span>
-                <span className="font-medium">{formatDate(paiement.date_confirmation)}</span>
+                <span className="font-medium">{formatDate(confirmedAt)}</span>
               </div>
             )}
-            {paiement.tentatives_echouees > 0 && (
+            {tentatives > 0 && (
               <div className="flex justify-between">
                 <span className="text-subtext">Tentatives échouées</span>
                 <Badge variant="warning" size="small">
-                  {paiement.tentatives_echouees} / 3
+                  {tentatives} / 3
                 </Badge>
               </div>
             )}
@@ -182,7 +205,7 @@ export default function PaiementDetail() {
           </div>
         </Card>
 
-        {paiement.statut === 'ECHOUE' && paiement.tentatives_echouees < 3 && (
+        {paiement.statut === 'ECHOUE' && tentatives < 3 && (
           <div className="flex justify-center">
             <Button
               variant="primary"

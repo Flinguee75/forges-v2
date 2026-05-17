@@ -14,7 +14,8 @@ const DEFAULT_FORM = {
   duree_jours: 1,
   cout_catalogue: 0,
   type_formation: '',
-  mode_formation: 'AVEC_SESSION',
+  mode_formation: 'PRESENTIEL',
+  lieu: '',
   pilier_abonnement: '',
   langues_disponibles: 'FR',
   certification_delivree: false,
@@ -22,7 +23,24 @@ const DEFAULT_FORM = {
   objectifs_pedagogiques: '',
   prerequis: '',
   duree_acces_jours: 365,
+  url_contenu: '',
+  image_url: '',
 };
+
+const SELECT_CLASS = 'w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary';
+const TEXTAREA_CLASS = 'w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary resize-none';
+
+function SectionTitle({ children }) {
+  return (
+    <p className="mb-4 border-b border-border pb-2 text-xs font-semibold uppercase tracking-widest text-subtext">
+      {children}
+    </p>
+  );
+}
+
+function FieldHint({ children }) {
+  return <p className="mt-1 text-xs text-subtext">{children}</p>;
+}
 
 function normalizeToForm(formation) {
   if (!formation) return DEFAULT_FORM;
@@ -32,9 +50,10 @@ function normalizeToForm(formation) {
     description_courte: formation.description_courte || formation.description || '',
     description_longue: formation.description_longue || '',
     duree_jours: formation.duree_jours ?? formation.duree ?? 1,
-    cout_catalogue: formation.cout_catalogue ?? formation.tarif ?? 0,
+    cout_catalogue: Math.round((formation.cout_catalogue ?? formation.tarif ?? 0) / 100),
     type_formation: formation.type_formation || '',
-    mode_formation: formation.mode_formation || 'AVEC_SESSION',
+    mode_formation: formation.mode_formation || 'PRESENTIEL',
+    lieu: formation.lieu || '',
     pilier_abonnement: formation.pilier_abonnement || '',
     langues_disponibles: Array.isArray(formation.langues_disponibles)
       ? formation.langues_disponibles.join(', ')
@@ -42,10 +61,12 @@ function normalizeToForm(formation) {
     certification_delivree: Boolean(formation.certification_delivree),
     public_cible: formation.public_cible || '',
     objectifs_pedagogiques: Array.isArray(formation.objectifs_pedagogiques)
-      ? formation.objectifs_pedagogiques.join(', ')
+      ? formation.objectifs_pedagogiques.join('\n')
       : '',
     prerequis: formation.prerequis || '',
     duree_acces_jours: formation.duree_acces_jours ?? 365,
+    url_contenu: formation.url_contenu || '',
+    image_url: formation.image_url || '',
   };
 }
 
@@ -56,7 +77,7 @@ function buildPayload(formData) {
     .filter((value) => ['FR', 'EN', 'ES', 'PT'].includes(value));
 
   const objectifs = formData.objectifs_pedagogiques
-    .split(',')
+    .split('\n')
     .map((value) => value.trim())
     .filter(Boolean);
 
@@ -65,7 +86,7 @@ function buildPayload(formData) {
     description_courte: formData.description_courte.trim(),
     description_longue: formData.description_longue.trim() || undefined,
     duree_jours: Number(formData.duree_jours),
-    cout_catalogue: Number(formData.cout_catalogue),
+    cout_catalogue: Math.round(Number(formData.cout_catalogue) * 100),
     mode_formation: formData.mode_formation,
     langues_disponibles: langues.length > 0 ? langues : ['FR'],
     certification_delivree: Boolean(formData.certification_delivree),
@@ -73,7 +94,16 @@ function buildPayload(formData) {
     objectifs_pedagogiques: objectifs.length > 0 ? objectifs : undefined,
     prerequis: formData.prerequis.trim() || undefined,
     duree_acces_jours: Number(formData.duree_acces_jours),
+    lieu: formData.lieu.trim() || undefined,
   };
+
+  if (formData.url_contenu && formData.url_contenu.trim()) {
+    payload.url_contenu = formData.url_contenu.trim();
+  }
+
+  if (formData.image_url && formData.image_url.trim()) {
+    payload.image_url = formData.image_url.trim();
+  }
 
   if (formData.type_formation) {
     payload.type_formation = formData.type_formation;
@@ -126,7 +156,7 @@ export default function FormationForm() {
       nextErrors.duree_jours = 'La durée doit être un entier supérieur ou égal à 1.';
     }
     if (!Number.isInteger(Number(formData.cout_catalogue)) || Number(formData.cout_catalogue) < 0) {
-      nextErrors.cout_catalogue = 'Le tarif doit être un entier positif en centimes.';
+      nextErrors.cout_catalogue = 'Le tarif doit être un entier positif en FCFA.';
     }
 
     setFieldErrors(nextErrors);
@@ -163,200 +193,281 @@ export default function FormationForm() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="rounded-lg bg-white p-6 shadow">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
-          Formulaire formation
-        </p>
-        <h2 className="mt-3 text-2xl font-semibold text-primary">
-          {title}
-        </h2>
-        <p className="mt-2 text-subtext">
-          Création et édition des formations backoffice.
-        </p>
-      </div>
+    <form onSubmit={handleSubmit}>
+      <div className="mx-auto max-w-4xl space-y-6">
 
-      {error && (
-        <div className="rounded-lg border border-danger/20 bg-danger/10 p-4 text-sm text-danger">
-          {error}
+        <div className="rounded-lg bg-white p-6 shadow">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/60">
+            Formulaire formation
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold text-primary">{title}</h2>
+          <p className="mt-2 text-sm text-subtext">
+            {isEdit ? 'Modifiez les informations de la formation.' : 'Renseignez les informations pour créer une nouvelle formation.'}
+          </p>
         </div>
-      )}
 
-      <Card>
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label="Intitulé"
-              value={formData.intitule}
-              onChange={(event) => handleChange('intitule', event.target.value)}
-              error={fieldErrors.intitule}
-              required
-            />
-            <Input
-              type="number"
-              label="Durée (jours)"
-              value={formData.duree_jours}
-              onChange={(event) => handleChange('duree_jours', event.target.value)}
-              error={fieldErrors.duree_jours}
-              min="1"
-              required
-            />
+        {error && (
+          <div className="rounded-lg border border-danger/20 bg-danger/10 p-4 text-sm text-danger">
+            {error}
           </div>
+        )}
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-text">
-              Description courte
-            </label>
-            <textarea
-              value={formData.description_courte}
-              onChange={(event) => handleChange('description_courte', event.target.value)}
-              rows={3}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            {fieldErrors.description_courte && (
-              <p className="mt-1 text-sm text-danger">{fieldErrors.description_courte}</p>
+        {/* Section 1 — Informations générales */}
+        <Card>
+          <SectionTitle>Informations générales</SectionTitle>
+          <div className="space-y-4">
+            <div>
+              <Input
+                label="Intitulé"
+                value={formData.intitule}
+                onChange={(event) => handleChange('intitule', event.target.value)}
+                error={fieldErrors.intitule}
+                required
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Input
+                type="number"
+                label="Durée (jours)"
+                value={formData.duree_jours}
+                onChange={(event) => handleChange('duree_jours', event.target.value)}
+                error={fieldErrors.duree_jours}
+                min="1"
+                required
+              />
+              <Input
+                type="number"
+                label="Tarif catalogue (FCFA)"
+                value={formData.cout_catalogue}
+                onChange={(event) => handleChange('cout_catalogue', event.target.value)}
+                error={fieldErrors.cout_catalogue}
+                min="0"
+                required
+              />
+              <Input
+                type="number"
+                label="Durée accès (jours)"
+                value={formData.duree_acces_jours}
+                onChange={(event) => handleChange('duree_acces_jours', event.target.value)}
+                min="1"
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">Mode formation</label>
+                <select
+                  value={formData.mode_formation}
+                  onChange={(event) => handleChange('mode_formation', event.target.value)}
+                  className={SELECT_CLASS}
+                >
+                  <option value="PRESENTIEL">Présentiel</option>
+                  <option value="EN_LIGNE">En ligne</option>
+                  <option value="A_LA_DEMANDE">À la demande</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">Type formation</label>
+                <select
+                  value={formData.type_formation}
+                  onChange={(event) => handleChange('type_formation', event.target.value)}
+                  className={SELECT_CLASS}
+                >
+                  <option value="">Automatique / non précisé</option>
+                  <option value="STANDARD">Standard</option>
+                  <option value="PREMIUM">Premium</option>
+                  <option value="SUR_DEVIS">Sur devis</option>
+                </select>
+                <FieldHint>Assigné définitivement par FORGES lors de la validation.</FieldHint>
+              </div>
+            </div>
+            {(formData.mode_formation === 'PRESENTIEL' || formData.mode_formation === 'EN_LIGNE') && (
+              <Input
+                label="Lieu"
+                value={formData.lieu}
+                onChange={(event) => handleChange('lieu', event.target.value)}
+                placeholder="Ex: AIGF, Anoumabo, Abidjan, Côte d'Ivoire"
+              />
             )}
           </div>
+        </Card>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-text">
-              Description longue
-            </label>
-            <textarea
-              value={formData.description_longue}
-              onChange={(event) => handleChange('description_longue', event.target.value)}
-              rows={5}
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              type="number"
-              label="Tarif catalogue (centimes)"
-              value={formData.cout_catalogue}
-              onChange={(event) => handleChange('cout_catalogue', event.target.value)}
-              error={fieldErrors.cout_catalogue}
-              min="0"
-              required
-            />
-            <Input
-              type="number"
-              label="Durée accès (jours)"
-              value={formData.duree_acces_jours}
-              onChange={(event) => handleChange('duree_acces_jours', event.target.value)}
-              min="1"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
+        {/* Section 2 — Description */}
+        <Card>
+          <SectionTitle>Description</SectionTitle>
+          <div className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-text">
-                Mode formation
+                Description courte <span className="text-danger">*</span>
               </label>
-              <select
-                value={formData.mode_formation}
-                onChange={(event) => handleChange('mode_formation', event.target.value)}
-                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="AVEC_SESSION">Avec session</option>
-                <option value="A_LA_DEMANDE">À la demande</option>
-              </select>
+              <textarea
+                value={formData.description_courte}
+                onChange={(event) => handleChange('description_courte', event.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="Résumé accrocheur visible dans le catalogue (500 caractères max)"
+                className={TEXTAREA_CLASS}
+              />
+              <div className="mt-1 flex justify-between">
+                {fieldErrors.description_courte
+                  ? <p className="text-sm text-danger">{fieldErrors.description_courte}</p>
+                  : <span />
+                }
+                <span className="text-xs text-subtext">{formData.description_courte.length}/500</span>
+              </div>
             </div>
-
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-text">
-                Type formation
-              </label>
-              <select
-                value={formData.type_formation}
-                onChange={(event) => handleChange('type_formation', event.target.value)}
-                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">Automatique / non précisé</option>
-                <option value="STANDARD">Standard</option>
-                <option value="PREMIUM">Premium</option>
-                <option value="SUR_DEVIS">Sur devis</option>
-              </select>
+              <label className="mb-1.5 block text-sm font-medium text-text">Description longue</label>
+              <textarea
+                value={formData.description_longue}
+                onChange={(event) => handleChange('description_longue', event.target.value)}
+                rows={8}
+                placeholder="Programme détaillé, contexte, déroulement de la formation…"
+                className={TEXTAREA_CLASS}
+              />
+              <FieldHint>Utilisez deux sauts de ligne pour séparer les paragraphes. Les sections commençant par "Semaine 1 —" seront mises en avant dans l'affichage.</FieldHint>
             </div>
           </div>
+        </Card>
 
-          <div className="grid gap-4 md:grid-cols-2">
+        {/* Section 3 — Pédagogie */}
+        <Card>
+          <SectionTitle>Pédagogie et public</SectionTitle>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">Public cible</label>
+                <textarea
+                  value={formData.public_cible}
+                  onChange={(event) => handleChange('public_cible', event.target.value)}
+                  rows={2}
+                  placeholder="Ex: Décideurs, responsables IT, cadres en cybersécurité"
+                  className={TEXTAREA_CLASS}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">Prérequis</label>
+                <textarea
+                  value={formData.prerequis}
+                  onChange={(event) => handleChange('prerequis', event.target.value)}
+                  rows={2}
+                  placeholder="Laisser vide si aucun prérequis"
+                  className={TEXTAREA_CLASS}
+                />
+              </div>
+            </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-text">
-                Piliers abonnement
-              </label>
-              <select
-                value={formData.pilier_abonnement}
-                onChange={(event) => handleChange('pilier_abonnement', event.target.value)}
-                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">Non défini</option>
-                <option value="RETAIL">Retail</option>
-                <option value="B2B">B2B</option>
-                <option value="INSTITUTIONNEL">Institutionnel</option>
-                <option value="TOUS">Tous</option>
-              </select>
+              <label className="mb-1.5 block text-sm font-medium text-text">Objectifs pédagogiques</label>
+              <textarea
+                value={formData.objectifs_pedagogiques}
+                onChange={(event) => handleChange('objectifs_pedagogiques', event.target.value)}
+                rows={6}
+                placeholder={`Un objectif par ligne :\nMaîtriser le paysage mondial des menaces cyber\nComprendre les risques stratégiques de l'IA\nObtenir la certification XYZ`}
+                className={TEXTAREA_CLASS}
+              />
+              <FieldHint>Un objectif par ligne. Chaque ligne sera affichée comme un point distinct.</FieldHint>
             </div>
-            <Input
-              label="Langues disponibles"
-              value={formData.langues_disponibles}
-              onChange={(event) => handleChange('langues_disponibles', event.target.value)}
-              placeholder="FR, EN"
-            />
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-[#F4F6F7] p-3">
+              <input
+                type="checkbox"
+                id="certification_delivree"
+                checked={formData.certification_delivree}
+                onChange={(event) => handleChange('certification_delivree', event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <div>
+                <label htmlFor="certification_delivree" className="text-sm font-medium text-text cursor-pointer">
+                  Certification délivrée à l'issue de la formation
+                </label>
+                <p className="text-xs text-subtext">Un badge vert sera affiché dans le détail et le catalogue.</p>
+              </div>
+            </div>
           </div>
+        </Card>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label="Public cible"
-              value={formData.public_cible}
-              onChange={(event) => handleChange('public_cible', event.target.value)}
-            />
-            <Input
-              label="Prérequis"
-              value={formData.prerequis}
-              onChange={(event) => handleChange('prerequis', event.target.value)}
-            />
+        {/* Section 4 — Configuration */}
+        <Card>
+          <SectionTitle>Configuration</SectionTitle>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">Pilier abonnement</label>
+                <select
+                  value={formData.pilier_abonnement}
+                  onChange={(event) => handleChange('pilier_abonnement', event.target.value)}
+                  className={SELECT_CLASS}
+                >
+                  <option value="">Non défini</option>
+                  <option value="RETAIL">Retail</option>
+                  <option value="B2B">B2B</option>
+                  <option value="INSTITUTIONNEL">Institutionnel</option>
+                  <option value="TOUS">Tous</option>
+                </select>
+                <FieldHint>Détermine l'éligibilité à l'abonnement (STANDARD uniquement).</FieldHint>
+              </div>
+              <div>
+                <Input
+                  label="Langues disponibles"
+                  value={formData.langues_disponibles}
+                  onChange={(event) => handleChange('langues_disponibles', event.target.value)}
+                  placeholder="FR, EN"
+                />
+                <FieldHint>Codes séparés par virgule : FR, EN, ES, PT</FieldHint>
+              </div>
+            </div>
+            {formData.mode_formation === 'A_LA_DEMANDE' && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">URL du contenu (LMS)</label>
+                <input
+                  type="url"
+                  value={formData.url_contenu}
+                  onChange={(event) => handleChange('url_contenu', event.target.value)}
+                  placeholder="https://lms.forges.com/formations/..."
+                  className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <FieldHint>L'URL sera chiffrée (AES-256-GCM) avant stockage.</FieldHint>
+              </div>
+            )}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-text">Image de couverture (URL)</label>
+              <input
+                type="url"
+                value={formData.image_url}
+                onChange={(event) => handleChange('image_url', event.target.value)}
+                placeholder="https://images.unsplash.com/..."
+                className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <FieldHint>URL publique d'une image (jpg, png, webp). Affiché en couverture dans le catalogue.</FieldHint>
+              {formData.image_url && (
+                <div className="mt-3">
+                  <img
+                    src={formData.image_url}
+                    alt="Aperçu couverture"
+                    className="h-32 w-full rounded-lg object-cover border border-border"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                    onLoad={(e) => { e.target.style.display = 'block'; }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
+        </Card>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-text">
-              Objectifs pédagogiques
-            </label>
-            <textarea
-              value={formData.objectifs_pedagogiques}
-              onChange={(event) => handleChange('objectifs_pedagogiques', event.target.value)}
-              rows={4}
-              placeholder="Objectif 1, Objectif 2"
-              className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
+        {/* Actions */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(isEdit ? `/backoffice/formations/${id}` : '/backoffice/formations')}
+            disabled={isLoading}
+          >
+            Annuler
+          </Button>
+          <Button type="submit" loading={isLoading}>
+            {isEdit ? 'Enregistrer les modifications' : 'Créer la formation'}
+          </Button>
+        </div>
 
-          <label className="flex items-center gap-3 text-sm text-text">
-            <input
-              type="checkbox"
-              checked={formData.certification_delivree}
-              onChange={(event) => handleChange('certification_delivree', event.target.checked)}
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-            />
-            Certification délivrée
-          </label>
-
-          <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/backoffice/formations')}
-              disabled={isLoading}
-            >
-              Retour
-            </Button>
-            <Button type="submit" loading={isLoading}>
-              {isEdit ? 'Enregistrer' : 'Créer la formation'}
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
+      </div>
+    </form>
   );
 }

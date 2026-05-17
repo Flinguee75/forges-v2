@@ -12,10 +12,9 @@ import { AbonnementRetailRepository } from '../abonnements/retail/abonnement-ret
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Services
 const audit = new AuditLogger();
@@ -67,7 +66,7 @@ router.get('/dossiers', authenticate, authorize('APPRENANT', 'ORGANISATION', 'GE
   inscriptionController.getAllDossiers(req, res, next);
 });
 
-router.get('/backoffice/dossiers', authenticate, authorize('RESPONSABLE', 'ADMIN'), (req, res, next) => {
+router.get('/backoffice/dossiers', authenticate, authorize('RESPONSABLE', 'ADMIN', 'SUPERVISEUR'), (req, res, next) => {
   inscriptionController.getBackofficeDossiers(req, res, next);
 });
 

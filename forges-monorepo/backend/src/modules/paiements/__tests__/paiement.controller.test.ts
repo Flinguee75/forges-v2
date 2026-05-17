@@ -10,14 +10,20 @@ describe('PaiementController', () => {
   beforeEach(() => {
     mockService = {
       initierPaiement: jest.fn(),
+      initierPaiementNgser: jest.fn(),
       confirmerPaiement: jest.fn(),
       getPaiements: jest.fn(),
+      getPaiementsStats: jest.fn(),
       effectuerReversementsPartenaires: jest.fn(),
       annulerPaiementsExpires: jest.fn(),
+      traiterIpnNgser: jest.fn(),
+      reconcilierPaiementsPendingNgser: jest.fn(),
+      supprimerPaiement: jest.fn(),
     } as any;
 
     controller = new PaiementController(mockService);
     process.env.WEBHOOK_SECRET = 'webhook-secret';
+    process.env.FRONTEND_URL = 'http://localhost:5173';
   });
 
   it('initie un paiement valide', async () => {
@@ -37,6 +43,39 @@ describe('PaiementController', () => {
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ statusCode: 201, data: { paiement_id: 'paiement-01' } });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('initie un paiement NGSER via /initier sans transmettre de montant fiable', async () => {
+    const req = createMockReq({
+      body: {
+        dossier_id: '550e8400-e29b-41d4-a716-446655440000',
+        montant: 1,
+      },
+      user: { userId: 'app-01' },
+    });
+    const res = createMockRes();
+    const next = createNext();
+    mockService.initierPaiementNgser.mockResolvedValue({
+      paiement_id: 'paiement-01',
+      order_ngser: 'FRG-2026-042-A3F7B2',
+      payment_url: 'https://mock-ngser.forges.ci/pay?order=FRG-2026-042-A3F7B2',
+      montant_initie: 100000,
+    } as any);
+
+    await controller.initierPaiementNgser(req, res, next);
+
+    expect(mockService.initierPaiementNgser).toHaveBeenCalledWith(
+      { dossier_id: '550e8400-e29b-41d4-a716-446655440000' },
+      'app-01'
+    );
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 201,
+      data: expect.objectContaining({
+        order_ngser: 'FRG-2026-042-A3F7B2',
+        montant_initie: 100000,
+      }),
+    });
   });
 
   it('mappe les erreurs métier ou validation sur initierPaiement', async () => {
@@ -146,6 +185,31 @@ describe('PaiementController', () => {
     expect(res.json).toHaveBeenCalledWith([{ id: 'paiement-01' }]);
   });
 
+  it('retourne les stats paiements admin', async () => {
+    const req = createMockReq({ query: { period: '24h' } });
+    const res = createMockRes();
+    const next = createNext();
+    mockService.getPaiementsStats.mockResolvedValue({
+      period: '24h',
+      total: 10,
+      success: 9,
+      fail: 1,
+      pending: 0,
+      success_rate: 90,
+      avg_confirmation_time_seconds: 8.5,
+      pending_over_30min: 0,
+    } as any);
+
+    await controller.getPaiementsStats(req, res, next);
+
+    expect(mockService.getPaiementsStats).toHaveBeenCalledWith('24h');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 200,
+      data: expect.objectContaining({ success_rate: 90 }),
+    });
+  });
+
   it('effectue les reversements et le scheduler', async () => {
     const req = createMockReq({ user: { userId: 'agent-01' } });
     const res = createMockRes();
@@ -158,5 +222,243 @@ describe('PaiementController', () => {
 
     expect(res.json).toHaveBeenCalledWith({ nb_reversements: 2 });
     expect(res.json).toHaveBeenCalledWith({ annules: 3 });
+  });
+
+  it('supprime un paiement admin', async () => {
+    const req = createMockReq({
+      params: { id: 'pay-01' },
+      body: { motif: 'Nettoyage test' },
+      user: { userId: 'admin-01' },
+    });
+    const res = createMockRes();
+    const next = createNext();
+    mockService.supprimerPaiement.mockResolvedValue({
+      statut: 'SUPPRIME',
+      paiement_id: 'pay-01',
+      dossier_id: 'dos-01',
+    } as any);
+
+    await controller.supprimerPaiement(req, res, next);
+
+    expect(mockService.supprimerPaiement).toHaveBeenCalledWith('pay-01', 'admin-01', 'Nettoyage test');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      statusCode: 200,
+      data: {
+        statut: 'SUPPRIME',
+        paiement_id: 'pay-01',
+        dossier_id: 'dos-01',
+      },
+    });
+  });
+
+  it('mappe les erreurs de suppression de paiement', async () => {
+    const req = createMockReq({ params: { id: 'pay-01' }, user: { userId: 'admin-01' } });
+    const res = createMockRes();
+    const next = createNext();
+
+    mockService.supprimerPaiement.mockRejectedValueOnce(new Error('PAIEMENT_NOT_FOUND'));
+    await controller.supprimerPaiement(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(404);
+
+    mockService.supprimerPaiement.mockRejectedValueOnce(new Error('PAIEMENT_SUPPRESSION_INTERDITE'));
+    await controller.supprimerPaiement(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(422);
+  });
+
+  describe('traiterIpnNgser — securite HMAC', () => {
+    it('rejette un IPN sans header x-webhook-signature', async () => {
+      const req = createMockReq({
+        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001' },
+        headers: {},
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.traiterIpnNgser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 401,
+        error: 'SIGNATURE_MANQUANTE',
+      }));
+      expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
+    });
+
+    it('rejette un IPN avec signature invalide', async () => {
+      const req = createMockReq({
+        body: { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001' },
+        headers: { 'x-webhook-signature': 'mauvaise-signature' },
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.traiterIpnNgser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 401,
+        error: 'INVALID_SIGNATURE',
+      }));
+      expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
+    });
+
+    it('accepte un IPN avec signature HMAC valide', async () => {
+      const body = { order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001' };
+      const payload = JSON.stringify(body);
+      const validSig = createHmac('sha256', 'webhook-secret').update(payload).digest('hex');
+
+      const req = createMockReq({
+        body,
+        headers: { 'x-webhook-signature': validSig },
+      });
+      const res = createMockRes();
+      const next = createNext();
+      mockService.traiterIpnNgser.mockResolvedValue(undefined);
+
+      await controller.traiterIpnNgser(req, res, next);
+
+      expect(mockService.traiterIpnNgser).toHaveBeenCalledWith(body);
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+  });
+
+  describe('retourPaiementNgser — Payment Data Transfer', () => {
+    it('status_id=1 redirige vers le frontend avec status=success', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '1', transaction_id: 'TXN-100', transaction_amount: '1500' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status=success'));
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('order_id=FRG-2026-042-A3F7B2'));
+    });
+
+    it('status_id=0 redirige vers le frontend avec status=fail', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '0', transaction_id: 'TXN-101' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status=fail'));
+    });
+
+    it('status_id=2 (montant insuffisant) redirige avec status=fail et status_id=2', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '2', transaction_id: 'TXN-102' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status=fail'));
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('status_id=2'));
+    });
+
+    it('inclut transaction_id dans la redirection si présent', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '1', transaction_id: 'TXN-200' },
+      });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.stringContaining('transaction_id=TXN-200'));
+    });
+
+    it('redirige même sans order_id sans lever d\'erreur', async () => {
+      const req = createMockReq({ query: { status_id: '0' } });
+      const res = createMockRes();
+
+      await controller.retourPaiementNgser(req, res, createNext());
+
+      expect(res.redirect).toHaveBeenCalledWith(302, expect.any(String));
+    });
+  });
+
+  describe('retourPaiementNgser — PDT securise', () => {
+    it('ne declenche pas de traitement IPN meme avec status_id=1', async () => {
+      const req = createMockReq({
+        query: {
+          order_id: 'FRG-2026-042-A3F7B2',
+          status_id: '1',
+          transaction_id: 'TXN-001',
+        },
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.retourPaiementNgser(req, res, next);
+
+      expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
+    });
+
+    it('redirige vers /apprenant/paiements/callback avec status=success si status_id=1', async () => {
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '1' },
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.retourPaiementNgser(req, res, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        302,
+        expect.stringContaining('/apprenant/paiements/callback')
+      );
+      expect(res.redirect).toHaveBeenCalledWith(
+        302,
+        expect.stringContaining('status=success')
+      );
+    });
+
+    it('redirige avec status=fail si status_id=0', async () => {
+      const req = createMockReq({
+        query: { order_id: 'FRG-2026-042-A3F7B2', status_id: '0' },
+      });
+      const res = createMockRes();
+      const next = createNext();
+
+      await controller.retourPaiementNgser(req, res, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        302,
+        expect.stringContaining('status=fail')
+      );
+    });
+  });
+
+  describe('configuration securite webhook', () => {
+    it('utilise WEBHOOK_SECRET depuis les variables d environnement', async () => {
+      const secret = 'mon-secret-prod-32chars';
+      process.env.WEBHOOK_SECRET = secret;
+
+      const body = { order_id: 'FRG-TEST', status_id: 1 };
+      const payload = JSON.stringify(body);
+      const validSig = createHmac('sha256', secret).update(payload).digest('hex');
+
+      const req = createMockReq({
+        body,
+        headers: { 'x-webhook-signature': validSig },
+      });
+      const res = createMockRes();
+      const next = createNext();
+      mockService.traiterIpnNgser.mockResolvedValue(undefined);
+
+      await controller.traiterIpnNgser(req, res, next);
+
+      expect(mockService.traiterIpnNgser).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+
+      process.env.WEBHOOK_SECRET = 'webhook-secret'; // restaurer
+    });
   });
 });

@@ -55,11 +55,22 @@ export class AdminController {
     }
   }
 
-  // GET /api/admin/users — ADMIN
+  // GET /api/admin/users — ADMIN (apprenants et organisations uniquement)
   async listUsers(req: Request, res: Response, next: NextFunction) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const result = await this.adminService.listUsers(page);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // GET /api/admin/backoffice-users — ADMIN (équipe backoffice)
+  async listBackofficeUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const result = await this.adminService.listBackofficeUsers(page);
       res.json(result);
     } catch (error) {
       next(error);

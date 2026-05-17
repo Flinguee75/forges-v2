@@ -48,6 +48,7 @@ describe('EspaceApprenantService', () => {
       session: { update: jest.fn() },
       voucherApporteur: { findFirst: jest.fn(), update: jest.fn() },
       dossier: { update: jest.fn() },
+      accesFormationDemande: { update: jest.fn() },
     };
 
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
@@ -332,6 +333,59 @@ describe('EspaceApprenantService', () => {
     });
   });
 
+  describe('updateProgressionFormationDemande', () => {
+    it("leve ACCES_NON_TROUVE si l'acces n'existe pas", async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue(null as any);
+
+      await expect(
+        service.updateProgressionFormationDemande('acc-xxx', 'a-01', 50)
+      ).rejects.toThrow('ACCES_NON_TROUVE');
+    });
+
+    it("leve FORBIDDEN si l'acces appartient a un autre apprenant", async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        id: 'acc-01',
+        apprenant_id: 'a-autre',
+        statut: 'ACTIF',
+        progression: 10,
+      } as any);
+
+      await expect(
+        service.updateProgressionFormationDemande('acc-01', 'a-01', 50)
+      ).rejects.toThrow('FORBIDDEN');
+    });
+
+    it('normalise une progression superieure a 100 a 100', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        id: 'acc-01',
+        apprenant_id: 'a-01',
+        statut: 'ACTIF',
+        progression: 80,
+      } as any);
+      mockRepo.updateProgression.mockResolvedValue({ id: 'acc-01', progression: 100 } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.updateProgressionFormationDemande('acc-01', 'a-01', 150);
+
+      expect(mockRepo.updateProgression).toHaveBeenCalledWith('acc-01', 100);
+    });
+
+    it('normalise une progression negative a 0', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        id: 'acc-01',
+        apprenant_id: 'a-01',
+        statut: 'ACTIF',
+        progression: 10,
+      } as any);
+      mockRepo.updateProgression.mockResolvedValue({ id: 'acc-01', progression: 0 } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.updateProgressionFormationDemande('acc-01', 'a-01', -20);
+
+      expect(mockRepo.updateProgression).toHaveBeenCalledWith('acc-01', 0);
+    });
+  });
+
   describe('UCS11 — Consultation et attestation', () => {
     it('retourne les dossiers de l’apprenant', async () => {
       mockRepo.findDossiersByApprenant.mockResolvedValue([{ id: 'd-01' }] as any);
@@ -363,6 +417,137 @@ describe('EspaceApprenantService', () => {
       mockAudit.info.mockResolvedValue(undefined);
       await service.reactiverAccesAbonnement('a-01');
       expect(mockRepo.reactiverAccesByAbonnement).toHaveBeenCalledWith('a-01');
+    });
+  });
+
+  // Annulation paiement en cours (PAYE_DIRECTEMENT + paiement EN_ATTENTE)
+  describe('Annulation dossier PAYE_DIRECTEMENT avec paiement en cours', () => {
+    const dossierPayeDirectement = {
+      id: 'd-pd',
+      apprenant_id: 'a-01',
+      statut: 'PAYE_DIRECTEMENT',
+      session_id: 's-01',
+      voucher_code: null,
+      paiement: { id: 'p-01', statut: 'EN_ATTENTE', montant_final: 300000000 },
+      formation: { intitule: 'Cyber', type_formation: 'STANDARD' },
+      session: { statut: 'INSCRIPTIONS_OUVERTES' },
+    };
+
+    it('autorise l\'annulation si statut PAYE_DIRECTEMENT et paiement EN_ATTENTE', async () => {
+      mockRepo.findDossierById.mockResolvedValue(dossierPayeDirectement as any);
+      mockRepo.annulerDossier.mockResolvedValue({} as any);
+      mockPrisma.paiement = { update: jest.fn().mockResolvedValue({}) };
+      mockPrisma.session.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.annulerDossier('d-pd', 'a-01');
+
+      expect(result.message).toContain('annulé');
+      expect(mockRepo.annulerDossier).toHaveBeenCalledWith('d-pd');
+      expect(mockPrisma.paiement.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'p-01' }, data: { statut: 'ANNULE' } })
+      );
+    });
+
+    it('annule aussi le paiement associé quand le dossier PAYE_DIRECTEMENT est annulé', async () => {
+      mockRepo.findDossierById.mockResolvedValue(dossierPayeDirectement as any);
+      mockRepo.annulerDossier.mockResolvedValue({} as any);
+      mockPrisma.paiement = { update: jest.fn().mockResolvedValue({}) };
+      mockPrisma.session.update.mockResolvedValue({});
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await service.annulerDossier('d-pd', 'a-01');
+
+      expect(mockPrisma.paiement.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { statut: 'ANNULE' } })
+      );
+    });
+
+    it('bloque annulation si paiement déjà confirmé (PAYE)', async () => {
+      mockRepo.findDossierById.mockResolvedValue({
+        ...dossierPayeDirectement,
+        paiement: { id: 'p-01', statut: 'PAYE', montant_final: 300000000 },
+      } as any);
+
+      await expect(service.annulerDossier('d-pd', 'a-01')).rejects.toThrow('DOSSIER_PAYE_NON_ANNULABLE');
+    });
+  });
+
+  // UCS14 — Détail d'un accès formation (RM-92, RM-103)
+  describe('getAccesFormationDemande', () => {
+    const accesMock = {
+      id: 'acc-01',
+      formation_id: 'f-01',
+      apprenant_id: 'a-01',
+      statut: 'ACTIF',
+      source_financement: 'ABONNEMENT',
+      progression: 40,
+      date_expiration: new Date(Date.now() + 3600 * 1000), // dans 1h
+      formation: {
+        id: 'f-01',
+        intitule: 'Formation Cybersécurité',
+        description_courte: 'Desc',
+        duree_jours: 5,
+        type_formation: 'STANDARD',
+        mode_formation: 'A_LA_DEMANDE',
+      },
+    };
+
+    it('nominal — retourne acces quand actif et non expire', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue(accesMock as any);
+      mockPrisma.accesFormationDemande.update.mockResolvedValue({});
+
+      const result = await service.getAccesFormationDemande('acc-01', 'a-01');
+
+      expect(result).toMatchObject({
+        id: 'acc-01',
+        statut: 'ACTIF',
+        progression: 40,
+      });
+      expect(result.formation.titre).toBe('Formation Cybersécurité');
+      expect(result.url_contenu).toContain('/formations/f-01/apprenant/a-01');
+      expect(mockPrisma.accesFormationDemande.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'acc-01' } })
+      );
+    });
+
+    it('ACCES_NON_TROUVE — leve une erreur si acces introuvable', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue(null as any);
+
+      await expect(service.getAccesFormationDemande('acc-inconnu', 'a-01'))
+        .rejects.toThrow('ACCES_NON_TROUVE');
+    });
+
+    it('RM-92 — lève ACCES_EXPIRE si date_expiration est passée', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        ...accesMock,
+        date_expiration: new Date(Date.now() - 1000), // expiré
+      } as any);
+
+      await expect(service.getAccesFormationDemande('acc-01', 'a-01'))
+        .rejects.toThrow('ACCES_EXPIRE');
+    });
+
+    it('RM-103 — lève ACCES_SUSPENDU_ABONNEMENT_INACTIF si statut SUSPENDU', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        ...accesMock,
+        statut: 'SUSPENDU',
+        date_expiration: new Date(Date.now() + 3600 * 1000), // non expiré
+      } as any);
+
+      await expect(service.getAccesFormationDemande('acc-01', 'a-01'))
+        .rejects.toThrow('ACCES_SUSPENDU_ABONNEMENT_INACTIF');
+    });
+
+    it('ne met pas à jour last_access_at si accès expiré', async () => {
+      mockRepo.findAccesFormationById.mockResolvedValue({
+        ...accesMock,
+        date_expiration: new Date(Date.now() - 1000),
+      } as any);
+
+      await expect(service.getAccesFormationDemande('acc-01', 'a-01'))
+        .rejects.toThrow('ACCES_EXPIRE');
+      expect(mockPrisma.accesFormationDemande.update).not.toHaveBeenCalled();
     });
   });
 

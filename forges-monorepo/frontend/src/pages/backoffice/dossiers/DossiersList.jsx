@@ -10,6 +10,7 @@ import Input from '../../../components/ui/Input';
 import Table from '../../../components/ui/Table';
 import Spinner from '../../../components/feedback/Spinner';
 import Pagination from '../../../components/ui/Pagination';
+import { getDossierStatutMeta } from '../../../utils/dossierStatus';
 
 /**
  * DossiersList - Liste backoffice des dossiers d'inscription
@@ -61,18 +62,7 @@ export default function DossiersList() {
   };
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Gris' },
-      EXCEPTION: { variant: 'danger', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
@@ -83,11 +73,11 @@ export default function DossiersList() {
 
   const columns = [
     {
-      key: 'etudiant',
+      key: 'apprenant',
       label: 'Apprenant',
       render: (value, dossier) => {
-        const etudiant = dossier.etudiant || {};
-        const fullName = `${etudiant.nom || ''} ${etudiant.prenom || ''}`.trim() || 'N/A';
+        const apprenant = dossier.apprenant || {};
+        const fullName = `${apprenant.nom || ''} ${apprenant.prenoms || ''}`.trim() || 'N/A';
         const isPriority = isPriorityDossier(dossier.statut);
 
         return (
@@ -104,12 +94,9 @@ export default function DossiersList() {
       },
     },
     {
-      key: 'session',
-      label: 'Session',
-      render: (_, dossier) => {
-        const formation = dossier.session?.formation;
-        return formation?.titre || 'N/A';
-      },
+      key: 'formation',
+      label: 'Formation',
+      render: (_, dossier) => dossier.formation?.intitule || '-',
     },
     {
       key: 'statut',
@@ -182,7 +169,7 @@ export default function DossiersList() {
         <div className="mb-4 flex items-center gap-4">
           <div className="flex-1">
             <Input
-              placeholder="Rechercher par nom d'étudiant..."
+              placeholder="Rechercher par nom, prénom ou email..."
               value={filters.search}
               onChange={handleSearchChange}
             />
@@ -195,10 +182,14 @@ export default function DossiersList() {
             >
               <option value="">Tous les statuts</option>
               <option value="EN_ATTENTE">En attente</option>
+              <option value="EN_ATTENTE_VERIFICATION">En vérification</option>
               <option value="GRIS">Gris (priorité)</option>
               <option value="EXCEPTION">Exception (priorité)</option>
               <option value="RETENU">Retenu</option>
+              <option value="PAYE_DIRECTEMENT">Paiement requis</option>
+              <option value="PAYE">Payé</option>
               <option value="CONFIRME">Confirmé</option>
+              <option value="REJETE">Rejeté</option>
               <option value="REFUSE">Refusé</option>
               <option value="ARCHIVE">Archivé</option>
               <option value="ANNULE">Annulé</option>

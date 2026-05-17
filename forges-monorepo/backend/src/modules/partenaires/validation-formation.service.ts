@@ -26,7 +26,12 @@ export class ValidationFormationService {
       throw new Error('RESPONSABLE_NON_DESIGNE');
     }
 
-    if (fp.statut_validation !== 'EN_ATTENTE') throw new Error('FORMATION_DEJA_TRAITEE');
+    if (fp.statut_validation === 'VALIDEE') {
+      return { success: true, message: 'Formation déjà validée.' };
+    }
+    if (fp.statut_validation !== 'EN_ATTENTE' && fp.statut_validation !== 'EN_ATTENTE_VALIDATION') {
+      throw new Error('FORMATION_DEJA_TRAITEE');
+    }
 
     // RM-137 : calcul automatique prix catalogue
     // prix_catalogue = prix_coutant / (1 - commission%)

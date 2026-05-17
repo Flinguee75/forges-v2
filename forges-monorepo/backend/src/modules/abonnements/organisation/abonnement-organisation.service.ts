@@ -1,6 +1,8 @@
+import { randomBytes } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
+import { PaiementCheckoutService } from '../../paiements/paiement-checkout.service';
 
 // RM-107 : grille tarifaire AbonnementOrganisation
 export const TARIFS_ORG = {
@@ -13,16 +15,17 @@ export class AbonnementOrganisationService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
-    private readonly email: EmailService
+    private readonly email: EmailService,
+    private readonly checkoutService = new PaiementCheckoutService(audit)
   ) {}
 
-  // GET Mon abonnement organisation actif
+  // GET Mon abonnement organisation actif ou en attente de paiement
   async getAbonnementActif(organisation_id: string) {
     const abo = await this.prisma.abonnementOrganisation.findFirst({
       where: {
         organisation_id,
-        statut: 'ACTIF'
-      }
+        statut: { in: ['ACTIF', 'EN_ATTENTE_PAIEMENT'] },
+      },
     });
 
     if (!abo) {
@@ -45,17 +48,27 @@ export class AbonnementOrganisationService {
     };
   }
 
-  // UCS03 → Souscrire AbonnementOrganisation
+  // UCS03 → Souscrire AbonnementOrganisation avec paiement NGSER
   async souscrire(organisation_id: string, offre_org: 'BASIQUE' | 'PRO' | 'ENTERPRISE') {
-    // RM-84 : unicité — un seul AbonnementOrganisation actif
+    // RM-84 : unicité — un seul AbonnementOrganisation actif ou en attente
     const existant = await this.prisma.abonnementOrganisation.findFirst({
-      where: { organisation_id, statut: 'ACTIF' }
+      where: { organisation_id, statut: { in: ['ACTIF', 'EN_ATTENTE_PAIEMENT'] } },
     });
-    if (existant) throw new Error('ABONNEMENT_ORG_DEJA_ACTIF');
+
+    if (existant) {
+      if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
+        const session = await this.creerSessionPaiement(existant.id, existant.montant_annuel);
+        const paymentUrl = session.payment_url;
+        return { abonnement: existant, payment_url: paymentUrl, order_ngser: existant.order_ngser };
+      }
+      // RM-84 : unicité stricte — un seul abonnement actif ou en attente par organisation
+      throw new Error('ABONNEMENT_ORG_DEJA_ACTIF');
+    }
 
     const offre = offre_org;
     const montant = TARIFS_ORG[offre];
-    const date_fin = new Date(Date.now() + 365 * 24 * 3600 * 1000); // annuel
+    const date_fin = new Date(Date.now() + 365 * 24 * 3600 * 1000);
+    const orderNgser = this.generateOrderNgser();
 
     const abo = await this.prisma.abonnementOrganisation.create({
       data: {
@@ -64,42 +77,123 @@ export class AbonnementOrganisationService {
         montant_annuel: montant,
         date_debut: new Date(),
         date_fin,
-        statut: 'ACTIF',
+        statut: 'EN_ATTENTE_PAIEMENT',
         renouvellement_auto: true,
-      }
+        order_ngser: orderNgser,
+      },
     });
 
-    // Lier à l'Organisation
-    await this.prisma.organisation.update({
-      where: { id: organisation_id },
-      data: { abonnement_org_id: abo.id }
+    const session = await this.creerSessionPaiement(abo.id, montant);
+
+    await this.audit.info('ABONNEMENT_ORG_EN_ATTENTE_PAIEMENT', {
+      organisation_id,
+      offre,
+      montant,
+      order_ngser: orderNgser,
     });
 
-    await this.audit.info('ABONNEMENT_ORG_SOUSCRIT', { organisation_id, offre, montant });
-    return abo;
+    return {
+      abonnement: abo,
+      payment_url: session.payment_url,
+      order_ngser: orderNgser,
+    };
   }
 
-  // Scheduler alertes J-30 et J-7 (RM-109 / RM-82)
+  private generateOrderNgser(date = new Date()): string {
+    const year = date.getUTCFullYear();
+    const start = Date.UTC(year, 0, 0);
+    const dayOfYear = Math.floor((date.getTime() - start) / 86400000)
+      .toString()
+      .padStart(3, '0');
+    const suffix = randomBytes(3).toString('hex').toUpperCase();
+    return `ABO-ORG-${year}-${dayOfYear}-${suffix}`;
+  }
+
+  private async creerSessionPaiement(abonnement_id: string, montantXof: number): Promise<{ payment_url: string }> {
+    const abo = await this.prisma.abonnementOrganisation.findUnique({ where: { id: abonnement_id } });
+    const order = abo?.order_ngser ?? this.generateOrderNgser();
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+    const notificationUrl = process.env.FINEO_CALLBACK_URL || `${backendUrl}/webhooks/fineo`;
+    const returnUrl = `${frontendUrl}/organisation/abonnement/callback`;
+
+    const session = await this.checkoutService.initierCheckout({
+      order,
+      amountXof: montantXof,
+      title: `Abonnement Organisation — ${abo?.offre || 'FORGES'}`,
+      callbackUrl: notificationUrl,
+      returnUrl,
+    });
+
+    return { payment_url: session.payment_url };
+  }
+
+  // Scheduler alertes J-7 et J-2 (RM-82)
   async envoyerAlertesExpiration() {
     const now = new Date();
-    const j30 = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
     const j7 = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+    const j2 = new Date(now.getTime() + 2 * 24 * 3600 * 1000);
 
-    const [abosJ30, abosJ7] = await Promise.all([
+    const [abosJ7, abosJ2] = await Promise.all([
       this.prisma.abonnementOrganisation.findMany({
-        where: { statut: 'ACTIF', date_fin: { gte: j30, lte: new Date(j30.getTime() + 24 * 3600 * 1000) } },
+        where: { statut: 'ACTIF', date_fin: { gte: j7, lte: new Date(j7.getTime() + 24 * 3600 * 1000) } },
         include: { organisation: true }
       }),
       this.prisma.abonnementOrganisation.findMany({
-        where: { statut: 'ACTIF', date_fin: { gte: j7, lte: new Date(j7.getTime() + 24 * 3600 * 1000) } },
+        where: { statut: 'ACTIF', date_fin: { gte: j2, lte: new Date(j2.getTime() + 24 * 3600 * 1000) } },
         include: { organisation: true }
       })
     ]);
 
-    for (const abo of [...abosJ30, ...abosJ7]) {
+    for (const abo of [...abosJ7, ...abosJ2]) {
       await this.email.sendAlerteExpirationOrg(abo.organisation.email, abo.date_fin, abo.organisation.langue_preferee);
     }
 
-    return { alertes_j30: abosJ30.length, alertes_j7: abosJ7.length };
+    return { alertes_j7: abosJ7.length, alertes_j2: abosJ2.length };
+  }
+
+  // UCS09.1 — Renouvellement automatique Organisation (RM-109)
+  async traiterRenouvellements() {
+    const demain = new Date(Date.now() + 24 * 3600 * 1000);
+    const abos = await this.prisma.abonnementOrganisation.findMany({
+      where: {
+        statut: 'ACTIF',
+        renouvellement_auto: true,
+        date_fin: { lte: demain },
+      },
+      include: { organisation: true },
+    });
+
+    let renouveles = 0;
+    let echecs = 0;
+
+    for (const abo of abos) {
+      try {
+        const nouvelleDateFin = new Date(abo.date_fin.getTime() + 365 * 24 * 3600 * 1000);
+        await this.prisma.abonnementOrganisation.update({
+          where: { id: abo.id },
+          data: { date_fin: nouvelleDateFin, statut: 'ACTIF' },
+        });
+
+        await this.audit.info('ABONNEMENT_ORG_RENOUVELE', {
+          organisation_id: abo.organisation_id,
+          abonnement_id: abo.id,
+          date_fin: nouvelleDateFin,
+        });
+        try {
+          await this.email.sendAbonnementConfirmation(abo.organisation.email, abo.offre);
+        } catch (error: any) {
+          await this.audit.warning('ABONNEMENT_ORG_RENOUVELLEMENT_EMAIL_FAILED', {
+            organisation_id: abo.organisation_id,
+            error: error?.message || 'UNKNOWN_ERROR',
+          });
+        }
+        renouveles++;
+      } catch (error) {
+        echecs++;
+      }
+    }
+
+    return { renouveles, echecs };
   }
 }

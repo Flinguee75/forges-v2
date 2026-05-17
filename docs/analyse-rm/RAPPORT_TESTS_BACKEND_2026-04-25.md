@@ -1,5 +1,6 @@
 # RAPPORT TESTS VALIDATION — FORGES v4.8
 ## Mise à jour 2026-04-25
+**Statut** : document historique. Le plan actif est [PLAN_FOCUS_INTEGRATION.md](./PLAN_FOCUS_INTEGRATION.md).
 
 **Responsable** : Claude Code Assistant
 **Dernière correction** : RM-28 implémentée (2026-04-25 16h35)

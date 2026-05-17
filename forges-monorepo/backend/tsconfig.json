@@ -29,7 +29,8 @@
     "node_modules",
     "dist",
     "**/__tests__/**",
-    "src/modules/vouchers.disabled"
+    "src/modules/vouchers.disabled",
+    "src/config/sentry.ts"
   ],
   "typeRoots": [
     "./node_modules/@types",

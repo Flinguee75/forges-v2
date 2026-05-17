@@ -1,0 +1,42 @@
+{
+  "organisation": {
+    "raison_sociale": "Agence Nationale de la Sécurité des Systèmes d'Information (ANSSI)",
+    "type": "GOUVERNEMENT",
+    "email": "contact@anssi-ci.gouv.ci",
+    "contact_referent": "Direction Générale ANSSI",
+    "pays": "CI",
+    "identifiant_legal": "ANSSI-CI-GOV"
+  },
+  "masterclass": {
+    "formation_id": "frm-masterclass-gwu-ccdl-2026",
+    "session_id": "ses-gwu-ccdl-juin-2026",
+    "tarif_unitaire_xof": 2000000,
+    "notes_admin": "Masterclass GWU/CCDL — Cybersécurité & IA — Session 1–11 juin 2026 — Prise en charge ANSSI"
+  },
+  "apprenants": [
+    {
+      "nom": "SAMASSI",
+      "prenoms": "Aly",
+      "email": "a.samassi@anssi-ci.gouv.ci",
+      "fonction": "Directeur Général",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    },
+    {
+      "nom": "KONAN",
+      "prenoms": "Elie",
+      "email": "e.konan@anssi-ci.gouv.ci",
+      "fonction": "Directeur Général Adjoint",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    },
+    {
+      "nom": "JARVIS",
+      "prenoms": "Bintou",
+      "email": "b.jarvis@anssi-ci.gouv.ci",
+      "fonction": "Directrice du Pôle Support et Gestion",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    }
+  ]
+}

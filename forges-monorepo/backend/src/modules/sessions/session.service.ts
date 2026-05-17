@@ -187,13 +187,33 @@ export class SessionService {
 
   async cancel(id: string, userId: string) {
     const session = await this.sessionRepo.findById(id);
-    if (!session) throw new Error('SESSION_NOT_FOUND');
-    if (!['PLANIFIEE', 'OUVERTE'].includes(session.statut)) throw new Error('INVALID_STATUT');
+    if (!session) {
+      await this.audit.warning('SESSION_ANNULATION_SESSION_INEXISTANTE', { session_id: id, user_id: userId });
+      throw new Error('SESSION_NOT_FOUND');
+    }
+    if (!['PLANIFIEE', 'OUVERTE'].includes(session.statut)) {
+      await this.audit.warning('SESSION_ANNULATION_STATUT_INVALIDE', {
+        session_id: id,
+        user_id: userId,
+        statut: session.statut,
+      });
+      throw new Error('INVALID_STATUT');
+    }
 
-    await this.sessionRepo.archivePendingDossiers(id);
-    const updated = await this.sessionRepo.updateStatut(id, 'ANNULEE');
-    await this.audit.info('SESSION_ANNULEE', { session_id: id, user_id: userId });
-    return updated;
+    try {
+      await this.sessionRepo.archivePendingDossiers(id);
+      const updated = await this.sessionRepo.updateStatut(id, 'ANNULEE');
+      await this.audit.info('SESSION_ANNULEE', { session_id: id, user_id: userId });
+      return updated;
+    } catch (error: any) {
+      await this.audit.error('SESSION_ANNULATION_ECHEC', {
+        session_id: id,
+        user_id: userId,
+        statut: session.statut,
+        error: error?.message || String(error),
+      });
+      throw error;
+    }
   }
 
   // RM-20 : scheduler — transitions automatiques
@@ -247,6 +267,12 @@ export class SessionService {
     const session = await this.sessionRepo.findById(id);
     if (!session) throw new Error('SESSION_NOT_FOUND');
     return session;
+  }
+
+  async getDossiers(id: string) {
+    const session = await this.sessionRepo.findById(id);
+    if (!session) throw new Error('SESSION_NOT_FOUND');
+    return this.sessionRepo.findDossiersBySession(id);
   }
 
   async getByFormation(formation_id: string) {

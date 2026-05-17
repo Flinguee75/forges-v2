@@ -70,8 +70,8 @@ describe('AccesFormation', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Accès suspendu')).toBeInTheDocument();
-      expect(screen.getByText('Réactivez votre abonnement pour accéder')).toBeInTheDocument();
+      expect(screen.getByText('Acces suspendu.')).toBeInTheDocument();
+      expect(screen.getByText(/Reactivez votre abonnement pour acceder/)).toBeInTheDocument();
     });
   });
 
@@ -92,10 +92,10 @@ describe('AccesFormation', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Formation active')).toBeInTheDocument();
-      expect(screen.getByText('30%')).toBeInTheDocument();
+      expect(screen.getAllByText('30%').length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText(/La progression peut être mise à jour/)).toBeInTheDocument();
+    expect(screen.getByText('Mettre a jour la progression')).toBeInTheDocument();
 
     apiClient.patch.mockResolvedValueOnce({
       data: {
@@ -112,14 +112,14 @@ describe('AccesFormation', () => {
       expect(screen.getByText('55%')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la progression' }));
 
     await waitFor(() => {
       expect(apiClient.patch).toHaveBeenCalledWith(
         '/espace-apprenant/formations-demande/acces-1/progression',
         { progression: 55 }
       );
-      expect(screen.getByText('Progression enregistrée.')).toBeInTheDocument();
+      expect(screen.getByText('Progression enregistree.')).toBeInTheDocument();
     });
   });
 });

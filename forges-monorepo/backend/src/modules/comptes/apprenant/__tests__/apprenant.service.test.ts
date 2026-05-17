@@ -31,7 +31,12 @@ describe('ApprenantService', () => {
       updateToken: jest.fn(),
       purgeInactifs: jest.fn(),
       updateProfil: jest.fn(),
-      prisma: { apprenant: { findFirst: jest.fn() } }
+      prisma: {
+        apprenant: { findFirst: jest.fn(), findUnique: jest.fn().mockResolvedValue(null) },
+        organisation: { findUnique: jest.fn().mockResolvedValue(null) },
+        partenaire: { findUnique: jest.fn().mockResolvedValue(null) },
+        apporteur: { findUnique: jest.fn().mockResolvedValue(null) },
+      }
     } as any;
 
     mockAudit = { info: jest.fn(), warning: jest.fn(), log: jest.fn() } as any;
@@ -125,6 +130,33 @@ describe('ApprenantService', () => {
         expect.any(String),
         expect.any(String),
         'EN'
+      );
+    });
+  });
+
+  // Liaison organisation_id à l'inscription
+  describe('Liaison organisation_id', () => {
+    it('transmet organisation_id au repository si fourni', async () => {
+      mockRepo.findByEmail.mockResolvedValue(null);
+      mockRepo.create.mockResolvedValue({ id: 'new-id' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockEmail.sendConfirmation.mockResolvedValue(undefined);
+
+      await service.register({ ...validDto, organisation_id: 'org-123' }, '127.0.0.1');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ organisation_id: 'org-123' })
+      );
+    });
+
+    it('organisation_id est undefined si non fourni', async () => {
+      mockRepo.findByEmail.mockResolvedValue(null);
+      mockRepo.create.mockResolvedValue({ id: 'new-id' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+      mockEmail.sendConfirmation.mockResolvedValue(undefined);
+
+      await service.register(validDto, '127.0.0.1');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ organisation_id: undefined })
       );
     });
   });

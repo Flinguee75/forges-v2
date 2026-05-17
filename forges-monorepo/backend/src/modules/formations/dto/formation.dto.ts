@@ -10,7 +10,8 @@ export const CreateFormationSchema = z.object({
   // Présent uniquement pour les formations internes FORGES (Admin/Responsable)
   type_formation: z.enum(['STANDARD', 'PREMIUM', 'SUR_DEVIS']).optional(),
   // RM-91 : mode_formation obligatoire
-  mode_formation: z.enum(['AVEC_SESSION', 'A_LA_DEMANDE']),
+  mode_formation: z.enum(['PRESENTIEL', 'EN_LIGNE', 'A_LA_DEMANDE', 'AVEC_SESSION']),
+  lieu: z.string().optional(),
   pilier_abonnement: z.enum(['RETAIL', 'B2B', 'INSTITUTIONNEL', 'TOUS']).optional(),
   langues_disponibles: z.array(z.enum(['FR', 'EN', 'ES', 'PT'])).min(1),
   certification_delivree: z.boolean().default(false),
@@ -19,6 +20,9 @@ export const CreateFormationSchema = z.object({
   prerequis: z.string().optional(),
   // RM-92 : durée accès formations à la demande (défaut 365j)
   duree_acces_jours: z.number().int().min(1).default(365),
+  // URL du contenu LMS (formations à la demande uniquement) — chiffrée côté backend
+  url_contenu: z.string().url().optional(),
+  image_url: z.string().url().optional(),
 });
 
 // RM-127 : DTO assignation type — Responsable FORGES uniquement
@@ -27,11 +31,20 @@ export const AssignerTypeFormationSchema = z.object({
   pilier_abonnement: z.enum(['RETAIL', 'B2B', 'INSTITUTIONNEL', 'TOUS']),
 });
 
+export const LierPartenaireSchema = z.object({
+  partenaire_id: z.string().min(1, 'Partenaire obligatoire'),
+  prix_coutant_soumis: z.number().int().min(0, 'Prix coûtant invalide').optional(),
+});
+
 export const UpdateFormationSchema = CreateFormationSchema.partial().omit({
   type_formation: true, // RM-86 : non modifiable via update standard
-  mode_formation: true, // mode_formation non modifiable après création
+}).extend({
+  url_contenu: z.string().url().optional(),
+  lieu: z.string().optional(),
+  image_url: z.string().url().optional().nullable(),
 });
 
 export type CreateFormationDto = z.infer<typeof CreateFormationSchema>;
 export type AssignerTypeFormationDto = z.infer<typeof AssignerTypeFormationSchema>;
+export type LierPartenaireDto = z.infer<typeof LierPartenaireSchema>;
 export type UpdateFormationDto = z.infer<typeof UpdateFormationSchema>;

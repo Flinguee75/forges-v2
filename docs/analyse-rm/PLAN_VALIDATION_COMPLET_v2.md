@@ -3,6 +3,7 @@
 **Date** : 2026-04-26
 **Responsable** : Claude Code Assistant
 **Objectif** : Atteindre 100% de couverture RM pour validation production
+**Statut** : document historique. Le plan actif est [PLAN_FOCUS_INTEGRATION.md](./PLAN_FOCUS_INTEGRATION.md).
 
 ---
 

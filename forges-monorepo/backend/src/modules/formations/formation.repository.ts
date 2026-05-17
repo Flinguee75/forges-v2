@@ -86,10 +86,13 @@ export class FormationRepository {
           cout_catalogue: true,
           type_formation: true,
           mode_formation: true,
+          lieu: true,
           inclus_abonnement: true,
           pilier_abonnement: true,
           langues_disponibles: true,
           certification_delivree: true,
+          public_cible: true,
+          image_url: true,
           partenaire: {
             select: { raison_sociale: true }
           },
@@ -102,7 +105,8 @@ export class FormationRepository {
               id: true,
               date_debut: true,
               date_fin: true,
-              places_restantes: true
+              places_restantes: true,
+              lieu: true,
             }
           }
         },
@@ -129,6 +133,7 @@ export class FormationRepository {
     responsable_id: string;
     type_formation: string;
     mode_formation: string;
+    lieu?: string;
     pilier_abonnement?: string;
     langues_disponibles: string[];
     certification_delivree?: boolean;
@@ -136,6 +141,7 @@ export class FormationRepository {
     objectifs_pedagogiques?: string[];
     prerequis?: string;
     duree_acces_jours?: number;
+    url_externe_chiffree?: string;
   }) {
     // RM-102 : calcul automatique inclus_abonnement
     const inclus_abonnement = this.calculerInclus(data.type_formation, data.pilier_abonnement);
@@ -155,12 +161,16 @@ export class FormationRepository {
     duree_jours: number;
     cout_catalogue: number;
     statut: string;
+    mode_formation: string;
+    lieu: string;
     pilier_abonnement: string;
     langues_disponibles: string[];
     certification_delivree: boolean;
     public_cible: string;
     objectifs_pedagogiques: string[];
     prerequis: string;
+    url_externe_chiffree?: string;
+    image_url?: string | null;
   }>) {
     return this.prisma.formation.update({ where: { id }, data });
   }

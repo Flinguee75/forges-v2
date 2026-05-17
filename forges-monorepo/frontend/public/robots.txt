@@ -1,0 +1,19 @@
+# Robots.txt — FORGES
+User-agent: *
+Allow: /
+Allow: /catalogue
+Allow: /formations/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /apprenant/
+Disallow: /organisation/
+Disallow: /responsable/
+Disallow: /backoffice/
+Disallow: /partenaire/
+Disallow: /apporteur/
+
+Sitemap: https://edu.forges-group.com/sitemap.xml
+
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0

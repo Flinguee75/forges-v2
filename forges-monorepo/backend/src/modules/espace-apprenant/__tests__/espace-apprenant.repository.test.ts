@@ -22,7 +22,7 @@ describe('EspaceApprenantRepository', () => {
       include: {
         formation: { select: { id: true, intitule: true, type_formation: true, mode_formation: true, cout_catalogue: true } },
         session: { select: { id: true, date_debut: true, date_fin: true, statut: true } },
-        paiement: { select: { statut: true, montant_final: true, confirmed_at: true } },
+        paiement: { select: { statut: true, montant_final: true, confirmed_at: true, expires_at: true, id: true, methode: true } },
       },
       orderBy: { created_at: 'desc' },
     });

@@ -6,6 +6,9 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/feedback/Spinner';
+import { getDossierStatutMeta, getPaiementMeta } from '../../utils/dossierStatus';
+import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
+import { getPaymentExpirationMs } from '../../utils/paymentDeadline';
 
 /**
  * DossierDetail - Détail d'un dossier d'inscription apprenant
@@ -16,6 +19,7 @@ export default function DossierDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [dossier, setDossier] = useState(null);
+  const paymentExpirationHours = usePaymentExpirationHours();
 
   const { execute, isLoading } = useApi();
 
@@ -33,17 +37,7 @@ export default function DossierDetail() {
   }, [id]);
 
   const getStatutBadge = (statut) => {
-    const mapping = {
-      EN_ATTENTE: { variant: 'gray', label: 'En attente' },
-      RETENU: { variant: 'success', label: 'Retenu' },
-      CONFIRME: { variant: 'success', label: 'Confirmé' },
-      REFUSE: { variant: 'danger', label: 'Refusé' },
-      GRIS: { variant: 'warning', label: 'Liste grise' },
-      EXCEPTION: { variant: 'warning', label: 'Exception' },
-      ARCHIVE: { variant: 'gray', label: 'Archivé' },
-      ANNULE: { variant: 'danger', label: 'Annulé' },
-    };
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = getDossierStatutMeta(statut);
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -66,13 +60,24 @@ export default function DossierDetail() {
   const getFormationTarif = () =>
     getFormation()?.tarif || getFormation()?.cout_catalogue || 0;
 
-  const calculateDelai72h = () => {
+  const calculateDelaiPaiement = () => {
     if (!dossier || dossier.statut !== 'RETENU') return null;
     const dateRetenu = new Date(dossier.updated_at || dossier.created_at);
-    const dateLimite = new Date(dateRetenu.getTime() + 72 * 60 * 60 * 1000);
+    const dateLimite = new Date(dateRetenu.getTime() + getPaymentExpirationMs(paymentExpirationHours));
     const now = new Date();
     const heuresRestantes = Math.ceil((dateLimite - now) / (1000 * 60 * 60));
     return { dateLimite, heuresRestantes, isExpired: heuresRestantes <= 0 };
+  };
+
+  const isPaiementConfirme = (dossier) =>
+    dossier?.paiement?.statut === 'CONFIRME' || dossier?.statut === 'PAYE';
+
+  const needsPayment = (dossier) =>
+    ['RETENU', 'PAYE_DIRECTEMENT'].includes(dossier?.statut) && !isPaiementConfirme(dossier);
+
+  const getPaiementLabel = (paiement) => {
+    const config = getPaiementMeta(paiement, dossier?.statut);
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   if (isLoading || !dossier) {
@@ -83,7 +88,7 @@ export default function DossierDetail() {
     );
   }
 
-  const delai = calculateDelai72h();
+  const delai = calculateDelaiPaiement();
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -113,6 +118,24 @@ export default function DossierDetail() {
                 })}
                 . (RM-07)
               </p>
+            </div>
+            <Link to="/apprenant/paiements">
+              <Button variant="warning" size="small">
+                Payer maintenant
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {dossier.statut === 'PAYE_DIRECTEMENT' && needsPayment(dossier) && (
+        <div className="mb-6 rounded-lg border border-warning-soft bg-warning-soft p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <h3 className="font-semibold text-warning">Action requise : paiement requis</h3>
+                <p className="mt-1 text-sm text-warning">
+                  Votre dossier est accepté sans vérification manuelle. Il reste à régler le montant pour confirmer définitivement votre inscription.
+                </p>
             </div>
             <Link to="/apprenant/paiements">
               <Button variant="warning" size="small">
@@ -169,27 +192,31 @@ export default function DossierDetail() {
           <h2 className="mb-4 text-lg font-semibold text-primary">Informations financières</h2>
           <div className="space-y-3">
             <div className="flex justify-between">
+                <span className="text-subtext">Paiement</span>
+              <div>{getPaiementLabel(dossier.paiement)}</div>
+            </div>
+            <div className="flex justify-between">
               <span className="text-subtext">Prix de la formation</span>
               <span className="font-medium">{formatMontant(getFormationTarif())}</span>
             </div>
-            {dossier.montant_remise > 0 && (
+            {(dossier.paiement?.reduction_appliquee > 0) && (
               <div className="flex justify-between text-success">
                 <span>Remise appliquée</span>
                 <span className="font-medium">
-                  -{formatMontant(dossier.montant_remise)}
+                  -{formatMontant(dossier.paiement.reduction_appliquee)}
                 </span>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-3">
               <span className="font-semibold text-primary">Montant à payer</span>
               <span className="text-lg font-bold text-primary">
-                {formatMontant(getFormationTarif() - (dossier.montant_remise || 0))}
+                {formatMontant(dossier.paiement?.montant_final ?? getFormationTarif())}
               </span>
             </div>
           </div>
         </Card>
 
-        {dossier.statut === 'RETENU' && (
+        {needsPayment(dossier) && (
           <div className="flex justify-center">
             <Link to="/apprenant/paiements">
               <Button variant="primary" size="large">
@@ -199,7 +226,7 @@ export default function DossierDetail() {
           </div>
         )}
 
-        {dossier.statut === 'CONFIRME' && (
+        {isPaiementConfirme(dossier) && (
           <div className="flex justify-center">
             <Link to={`/apprenant/attestations?dossier=${dossier.id}`}>
               <Button variant="primary" size="large">

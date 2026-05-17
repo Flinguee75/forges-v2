@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
+import { useToast } from '../../../hooks/useToast';
 import { sessionsApi } from '../../../api/sessions.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Spinner from '../../../components/feedback/Spinner';
 import EmptyState from '../../../components/feedback/EmptyState';
+import { getDossierStatutMeta } from '../../../utils/dossierStatus';
 
 function getStatutBadge(statut) {
   const mapping = {
     BROUILLON: { variant: 'gray', label: 'Brouillon' },
     PLANIFIEE: { variant: 'info', label: 'Planifiée' },
+    A_VENIR: { variant: 'info', label: 'À venir' },
+    INSCRIPTIONS_OUVERTES: { variant: 'success', label: 'Inscriptions ouvertes' },
     OUVERTE: { variant: 'success', label: 'Ouverte' },
-    CLOTUREE: { variant: 'warning', label: 'Clôturée' },
     EN_COURS: { variant: 'info', label: 'En cours' },
+    CLOTUREE: { variant: 'warning', label: 'Clôturée' },
     TERMINEE: { variant: 'gray', label: 'Terminée' },
     ARCHIVEE: { variant: 'gray', label: 'Archivée' },
     ANNULEE: { variant: 'danger', label: 'Annulée' },
@@ -29,10 +33,20 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleString('fr-FR');
 }
 
+function getCapacityStats(capacity, registeredCount) {
+  const capacityValue = Number(capacity || 0);
+  const registeredValue = Number(registeredCount || 0);
+  const remaining = Math.max(0, capacityValue - registeredValue);
+  const occupancy = capacityValue > 0 ? Math.round((registeredValue / capacityValue) * 100) : 0;
+
+  return { capacityValue, registeredValue, remaining, occupancy };
+}
+
 export default function SessionDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { execute, isLoading, error } = useApi();
+  const { showToast } = useToast();
   const [session, setSession] = useState(null);
   const [dossiers, setDossiers] = useState([]);
 
@@ -45,12 +59,17 @@ export default function SessionDetail() {
   };
 
   const loadDossiers = async () => {
-    await execute(() => sessionsApi.getDossiers(id), {
-      onSuccess: (response) => {
-        const payload = response?.data ?? response;
-        setDossiers(Array.isArray(payload) ? payload : []);
-      },
-    });
+    try {
+      await execute(() => sessionsApi.getDossiers(id), {
+        showErrorToast: false,
+        onSuccess: (response) => {
+          const payload = response?.data?.data ?? response?.data ?? response;
+          setDossiers(Array.isArray(payload) ? payload : []);
+        },
+      });
+    } catch {
+      // dossiers non bloquants
+    }
   };
 
   useEffect(() => {
@@ -66,15 +85,37 @@ export default function SessionDetail() {
   }, [session]);
 
   const closeSession = async () => {
-    await execute(() => sessionsApi.cloturerManuellement(id), {
-      onSuccess: () => loadSession(),
-    });
+    try {
+      await execute(() => sessionsApi.cloturerManuellement(id), {
+        onSuccess: () => {
+          showToast('Session clôturée avec succès.', 'success');
+          loadSession();
+        },
+        onError: (err) => {
+          const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Impossible de clôturer la session.';
+          showToast(message, 'error');
+        },
+      });
+    } catch {
+      // Le toast est déjà affiché via onError ; on évite un rejet non géré.
+    }
   };
 
   const cancelSession = async () => {
-    await execute(() => sessionsApi.annuler(id), {
-      onSuccess: () => loadSession(),
-    });
+    try {
+      await execute(() => sessionsApi.annuler(id), {
+        onSuccess: () => {
+          showToast('Session annulée avec succès.', 'success');
+          loadSession();
+        },
+        onError: (err) => {
+          const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Impossible d’annuler la session.';
+          showToast(message, 'error');
+        },
+      });
+    } catch {
+      // Le toast est déjà affiché via onError ; on évite un rejet non géré.
+    }
   };
 
   if (isLoading && !session) {
@@ -123,17 +164,15 @@ export default function SessionDetail() {
             </p>
           </div>
           <div className="flex gap-2">
-            {session.statut === 'BROUILLON' && (
-              <Button variant="outline" onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}>
-                Modifier
-              </Button>
-            )}
-            {session.statut === 'OUVERTE' && (
+            <Button variant="outline" onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}>
+              Modifier
+            </Button>
+            {['OUVERTE', 'INSCRIPTIONS_OUVERTES'].includes(session.statut) && (
               <Button variant="warning" onClick={closeSession} loading={isLoading}>
                 Clôturer
               </Button>
             )}
-            {['PLANIFIEE', 'OUVERTE'].includes(session.statut) && (
+            {['PLANIFIEE', 'A_VENIR', 'INSCRIPTIONS_OUVERTES', 'OUVERTE'].includes(session.statut) && (
               <Button variant="danger" onClick={cancelSession} loading={isLoading}>
                 Annuler
               </Button>
@@ -158,8 +197,26 @@ export default function SessionDetail() {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-subtext">Formation</p>
-            <p className="mt-1 text-sm text-text">{session.formation?.titre || session.formation?.intitule || 'N/A'}</p>
+            <button
+              type="button"
+              onClick={() => navigate(`/backoffice/formations/${session.formation_id}`)}
+              className="mt-1 text-sm font-medium text-primary underline-offset-2 hover:underline"
+            >
+              {session.formation?.titre || session.formation?.intitule || 'N/A'}
+            </button>
           </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-subtext">Places restantes</p>
+            <p className="mt-1 text-sm text-text">
+              {getCapacityStats(session.capacite, session._count?.dossiers ?? session.nb_inscrits ?? 0).remaining}
+            </p>
+          </div>
+          {session.lieu && (
+            <div className="md:col-span-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-subtext">Lieu</p>
+              <p className="mt-1 text-sm text-text">{session.lieu}</p>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -184,31 +241,58 @@ export default function SessionDetail() {
         </div>
       </Card>
 
-      <Card title="Dossiers de la session">
+      <Card>
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-subtext">
+          Participants ({dossiers.length})
+        </h3>
         {dossiers.length > 0 ? (
-          <div className="space-y-3">
-            {dossiers.map((dossier) => (
-              <div key={dossier.id} className="rounded-lg border border-border bg-gray-50 p-4">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-medium text-primary">
-                      {dossier.apprenant ? `${dossier.apprenant.prenoms || ''} ${dossier.apprenant.nom || ''}`.trim() : dossier.id}
-                    </p>
-                    <p className="text-xs text-subtext">
-                      {dossier.apprenant?.email || 'Apprenant non renseigné'}
-                    </p>
-                  </div>
-                  <div className="text-sm text-text">
-                    {dossier.statut}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Apprenant</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Statut dossier</th>
+                  <th className="pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-subtext">Source</th>
+                  <th className="pb-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {dossiers.map((dossier) => {
+                  const meta = getDossierStatutMeta(dossier.statut);
+                  const nom = dossier.apprenant
+                    ? `${dossier.apprenant.prenoms || ''} ${dossier.apprenant.nom || ''}`.trim()
+                    : '-';
+                  return (
+                    <tr key={dossier.id} className="hover:bg-bg">
+                      <td className="py-3 pr-4">
+                        <p className="font-medium text-text">{nom}</p>
+                        <p className="text-xs text-subtext">{dossier.apprenant?.email || '-'}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Badge variant={meta.variant}>{meta.label}</Badge>
+                      </td>
+                      <td className="py-3 pr-4 text-subtext">
+                        {dossier.source_financement || '-'}
+                      </td>
+                      <td className="py-3 text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/backoffice/dossiers/${dossier.id}`)}
+                        >
+                          Voir dossier
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <EmptyState
-            title="Aucun dossier"
-            message="Aucun dossier n'est associé à cette session."
+            title="Aucun participant"
+            message="Aucun apprenant n'est encore inscrit à cette session."
           />
         )}
       </Card>

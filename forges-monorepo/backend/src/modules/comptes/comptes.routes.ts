@@ -7,12 +7,11 @@ import { OrganisationService } from './organisation/organisation.service';
 import { OrganisationRepository } from './organisation/organisation.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { registrationLimiter } from '../../middlewares/rate-limit.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Shared services
 const auditLogger = new AuditLogger();

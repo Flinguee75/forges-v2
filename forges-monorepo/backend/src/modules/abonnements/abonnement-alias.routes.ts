@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
@@ -10,14 +10,13 @@ import { AbonnementOrganisationService } from './organisation/abonnement-organis
 import { AbonnementB2BService } from './b2b/abonnement-b2b.service';
 
 const router = Router();
-const prisma = new PrismaClient();
 const auditLogger = new AuditLogger();
 const emailService = new EmailService();
 const retailRepository = new AbonnementRetailRepository(prisma);
 const retailService = new AbonnementRetailService(retailRepository, prisma, auditLogger, emailService);
 const organisationService = new AbonnementOrganisationService(prisma, auditLogger, emailService);
 const b2bService = new AbonnementB2BService(prisma, auditLogger, emailService);
-const controller = new AbonnementController(retailService, organisationService, b2bService);
+const controller = new AbonnementController(retailService, organisationService, b2bService, prisma);
 
 router.post('/abonnements-retail/subscribe', authenticate, authorize('APPRENANT'), (req, res, next) => {
   controller.souscrireRetail(req, res, next);

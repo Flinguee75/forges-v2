@@ -7,7 +7,7 @@
     "team_signature": "L'équipe FORGES",
     "footer_copyright": "© 2026 FORGES - Plateforme de formations certifiantes",
     "footer_visit_site": "Visiter notre site",
-    "footer_support": "Support",
+    "footer_support": "Contact",
     "contact_us": "Si vous avez des questions, n'hésitez pas à nous contacter."
   },
   "dossier-retenu": {
@@ -18,7 +18,7 @@
     "session_label": "📅 Session :",
     "session_dates": "Du {{date_debut}} au {{date_fin}}",
     "important_title": "⏰ IMPORTANT : Délai de paiement",
-    "payment_deadline": "Vous disposez de <strong>72 heures</strong> pour effectuer le paiement et confirmer votre inscription.",
+    "payment_deadline": "Vous disposez de <strong>{{delai_paiement_heures}} heures</strong> pour effectuer le paiement et confirmer votre inscription.",
     "deadline_label": "Date limite :",
     "deadline_warning": "Passé ce délai, votre place sera automatiquement libérée pour d'autres candidats.",
     "cta_button": "Procéder au paiement"
@@ -37,7 +37,7 @@
     "title": "⏰ Rappel : Votre délai de paiement expire dans {{heures_restantes}}h",
     "intro": "Votre candidature pour la formation <strong>{{formation_intitule}}</strong> a été retenue.",
     "warning_title": "🚨 Action requise",
-    "warning_message": "Votre délai de paiement de 72 heures expire le <strong>{{delai_expiration}}</strong>.",
+    "warning_message": "Votre délai de paiement de <strong>{{delai_paiement_heures}} heures</strong> expire le <strong>{{delai_expiration}}</strong>.",
     "consequence": "Sans paiement avant cette date, votre place sera automatiquement libérée.",
     "cta_button": "Payer maintenant"
   },
@@ -82,6 +82,24 @@
     "days_elapsed_label": "⏱️ Jours écoulés :",
     "action_required": "Merci de prendre en charge cette validation ou de relancer le responsable désigné.",
     "cta_button": "Traiter maintenant"
+  },
+  "paiement-confirme": {
+    "subject": "Confirmation de paiement — {{formation_intitule}}",
+    "title": "Paiement confirme",
+    "intro": "Votre paiement a bien ete recu et votre inscription a la formation <strong>{{formation_intitule}}</strong> est confirmee. Vous trouverez votre recu en piece jointe.",
+    "formation_label": "Formation :",
+    "organisation_label": "Organisation :",
+    "payment_details_label": "Details du paiement",
+    "amount_label": "Montant paye",
+    "reference_label": "Reference recu",
+    "transaction_label": "Ref. transaction",
+    "payment_date_label": "Date de paiement",
+    "payment_method_label": "Moyen de paiement",
+    "session_label": "Votre session",
+    "session_dates": "Dates :",
+    "lieu_label": "Lieu :",
+    "attachment_note": "Le recu PDF de votre paiement est joint a cet email. Conservez-le comme justificatif.",
+    "cta_button": "Voir mon dossier"
   },
   "dossier-annule": {
     "subject": "Annulation de votre candidature",

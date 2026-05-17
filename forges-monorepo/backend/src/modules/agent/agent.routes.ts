@@ -1,19 +1,16 @@
 import { Router } from 'express';
-import { PartenaireController } from '../partenaires/partenaire.controller';
 import { PartenaireService } from '../partenaires/partenaire.service';
 import { PartenaireRepository } from '../partenaires/partenaire.repository';
 import { FormationPartenaireRepository } from '../partenaires/formation-partenaire.repository';
-import { ValidationFormationService } from '../partenaires/validation-formation.service';
 import { ApporteurController } from '../apporteurs/apporteur.controller';
 import { ApporteurService } from '../apporteurs/apporteur.service';
 import { ApporteurRepository } from '../apporteurs/apporteur.repository';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 
 const router = Router();
-const prisma = new PrismaClient();
 const audit = new AuditLogger();
 const emailService = new EmailService();
 
@@ -24,11 +21,9 @@ const apporteurRepo = new ApporteurRepository(prisma);
 
 // Services
 const partenaireService = new PartenaireService(partenaireRepo, fpRepo, prisma, audit, emailService);
-const validationService = new ValidationFormationService(fpRepo, prisma, audit, emailService);
 const apporteurService = new ApporteurService(apporteurRepo, prisma, audit, emailService);
 
 // Controllers
-const partenaireController = new PartenaireController(partenaireService, validationService);
 const apporteurController = new ApporteurController(apporteurService);
 
 // ============================================
@@ -36,7 +31,7 @@ const apporteurController = new ApporteurController(apporteurService);
 // ============================================
 
 // GET /api/agent/reversements/partenaires - Liste reversements partenaires en attente
-router.get('/reversements/partenaires', authenticate, authorize('AGENT', 'ADMIN'), async (req, res, next) => {
+router.get('/reversements/partenaires', authenticate, authorize('AGENT', 'ADMIN', 'SUPERVISEUR'), async (req, res, next) => {
   try {
     const result = await partenaireService.getReversementsEnAttente(req.user!.userId);
     res.status(200).json({ statusCode: 200, data: result });

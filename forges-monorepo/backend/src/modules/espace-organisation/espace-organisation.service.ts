@@ -6,8 +6,12 @@ import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { CommissionService } from '../paiements/commission.service';
+import { PaiementReglementService } from '../paiements/paiement-reglement.service';
 
 export class EspaceOrganisationService {
+  private readonly reglementService: PaiementReglementService;
+
   constructor(
     private readonly orgRepo: EspaceOrganisationRepository,
     private readonly importCSV: ImportCSVService,
@@ -15,13 +19,35 @@ export class EspaceOrganisationService {
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
     private readonly email: EmailService
-  ) {}
+  ) {
+    this.reglementService = new PaiementReglementService(
+      prisma,
+      audit,
+      new CommissionService(prisma, audit)
+    );
+  }
 
   // UCS12 — Dashboard organisation
   async getDashboard(organisation_id: string) {
-    const [org, stats] = await Promise.all([
+    const [org, stats, recent_inscriptions] = await Promise.all([
       this.orgRepo.findOrganisationById(organisation_id),
       this.orgRepo.getStatsOrganisation(organisation_id),
+      this.prisma.dossier.findMany({
+        where: {
+          apprenant: { organisation_id },
+          OR: [
+            { source_financement: 'B2B' },
+            { voucher_organisation_id: { not: null } },
+          ],
+        },
+        include: {
+          apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
+          formation: { select: { id: true, intitule: true, type_formation: true } },
+          session: { select: { date_debut: true, date_fin: true, statut: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        take: 5,
+      }),
     ]);
 
     if (!org) throw new Error('ORGANISATION_NOT_FOUND');
@@ -44,6 +70,7 @@ export class EspaceOrganisationService {
         abonnement_b2b: org.abonnement_b2b,
       },
       stats,
+      recent_inscriptions,
     };
   }
 
@@ -237,6 +264,11 @@ export class EspaceOrganisationService {
 
     const where: any = {
       apprenant: { organisation_id },
+      // UCS12 : l'org ne voit que les inscriptions qu'elle commande (B2B ou voucher org)
+      OR: [
+        { source_financement: 'B2B' },
+        { voucher_organisation_id: { not: null } },
+      ],
     };
     if (statut) where.statut = statut;
     if (formation_id) where.formation_id = formation_id;
@@ -246,9 +278,9 @@ export class EspaceOrganisationService {
         where,
         include: {
           apprenant: { select: { id: true, nom: true, prenoms: true, email: true } },
-          formation: { select: { id: true, intitule: true, type_formation: true } },
+          formation: { select: { id: true, intitule: true, type_formation: true, cout_catalogue: true } },
           session: { select: { date_debut: true, date_fin: true, statut: true } },
-          paiement: { select: { statut: true, confirmed_at: true } },
+          paiement: { select: { statut: true, confirmed_at: true, montant_final: true } },
         },
         skip,
         take: parsedLimit,
@@ -269,7 +301,11 @@ export class EspaceOrganisationService {
 
     const where: any = {
       dossier: {
-        apprenant: { organisation_id }
+        apprenant: { organisation_id },
+        OR: [
+          { source_financement: 'B2B' },
+          { voucher_organisation_id: { not: null } },
+        ],
       }
     };
 
@@ -299,6 +335,163 @@ export class EspaceOrganisationService {
     ]);
 
     return { paiements, total, page: parsedPage, limit: parsedLimit };
+  }
+
+  // UCS12 — Inscrire un bénéficiaire à une formation (org initie l'inscription)
+  async inscrireBeneficiaire(organisation_id: string, data: {
+    beneficiaire_id: string;
+    session_id: string;
+    source_financement: 'B2B' | 'VOUCHER';
+    voucher_organisation_id?: string;
+  }): Promise<{ dossier_id: string; statut: string }> {
+    // 1. Vérifier que le bénéficiaire appartient à l'org
+    const beneficiaire = await this.prisma.apprenant.findFirst({
+      where: { id: data.beneficiaire_id, organisation_id }
+    });
+    if (!beneficiaire) throw new Error('APPRENANT_NON_BENEFICIAIRE');
+
+    // 2. Vérifier unicité — pas déjà inscrit à cette session
+    const existing = await this.prisma.dossier.findFirst({
+      where: { apprenant_id: data.beneficiaire_id, session_id: data.session_id }
+    });
+    if (existing) throw new Error('INSCRIPTION_DEJA_EXISTANTE');
+
+    // 3. Récupérer session + formation et appliquer les invariants InscriptionService
+    const session = await (this.prisma as any).session.findUnique({
+      where: { id: data.session_id },
+      include: { formation: { include: { partenaire: true } } },
+    });
+    if (!session) throw new Error('SESSION_NOT_FOUND');
+    if (typeof session.places_restantes === 'number' && session.places_restantes <= 0) {
+      throw new Error('SESSION_COMPLETE');
+    }
+
+    // RM-15 : unicité apprenant/formation cross-sessions
+    const inscriptionFormation = await this.prisma.dossier.findFirst({
+      where: {
+        apprenant_id: data.beneficiaire_id,
+        formation_id: session.formation_id,
+        statut: { notIn: ['ANNULE', 'REJETE'] },
+      },
+    });
+    if (inscriptionFormation) throw new Error('INSCRIPTION_DEJA_EXISTANTE');
+
+    const extraData: Record<string, any> = {};
+    let voucherOrg: any = null;
+
+    if (data.source_financement === 'B2B') {
+      // 4a. Vérifier quota B2B (RM-61)
+      const org = await this.orgRepo.findOrganisationById(organisation_id);
+      if (org?.abonnement_b2b) {
+        const nbActifs = await this.orgRepo.countActifsB2B(organisation_id);
+        if (nbActifs >= org.abonnement_b2b.nb_max) throw new Error('B2B_PLAFOND_ATTEINT');
+      }
+    } else {
+      // 4b. Valider le VoucherOrganisation
+      voucherOrg = await (this.prisma as any).voucherOrganisation.findFirst({
+        where: { id: data.voucher_organisation_id, organisation_id, statut: 'ACTIF' }
+      });
+      if (!voucherOrg) throw new Error('VOUCHER_INVALIDE');
+      if (voucherOrg.formation_id && voucherOrg.formation_id !== session.formation_id) {
+        throw new Error('VOUCHER_WRONG_FORMATION');
+      }
+      extraData.voucher_organisation_id = data.voucher_organisation_id;
+    }
+
+    const montant = session?.formation?.cout_catalogue ?? 0;
+
+    // 5. Créer le dossier — org couvre toujours le coût → statut PAYE
+    const dossier = await this.prisma.dossier.create({
+      data: {
+        apprenant_id: data.beneficiaire_id,
+        session_id: data.session_id,
+        formation_id: session.formation_id,
+        source_financement: data.source_financement,
+        statut: 'PAYE',
+        organisation_inscriptrice_id: organisation_id,
+        ...extraData,
+      } as any,
+    });
+
+    // 6. Créer le paiement interne puis le confirmer via le règlement commun
+    await this.creerPaiementOrganisationConfirme(
+      dossier,
+      session,
+      montant,
+      data.source_financement === 'B2B' ? 'B2B_ORG' : 'VOUCHER_ORG'
+    );
+
+    // 7. Incrémenter quota du voucher organisation si utilisé
+    if (voucherOrg) {
+      const updatedVoucher = await (this.prisma as any).voucherOrganisation.update({
+        where: { id: voucherOrg.id },
+        data: { quota_utilise: { increment: 1 } },
+      });
+      if (updatedVoucher.quota_max && updatedVoucher.quota_utilise >= updatedVoucher.quota_max) {
+        await (this.prisma as any).voucherOrganisation.update({
+          where: { id: voucherOrg.id },
+          data: { statut: 'EPUISE' },
+        });
+      }
+    }
+
+    // 8. Notification email au bénéficiaire
+    await (this.email as any).sendEmail({
+      to: beneficiaire.email,
+      subject: 'Votre organisation vous a inscrit a une formation',
+      html: '<p>Votre organisation vous a inscrit a une formation. Consultez votre espace apprenant.</p>',
+    });
+
+    // 9. Audit
+    await this.audit.info('BENEFICIAIRE_INSCRIT_PAR_ORGANISATION', {
+      organisation_id,
+      beneficiaire_id: data.beneficiaire_id,
+      session_id: data.session_id,
+      source_financement: data.source_financement,
+      dossier_id: dossier.id,
+    });
+
+    return { dossier_id: dossier.id, statut: 'PAYE' };
+  }
+
+  private async creerPaiementOrganisationConfirme(
+    dossier: any,
+    session: any,
+    montant: number,
+    methode: 'B2B_ORG' | 'VOUCHER_ORG'
+  ) {
+    const paiementExistant = await this.prisma.paiement.findUnique({ where: { dossier_id: dossier.id } });
+    const paiement = paiementExistant || await this.prisma.paiement.create({
+      data: {
+        dossier_id: dossier.id,
+        montant_catalogue: montant,
+        montant_final: montant,
+        montant_initie: montant,
+        reduction_appliquee: 0,
+        methode,
+        statut: 'PENDING',
+        provider: 'INTERNE',
+        order_ngser: `ORG-${dossier.id}`,
+      } as any,
+    });
+
+    if (paiement.statut === 'CONFIRME') return paiement;
+
+    await this.reglementService.confirmerProvider({
+      paiement: {
+        ...paiement,
+        dossier: {
+          ...dossier,
+          formation: session.formation,
+          session,
+        },
+      },
+      transactionId: `ORG-${methode}-${dossier.id}`,
+      providerStatus: 'SUCCESS',
+      payload: { source: methode },
+    });
+
+    return paiement;
   }
 
   // UCS12 — Mon profil

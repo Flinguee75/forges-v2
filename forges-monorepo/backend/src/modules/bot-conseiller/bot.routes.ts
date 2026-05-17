@@ -5,20 +5,31 @@ import { BotService } from './bot.service';
 import { BotRepository } from './bot.repository';
 import { BotEngineService } from './bot-engine.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Initialisation des dépendances
 const botRepository = new BotRepository(prisma);
 const botEngine = new BotEngineService(botRepository, prisma);
 const auditLogger = new AuditLogger();
 const botService = new BotService(botRepository, botEngine, prisma, auditLogger);
-const botController = new BotController(botService);
+const botController = new BotController(botService, prisma);
 
-// Toutes les routes nécessitent authentication
-// Les rôles APPRENANT et ORGANISATION sont autorisés
+/**
+ * Routes backoffice (ADMIN, AGENT, RESPONSABLE) - sans le middleware APPRENANT/ORGANISATION
+ */
+router.get('/backoffice/enquetes', authenticate, authorize('ADMIN', 'AGENT', 'RESPONSABLE'), (req, res, next) => {
+  botController.getEnquetesCatalogue(req, res, next);
+});
+
+router.get('/backoffice/feedbacks', authenticate, authorize('ADMIN', 'AGENT', 'RESPONSABLE'), (req, res, next) => {
+  botController.getFeedbacksFormations(req, res, next);
+});
+
+/**
+ * Routes utilisateurs (APPRENANT, ORGANISATION)
+ */
 router.use(authenticate);
 router.use(authorize('APPRENANT', 'ORGANISATION'));
 
@@ -48,5 +59,11 @@ router.post('/conversation/:id/answer', (req, res, next) => botController.repond
  * Abandonne la session en cours
  */
 router.post('/session/:id/abandon', (req, res, next) => botController.abandonner(req, res, next));
+
+/**
+ * GET /api/bot/conversation/:id/messages
+ * Récupère l'historique des messages de la conversation
+ */
+router.get('/conversation/:id/messages', (req, res, next) => botController.getSessionById(req, res, next));
 
 export default router;

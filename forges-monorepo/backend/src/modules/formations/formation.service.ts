@@ -1,22 +1,27 @@
 import { FormationRepository } from './formation.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
-import { CreateFormationDto, AssignerTypeFormationDto, UpdateFormationDto } from './dto/formation.dto';
-import { PrismaClient } from '@prisma/client';
+import { CreateFormationDto, AssignerTypeFormationDto, LierPartenaireDto, UpdateFormationDto } from './dto/formation.dto';
+import type { PrismaClient } from '@prisma/client';
+import { prisma } from '../../shared/prisma/prisma.client';
+import { chiffrerUrl } from '../../shared/crypto/crypto.service';
 
 export class FormationService {
   private prisma: PrismaClient;
 
   constructor(
     private readonly formationRepo: FormationRepository,
-    private readonly audit: AuditLogger
+    private readonly audit: AuditLogger,
+    prismaClient: PrismaClient = prisma
   ) {
-    this.prisma = new PrismaClient();
+    this.prisma = prismaClient;
   }
 
   // UCS04 — Création formation interne (Admin/Responsable)
   async create(dto: CreateFormationDto, userId: string) {
     // RM-86 : type_formation assigné par FORGES uniquement
     // Si non fourni : null (sera assigné via assignerType)
+    const urlExterneChiffree = dto.url_contenu ? chiffrerUrl(dto.url_contenu) : undefined;
+
     const formation = await this.formationRepo.create({
       intitule: dto.intitule,
       description_courte: dto.description_courte,
@@ -33,6 +38,7 @@ export class FormationService {
       objectifs_pedagogiques: dto.objectifs_pedagogiques,
       prerequis: dto.prerequis,
       duree_acces_jours: dto.duree_acces_jours,
+      url_externe_chiffree: urlExterneChiffree,
     });
 
     // RM-96 : pas de session possible pour formations à la demande
@@ -68,6 +74,11 @@ export class FormationService {
         formation.type_formation || undefined,
         dto.pilier_abonnement
       );
+    }
+
+    // Chiffrer l'URL contenu si fournie
+    if (dto.url_contenu) {
+      updatedData.url_externe_chiffree = chiffrerUrl(dto.url_contenu);
     }
 
     const updated = await this.formationRepo.update(id, updatedData);
@@ -135,6 +146,68 @@ export class FormationService {
     });
 
     return updated;
+  }
+
+  // Backoffice — rattacher une formation existante à un partenaire
+  async lierPartenaire(id: string, dto: LierPartenaireDto, userId: string) {
+    const formation = await this.formationRepo.findById(id);
+    if (!formation) throw new Error('FORMATION_NOT_FOUND');
+    if (formation.statut === 'ARCHIVEE') throw new Error('FORMATION_ARCHIVEE');
+    if (formation.partenaire_id) throw new Error('FORMATION_DEJA_LIEE');
+
+    const partenaire = await this.prisma.partenaire.findUnique({
+      where: { id: dto.partenaire_id },
+      select: {
+        id: true,
+        statut: true,
+        responsable_designe_id: true,
+      }
+    });
+
+    if (!partenaire) throw new Error('PARTENAIRE_NOT_FOUND');
+    if (partenaire.statut !== 'ACTIF') throw new Error('PARTENAIRE_INACTIF');
+
+    const alreadyLinked = await this.prisma.formationPartenaire.findUnique({
+      where: { formation_id: id }
+    });
+    if (alreadyLinked) throw new Error('FORMATION_DEJA_LIEE');
+
+    const prixCoutantSoumis = dto.prix_coutant_soumis ?? formation.cout_catalogue;
+
+    const fp = await this.prisma.formationPartenaire.create({
+      data: {
+        formation_id: id,
+        partenaire_id: dto.partenaire_id,
+        responsable_validateur_id: partenaire.responsable_designe_id || undefined,
+        prix_coutant_soumis: prixCoutantSoumis,
+        statut_validation: 'EN_ATTENTE',
+        version: 1,
+        date_soumission: new Date(),
+        inclus_abonnement: formation.inclus_abonnement ?? false,
+      }
+    });
+
+    const updated = await this.prisma.formation.update({
+      where: { id },
+      data: {
+        partenaire_id: dto.partenaire_id,
+        statut: 'EN_ATTENTE_VALIDATION',
+      }
+    });
+
+    await this.audit.info('FORMATION_PARTENAIRE_LIEE', {
+      formation_id: id,
+      partenaire_id: dto.partenaire_id,
+      fp_id: fp.id,
+      user_id: userId
+    });
+
+    return {
+      formation_id: id,
+      partenaire_id: dto.partenaire_id,
+      fp_id: fp.id,
+      statut: updated.statut,
+    };
   }
 
   // UCS04 — Catalogue public avec pagination

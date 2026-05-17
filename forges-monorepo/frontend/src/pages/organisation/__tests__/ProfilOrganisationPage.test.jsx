@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import ProfilOrganisationPage from '../ProfilOrganisationPage';
 import * as organisationApi from '../../../api/espace-organisation.api';
+import * as authApi from '../../../api/auth.api';
 
 const mockToast = vi.fn();
 
@@ -53,6 +54,9 @@ describe('ProfilOrganisationPage - Tests', () => {
     vi.clearAllMocks();
     vi.spyOn(organisationApi.organisationApi, 'getProfil').mockResolvedValue(mockProfilData);
     vi.spyOn(organisationApi.organisationApi, 'updateProfil').mockResolvedValue(mockProfilData);
+    vi.spyOn(authApi.authApi, 'changePassword').mockResolvedValue({
+      message: 'Mot de passe modifié',
+    });
   });
 
   it('affiche les informations de l\'organisation', async () => {
@@ -250,6 +254,32 @@ describe('ProfilOrganisationPage - Tests', () => {
       // Check that the page renders with optional field as '-'
       const cells = screen.getAllByText('-');
       expect(cells.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('permet de changer le mot de passe organisation', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <BrowserRouter>
+        <ProfilOrganisationPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Modifier')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /changer le mot de passe/i }));
+
+    await user.type(screen.getByLabelText(/mot de passe actuel/i), 'Current1!');
+    await user.type(screen.getByLabelText(/^nouveau mot de passe/i), 'NewPassword1!');
+    await user.type(screen.getByLabelText(/confirmer le nouveau mot de passe/i), 'NewPassword1!');
+    await user.click(screen.getByRole('button', { name: /confirmer/i }));
+
+    await waitFor(() => {
+      expect(authApi.authApi.changePassword).toHaveBeenCalledWith('Current1!', 'NewPassword1!');
+      expect(mockToast).toHaveBeenCalledWith('Mot de passe modifié avec succès', 'success');
     });
   });
 });

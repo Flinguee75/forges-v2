@@ -18,7 +18,8 @@ export class EspaceApprenantController {
   // GET /api/apprenant/dossiers — APPRENANT
   async getMesDossiers(req: Request, res: Response, next: NextFunction) {
     try {
-      const dossiers = await this.espaceService.getMesDossiers(req.user!.userId);
+      const { statut } = req.query as { statut?: string };
+      const dossiers = await this.espaceService.getMesDossiers(req.user!.userId, { statut });
       res.json(dossiers);
     } catch (error) {
       next(error);

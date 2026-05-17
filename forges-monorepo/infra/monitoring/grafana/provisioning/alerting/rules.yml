@@ -1,0 +1,46 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: FORGES EDU Alerts
+    folder: FORGES Monitoring
+    interval: 1m
+    rules:
+      - uid: forges-edu-backend-down
+        title: "EDU - Backend Container Down"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({service="checker", environment="edu", check="health", level="error"} [10m])'
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        for: 0s
+        noDataState: OK
+        execErrState: Alerting
+        labels:
+          severity: critical
+          environment: edu
+        annotations:
+          summary: "Backend EDU indisponible"
+          description: "Le silent check a detecte une erreur sur /health. Verifier forges-backend-edu."

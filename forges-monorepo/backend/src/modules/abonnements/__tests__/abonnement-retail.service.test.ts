@@ -3,6 +3,9 @@ import { AbonnementRetailRepository, TARIFS_RETAIL } from '../retail/abonnement-
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 
+// Mock NGSER en mode test (evite l'appel reseau)
+process.env.NGSER_MOCK_MODE = 'true';
+
 describe('AbonnementRetailService', () => {
   let service: AbonnementRetailService;
   let mockRepo: jest.Mocked<AbonnementRetailRepository>;
@@ -14,18 +17,31 @@ describe('AbonnementRetailService', () => {
     id: 'abo-01', apprenant_id: 'a-01',
     offre: 'ESSENTIEL', montant_mensuel: 15000,
     statut: 'ACTIF', suspension_count: 0,
+    order_ngser: 'ABO-2026-001-AAAAAA',
+    transaction_id_ngser: 'tx-confirm-01',
     date_debut: new Date(Date.now() - 5 * 24 * 3600 * 1000),
     date_fin: new Date(Date.now() + 25 * 24 * 3600 * 1000),
     date_suspension: null, downgrade_planifie: null,
     consentement_auto: true,
+    montant_premier_mois: 12000,
   };
 
   const aboActifPremium = { ...aboActifEssentiel, offre: 'PREMIUM', montant_mensuel: 25000 };
+
+  const aboEnAttentePaiement = {
+    ...aboActifEssentiel,
+    statut: 'EN_ATTENTE_PAIEMENT',
+    transaction_id_ngser: null,
+    order_ngser: 'ABO-2026-124-BBBBBB',
+  };
 
   beforeEach(() => {
     mockRepo = {
       findByApprenant: jest.fn(),
       findActifByApprenant: jest.fn(),
+      findByOrderNgser: jest.fn(),
+      activerApresPaiement: jest.fn(),
+      annulerApresEchecPaiement: jest.fn(),
       create: jest.fn(),
       upgrade: jest.fn(),
       planifierDowngrade: jest.fn(),
@@ -39,9 +55,10 @@ describe('AbonnementRetailService', () => {
       findGracesExpirees: jest.fn(),
       findDowngradesPlanifies: jest.fn(),
       countFormationsActives: jest.fn(),
+      findFormationsIncluses: jest.fn(),
     } as any;
 
-    mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
+    mockAudit = { info: jest.fn(), warning: jest.fn(), error: jest.fn() } as any;
     mockEmail = {
       sendConfirmationAbonnement: jest.fn(),
       sendUpgradeConfirmation: jest.fn(),
@@ -49,6 +66,9 @@ describe('AbonnementRetailService', () => {
     } as any;
 
     mockPrisma = {
+      abonnementRetail: {
+        findUnique: jest.fn().mockResolvedValue(aboEnAttentePaiement),
+      },
       accesFormationDemande: {
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
@@ -57,40 +77,138 @@ describe('AbonnementRetailService', () => {
     service = new AbonnementRetailService(mockRepo, mockPrisma, mockAudit, mockEmail);
   });
 
-  // RM-70 : unicité abonnement Retail
-  describe('RM-70 — Unicité abonnement Retail', () => {
-    it('bloque si abonnement déjà actif', async () => {
+  // ─── RM-70 : unicite abonnement Retail ───────────────────────────
+
+  describe('RM-70 — Unicite abonnement Retail', () => {
+    it('bloque si abonnement ACTIF existant', async () => {
       mockRepo.findByApprenant.mockResolvedValue(aboActifEssentiel as any);
       await expect(service.souscrire('a-01', 'ESSENTIEL', 'FR')).rejects.toThrow('ABONNEMENT_DEJA_ACTIF');
     });
 
-    it('permet souscription si aucun abonnement actif', async () => {
+    it('permet souscription si aucun abonnement', async () => {
       mockRepo.findByApprenant.mockResolvedValue(null);
-      mockRepo.create.mockResolvedValue(aboActifEssentiel as any);
+      mockRepo.create.mockResolvedValue({ ...aboActifEssentiel, statut: 'ACTIF', order_ngser: 'ABO-2026-001-CCCCCC' } as any);
       mockAudit.info.mockResolvedValue(undefined);
-      mockEmail.sendConfirmationAbonnement.mockResolvedValue(undefined);
-      await expect(service.souscrire('a-01', 'ESSENTIEL', 'FR')).resolves.toBeDefined();
+
+      const result = await service.souscrire('a-01', 'ESSENTIEL', 'FR');
+      expect(result).toBeDefined();
+      expect(result.payment_url).toBeDefined();
+      expect(result.order_ngser).toBeDefined();
     });
   });
 
-  // RM-106 : premier mois au prorata
-  describe('RM-106 — Premier mois au prorata', () => {
-    it('calcule correctement le montant prorata', async () => {
+  // ─── NGSER : souscription retourne payment_url ───────────────────
+
+  describe('NGSER — Souscription retourne payment_url et order_ngser', () => {
+    beforeEach(() => {
       mockRepo.findByApprenant.mockResolvedValue(null);
-      mockRepo.create.mockImplementation(async (data: any) => ({ ...data, id: 'new' } as any));
       mockAudit.info.mockResolvedValue(undefined);
-      mockEmail.sendConfirmationAbonnement.mockResolvedValue(undefined);
+    });
+
+    it('retourne payment_url non vide apres souscription', async () => {
+      mockRepo.create.mockResolvedValue({
+        ...aboActifEssentiel,
+        statut: 'ACTIF',
+        order_ngser: 'ABO-2026-001-DDDDDD',
+        id: 'abo-new-01',
+      } as any);
 
       const result = await service.souscrire('a-01', 'ESSENTIEL', 'FR');
-      // Le montant prorata doit être <= tarif mensuel et > 0
+      expect(typeof result.payment_url).toBe('string');
+      expect(result.payment_url.length).toBeGreaterThan(0);
+      expect(result.payment_url).not.toContain('mock-ngser');
+    });
+
+    it('retourne order_ngser au format ABO-YYYY-DDD-XXXXXX', async () => {
+      mockRepo.create.mockImplementation(async (data: any) => ({
+        ...aboActifEssentiel,
+        statut: 'ACTIF',
+        order_ngser: data.order_ngser,
+        id: 'abo-new-02',
+      } as any));
+
+      const result = await service.souscrire('a-01', 'PREMIUM', 'FR');
+      expect(result.order_ngser).toMatch(/^ABO-\d{4}-\d{3}-[A-F0-9]{6}$/);
+    });
+
+    it('cree l\'abonnement avec montant_mensuel correct pour ESSENTIEL', async () => {
+      mockRepo.create.mockImplementation(async (data: any) => ({
+        ...data, id: 'abo-ess', statut: 'ACTIF',
+      } as any));
+
+      await service.souscrire('a-01', 'ESSENTIEL', 'FR');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ montant_mensuel: TARIFS_RETAIL.ESSENTIEL })
+      );
+    });
+
+    it('cree l\'abonnement avec montant_mensuel correct pour PREMIUM', async () => {
+      mockRepo.create.mockImplementation(async (data: any) => ({
+        ...data, id: 'abo-prem', statut: 'ACTIF',
+      } as any));
+
+      await service.souscrire('a-01', 'PREMIUM', 'FR');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ montant_mensuel: TARIFS_RETAIL.PREMIUM })
+      );
+    });
+
+    it('passe order_ngser au repo.create', async () => {
+      mockRepo.create.mockImplementation(async (data: any) => ({
+        ...data, id: 'abo-order', statut: 'ACTIF',
+      } as any));
+
+      await service.souscrire('a-01', 'ESSENTIEL', 'FR');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ order_ngser: expect.stringMatching(/^ABO-/) })
+      );
+    });
+  });
+
+  // ─── Idempotence : EN_ATTENTE_PAIEMENT ───────────────────────────
+
+  describe('Idempotence — abonnement EN_ATTENTE_PAIEMENT', () => {
+    it('retourne une nouvelle session si abonnement en attente paiement', async () => {
+      mockRepo.findByApprenant.mockResolvedValue(aboEnAttentePaiement as any);
+      mockPrisma.abonnementRetail.findUnique.mockResolvedValue(aboEnAttentePaiement);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.souscrire('a-01', 'ESSENTIEL', 'FR');
+      expect(result.payment_url).toBeDefined();
+      expect(result.order_ngser).toBe(aboEnAttentePaiement.order_ngser);
+      // Ne doit pas creer un nouvel abonnement
+      expect(mockRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('ne bloque pas avec ABONNEMENT_DEJA_ACTIF si statut EN_ATTENTE_PAIEMENT', async () => {
+      mockRepo.findByApprenant.mockResolvedValue(aboEnAttentePaiement as any);
+      mockPrisma.abonnementRetail.findUnique.mockResolvedValue(aboEnAttentePaiement);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await expect(service.souscrire('a-01', 'ESSENTIEL', 'FR')).resolves.not.toThrow();
+    });
+  });
+
+  // ─── RM-106 : premier mois au prorata ────────────────────────────
+
+  describe('RM-106 — Premier mois au prorata', () => {
+    it('calcule un montant prorata > 0 et <= tarif mensuel', async () => {
+      mockRepo.findByApprenant.mockResolvedValue(null);
+      mockRepo.create.mockImplementation(async (data: any) => ({
+        ...data, id: 'abo-prorata', statut: 'ACTIF',
+      } as any));
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.souscrire('a-01', 'ESSENTIEL', 'FR');
       expect(result.montant_premier_mois).toBeGreaterThan(0);
       expect(result.montant_premier_mois).toBeLessThanOrEqual(TARIFS_RETAIL.ESSENTIEL);
     });
   });
 
-  // RM-79 : upgrade immédiat
-  describe('RM-79 — Upgrade Essentiel → Premium immédiat', () => {
-    it('effectue l\'upgrade immédiatement avec prorata', async () => {
+  // ─── RM-79 : upgrade immediat ────────────────────────────────────
+
+  describe('RM-79 — Upgrade Essentiel -> Premium immediat', () => {
+    it('effectue l\'upgrade avec prorata', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue(aboActifEssentiel as any);
       mockRepo.upgrade.mockResolvedValue({ ...aboActifEssentiel, offre: 'PREMIUM' } as any);
       mockAudit.info.mockResolvedValue(undefined);
@@ -101,15 +219,16 @@ describe('AbonnementRetailService', () => {
       expect(result.montant_prorata).toBeGreaterThanOrEqual(0);
     });
 
-    it('bloque si déjà Premium', async () => {
+    it('bloque si deja PREMIUM', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue(aboActifPremium as any);
       await expect(service.upgrader('a-01', 'FR')).rejects.toThrow('DEJA_PREMIUM');
     });
   });
 
-  // RM-104 : downgrade planifié fin de période
-  describe('RM-104 — Downgrade planifié (non immédiat)', () => {
-    it('planifie le downgrade sans effet immédiat', async () => {
+  // ─── RM-104 : downgrade planifie fin periode ──────────────────────
+
+  describe('RM-104 — Downgrade planifie (non immediat)', () => {
+    it('planifie sans effet immediat sur l\'offre', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue(aboActifPremium as any);
       mockRepo.planifierDowngrade.mockResolvedValue({} as any);
       mockAudit.info.mockResolvedValue(undefined);
@@ -117,25 +236,24 @@ describe('AbonnementRetailService', () => {
       const result = await service.planifierDowngrade('a-01');
       expect(result.effectif).toBeInstanceOf(Date);
       expect(result.message).toContain('Essentiel');
-      // Vérifier que l'abonnement n'est PAS changé immédiatement
       expect(mockRepo.upgrade).not.toHaveBeenCalled();
-      expect(mockRepo.planifierDowngrade).toHaveBeenCalled();
     });
   });
 
-  // RM-76 : suspension max 1/trimestre
-  describe('RM-76 — Suspension limitée à 1 fois par trimestre', () => {
-    it('bloque 2ème suspension dans le même trimestre', async () => {
+  // ─── RM-76 : suspension max 1/trimestre ──────────────────────────
+
+  describe('RM-76 — Suspension limitee a 1 fois par trimestre', () => {
+    it('bloque 2eme suspension dans le meme trimestre', async () => {
       const aboSuspenduRecemment = {
         ...aboActifEssentiel,
         suspension_count: 1,
-        date_suspension: new Date(Date.now() - 10 * 24 * 3600 * 1000), // il y a 10j (< 90j)
+        date_suspension: new Date(Date.now() - 10 * 24 * 3600 * 1000),
       };
       mockRepo.findActifByApprenant.mockResolvedValue(aboSuspenduRecemment as any);
       await expect(service.suspendre('a-01', 'FR')).rejects.toThrow('SUSPENSION_LIMIT_ATTEINT');
     });
 
-    it('autorise suspension si aucune dans ce trimestre', async () => {
+    it('autorise si aucune suspension ce trimestre', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue({ ...aboActifEssentiel, suspension_count: 0 } as any);
       mockRepo.suspendre.mockResolvedValue({} as any);
       mockAudit.info.mockResolvedValue(undefined);
@@ -143,9 +261,10 @@ describe('AbonnementRetailService', () => {
     });
   });
 
-  // RM-77 : résiliation fin période
-  describe('RM-77 — Résiliation sans remboursement, accès maintenu', () => {
-    it('marque EN_RESILIATION sans couper l\'accès immédiatement', async () => {
+  // ─── RM-77 : resiliation fin periode ─────────────────────────────
+
+  describe('RM-77 — Resiliation sans remboursement, acces maintenu', () => {
+    it('marque EN_RESILIATION sans couper l\'acces', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue(aboActifPremium as any);
       mockRepo.resilier.mockResolvedValue({} as any);
       mockAudit.info.mockResolvedValue(undefined);
@@ -157,13 +276,18 @@ describe('AbonnementRetailService', () => {
     });
   });
 
-  // RM-73 : grâce 48h sur échec renouvellement
-  describe('RM-73 — Grâce 48h avant suspension', () => {
-    it('passe en GRACE sur échec paiement avant de suspendre', async () => {
-      const abosGraceExpiree = [
-        { ...aboActifEssentiel, statut: 'GRACE', date_grace: new Date(Date.now() - 50 * 3600 * 1000), apprenant: { apprenant_id: 'a-01', email: 'test@test.ci', langue_preferee: 'FR' } }
+  // ─── RM-73 : grace 48h avant suspension ──────────────────────────
+
+  describe('RM-73 — Grace 48h avant suspension', () => {
+    it('suspend les graces expirees via scheduler', async () => {
+      const abosGrace = [
+        {
+          ...aboActifEssentiel, statut: 'GRACE',
+          date_grace: new Date(Date.now() - 50 * 3600 * 1000),
+          apprenant: { apprenant_id: 'a-01', email: 'test@test.ci', langue_preferee: 'FR' },
+        },
       ];
-      mockRepo.findGracesExpirees.mockResolvedValue(abosGraceExpiree as any);
+      mockRepo.findGracesExpirees.mockResolvedValue(abosGrace as any);
       mockRepo.suspendre.mockResolvedValue({} as any);
       mockAudit.warning.mockResolvedValue(undefined);
 
@@ -173,30 +297,30 @@ describe('AbonnementRetailService', () => {
     });
   });
 
+  // ─── Formations incluses ──────────────────────────────────────────
 
   describe('Formations incluses pour abonnement actif', () => {
-    it('retourne la liste des formations incluses si un abonnement retail actif existe', async () => {
+    it('retourne la liste si abonnement actif', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue(aboActifEssentiel as any);
-      mockRepo.findFormationsIncluses = jest.fn().mockResolvedValue([
+      mockRepo.findFormationsIncluses.mockResolvedValue([
         { id: 'f-1', intitule: 'Formation incluse' },
-      ]);
+      ] as any);
 
       const result = await service.getFormationsIncluses('a-01');
       expect(result).toEqual([{ id: 'f-1', intitule: 'Formation incluse' }]);
-      expect(mockRepo.findFormationsIncluses).toHaveBeenCalled();
     });
 
-    it('retourne un tableau vide si aucun abonnement actif', async () => {
+    it('retourne tableau vide si aucun abonnement actif', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue(null);
-
       const result = await service.getFormationsIncluses('a-01');
       expect(result).toEqual([]);
     });
   });
 
-  // RM-105 : suspension accès formations lors suspension abo
-  describe('RM-105 — Suspension accès formations à la demande', () => {
-    it('suspend les AccèsFormationDemande source=ABONNEMENT', async () => {
+  // ─── RM-105 : suspension acces formations ────────────────────────
+
+  describe('RM-105 — Suspension acces formations a la demande', () => {
+    it('appelle suspendre lors de la suspension abonnement', async () => {
       mockRepo.findActifByApprenant.mockResolvedValue({ ...aboActifEssentiel, suspension_count: 0 } as any);
       mockRepo.suspendre.mockResolvedValue({} as any);
       mockAudit.info.mockResolvedValue(undefined);

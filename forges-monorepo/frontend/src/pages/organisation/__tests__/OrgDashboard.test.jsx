@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import OrgDashboard from '../OrgDashboard';
 import * as organisationApi from '../../../api/espace-organisation.api';
 
+vi.mock('../../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'ORGANISATION' }, updateUser: vi.fn() }),
+}));
+
 vi.mock('../../../hooks/useApi', () => ({
   useApi: () => ({
     execute: vi.fn((fn, options) => {
@@ -23,16 +27,13 @@ vi.mock('../../../hooks/useToast', () => ({
   }),
 }));
 
-vi.mock('../../../components/bot/BotWidget', () => ({
-  default: () => <button aria-label="Ouvrir le conseiller">Conseiller</button>,
-}));
-
 const mockDashboardData = {
   stats: {
     effectifs_inscrits: 25,
     budget_engage: 500000,
     vouchers_actifs: 5,
     total_employes: 30,
+    b2b_utilisation_pct: 80,
   },
   recent_inscriptions: [
     {
@@ -79,6 +80,7 @@ const mockFlatDashboardData = {
     budget_engage: 500000,
     vouchers_actifs: 5,
     total_employes: 30,
+    b2b_utilisation_pct: 80,
   },
   recent_inscriptions: [],
   recent_paiements: [],
@@ -107,7 +109,7 @@ describe('OrgDashboard - Tests', () => {
     });
   });
 
-  it('affiche le budget engagé formaté', async () => {
+  it('affiche la consommation B2B', async () => {
     render(
       <BrowserRouter>
         <OrgDashboard />
@@ -115,8 +117,7 @@ describe('OrgDashboard - Tests', () => {
     );
 
     await waitFor(() => {
-      // 500000 centimes = 5000 FCFA (with thousand separator)
-      expect(screen.getByText(/5.*000.*FCFA/)).toBeInTheDocument();
+      expect(screen.getByText('80%')).toBeInTheDocument();
     });
   });
 
@@ -158,7 +159,7 @@ describe('OrgDashboard - Tests', () => {
       expect(screen.getByRole('heading', { name: 'B2B' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Vouchers' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Inscriptions' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Ouvrir le conseiller' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Ouvrir le conseiller' })).not.toBeInTheDocument();
     });
   });
 
@@ -186,7 +187,8 @@ describe('OrgDashboard - Tests', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Essai gratuit - 4 jours restants', { selector: 'h2' })).toBeInTheDocument();
+      expect(screen.getAllByText('Essai gratuit').length).toBeGreaterThan(0);
+      expect(screen.getByText(/4 jours? restants/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Souscrire maintenant' })).toBeInTheDocument();
     });
   });

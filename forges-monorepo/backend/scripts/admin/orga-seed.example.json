@@ -1,0 +1,17 @@
+{
+  "organisations": [
+    {
+      "raison_sociale": "Organisation Test FORGES",
+      "type": "ENTREPRISE",
+      "email": "contact@orga-test.ci",
+      "contact_referent": "Mme Test",
+      "pays": "CI",
+      "identifiant_legal": "CI-ORG-001",
+      "langue_preferee": "FR",
+      "statut": "ACTIF",
+      "sous_types": [
+        "B2B"
+      ]
+    }
+  ]
+}

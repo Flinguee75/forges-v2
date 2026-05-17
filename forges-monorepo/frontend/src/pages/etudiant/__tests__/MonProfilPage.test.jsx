@@ -67,7 +67,7 @@ describe('MonProfilPage - Checklist Tests', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('john.doe@example.com')).toBeInTheDocument();
+      expect(screen.getAllByText('john.doe@example.com').length).toBeGreaterThan(1);
       expect(screen.getByText('Doe')).toBeInTheDocument();
       expect(screen.getByText('John')).toBeInTheDocument();
       expect(screen.getByText('SN')).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('MonProfilPage - Checklist Tests', () => {
     await waitFor(() => {
       const nomInputs = screen.getAllByLabelText(/Nom/i);
       const prenomInputs = screen.getAllByLabelText(/Prénom/i);
-      const paysInputs = screen.getAllByLabelText(/Pays de résidence/i);
+      const paysInputs = screen.getAllByTestId('profil-pays-residence');
       expect(nomInputs.length).toBeGreaterThan(0);
       expect(prenomInputs.length).toBeGreaterThan(0);
       expect(paysInputs.length).toBeGreaterThan(0);
@@ -115,7 +115,7 @@ describe('MonProfilPage - Checklist Tests', () => {
     await waitFor(() => {
       const nomInputs = screen.getAllByLabelText(/Nom/i);
       const prenomInputs = screen.getAllByLabelText(/Prénom/i);
-      const paysInputs = screen.getAllByLabelText(/Pays de résidence/i);
+      const paysInputs = screen.getAllByTestId('profil-pays-residence');
 
       const nomInput = nomInputs[0];
       const prenomInput = prenomInputs[0];

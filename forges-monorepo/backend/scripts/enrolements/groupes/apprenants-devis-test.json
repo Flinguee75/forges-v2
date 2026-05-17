@@ -1,0 +1,26 @@
+{
+  "devis": {
+    "formation_id": "frm-masterclass-gwu-ccdl-2026",
+    "session_id": "ses-gwu-ccdl-juin-2026",
+    "organisation_label": "Groupe test apprenants",
+    "contact_referent": "Equipe FORGES",
+    "identifiant_legal": "",
+    "notes_admin": "Lot initial de test avec 2 apprenants"
+  },
+  "apprenants": [
+    {
+      "email": "redfoo923@gmail.com",
+      "nom": "Test",
+      "prenoms": "Redfoo",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    },
+    {
+      "email": "Tidianecisse9@outlook.fr",
+      "nom": "Cisse",
+      "prenoms": "Tidiane",
+      "pays_residence": "CI",
+      "pays_nationalite": "CI"
+    }
+  ]
+}

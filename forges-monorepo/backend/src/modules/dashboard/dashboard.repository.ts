@@ -17,8 +17,9 @@ type DashboardFilters = {
   methode?: string;
 };
 
-const PAID_DOSSIER_STATUSES = ['PAYE', 'PAYE_DIRECTEMENT'];
+const PAID_DOSSIER_STATUSES = ['PAYE'];
 const OPEN_SESSION_STATUSES = ['OUVERTE', 'INSCRIPTIONS_OUVERTES', 'EN_COURS'];
+const ACTIVE_ORGANISATION_STATUSES = ['ACTIF', 'ACTIVE'];
 
 function buildDateCondition(dateFrom?: string | Date, dateTo?: string | Date): any {
   if (!dateFrom && !dateTo) {
@@ -111,8 +112,8 @@ export class DashboardRepository {
       nbAbonnementsB2BActifs,
       dossiersParStatut,
     ] = await Promise.all([
-      this.prisma.apprenant.count({ where: { statut: 'ACTIF' } }),
-      this.prisma.organisation.count({ where: { statut: 'ACTIF' } }),
+      this.prisma.apprenant.count({ where: { statut: 'ACTIF', role: 'APPRENANT' } }),
+      this.prisma.organisation.count({ where: { statut: { in: ACTIVE_ORGANISATION_STATUSES } } }),
       this.prisma.formation.count({ where: { statut: 'ACTIVE' } }),
       this.prisma.session.count({ where: { statut: { in: OPEN_SESSION_STATUSES } } }),
       this.prisma.dossier.count(),
@@ -614,7 +615,7 @@ export class DashboardRepository {
         montant_remise: true,
         created_at: true,
         apprenant: { select: { nom: true, prenoms: true, email: true } },
-        formation: { select: { intitule: true } },
+        formation: { select: { intitule: true, cout_catalogue: true } },
         session: { select: { date_debut: true } },
         paiement: { select: { statut: true, montant_final: true, methode: true } },
       },
@@ -636,8 +637,11 @@ export class DashboardRepository {
         formation_titre: row.formation?.intitule || null,
         session_date_debut: row.session?.date_debut || null,
         statut_dossier: row.statut,
-        statut_paiement: row.paiement?.statut || 'EN_ATTENTE',
+        statut_paiement: row.paiement?.statut || null,
         montant_paiement: row.paiement?.montant_final || 0,
+        montant_attendu: row.paiement?.montant_final
+          ? null
+          : Math.max(0, Number(row.formation?.cout_catalogue || 0) - Number(row.montant_remise || 0)),
         methode_paiement: row.paiement?.methode || null,
         source_financement: row.source_financement,
         voucher_code: row.voucher_code,

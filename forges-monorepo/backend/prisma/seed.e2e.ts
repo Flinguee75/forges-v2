@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcrypt';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL?.includes('connection_limit') ? process.env.DATABASE_URL : `${process.env.DATABASE_URL}?connection_limit=5` } } });
 
 const PASSWORD = 'Test@FORGES2026!';
 
@@ -17,13 +17,38 @@ const IDS = {
   apprenantPremiumB2b: 'app-e2e-premium-b2b-01',
   apprenantDossier: 'app-e2e-dossier-01',
   apprenantAuth: 'app-e2e-auth-01',
+  apprenantVoucher: 'app-e2e-voucher-01',
+  apprenantRetail: 'app-e2e-retail-01',
   apprenantGris: 'app-e2e-gris-01',
   apprenantException: 'app-e2e-exception-01',
+  apprenantAboNgserOk: 'app-e2e-abo-ngser-ok',
+  apprenantAboNgserKo: 'app-e2e-abo-ngser-ko',
+  apprenantAboNgserCycle1: 'app-e2e-abo-cycle-01',
+  apprenantAboNgserCycle2: 'app-e2e-abo-cycle-02',
+  apprenantAboNgserCycle3: 'app-e2e-abo-cycle-03',
+  apprenantAboNgserCycle4: 'app-e2e-abo-cycle-04',
+  apprenantAboNgserCycle5: 'app-e2e-abo-cycle-05',
+  // Nouveaux comptes pour tests paiement NGSER (Phase 1 v4.9)
+  apprenantIdempotence1: 'app-e2e-idempotence-1',
+  apprenantIdempotence2: 'app-e2e-idempotence-2',
+  apprenantMismatch1: 'app-e2e-mismatch-1',
+  apprenantMismatch2: 'app-e2e-mismatch-2',
+  apprenantMismatch3: 'app-e2e-mismatch-3',
+  apprenantRecon1: 'app-e2e-recon-1',
+  apprenantRecon2: 'app-e2e-recon-2',
+  apprenantRecon3: 'app-e2e-recon-3',
+  apprenantRecon4: 'app-e2e-recon-4',
+  apprenantRecon5: 'app-e2e-recon-5',
+  apprenantNgser1: 'app-e2e-ngser-1',
+  apprenantMontantMismatch: 'app-e2e-montant-mismatch-1',
+  apprenantBeneficiaireOrg: 'app-e2e-beneficiaire-org-01',
+  voucherOrganisationUcs12: 'vch-org-ucs12-e2e-01',
   organisation: 'org-e2e-01',
   partenaire: 'part-e2e-01',
   partenaireInvite: 'part-e2e-invite-01',
   partenairePending: 'part-e2e-pending-01',
   apporteur: 'apt-e2e-rm145-01',
+  apporteurSuspendu: 'apt-e2e-susp-01',
   formationStandard: 'F-E2E-STD-01',
   formationPremiumRetail: 'F-E2E-PREM-RETAIL-01',
   formationPremiumB2b: 'F-E2E-PREM-B2B-01',
@@ -34,6 +59,10 @@ const IDS = {
   sessionPremiumB2b: 'S-E2E-PREM-B2B-OPEN-01',
   sessionPartenaire: 'S-E2E-PART-OPEN-01',
   sessionDossier: 'S-E2E-DOSSIER-OPEN-01',
+  sessionNgserReconciliation: 'S-E2E-NGSER-RECON-01',
+  sessionNgserReconciliationIsolation: 'S-E2E-NGSER-RECON-02',
+  sessionNgserReconciliationFresh: 'S-E2E-NGSER-RECON-03',
+  sessionNgserReconciliationSolo: 'S-E2E-NGSER-RECON-04',
   sessionPlanifiee: 'S-E2E-PLANIFIEE-01',
   sessionAVenir: 'S-E2E-A-VENIR-01',
   sessionOuverte: 'S-E2E-OUVERTE-01',
@@ -42,6 +71,8 @@ const IDS = {
   sessionArchivable: 'S-E2E-ARCHIVABLE-01',
   dossierEnAttente: 'D-E2E-EN-ATTENTE-01',
   dossierRetenu: 'D-E2E-RETENU-01',
+  dossierRetenuUi: 'D-E2E-RETENU-UI-01',
+  dossierRetenuRecon: 'D-E2E-RETENU-RECON-01',
   dossierPaye: 'D-E2E-PAYE-01',
   dossierAnnule: 'D-E2E-ANNULE-01',
   dossierExpire: 'D-E2E-EXPIRE-01',
@@ -68,19 +99,44 @@ const EMAILS = {
   apprenantPremiumB2b: 'apprenant-premium-b2b-e2e@forges.ci',
   apprenantDossier: 'apprenant-dossier-e2e@forges.ci',
   apprenantAuth: 'apprenant-auth-e2e@forges.ci',
+  apprenantVoucher: 'apprenant-voucher-e2e@forges.ci',
+  apprenantRetail: 'apprenant-retail-e2e@forges.ci',
   apprenantGris: 'apprenant-gris-e2e@forges.ci',
   apprenantException: 'apprenant-exception-e2e@forges.ci',
+  apprenantAboNgserOk: 'apprenant-abo-ngser-ok@forges.ci',
+  apprenantAboNgserKo: 'apprenant-abo-ngser-ko@forges.ci',
+  apprenantAboNgserCycle1: 'apprenant-abo-cycle-01@forges.ci',
+  apprenantAboNgserCycle2: 'apprenant-abo-cycle-02@forges.ci',
+  apprenantAboNgserCycle3: 'apprenant-abo-cycle-03@forges.ci',
+  apprenantAboNgserCycle4: 'apprenant-abo-cycle-04@forges.ci',
+  apprenantAboNgserCycle5: 'apprenant-abo-cycle-05@forges.ci',
+  // Nouveaux comptes pour tests paiement NGSER
+  apprenantIdempotence1: 'apprenant-idempotence-1@forges.ci',
+  apprenantIdempotence2: 'apprenant-idempotence-2@forges.ci',
+  apprenantMismatch1: 'apprenant-mismatch-1@forges.ci',
+  apprenantMismatch2: 'apprenant-mismatch-2@forges.ci',
+  apprenantMismatch3: 'apprenant-mismatch-3@forges.ci',
+  apprenantRecon1: 'apprenant-recon-1@forges.ci',
+  apprenantRecon2: 'apprenant-recon-2@forges.ci',
+  apprenantRecon3: 'apprenant-recon-3@forges.ci',
+  apprenantRecon4: 'apprenant-recon-4@forges.ci',
+  apprenantRecon5: 'apprenant-recon-5@forges.ci',
+  apprenantNgser1: 'apprenant-ngser-1@forges.ci',
+  apprenantMontantMismatch: 'apprenant-montant-mismatch@forges.ci',
+  apprenantBeneficiaireOrg: 'apprenant-beneficiaire-org@forges.ci',
   organisation: 'org@forges.ci',
   partenaire: 'partenaire-e2e@forges.ci',
   partenaireInvite: 'partenaire-invite-e2e@forges.ci',
   partenairePending: 'partenaire-pending-e2e@forges.ci',
   apporteur: 'apporteur-e2e@forges.ci',
+  apporteurSuspendu: 'apporteur-susp-e2e@forges.ci',
 };
 
 const CODES = {
   voucher: 'ORG-E2E-VOUCHER-01',
   expiredVoucher: 'ORG-E2E-VOUCHER-EXPIRE',
   apporteur: 'APT-E2E-RM145-001',
+  apporteurSuspendu: 'APT-E2E-SUSP-001',
 };
 
 function daysFromNow(days: number) {
@@ -106,8 +162,30 @@ async function cleanupScenarioData() {
     IDS.apprenantPremiumB2b,
     IDS.apprenantDossier,
     IDS.apprenantAuth,
+    IDS.apprenantVoucher,
+    IDS.apprenantRetail,
     IDS.apprenantGris,
     IDS.apprenantException,
+    IDS.apprenantAboNgserOk,
+    IDS.apprenantAboNgserKo,
+    IDS.apprenantAboNgserCycle1,
+    IDS.apprenantAboNgserCycle2,
+    IDS.apprenantAboNgserCycle3,
+    IDS.apprenantAboNgserCycle4,
+    IDS.apprenantAboNgserCycle5,
+    IDS.apprenantIdempotence1,
+    IDS.apprenantIdempotence2,
+    IDS.apprenantMismatch1,
+    IDS.apprenantMismatch2,
+    IDS.apprenantMismatch3,
+    IDS.apprenantRecon1,
+    IDS.apprenantRecon2,
+    IDS.apprenantRecon3,
+    IDS.apprenantRecon4,
+    IDS.apprenantRecon5,
+    IDS.apprenantNgser1,
+    IDS.apprenantMontantMismatch,
+    IDS.apprenantBeneficiaireOrg,
     IDS.apporteur,
   ];
   const formationIds = [
@@ -130,7 +208,11 @@ async function cleanupScenarioData() {
     IDS.sessionEnCours,
     IDS.sessionCloturee,
     IDS.sessionArchivable,
+    IDS.sessionNgserReconciliationFresh,
+    IDS.sessionNgserReconciliationSolo,
   ];
+  const commissionDossierIds = Array.from({ length: 3 }, (_, index) => `D-E2E-COMM-${index + 1}`);
+  const commissionPaiementIds = Array.from({ length: 3 }, (_, index) => `P-E2E-COMM-${index + 1}`);
   const transientDossierIds = (await prisma.dossier.findMany({
     where: {
       OR: [
@@ -146,6 +228,7 @@ async function cleanupScenarioData() {
       OR: [
         { apporteur_id: IDS.apporteur },
         { dossier_id: { in: Object.values(IDS).filter((id) => id.startsWith('D-E2E-')) } },
+        { dossier_id: { in: commissionDossierIds } },
         { dossier_id: { in: transientDossierIds } },
         { paiement: { dossier: { apprenant_id: { in: apprenantIds } } } },
         { paiement: { dossier: { apprenant_id: { startsWith: 'app-rm' } } } },
@@ -174,9 +257,12 @@ async function cleanupScenarioData() {
     where: {
       OR: [
         { id: { in: [IDS.paiementPaye, IDS.paiementExpire] } },
+        { id: { in: commissionPaiementIds } },
         { dossier_id: { in: Object.values(IDS).filter((id) => id.startsWith('D-E2E-')) } },
+        { dossier_id: { in: commissionDossierIds } },
         { dossier: { apprenant_id: { in: apprenantIds } } },
         { dossier: { apprenant_id: { startsWith: 'app-rm' } } },
+        { dossier: { apprenant: { email: { contains: 'forges.test' } } } },
       ],
     },
   });
@@ -184,6 +270,7 @@ async function cleanupScenarioData() {
     where: {
       OR: [
         { id: { in: Object.values(IDS).filter((id) => id.startsWith('D-E2E-')) } },
+        { id: { in: commissionDossierIds } },
         { apprenant_id: { in: apprenantIds } },
         { apprenant_id: { startsWith: 'app-rm' } },
         { session_id: { in: sessionIds } },
@@ -214,6 +301,13 @@ async function cleanupScenarioData() {
       ],
     },
   });
+  await prisma.voucherOrganisation.deleteMany({
+    where: {
+      OR: [
+        { code: { startsWith: 'ORG-VOUCHER-' } },
+      ],
+    },
+  });
   await prisma.session.deleteMany({
     where: {
       OR: [
@@ -232,6 +326,16 @@ async function cleanupScenarioData() {
       ],
     },
   });
+  await prisma.devis.deleteMany({
+    where: {
+      OR: [
+        { formation_id: { in: formationIds } },
+        { formation_id: { startsWith: 'F-RM' } },
+        { organisation_id: IDS.organisation },
+        { organisation: { email: { contains: 'e2e-ucs' } } },
+      ],
+    },
+  });
   await prisma.formation.deleteMany({
     where: {
       OR: [
@@ -242,15 +346,27 @@ async function cleanupScenarioData() {
     },
   });
   await prisma.abonnementRetail.deleteMany({
-    where: { OR: [{ apprenant_id: { in: apprenantIds } }, { apprenant_id: { startsWith: 'app-rm' } }] },
+    where: {
+      OR: [
+        { apprenant_id: { in: apprenantIds } },
+        { apprenant_id: { startsWith: 'app-rm' } },
+        { apprenant: { email: { contains: 'e2e-ucs' } } },
+      ],
+    },
   });
-  await prisma.abonnementB2B.deleteMany({ where: { organisation_id: IDS.organisation } });
-  await prisma.abonnementOrganisation.deleteMany({ where: { organisation_id: IDS.organisation } });
-  await prisma.apprenant.deleteMany({ where: { OR: [{ id: { in: apprenantIds } }, { id: { startsWith: 'app-rm' } }] } });
-  await prisma.organisation.deleteMany({ where: { id: IDS.organisation } });
-  await prisma.apporteur.deleteMany({ where: { id: IDS.apporteur } });
+  await prisma.abonnementB2B.deleteMany({
+    where: { OR: [{ organisation_id: IDS.organisation }, { organisation: { email: { contains: 'e2e-ucs' } } }] },
+  });
+  await prisma.abonnementOrganisation.deleteMany({
+    where: { OR: [{ organisation_id: IDS.organisation }, { organisation: { email: { contains: 'e2e-ucs' } } }] },
+  });
+  await prisma.apprenant.deleteMany({
+    where: { OR: [{ id: { in: apprenantIds } }, { id: { startsWith: 'app-rm' } }, { email: { contains: 'e2e-ucs' } }] },
+  });
+  await prisma.organisation.deleteMany({ where: { OR: [{ id: IDS.organisation }, { email: { contains: 'e2e-ucs' } }] } });
+  await prisma.apporteur.deleteMany({ where: { OR: [{ id: { in: [IDS.apporteur, IDS.apporteurSuspendu] } }, { email: { contains: 'e2e-ucs' } }] } });
   await prisma.partenaire.deleteMany({
-    where: { id: { in: partenaireIds } },
+    where: { OR: [{ id: { in: partenaireIds } }, { email_principal: { contains: 'e2e-ucs' } }] },
   });
 }
 
@@ -261,27 +377,46 @@ async function createApprenant(
   role = 'APPRENANT',
   extra: Record<string, unknown> = {},
 ) {
-  return prisma.apprenant.create({
-    data: {
-      id,
-      email,
-      password_hash: passwordHash,
-      nom: role === 'APPRENANT' ? 'E2E' : role,
-      prenoms: id,
-      role: role as any,
-      type_apprenant: role === 'APPRENANT' ? 'APPRENANT' : 'PROFESSIONNEL',
-      niveau_etude: role === 'APPRENANT' ? 'Licence / Bac+3' : null,
-      secteur_activite: role === 'APPRENANT' ? null : 'Administration',
-      pays_residence: 'CI',
-      pays_nationalite: 'CI',
-      langue_preferee: 'FR',
-      statut: 'ACTIF',
-      consentement_rgpd: true,
-      consentement_timestamp: new Date(),
-      consentement_version_cgu: '1.0',
-      ...extra,
-    },
+  const data = {
+    id,
+    email,
+    password_hash: passwordHash,
+    nom: role === 'APPRENANT' ? 'E2E' : role,
+    prenoms: id,
+    role: role as any,
+    type_apprenant: role === 'APPRENANT' ? 'APPRENANT' : 'PROFESSIONNEL',
+    niveau_etude: role === 'APPRENANT' ? 'Licence / Bac+3' : null,
+    secteur_activite: role === 'APPRENANT' ? null : 'Administration',
+    pays_residence: 'CI',
+    pays_nationalite: 'CI',
+    langue_preferee: 'FR',
+    statut: 'ACTIF',
+    consentement_rgpd: true,
+    consentement_timestamp: new Date(),
+    consentement_version_cgu: '1.0',
+    ...extra,
+  };
+  const existingById = await prisma.apprenant.findUnique({
+    where: { id },
+    select: { id: true },
   });
+  if (existingById) {
+    return prisma.apprenant.update({
+      where: { id: existingById.id },
+      data,
+    });
+  }
+  const existingByEmail = await prisma.apprenant.findFirst({
+    where: { email },
+    select: { id: true },
+  });
+  if (existingByEmail) {
+    return prisma.apprenant.update({
+      where: { id: existingByEmail.id },
+      data,
+    });
+  }
+  return prisma.apprenant.create({ data });
 }
 
 async function createFormation(data: {
@@ -295,46 +430,52 @@ async function createFormation(data: {
   partenaire_id?: string | null;
   prix_coutant?: number | null;
 }) {
-  return prisma.formation.create({
-    data: {
-      id: data.id,
-      intitule: data.intitule,
-      description_courte: `${data.intitule} - fixture E2E`,
-      description_longue: `${data.intitule} utilisée pour la vague 2 E2E.`,
-      duree_jours: 5,
-      cout_catalogue: data.cout_catalogue,
-      responsable_id: IDS.responsable,
-      type_formation: data.type_formation,
-      mode_formation: data.mode_formation,
-      statut: 'ACTIVE',
-      inclus_abonnement: data.inclus_abonnement ?? false,
-      pilier_abonnement: data.pilier_abonnement ?? null,
-      duree_acces_jours: 365,
-      prix_coutant: data.prix_coutant ?? null,
-      prerequis: 'Aucun prerequis',
-      objectifs_pedagogiques: ['Valider le parcours E2E'],
-      certification_delivree: true,
-      public_cible: 'Apprenants',
-      langues_disponibles: ['FR'],
-      partenaire_id: data.partenaire_id ?? null,
-    },
+  const payload = {
+    id: data.id,
+    intitule: data.intitule,
+    description_courte: `${data.intitule} - fixture E2E`,
+    description_longue: `${data.intitule} utilisée pour la vague 2 E2E.`,
+    duree_jours: 5,
+    cout_catalogue: data.cout_catalogue,
+    responsable_id: IDS.responsable,
+    type_formation: data.type_formation,
+    mode_formation: data.mode_formation,
+    statut: 'ACTIVE',
+    inclus_abonnement: data.inclus_abonnement ?? false,
+    pilier_abonnement: data.pilier_abonnement ?? null,
+    duree_acces_jours: 365,
+    prix_coutant: data.prix_coutant ?? null,
+    prerequis: 'Aucun prerequis',
+    objectifs_pedagogiques: ['Valider le parcours E2E'],
+    certification_delivree: true,
+    public_cible: 'Apprenants',
+    langues_disponibles: ['FR'],
+    partenaire_id: data.partenaire_id ?? null,
+  };
+  return prisma.formation.upsert({
+    where: { id: data.id },
+    update: payload,
+    create: payload,
   });
 }
 
 async function createSession(id: string, formation_id: string, statut: string, dates: Record<string, Date>) {
-  return prisma.session.create({
-    data: {
-      id,
-      formation_id,
-      date_ouverture: dates.date_ouverture,
-      date_cloture: dates.date_cloture,
-      date_debut: dates.date_debut,
-      date_fin: dates.date_fin,
-      capacite: 20,
-      nb_inscrits: 0,
-      places_restantes: 20,
-      statut,
-    },
+  const payload = {
+    id,
+    formation_id,
+    date_ouverture: dates.date_ouverture,
+    date_cloture: dates.date_cloture,
+    date_debut: dates.date_debut,
+    date_fin: dates.date_fin,
+    capacite: 20,
+    nb_inscrits: 0,
+    places_restantes: 20,
+    statut,
+  };
+  return prisma.session.upsert({
+    where: { id },
+    update: payload,
+    create: payload,
   });
 }
 
@@ -360,6 +501,34 @@ async function main() {
     token_confirmation: 'token-e2e-auth-01',
     token_expiration: daysFromNow(1),
     statut: 'INACTIF',
+  });
+  await createApprenant(IDS.apprenantVoucher, EMAILS.apprenantVoucher, passwordHash);
+  await createApprenant(IDS.apprenantRetail, EMAILS.apprenantRetail, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserOk, EMAILS.apprenantAboNgserOk, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserKo, EMAILS.apprenantAboNgserKo, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle1, EMAILS.apprenantAboNgserCycle1, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle2, EMAILS.apprenantAboNgserCycle2, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle3, EMAILS.apprenantAboNgserCycle3, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle4, EMAILS.apprenantAboNgserCycle4, passwordHash);
+  await createApprenant(IDS.apprenantAboNgserCycle5, EMAILS.apprenantAboNgserCycle5, passwordHash);
+  // Nouveaux comptes pour tests paiement NGSER v4.9 (Phase 1)
+  await createApprenant(IDS.apprenantIdempotence1, EMAILS.apprenantIdempotence1, passwordHash);
+  await createApprenant(IDS.apprenantIdempotence2, EMAILS.apprenantIdempotence2, passwordHash);
+  await createApprenant(IDS.apprenantMismatch1, EMAILS.apprenantMismatch1, passwordHash);
+  await createApprenant(IDS.apprenantMismatch2, EMAILS.apprenantMismatch2, passwordHash);
+  await createApprenant(IDS.apprenantMismatch3, EMAILS.apprenantMismatch3, passwordHash);
+  await createApprenant(IDS.apprenantRecon1, EMAILS.apprenantRecon1, passwordHash);
+  await createApprenant(IDS.apprenantRecon2, EMAILS.apprenantRecon2, passwordHash);
+  await createApprenant(IDS.apprenantRecon3, EMAILS.apprenantRecon3, passwordHash);
+  await createApprenant(IDS.apprenantRecon4, EMAILS.apprenantRecon4, passwordHash);
+  await createApprenant(IDS.apprenantRecon5, EMAILS.apprenantRecon5, passwordHash);
+  await createApprenant(IDS.apprenantNgser1, EMAILS.apprenantNgser1, passwordHash);
+  await createApprenant(IDS.apprenantMontantMismatch, EMAILS.apprenantMontantMismatch, passwordHash);
+  // Beneficiaire org cree sans organisation_id (FK non encore existante) — rattache apres creation org
+  await createApprenant(IDS.apprenantBeneficiaireOrg, EMAILS.apprenantBeneficiaireOrg, passwordHash, 'APPRENANT', {
+    type_apprenant: 'PROFESSIONNEL',
+    nom: 'Beneficiaire',
+    prenoms: 'Org E2E',
   });
 
   await prisma.organisation.create({
@@ -415,6 +584,12 @@ async function main() {
   await prisma.organisation.update({
     where: { id: IDS.organisation },
     data: { abonnement_org_id: abonnementOrg.id },
+  });
+
+  // Rattacher le beneficiaire a l'organisation (FK cree apres l'org)
+  await prisma.apprenant.update({
+    where: { id: IDS.apprenantBeneficiaireOrg },
+    data: { organisation_id: IDS.organisation },
   });
 
   await prisma.partenaire.create({
@@ -477,6 +652,21 @@ async function main() {
     },
   });
   await createApprenant(IDS.apporteur, EMAILS.apporteur, passwordHash, 'APPORTEUR');
+
+  await prisma.apporteur.create({
+    data: {
+      id: IDS.apporteurSuspendu,
+      nom: 'Apporteur Suspendu E2E RM143',
+      type: 'INDIVIDU',
+      email: EMAILS.apporteurSuspendu,
+      password_hash: passwordHash,
+      telephone: '+2250102030406',
+      pays: 'CI',
+      code_apporteur: CODES.apporteurSuspendu,
+      taux_commission_pct: 5,
+      statut: 'SUSPENDU',
+    },
+  });
 
   await createFormation({
     id: IDS.formationStandard,
@@ -548,6 +738,10 @@ async function main() {
   await createSession(IDS.sessionPremiumB2b, IDS.formationPremiumB2b, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionPartenaire, IDS.formationPartenaire, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionDossier, IDS.formationPremiumRetail, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliation, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationIsolation, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationFresh, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
+  await createSession(IDS.sessionNgserReconciliationSolo, IDS.formationStandard, 'INSCRIPTIONS_OUVERTES', openDates);
   await createSession(IDS.sessionPlanifiee, IDS.formationStandard, 'PLANIFIEE', {
     date_ouverture: daysFromNow(-1),
     date_cloture: daysFromNow(5),
@@ -598,6 +792,17 @@ async function main() {
   await prisma.dossier.create({
     data: {
       id: IDS.dossierRetenu,
+      apprenant_id: IDS.apprenantDossier,
+      formation_id: IDS.formationPremiumRetail,
+      session_id: IDS.sessionPremiumRetail,
+      statut: 'RETENU',
+      source_financement: 'RETAIL',
+      expires_at: daysFromNow(3),
+    },
+  });
+  await prisma.dossier.create({
+    data: {
+      id: IDS.dossierRetenuUi,
       apprenant_id: IDS.apprenantDossier,
       formation_id: IDS.formationPremiumRetail,
       session_id: IDS.sessionPremiumRetail,
@@ -722,13 +927,29 @@ async function main() {
     },
   });
 
+  // VoucherOrganisation pour test UCS12 inscrire-beneficiaire
+  await prisma.voucherOrganisation.upsert({
+    where: { id: IDS.voucherOrganisationUcs12 },
+    update: { statut: 'ACTIF', quota_utilise: 0 },
+    create: {
+      id: IDS.voucherOrganisationUcs12,
+      code: 'VORG-E2E-UCS12-01',
+      organisation_id: IDS.organisation,
+      formation_id: IDS.formationStandard,
+      statut: 'ACTIF',
+      quota_max: 10,
+      quota_utilise: 0,
+      date_expiration: daysFromNow(365),
+    },
+  });
+
   await prisma.accesFormationDemande.create({
     data: {
       id: IDS.accesExpired,
       apprenant_id: IDS.apprenantDossier,
       formation_id: IDS.formationDemande,
       source_financement: 'ABONNEMENT',
-      statut: 'EXPIRE',
+      statut: 'ACTIF',
       date_activation: daysFromNow(-370),
       date_expiration: daysFromNow(-5),
       progression: 100,
@@ -741,9 +962,21 @@ async function main() {
       apprenant_id: IDS.apprenantPremiumRetail,
       offre: 'PREMIUM',
       statut: 'ACTIF',
-      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1), // Début mois dernier
-      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1), // Fin mois prochain
-      montant_mensuel: 2500000, // 25 000 XOF en centimes
+      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      montant_mensuel: 2500000,
+    },
+  });
+
+  // Abonnement Retail Basique pour app-e2e-retail-01 (test RM-140 Premium ABONNEMENT)
+  await prisma.abonnementRetail.create({
+    data: {
+      apprenant_id: IDS.apprenantRetail,
+      offre: 'PREMIUM',
+      statut: 'ACTIF',
+      date_debut: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      date_fin: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      montant_mensuel: 2500000,
     },
   });
 
@@ -756,7 +989,7 @@ async function main() {
         id: dossierId,
         apprenant_id: IDS.apprenantDossier,
         formation_id: IDS.formationStandard,
-        session_id: IDS.sessionStandard,
+        session_id: null,
         statut: 'PAYE',
         source_financement: 'RETAIL',
         code_apporteur: CODES.apporteur,
@@ -777,6 +1010,10 @@ async function main() {
         created_at: previousMonth,
       },
     });
+    const paiementComm = await prisma.paiement.findUnique({ where: { id: paiementId } });
+    if (!paiementComm) {
+      continue;
+    }
     await prisma.commissionApporteur.create({
       data: {
         id: `C-E2E-COMM-${index}`,

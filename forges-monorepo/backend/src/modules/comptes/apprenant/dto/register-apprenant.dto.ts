@@ -20,6 +20,8 @@ export const RegisterApprenantSchema = z.object({
   pays_nationalite: z.string().length(2, 'Code ISO 3166-1 requis (2 lettres)'),
   // RM-98 : langue préférée
   langue_preferee: z.enum(['FR', 'EN', 'ES', 'PT']).default('FR'),
+  // Liaison optionnelle à une organisation existante
+  organisation_id: z.string().uuid().optional(),
   // RM-33 : consentement RGPD obligatoire
   consentement_rgpd: z.literal(true, {
     errorMap: () => ({ message: 'Le consentement RGPD est obligatoire' })

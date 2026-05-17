@@ -32,7 +32,16 @@ function getStatutBadge(statut) {
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('fr-FR');
+  return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function getCapacityStats(capacity, registeredCount) {
+  const capacityValue = Number(capacity || 0);
+  const registeredValue = Number(registeredCount || 0);
+  const remaining = Math.max(0, capacityValue - registeredValue);
+  const occupancy = capacityValue > 0 ? Math.round((registeredValue / capacityValue) * 100) : 0;
+
+  return { capacityValue, registeredValue, remaining, occupancy };
 }
 
 export default function SessionsList() {
@@ -85,6 +94,8 @@ export default function SessionsList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  const totalSessions = Math.max(Number(meta.total || 0), sessions.length);
+
   const columns = [
     {
       key: 'formation',
@@ -106,11 +117,15 @@ export default function SessionsList() {
       key: 'dates',
       label: 'Dates',
       render: (_, session) => (
-        <div className="text-xs">
-          <div>Ouverture: {formatDate(session.date_ouverture)}</div>
-          <div>Clôture: {formatDate(session.date_cloture)}</div>
-          <div>Début: {formatDate(session.date_debut)}</div>
-          <div>Fin: {formatDate(session.date_fin)}</div>
+        <div className="space-y-1 text-sm">
+          <div>
+            <span className="font-medium text-primary">
+              {formatDate(session.date_debut)} — {formatDate(session.date_fin)}
+            </span>
+          </div>
+          <div className="text-xs text-subtext">
+            Inscriptions : {formatDate(session.date_ouverture)} au {formatDate(session.date_cloture)}
+          </div>
         </div>
       ),
     },
@@ -118,16 +133,18 @@ export default function SessionsList() {
       key: 'capacite',
       label: 'Capacité',
       render: (value, session) => {
-        const count = session._count?.dossiers || 0;
-        const occupancy = value ? Math.round((count / value) * 100) : 0;
+        const { registeredValue: count, remaining: restantes, occupancy } = getCapacityStats(
+          value,
+          session._count?.dossiers || 0
+        );
 
         return (
           <div>
             <div className="text-sm">
-              {count} / {value}
+              {count} / {value} inscrits
             </div>
             <div className="text-xs text-subtext">
-              {occupancy}% rempli
+              {restantes} place{restantes === 1 ? '' : 's'} restante{restantes === 1 ? '' : 's'} — {occupancy}% rempli
             </div>
           </div>
         );
@@ -150,15 +167,13 @@ export default function SessionsList() {
           >
             Voir
           </Button>
-          {session.statut === 'BROUILLON' && (
-            <Button
-              variant="outline"
-              size="small"
-              onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}
-            >
-              Modifier
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="small"
+            onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}
+          >
+            Modifier
+          </Button>
         </div>
       ),
     },
@@ -234,7 +249,7 @@ export default function SessionsList() {
 
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold text-primary">
-            {meta.total} session{meta.total > 1 ? 's' : ''}
+            {totalSessions} session{totalSessions > 1 ? 's' : ''}
           </h3>
         </div>
 

@@ -1,12 +1,23 @@
 const crypto = require('crypto');
+const path = require('path');
 const request = require('supertest');
 const { hash } = require('bcrypt');
-const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
-const API_URL = process.env.API_URL || 'http://127.0.0.1:3000';
+require('ts-node/register/transpile-only');
+const { prisma } = require('../../src/shared/prisma/prisma.client');
+
+const backendRoot = path.resolve(__dirname, '..', '..');
+// Restrict connection pool so all test suites share a single connection.
+if (process.env.DATABASE_URL) {
+  const databaseUrl = new URL(process.env.DATABASE_URL);
+  databaseUrl.searchParams.set('connection_limit', '1');
+  process.env.DATABASE_URL = databaseUrl.toString();
+}
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'dev-secret';
 const PASSWORD = 'Test@FORGES2026!';
+
+const app = require('../../src/app').default;
+const API_URL = app;
 
 const accounts = {
   admin: { email: 'admin@forges.ci', password: PASSWORD },
@@ -103,25 +114,35 @@ async function createApprenantAccount(prefix = 'rm') {
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const id = `app-${prefix}-${suffix}`;
   const email = `${prefix}-${suffix}@forges.test`;
-  await prisma.apprenant.create({
-    data: {
-      id,
-      email,
-      password_hash: await hash(PASSWORD, 12),
-      nom: 'RM',
-      prenoms: 'Test',
-      role: 'APPRENANT',
-      statut: 'ACTIF',
-      type_apprenant: 'APPRENANT',
-      niveau_etude: 'LICENCE',
-      pays_residence: 'CI',
-      pays_nationalite: 'CI',
-      langue_preferee: 'FR',
-      consentement_rgpd: true,
-      consentement_timestamp: new Date(),
-      consentement_version_cgu: '1.0',
-    },
+  const existing = await prisma.apprenant.findFirst({
+    where: { OR: [{ id }, { email }] },
+    select: { id: true },
   });
+  const payload = {
+    id,
+    email,
+    password_hash: await hash(PASSWORD, 12),
+    nom: 'RM',
+    prenoms: 'Test',
+    role: 'APPRENANT',
+    statut: 'ACTIF',
+    type_apprenant: 'APPRENANT',
+    niveau_etude: 'LICENCE',
+    pays_residence: 'CI',
+    pays_nationalite: 'CI',
+    langue_preferee: 'FR',
+    consentement_rgpd: true,
+    consentement_timestamp: new Date(),
+    consentement_version_cgu: '1.0',
+  };
+  if (existing) {
+    await prisma.apprenant.update({
+      where: { id: existing.id },
+      data: payload,
+    });
+  } else {
+    await prisma.apprenant.create({ data: payload });
+  }
   createdApprenantIds.push(id);
   return { id, email, password: PASSWORD };
 }
@@ -130,22 +151,32 @@ async function createOrganisationAccount(prefix = 'rmorg') {
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const id = `org-${prefix}-${suffix}`;
   const email = `${prefix}-${suffix}@forges.test`;
-  await prisma.organisation.create({
-    data: {
-      id,
-      raison_sociale: `Organisation ${prefix}`,
-      email,
-      password_hash: await hash(PASSWORD, 12),
-      type: 'ENTREPRISE',
-      sous_types: ['FORMATION'],
-      identifiant_legal: `LEGAL-${suffix}`,
-      contact_referent: 'Contact RH',
-      pays: 'CI',
-      langue_preferee: 'FR',
-      statut: 'ACTIF',
-      date_fin_essai: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    },
+  const existing = await prisma.organisation.findFirst({
+    where: { OR: [{ id }, { email }] },
+    select: { id: true },
   });
+  const payload = {
+    id,
+    raison_sociale: `Organisation ${prefix}`,
+    email,
+    password_hash: await hash(PASSWORD, 12),
+    type: 'ENTREPRISE',
+    sous_types: ['FORMATION'],
+    identifiant_legal: `LEGAL-${suffix}`,
+    contact_referent: 'Contact RH',
+    pays: 'CI',
+    langue_preferee: 'FR',
+    statut: 'ACTIF',
+    date_fin_essai: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  };
+  if (existing) {
+    await prisma.organisation.update({
+      where: { id: existing.id },
+      data: payload,
+    });
+  } else {
+    await prisma.organisation.create({ data: payload });
+  }
   createdOrganisationIds.push(id);
   return { id, email, password: PASSWORD };
 }

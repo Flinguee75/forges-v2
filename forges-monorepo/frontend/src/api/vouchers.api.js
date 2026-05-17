@@ -49,16 +49,22 @@ export const vouchersApi = {
     return normalizeVoucher(unwrapPayload(response));
   },
 
+  getUtilisateurs: async (id) => {
+    const response = await apiClient.get(`/vouchers/${id}/utilisateurs`);
+    return unwrapPayload(response);
+  },
+
   getByCode: async (code) => {
     const response = await apiClient.get(`/vouchers/code/${code}`);
     return normalizeVoucher(unwrapPayload(response));
   },
 
   createOrganisation: async (data) => {
+    const valeurCentimes = data.type_valeur === 'MONTANT' ? Number(data.valeur) * 100 : Number(data.valeur);
     const response = await apiClient.post('/vouchers/organisation', {
       formation_id: data.formation_id,
-      organisation_id: data.organisation_id,
-      valeur: Number(data.valeur),
+      devis_id: data.devis_id || undefined,
+      valeur: valeurCentimes,
       type_valeur: data.type_valeur,
       quota_max: Number(data.quota_max),
       date_expiration: data.date_expiration,
@@ -67,9 +73,10 @@ export const vouchersApi = {
   },
 
   createPromotionnel: async (data) => {
+    const valeurCentimes = data.type_valeur === 'MONTANT' ? Number(data.valeur) * 100 : Number(data.valeur);
     const response = await apiClient.post('/vouchers/promotionnel', {
       formation_id: data.formation_id,
-      valeur: Number(data.valeur),
+      valeur: valeurCentimes,
       type_valeur: data.type_valeur,
       quota_max: Number(data.quota_max),
       date_expiration: data.date_expiration,
@@ -92,6 +99,15 @@ export const vouchersApi = {
       params: cleanQueryParams(params),
     });
     return unwrapPayload(response);
+  },
+
+  update: async (id, data) => {
+    const response = await apiClient.patch(`/vouchers/${id}`, data);
+    return normalizeVoucher(unwrapPayload(response));
+  },
+
+  delete: async (id) => {
+    return apiClient.delete(`/vouchers/${id}`);
   },
 };
 

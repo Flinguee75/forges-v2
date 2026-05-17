@@ -162,7 +162,8 @@ describe('EmailService', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       sendMail.mockRejectedValue(error);
 
-      await expect(service.sendEmail({ to: 'user@test.ci', subject: 'Sujet' })).rejects.toThrow('SMTP_DOWN');
+      await expect(service.sendEmail({ to: 'user@test.ci', subject: 'Sujet' })).resolves.toBeUndefined();
+      expect(consoleSpy).toHaveBeenCalledWith('Email send error (non-bloquant):', 'SMTP_DOWN');
 
       consoleSpy.mockRestore();
     });
@@ -212,7 +213,7 @@ describe('EmailService', () => {
     it('sendTempPassword délègue correctement', async () => {
       await service.sendTempPassword('a@test.ci', 'Temp1234!', 'FR');
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        subject: 'Mot de passe temporaire FORGES',
+        subject: 'Bienvenue sur FORGES — Vos identifiants de connexion (compte Apprenant)',
       }));
     });
 
@@ -226,7 +227,18 @@ describe('EmailService', () => {
     it('sendCodeApporteur délègue correctement', async () => {
       await service.sendCodeApporteur('a@test.ci', 'code', 'FR');
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
-        subject: 'Votre code apporteur FORGES',
+        subject: 'Bienvenue sur FORGES — Votre compte Apporteur est activé',
+      }));
+    });
+
+    it('sendVouchersOrganisation envoie un message simple et pro', async () => {
+      await service.sendVouchersOrganisation('org@test.ci', ['V-1', 'V-2'], 'Formation 1', 'Org Test');
+      expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
+        subject: 'Vos vouchers organisation FORGES',
+        text: expect.stringContaining('Suite au paiement de votre devis, vos vouchers pour l\'organisation Org Test sont prêts.'),
+      }));
+      expect(sendMail).not.toHaveBeenCalledWith(expect.objectContaining({
+        text: expect.stringContaining('Langue du message'),
       }));
     });
 
@@ -235,6 +247,26 @@ describe('EmailService', () => {
       expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
         subject: 'Réinitialisation de mot de passe FORGES',
         text: expect.stringContaining('/reset-password/reset-token'),
+      }));
+    });
+
+    it('sendEnrolementConfirmationApprenant envoie le format confirmation standard', async () => {
+      await service.sendEnrolementConfirmationApprenant({
+        to: 'a@test.ci',
+        prenoms: 'Red',
+        nom: 'Foo',
+        organisation: 'FORGES',
+        formation: 'Masterclass GWU/CCDL (1er-11 juin 2026)',
+        session: {
+          date_debut: new Date('2026-06-01T00:00:00.000Z'),
+          date_fin: new Date('2026-06-11T00:00:00.000Z'),
+          lieu: 'AIGF, Abidjan',
+        },
+      });
+
+      expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
+        subject: expect.stringContaining('Masterclass GWU/CCDL'),
+        html: expect.stringContaining('Masterclass GWU/CCDL'),
       }));
     });
   });

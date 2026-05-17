@@ -1,52 +1,43 @@
 /**
  * Utilitaires de formatage des montants monétaires
  *
- * Convention: Tous les montants en base de données sont stockés en CENTIMES XOF
- * 1 XOF = 100 centimes
- * Exemple: 2000000 centimes = 20 000 XOF
+ * Convention FORGES : tous les montants sont stockés en centimes en base de données.
+ * Exemple : 200000000 centimes = 2 000 000 FCFA
  */
 
 /**
- * Formate un montant en centimes vers XOF avec séparateurs de milliers
- * @param {number} centimes - Montant en centimes
- * @returns {string} Montant formaté (ex: "20 000 FCFA")
+ * Formate un montant en centimes vers FCFA lisible.
+ * @param {number} montantCentimes - Montant en centimes
+ * @returns {string} Montant formaté (ex: "2 000 000 FCFA")
  */
-export function formatCurrency(centimes) {
-  if (centimes === null || centimes === undefined) {
+export function formatCurrency(montantCentimes) {
+  if (montantCentimes === null || montantCentimes === undefined) {
     return '0 FCFA';
   }
 
-  const montantXOF = Math.round(Number(centimes) / 100);
-  return `${montantXOF.toLocaleString('fr-FR')} FCFA`;
+  const xof = Math.round(Number(montantCentimes) / 100);
+  return `${xof.toLocaleString('fr-FR')} FCFA`;
 }
 
 /**
- * Formate un montant en centimes vers XOF avec le format currency standard
- * @param {number} centimes - Montant en centimes
- * @returns {string} Montant formaté avec symbole de devise (ex: "20 000 XOF")
+ * Formate un montant en centimes avec le format currency standard Intl.
+ * @param {number} montantCentimes - Montant en centimes
+ * @returns {string} Montant formaté avec symbole de devise
  */
-export function formatCurrencyStandard(centimes) {
-  if (centimes === null || centimes === undefined) {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'XOF',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(0);
-  }
+export function formatCurrencyStandard(montantCentimes) {
+  const xof = Math.round(Number(montantCentimes || 0) / 100);
 
-  const montantXOF = Math.round(Number(centimes) / 100);
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'XOF',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(montantXOF);
+  }).format(xof);
 }
 
 /**
- * Convertit des centimes en XOF (nombre)
- * @param {number} centimes - Montant en centimes
+ * Convertit des centimes en XOF (divise par 100).
+ * @param {number} centimes
  * @returns {number} Montant en XOF
  */
 export function centimesToXOF(centimes) {
@@ -54,8 +45,8 @@ export function centimesToXOF(centimes) {
 }
 
 /**
- * Convertit des XOF en centimes (nombre)
- * @param {number} xof - Montant en XOF
+ * Convertit des XOF en centimes (multiplie par 100).
+ * @param {number} xof
  * @returns {number} Montant en centimes
  */
 export function xofToCentimes(xof) {
