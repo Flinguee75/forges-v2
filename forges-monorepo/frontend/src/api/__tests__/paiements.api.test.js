@@ -44,13 +44,27 @@ describe('paiementsApi', () => {
     });
   });
 
-  it('récupère un détail backoffice depuis la liste backoffice', async () => {
-    apiClient.get.mockResolvedValue([{ id: 'pay-1' }, { id: 'pay-2' }]);
+  it('récupère un détail backoffice depuis l endpoint dédié', async () => {
+    apiClient.get.mockResolvedValue({ data: { id: 'pay-2' } });
 
     const result = await paiementsApi.getBackofficeById('pay-2');
 
-    expect(apiClient.get).toHaveBeenCalledWith('/backoffice/paiements');
+    expect(apiClient.get).toHaveBeenCalledWith('/backoffice/paiements/pay-2');
     expect(result).toEqual({ id: 'pay-2' });
+  });
+
+  it('retrouve un paiement apprenant par reference provider', async () => {
+    apiClient.get.mockResolvedValue({
+      data: [
+        { id: 'pay-1', order_ngser: 'FRG-FNO-001' },
+        { id: 'pay-2', transaction_id: 'TX-002' },
+      ],
+    });
+
+    const result = await paiementsApi.getByReference('FRG-FNO-001');
+
+    expect(apiClient.get).toHaveBeenCalledWith('/paiements');
+    expect(result).toEqual({ id: 'pay-1', order_ngser: 'FRG-FNO-001' });
   });
 
   it('supprime un paiement admin avec motif optionnel', async () => {

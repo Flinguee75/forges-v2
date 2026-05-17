@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CommissionService } from './commission.service';
 import { FineoClient } from './fineo.client';
-import { PaiementRecuService } from './paiement-recu.service';
+import { PaiementReglementService } from './paiement-reglement.service';
 
 export interface FineoCbPayload {
   reference: string;        // référence transaction FineoPay
@@ -23,14 +23,14 @@ export interface IpnFineoResult {
 
 export class IpnFineoService {
   private _fineoClient: FineoClient | null = null;
-  private recuService: PaiementRecuService;
+  private readonly reglementService: PaiementReglementService;
 
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
     private readonly commissionService: CommissionService
   ) {
-    this.recuService = new PaiementRecuService(prisma, audit);
+    this.reglementService = new PaiementReglementService(prisma, audit, commissionService);
   }
 
   private get fineoClient(): FineoClient {
@@ -346,33 +346,12 @@ export class IpnFineoService {
   }
 
   private async traiterSuccess(paiement: any, reference: string, transaction: any): Promise<IpnFineoResult> {
-    let commissionsCreated = false;
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.paiement.update({
-        where: { id: paiement.id },
-        data: {
-          statut: 'CONFIRME',
-          status_ngser: 'SUCCESS',
-          transaction_id: reference,
-          wallet_ngser: transaction.canal,
-          ngser_payload_last: transaction,
-          confirmed_at: new Date(),
-        },
-      });
-
-      await tx.dossier.update({
-        where: { id: paiement.dossier_id },
-        data: { statut: 'PAYE' },
-      });
-
-      const commissions = await this.commissionService.creerCommissionsApresSuccessPayment(
-        paiement,
-        paiement.dossier,
-        paiement.dossier.formation,
-        tx
-      );
-      commissionsCreated = !!(commissions.partenaire || commissions.apporteur);
+    const result = await this.reglementService.confirmerProvider({
+      paiement,
+      transactionId: reference,
+      providerStatus: 'SUCCESS',
+      wallet: transaction.canal,
+      payload: transaction,
     });
 
     await this.audit.info('FINEO_CB_SUCCESS_TRAITE', {
@@ -381,10 +360,7 @@ export class IpnFineoService {
       dossier_id: paiement.dossier_id,
     });
 
-    // Envoi recu PDF non-bloquant
-    this.recuService.genererEtEnvoyerRecu(paiement.dossier_id).catch(() => {});
-
-    return { paiement_statut: 'CONFIRME', dossier_statut: 'PAYE', commissions_created: commissionsCreated };
+    return result;
   }
 
   private async traiterFail(paiement: any, reference: string, transaction: any): Promise<IpnFineoResult> {
@@ -394,24 +370,13 @@ export class IpnFineoService {
     const epuise = nouvellesTentatives >= MAX_TENTATIVES;
     const annulerDossier = epuise || expire;
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.paiement.update({
-        where: { id: paiement.id },
-        data: {
-          statut: 'ECHOUE',
-          status_ngser: 'FAIL',
-          transaction_id: reference,
-          ngser_payload_last: transaction,
-          tentatives: nouvellesTentatives,
-        },
-      });
-
-      if (annulerDossier) {
-        await tx.dossier.update({
-          where: { id: paiement.dossier_id },
-          data: { statut: 'ANNULE' },
-        });
-      }
+    const result = await this.reglementService.echouerProvider({
+      paiement,
+      transactionId: reference,
+      providerStatus: 'FAIL',
+      payload: transaction,
+      tentatives: nouvellesTentatives,
+      annulerDossier,
     });
 
     await this.audit.info('FINEO_CB_FAIL_TRAITE', {
@@ -421,7 +386,6 @@ export class IpnFineoService {
       dossier_annule: annulerDossier,
     });
 
-    const dossierStatut = annulerDossier ? 'ANNULE' : paiement.dossier?.statut;
-    return { paiement_statut: 'ECHOUE', dossier_statut: dossierStatut };
+    return result;
   }
 }

@@ -38,6 +38,13 @@ export class PaiementController {
       if (error.message === 'DOSSIER_STATUT_INVALIDE') {
         return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE', message: 'Le dossier doit être RETENU ou PAYE_DIRECTEMENT' });
       }
+      if (error.message === 'MONTANT_FINEO_MINIMUM') {
+        return res.status(422).json({
+          statusCode: 422,
+          error: 'MONTANT_FINEO_MINIMUM',
+          message: 'Le montant restant à payer est inférieur au minimum FineoPay de 100 FCFA.',
+        });
+      }
       next(error);
     }
   }
@@ -373,6 +380,13 @@ export class PaiementController {
       }
       if (error.message === 'DOSSIER_STATUT_INVALIDE') {
         return res.status(400).json({ statusCode: 400, error: 'DOSSIER_STATUT_INVALIDE' });
+      }
+      if (error.message === 'MONTANT_FINEO_MINIMUM') {
+        return res.status(422).json({
+          statusCode: 422,
+          error: 'MONTANT_FINEO_MINIMUM',
+          message: 'Le montant restant à payer est inférieur au minimum FineoPay de 100 FCFA.',
+        });
       }
       next(error);
     }

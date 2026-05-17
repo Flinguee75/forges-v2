@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { CommissionService } from './commission.service';
-import { PaiementRecuService } from './paiement-recu.service';
+import { PaiementReglementService } from './paiement-reglement.service';
 
 export interface IpnPayload {
   // Champs réels NGSER (doc officielle)
@@ -33,7 +33,7 @@ export interface IpnResult {
 }
 
 export class IpnNgserService {
-  private recuService: PaiementRecuService;
+  private reglementService: PaiementReglementService;
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -42,7 +42,7 @@ export class IpnNgserService {
   ) {
     this.audit = audit || new AuditLogger(prisma);
     this.commissionService = commissionService || new CommissionService(prisma, this.audit);
-    this.recuService = new PaiementRecuService(prisma, this.audit);
+    this.reglementService = new PaiementReglementService(prisma, this.audit, this.commissionService);
   }
 
   async traiterIpn(ipn: IpnPayload): Promise<IpnResult> {
@@ -169,60 +169,16 @@ export class IpnNgserService {
   }
 
   private async traiterSuccess(paiement: any, ipn: IpnPayload): Promise<IpnResult> {
-    let commissionsCreated = false;
-    let commissions: { partenaire?: any; apporteur?: any } = {};
-    let raceDetected = false;
-
-    await this.prisma.$transaction(async (tx) => {
-      const result = await tx.paiement.updateMany({
-        where: { id: paiement.id, statut: { not: 'CONFIRME' } },
-        data: {
-          statut: 'CONFIRME',
-          status_ngser: 'SUCCESS',
-          code_ngser: ipn.status_id !== undefined ? String(ipn.status_id) : (ipn.code_ngser ? String(ipn.code_ngser) : null),
-          wallet_ngser: ipn.wallet || ipn.wallet_ngser,
-          ngser_payload_last: ipn as any,
-          transaction_id: ipn.transaction_id,
-          confirmed_at: new Date(),
-        },
-      });
-
-      if (result.count === 0) {
-        raceDetected = true;
-        await this.audit.info('IPN_DOUBLON_RACE', {
-          paiement_id: paiement.id,
-          transaction_id: ipn.transaction_id,
-        });
-        return;
-      }
-
-      await tx.dossier.update({
-        where: { id: paiement.dossier_id },
-        data: { statut: 'PAYE' },
-      });
-
-      commissions = await this.commissionService.creerCommissionsApresSuccessPayment(
-        paiement,
-        paiement.dossier,
-        paiement.dossier.formation,
-        tx
-      );
+    const result = await this.reglementService.confirmerProvider({
+      paiement,
+      transactionId: ipn.transaction_id,
+      providerStatus: 'SUCCESS',
+      providerCode: ipn.status_id !== undefined ? String(ipn.status_id) : (ipn.code_ngser ? String(ipn.code_ngser) : null),
+      wallet: ipn.wallet || ipn.wallet_ngser,
+      payload: ipn,
     });
 
-    if (raceDetected) {
-      return { already_processed: true, action: 'NONE' };
-    }
-
-    commissionsCreated = !!(commissions.partenaire || commissions.apporteur);
-
-    if (commissions.partenaire) {
-      await this.audit.info('COMMISSION_PARTENAIRE_CREEE', {
-        commission_id: commissions.partenaire.id,
-        paiement_id: paiement.id,
-        partenaire_id: paiement.dossier?.formation?.partenaire_id,
-        montant_reverse: commissions.partenaire.montant_reverse,
-      }).catch(() => {});
-    }
+    if (result.already_processed) return result;
 
     await this.audit.info('IPN_SUCCESS_TRAITE', {
       paiement_id: paiement.id,
@@ -230,33 +186,18 @@ export class IpnNgserService {
       dossier_id: paiement.dossier_id,
     });
 
-    this.recuService.genererEtEnvoyerRecu(paiement.dossier_id).catch(() => {});
-
-    return {
-      paiement_statut: 'CONFIRME',
-      dossier_statut: 'PAYE',
-      commissions_created: commissionsCreated,
-    };
+    return result;
   }
 
   private async traiterFail(paiement: any, ipn: IpnPayload): Promise<IpnResult> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.paiement.update({
-        where: { id: paiement.id },
-        data: {
-          statut: 'ECHOUE',
-          status_ngser: 'FAIL',
-          code_ngser: ipn.status_id !== undefined ? String(ipn.status_id) : (ipn.code_ngser ? String(ipn.code_ngser) : null),
-          wallet_ngser: ipn.wallet || ipn.wallet_ngser,
-          ngser_payload_last: ipn as any,
-          transaction_id: ipn.transaction_id,
-        },
-      });
-
-      await tx.dossier.update({
-        where: { id: paiement.dossier_id },
-        data: { statut: 'ANNULE' },
-      });
+    const result = await this.reglementService.echouerProvider({
+      paiement,
+      transactionId: ipn.transaction_id,
+      providerStatus: 'FAIL',
+      providerCode: ipn.status_id !== undefined ? String(ipn.status_id) : (ipn.code_ngser ? String(ipn.code_ngser) : null),
+      wallet: ipn.wallet || ipn.wallet_ngser,
+      payload: ipn,
+      annulerDossier: true,
     });
 
     await this.audit.info('IPN_FAIL_TRAITE', {
@@ -265,10 +206,7 @@ export class IpnNgserService {
       code_ngser: ipn.code_ngser,
     });
 
-    return {
-      paiement_statut: 'ECHOUE',
-      dossier_statut: 'ANNULE',
-    };
+    return result;
   }
 
   private async traiterIpnAbonnement(abonnement: any, statutNgser: string, ipn: IpnPayload): Promise<IpnResult> {

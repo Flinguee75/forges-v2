@@ -10,6 +10,7 @@ import { IpnNgserService } from './ipn-ngser.service';
 import { PaiementFineoService } from './paiement-fineo.service';
 import { IpnFineoService, FineoCbPayload } from './ipn-fineo.service';
 import { CommissionService } from './commission.service';
+import { PaiementReglementService } from './paiement-reglement.service';
 import { getDelaiPaiementH } from '../../config/env.config';
 
 const MAX_TENTATIVES = 3;      // RM-08
@@ -20,6 +21,7 @@ export class PaiementService {
   private ipnFineoService: IpnFineoService;
   private commissionService: CommissionService;
   private paiementFineoService: PaiementFineoService;
+  private reglementService: PaiementReglementService;
 
   constructor(
     private readonly paiementRepo: PaiementRepository,
@@ -31,6 +33,7 @@ export class PaiementService {
     private readonly paiementNgserService = new PaiementNgserService(prisma, voucherRepo, audit)
   ) {
     this.commissionService = new CommissionService(prisma, audit);
+    this.reglementService = new PaiementReglementService(prisma, audit, this.commissionService);
     this.ipnNgserService = new IpnNgserService(prisma, audit, this.commissionService);
     this.paiementFineoService = new PaiementFineoService(prisma, voucherRepo, audit);
     this.ipnFineoService = new IpnFineoService(prisma, audit, this.commissionService);
@@ -148,6 +151,10 @@ export class PaiementService {
       const result = await this.paiementFineoService.initierPaiement(dto.dossier_id, apprenantId);
       return result.checkout_link;
     } catch (errFineo: any) {
+      if (errFineo.message === 'MONTANT_FINEO_MINIMUM') {
+        throw errFineo;
+      }
+
       await this.audit.warning('FINEO_FALLBACK_NGSER', {
         dossier_id: dto.dossier_id,
         raison: errFineo.message,
@@ -172,7 +179,32 @@ export class PaiementService {
     const existant = await this.paiementRepo.findByTransactionId(webhookData.transaction_id);
     if (existant) return { message: 'ALREADY_PROCESSED' };
 
-    const paiement = await this.paiementRepo.findByDossierId(webhookData.dossier_id);
+    let paiement = await this.prisma.paiement.findUnique({
+      where: { dossier_id: webhookData.dossier_id },
+      include: {
+        dossier: {
+          include: {
+            apprenant: true,
+            formation: { include: { partenaire: true, formation_partenaire: true } },
+            session: true,
+          },
+        },
+      },
+    });
+    if (!paiement) {
+      const paiementLegacy = await this.paiementRepo.findByDossierId(webhookData.dossier_id);
+      if (paiementLegacy) {
+        const dossier = await this.prisma.dossier.findUnique({
+          where: { id: webhookData.dossier_id },
+          include: {
+            apprenant: true,
+            formation: { include: { partenaire: true, formation_partenaire: true } },
+            session: true,
+          },
+        });
+        paiement = { ...paiementLegacy, dossier } as any;
+      }
+    }
     if (!paiement) throw new Error('PAIEMENT_NOT_FOUND');
 
     // Idempotence par statut : un paiement déjà CONFIRME ne doit pas être retraité
@@ -181,71 +213,42 @@ export class PaiementService {
 
     if (webhookData.statut === 'SUCCESS') {
       // ✅ RM-160: Valider que montant IPN == montant initié (idempotence strict)
-      if (webhookData.montant !== paiement.montant_final) {
+      const montantAttendu = paiement.montant_initie ?? paiement.montant_final ?? paiement.montant_catalogue;
+      if (webhookData.montant !== montantAttendu) {
         await this.audit.warning('PAIEMENT_MONTANT_MISMATCH', {
           paiement_id: paiement.id,
-          montant_attendu: paiement.montant_final,
+          montant_attendu: montantAttendu,
           montant_recu: webhookData.montant,
           dossier_id: webhookData.dossier_id
         });
         return { message: 'MONTANT_INVALIDE', statut: 'REJECTED' };
       }
 
-      // Confirmer le paiement
-      await this.paiementRepo.confirmer(paiement.id, webhookData.transaction_id);
-
-      // Passer le dossier en PAYE
-      await this.prisma.dossier.update({
-        where: { id: webhookData.dossier_id },
-        data: { statut: 'PAYE' }
+      const result = await this.reglementService.confirmerProvider({
+        paiement,
+        transactionId: webhookData.transaction_id,
+        providerStatus: 'SUCCESS',
+        payload: {
+          source: 'LEGACY_WEBHOOK',
+          ...webhookData,
+        },
       });
 
-      // Calcul commissions
-      await this.calculerCommissions(paiement, webhookData.dossier_id);
-
-      await this.audit.info('PAIEMENT_CONFIRME', {
-        paiement_id: paiement.id,
-        transaction_id: webhookData.transaction_id,
-        montant: webhookData.montant
-      });
-
-      // RM-100 : notification email apprenant
-      const dossierComplet = await this.prisma.dossier.findUnique({
-        where: { id: webhookData.dossier_id },
-        include: { apprenant: true, formation: true }
-      });
-      if (dossierComplet) {
-        try {
-          await this.email.sendPaiementConfirme(
-            dossierComplet.apprenant.email,
-            dossierComplet.formation.intitule
-          );
-        } catch (error: any) {
-          await this.audit.warning('PAIEMENT_CONFIRME_EMAIL_FAILED', {
-            paiement_id: paiement.id,
-            dossier_id: webhookData.dossier_id,
-            error: error?.message || 'UNKNOWN_ERROR'
-          });
-        }
-      }
-
+      return { statut: webhookData.statut, ...result };
     } else {
-      // ✅ RM-160: Quand IPN FAILED, annuler le dossier
-      await this.paiementRepo.echouer(paiement.id);
-      
-      // Passer le dossier en ANNULE
-      await this.prisma.dossier.update({
-        where: { id: webhookData.dossier_id },
-        data: { statut: 'ANNULE' }
+      const result = await this.reglementService.echouerProvider({
+        paiement,
+        transactionId: webhookData.transaction_id,
+        providerStatus: 'FAILED',
+        payload: {
+          source: 'LEGACY_WEBHOOK',
+          ...webhookData,
+        },
+        annulerDossier: true,
       });
-      
-      await this.audit.warning('PAIEMENT_ECHOUE', { 
-        paiement_id: paiement.id,
-        dossier_id: webhookData.dossier_id 
-      });
-    }
 
-    return { statut: webhookData.statut };
+      return { statut: webhookData.statut, ...result };
+    }
   }
 
   // Calcul commissions partenaire et apporteur

@@ -64,6 +64,26 @@ export const paiementsApi = {
   },
 
   /**
+   * Récupère un paiement apprenant depuis une référence backend ou provider.
+   * Utilisé par les callbacks pour ne pas faire confiance aux paramètres de redirection.
+   */
+  getByReference: async (reference) => {
+    const paiements = await apiClient.get('/paiements');
+    const list = normalizeList(paiements);
+    const paiement = list.find((item) => (
+      item.id === reference ||
+      item.order_ngser === reference ||
+      item.transaction_id === reference
+    ));
+
+    if (!paiement) {
+      throw createUnavailableError('Paiement introuvable dans la liste des paiements runtime.', 'NOT_FOUND');
+    }
+
+    return paiement;
+  },
+
+  /**
    * Récupère le détail d'un paiement backoffice (avec voucher organisation et apporteur).
    * GET /api/backoffice/paiements/:id
    */

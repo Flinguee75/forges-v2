@@ -25,6 +25,8 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
   let mockCreateCheckoutLink: jest.Mock;
 
   beforeAll(async () => {
+    await prisma.commissionPartenaire.deleteMany({ where: { paiement: { dossier_id: { startsWith: 'D-FINEO-INIT-' } } } });
+    await prisma.commissionApporteur.deleteMany({ where: { paiement: { dossier_id: { startsWith: 'D-FINEO-INIT-' } } } });
     await prisma.paiement.deleteMany({ where: { dossier_id: { startsWith: 'D-FINEO-INIT-' } } });
     await prisma.dossier.deleteMany({ where: { id: { startsWith: 'D-FINEO-INIT-' } } });
 
@@ -99,6 +101,8 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
   });
 
   afterAll(async () => {
+    await prisma.commissionPartenaire.deleteMany({ where: { paiement: { dossier_id: { startsWith: 'D-FINEO-INIT-' } } } });
+    await prisma.commissionApporteur.deleteMany({ where: { paiement: { dossier_id: { startsWith: 'D-FINEO-INIT-' } } } });
     await prisma.paiement.deleteMany({ where: { dossier_id: { startsWith: 'D-FINEO-INIT-' } } });
     await prisma.dossier.deleteMany({ where: { id: { startsWith: 'D-FINEO-INIT-' } } });
     await prisma.$disconnect();
@@ -301,14 +305,16 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
   describe('Voucher promotionnel — application au lien de paiement', () => {
     const VOUCHER_PCT_CODE = 'FINEO-PROMO-PCT-10';
     const VOUCHER_MONTANT_CODE = 'FINEO-PROMO-MNT-20000';
+    const VOUCHER_ZERO_CODE = 'FINEO-PROMO-MNT-ZERO';
+    const VOUCHER_TOO_LOW_CODE = 'FINEO-PROMO-MNT-LOW';
 
     beforeAll(async () => {
       // Nettoyage des dossiers de cette suite
       await prisma.paiement.deleteMany({
-        where: { dossier_id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01'] } },
+        where: { dossier_id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01', 'D-FINEO-PROMO-ZERO-01', 'D-FINEO-PROMO-LOW-01'] } },
       });
       await prisma.dossier.deleteMany({
-        where: { id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01'] } },
+        where: { id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01', 'D-FINEO-PROMO-ZERO-01', 'D-FINEO-PROMO-LOW-01'] } },
       });
 
       // Voucher POURCENTAGE : -10%
@@ -338,17 +344,51 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
           statut: 'ACTIF',
         },
       });
+
+      // Voucher MONTANT : -80000 centimes (reste à payer 0 XOF)
+      await prisma.voucherApporteur.upsert({
+        where: { code: VOUCHER_ZERO_CODE },
+        update: {},
+        create: {
+          code: VOUCHER_ZERO_CODE,
+          type: 'PROMOTIONNEL',
+          type_valeur: 'MONTANT',
+          valeur: MONTANT_CENTIMES,
+          quota_max: 99,
+          statut: 'ACTIF',
+        },
+      });
+
+      // Voucher MONTANT : -75000 centimes (reste à payer 50 XOF, sous minimum Fineo)
+      await prisma.voucherApporteur.upsert({
+        where: { code: VOUCHER_TOO_LOW_CODE },
+        update: {},
+        create: {
+          code: VOUCHER_TOO_LOW_CODE,
+          type: 'PROMOTIONNEL',
+          type_valeur: 'MONTANT',
+          valeur: MONTANT_CENTIMES - 5000,
+          quota_max: 99,
+          statut: 'ACTIF',
+        },
+      });
     });
 
     afterAll(async () => {
+      await prisma.commissionPartenaire.deleteMany({
+        where: { paiement: { dossier_id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01', 'D-FINEO-PROMO-ZERO-01', 'D-FINEO-PROMO-LOW-01'] } } },
+      });
+      await prisma.commissionApporteur.deleteMany({
+        where: { paiement: { dossier_id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01', 'D-FINEO-PROMO-ZERO-01', 'D-FINEO-PROMO-LOW-01'] } } },
+      });
       await prisma.paiement.deleteMany({
-        where: { dossier_id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01'] } },
+        where: { dossier_id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01', 'D-FINEO-PROMO-ZERO-01', 'D-FINEO-PROMO-LOW-01'] } },
       });
       await prisma.dossier.deleteMany({
-        where: { id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01'] } },
+        where: { id: { in: ['D-FINEO-PROMO-PCT-01', 'D-FINEO-PROMO-MNT-01', 'D-FINEO-PROMO-NONE-01', 'D-FINEO-PROMO-ZERO-01', 'D-FINEO-PROMO-LOW-01'] } },
       });
       await prisma.voucherApporteur.deleteMany({
-        where: { code: { in: [VOUCHER_PCT_CODE, VOUCHER_MONTANT_CODE] } },
+        where: { code: { in: [VOUCHER_PCT_CODE, VOUCHER_MONTANT_CODE, VOUCHER_ZERO_CODE, VOUCHER_TOO_LOW_CODE] } },
       });
     });
 
@@ -421,6 +461,40 @@ describe('PaiementFineoService — initiation paiement FineoPay', () => {
 
       const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
       expect(paiement?.reduction_appliquee).toBe(0);
+    });
+
+    it('confirme en interne sans appeler FineoPay si le reste à payer est 0 XOF', async () => {
+      const dossierId = 'D-FINEO-PROMO-ZERO-01';
+      await creerDossierAvecVoucher(dossierId, VOUCHER_ZERO_CODE);
+
+      const result = await service.initierPaiement(dossierId, TEST_IDS.apprenant);
+
+      expect(result.checkout_link).toBeNull();
+      expect(result.montant_initie).toBe(0);
+      expect(result.action).toBe('AUTO_CONFIRME_ZERO');
+      expect(mockCreateCheckoutLink).not.toHaveBeenCalled();
+
+      const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
+      const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } });
+
+      expect(paiement?.statut).toBe('CONFIRME');
+      expect(paiement?.provider).toBe('INTERNE');
+      expect(paiement?.montant_final).toBe(0);
+      expect(paiement?.reduction_appliquee).toBe(MONTANT_CENTIMES);
+      expect(dossier?.statut).toBe('PAYE');
+    });
+
+    it('bloque avant FineoPay si le reste à payer est inférieur au minimum 100 XOF', async () => {
+      const dossierId = 'D-FINEO-PROMO-LOW-01';
+      await creerDossierAvecVoucher(dossierId, VOUCHER_TOO_LOW_CODE);
+
+      await expect(
+        service.initierPaiement(dossierId, TEST_IDS.apprenant)
+      ).rejects.toThrow('MONTANT_FINEO_MINIMUM');
+
+      expect(mockCreateCheckoutLink).not.toHaveBeenCalled();
+      const paiement = await prisma.paiement.findUnique({ where: { dossier_id: dossierId } });
+      expect(paiement).toBeNull();
     });
   });
 });

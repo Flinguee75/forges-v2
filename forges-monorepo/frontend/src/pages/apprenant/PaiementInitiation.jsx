@@ -15,6 +15,7 @@ function buildErrorMessages(hours) {
     PAIEMENT_DEJA_VALIDE: 'Ce dossier a deja ete paye.',
     PAYMENT_EXPIRED: `Le delai de paiement de ${formatPaymentExpirationShort(hours)} est depasse.`,
     TOO_MANY_ATTEMPTS: 'Trop de tentatives. Contactez le support.',
+    MONTANT_FINEO_MINIMUM: 'Le montant restant est inferieur au minimum de paiement mobile. Contactez le support.',
   };
 }
 
@@ -41,11 +42,15 @@ export default function PaiementInitiation() {
         const response = await paiementsApi.initierFineo(dossierId);
         const data = response?.data || response;
         if (!isMounted) return;
+        if (data.action === 'AUTO_CONFIRME_ZERO' || !data.checkout_link) {
+          navigate(`/apprenant/paiements/callback?paiement_id=${data.paiement_id}`);
+          return;
+        }
         setPaymentUrl(data.checkout_link);
         window.location.assign(data.checkout_link);
       } catch (fineoErr) {
         const fineoCode = fineoErr?.response?.data?.error || fineoErr?.message || '';
-        const isBlocking = ['FORBIDDEN', 'DOSSIER_NOT_FOUND', 'PAIEMENT_DEJA_VALIDE', 'DOSSIER_STATUT_INVALIDE'].includes(fineoCode);
+        const isBlocking = ['FORBIDDEN', 'DOSSIER_NOT_FOUND', 'PAIEMENT_DEJA_VALIDE', 'DOSSIER_STATUT_INVALIDE', 'MONTANT_FINEO_MINIMUM'].includes(fineoCode);
 
         if (isBlocking) {
           if (!isMounted) return;
@@ -71,7 +76,7 @@ export default function PaiementInitiation() {
 
     initier();
     return () => { isMounted = false; };
-  }, [dossierId]);
+  }, [dossierId, navigate]);
 
   return (
     <div className="mx-auto max-w-xl">

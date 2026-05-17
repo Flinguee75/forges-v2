@@ -56,13 +56,14 @@ describe('EspaceOrganisationService', () => {
     mockPrisma = {
       apprenant: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       abonnementB2B: { update: jest.fn() },
-      dossier: { findMany: jest.fn(), count: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
-      paiement: { findMany: jest.fn(), count: jest.fn(), aggregate: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
+      dossier: { findMany: jest.fn(), count: jest.fn(), findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+      paiement: { findMany: jest.fn(), count: jest.fn(), aggregate: jest.fn(), findUnique: jest.fn(), create: jest.fn(), updateMany: jest.fn() },
       formation: { findUnique: jest.fn() },
       voucherApporteur: { create: jest.fn() },
       voucherOrganisation: { findFirst: jest.fn(), update: jest.fn() },
       session: { findUnique: jest.fn() },
       organisation: { update: jest.fn() },
+      $transaction: jest.fn(async (callback) => callback(mockPrisma)),
     };
 
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
@@ -560,7 +561,7 @@ describe('EspaceOrganisationService', () => {
       prenoms: 'Hassan',
       organisation_id: 'org-01',
     };
-    const session = { id: 'sess-01', formation_id: 'f-01', formation: { cout_catalogue: 150000 } };
+    const session = { id: 'sess-01', formation_id: 'f-01', places_restantes: 20, formation: { id: 'f-01', cout_catalogue: 150000 } };
     const dossierCree = { id: 'd-01', statut: 'PAYE' };
 
     // B1 — Tracer bullet : inscription B2B réussie
@@ -572,7 +573,9 @@ describe('EspaceOrganisationService', () => {
       mockPrisma.session.findUnique.mockResolvedValue(session as any);
       mockPrisma.dossier.create.mockResolvedValue(dossierCree);
       mockPrisma.paiement.findUnique.mockResolvedValue(null);
-      mockPrisma.paiement.create.mockResolvedValue({});
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-01', dossier_id: 'd-01', statut: 'PENDING' });
+      mockPrisma.paiement.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.dossier.update.mockResolvedValue({ id: 'd-01', statut: 'PAYE' });
       mockAudit.info.mockResolvedValue(undefined);
 
       const result = await service.inscrireBeneficiaire('org-01', {
@@ -599,8 +602,14 @@ describe('EspaceOrganisationService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             methode: 'B2B_ORG',
-            statut: 'CONFIRME',
+            statut: 'PENDING',
           }),
+        })
+      );
+      expect(mockPrisma.paiement.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'p-01', statut: { not: 'CONFIRME' } },
+          data: expect.objectContaining({ statut: 'CONFIRME' }),
         })
       );
     });
@@ -616,7 +625,9 @@ describe('EspaceOrganisationService', () => {
       mockPrisma.session.findUnique.mockResolvedValue(session as any);
       mockPrisma.dossier.create.mockResolvedValue(dossierVoucher);
       mockPrisma.paiement.findUnique.mockResolvedValue(null);
-      mockPrisma.paiement.create.mockResolvedValue({});
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-02', dossier_id: 'd-02', statut: 'PENDING' });
+      mockPrisma.paiement.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.dossier.update.mockResolvedValue({ id: 'd-02', statut: 'PAYE' });
       mockPrisma.voucherOrganisation.update.mockResolvedValue({ id: 'v-01', quota_utilise: 1, quota_max: null });
       mockAudit.info.mockResolvedValue(undefined);
 
@@ -655,10 +666,54 @@ describe('EspaceOrganisationService', () => {
       expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
     });
 
+    it('rejette si la session est complete avant de creer le dossier', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      mockPrisma.session.findUnique.mockResolvedValue({
+        ...session,
+        places_restantes: 0,
+      } as any);
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-01',
+          session_id: 'sess-01',
+          source_financement: 'B2B',
+        })
+      ).rejects.toThrow('SESSION_COMPLETE');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+      expect(mockPrisma.paiement.create).not.toHaveBeenCalled();
+    });
+
+    it('rejette si le beneficiaire est deja inscrit a la meme formation sur une autre session', async () => {
+      mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
+      mockPrisma.dossier.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'dossier-autre-session' });
+      mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
+      mockRepo.countActifsB2B.mockResolvedValue(30);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
+
+      await expect(
+        service.inscrireBeneficiaire('org-01', {
+          beneficiaire_id: 'app-01',
+          session_id: 'sess-01',
+          source_financement: 'B2B',
+        })
+      ).rejects.toThrow('INSCRIPTION_DEJA_EXISTANTE');
+
+      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+      expect(mockPrisma.paiement.create).not.toHaveBeenCalled();
+    });
+
     // B4 — Quota B2B dépassé
     it('rejette si le quota B2B est depasse', async () => {
       mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
       mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
       const orgPleine = { ...orgAvecB2B, abonnement_b2b: { ...orgAvecB2B.abonnement_b2b, nb_max: 30 } };
       mockRepo.findOrganisationById.mockResolvedValue(orgPleine as any);
       mockRepo.countActifsB2B.mockResolvedValue(30);
@@ -678,6 +733,7 @@ describe('EspaceOrganisationService', () => {
     it('rejette si le voucher n\'appartient pas a l\'organisation ou est inactif', async () => {
       mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
       mockPrisma.dossier.findFirst.mockResolvedValue(null);
+      mockPrisma.session.findUnique.mockResolvedValue(session as any);
       mockPrisma.voucherOrganisation.findFirst.mockResolvedValue(null);
 
       await expect(
@@ -717,7 +773,9 @@ describe('EspaceOrganisationService', () => {
       mockPrisma.session.findUnique.mockResolvedValue(session as any);
       mockPrisma.dossier.create.mockResolvedValue(dossierCree);
       mockPrisma.paiement.findUnique.mockResolvedValue(null);
-      mockPrisma.paiement.create.mockResolvedValue({});
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-03', dossier_id: 'd-01', statut: 'PENDING' });
+      mockPrisma.paiement.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.dossier.update.mockResolvedValue({ id: 'd-01', statut: 'PAYE' });
       mockAudit.info.mockResolvedValue(undefined);
 
       await service.inscrireBeneficiaire('org-01', {

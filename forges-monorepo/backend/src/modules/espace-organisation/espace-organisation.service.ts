@@ -6,8 +6,12 @@ import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { CommissionService } from '../paiements/commission.service';
+import { PaiementReglementService } from '../paiements/paiement-reglement.service';
 
 export class EspaceOrganisationService {
+  private readonly reglementService: PaiementReglementService;
+
   constructor(
     private readonly orgRepo: EspaceOrganisationRepository,
     private readonly importCSV: ImportCSVService,
@@ -15,7 +19,13 @@ export class EspaceOrganisationService {
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
     private readonly email: EmailService
-  ) {}
+  ) {
+    this.reglementService = new PaiementReglementService(
+      prisma,
+      audit,
+      new CommissionService(prisma, audit)
+    );
+  }
 
   // UCS12 — Dashboard organisation
   async getDashboard(organisation_id: string) {
@@ -346,30 +356,48 @@ export class EspaceOrganisationService {
     });
     if (existing) throw new Error('INSCRIPTION_DEJA_EXISTANTE');
 
+    // 3. Récupérer session + formation et appliquer les invariants InscriptionService
+    const session = await (this.prisma as any).session.findUnique({
+      where: { id: data.session_id },
+      include: { formation: { include: { partenaire: true } } },
+    });
+    if (!session) throw new Error('SESSION_NOT_FOUND');
+    if (typeof session.places_restantes === 'number' && session.places_restantes <= 0) {
+      throw new Error('SESSION_COMPLETE');
+    }
+
+    // RM-15 : unicité apprenant/formation cross-sessions
+    const inscriptionFormation = await this.prisma.dossier.findFirst({
+      where: {
+        apprenant_id: data.beneficiaire_id,
+        formation_id: session.formation_id,
+        statut: { notIn: ['ANNULE', 'REJETE'] },
+      },
+    });
+    if (inscriptionFormation) throw new Error('INSCRIPTION_DEJA_EXISTANTE');
+
     const extraData: Record<string, any> = {};
     let voucherOrg: any = null;
 
     if (data.source_financement === 'B2B') {
-      // 3a. Vérifier quota B2B (RM-61)
+      // 4a. Vérifier quota B2B (RM-61)
       const org = await this.orgRepo.findOrganisationById(organisation_id);
       if (org?.abonnement_b2b) {
         const nbActifs = await this.orgRepo.countActifsB2B(organisation_id);
         if (nbActifs >= org.abonnement_b2b.nb_max) throw new Error('B2B_PLAFOND_ATTEINT');
       }
     } else {
-      // 3b. Valider le VoucherOrganisation
+      // 4b. Valider le VoucherOrganisation
       voucherOrg = await (this.prisma as any).voucherOrganisation.findFirst({
         where: { id: data.voucher_organisation_id, organisation_id, statut: 'ACTIF' }
       });
       if (!voucherOrg) throw new Error('VOUCHER_INVALIDE');
+      if (voucherOrg.formation_id && voucherOrg.formation_id !== session.formation_id) {
+        throw new Error('VOUCHER_WRONG_FORMATION');
+      }
       extraData.voucher_organisation_id = data.voucher_organisation_id;
     }
 
-    // 4. Récupérer session + formation pour le montant
-    const session = await (this.prisma as any).session.findUnique({
-      where: { id: data.session_id },
-      include: { formation: { select: { cout_catalogue: true } } },
-    });
     const montant = session?.formation?.cout_catalogue ?? 0;
 
     // 5. Créer le dossier — org couvre toujours le coût → statut PAYE
@@ -385,21 +413,13 @@ export class EspaceOrganisationService {
       } as any,
     });
 
-    // 6. Créer le paiement confirmé (org couvre le coût)
-    const paiementExistant = await this.prisma.paiement.findUnique({ where: { dossier_id: dossier.id } });
-    if (!paiementExistant) {
-      await this.prisma.paiement.create({
-        data: {
-          dossier_id: dossier.id,
-          montant_catalogue: montant,
-          montant_final: montant,
-          reduction_appliquee: 0,
-          methode: data.source_financement === 'B2B' ? 'B2B_ORG' : 'VOUCHER_ORG',
-          statut: 'CONFIRME',
-          confirmed_at: new Date(),
-        } as any,
-      });
-    }
+    // 6. Créer le paiement interne puis le confirmer via le règlement commun
+    await this.creerPaiementOrganisationConfirme(
+      dossier,
+      session,
+      montant,
+      data.source_financement === 'B2B' ? 'B2B_ORG' : 'VOUCHER_ORG'
+    );
 
     // 7. Incrémenter quota du voucher organisation si utilisé
     if (voucherOrg) {
@@ -432,6 +452,46 @@ export class EspaceOrganisationService {
     });
 
     return { dossier_id: dossier.id, statut: 'PAYE' };
+  }
+
+  private async creerPaiementOrganisationConfirme(
+    dossier: any,
+    session: any,
+    montant: number,
+    methode: 'B2B_ORG' | 'VOUCHER_ORG'
+  ) {
+    const paiementExistant = await this.prisma.paiement.findUnique({ where: { dossier_id: dossier.id } });
+    const paiement = paiementExistant || await this.prisma.paiement.create({
+      data: {
+        dossier_id: dossier.id,
+        montant_catalogue: montant,
+        montant_final: montant,
+        montant_initie: montant,
+        reduction_appliquee: 0,
+        methode,
+        statut: 'PENDING',
+        provider: 'INTERNE',
+        order_ngser: `ORG-${dossier.id}`,
+      } as any,
+    });
+
+    if (paiement.statut === 'CONFIRME') return paiement;
+
+    await this.reglementService.confirmerProvider({
+      paiement: {
+        ...paiement,
+        dossier: {
+          ...dossier,
+          formation: session.formation,
+          session,
+        },
+      },
+      transactionId: `ORG-${methode}-${dossier.id}`,
+      providerStatus: 'SUCCESS',
+      payload: { source: methode },
+    });
+
+    return paiement;
   }
 
   // UCS12 — Mon profil

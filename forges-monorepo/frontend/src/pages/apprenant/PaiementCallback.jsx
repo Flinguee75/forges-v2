@@ -11,19 +11,23 @@ function getStatutBadge(statut) {
     CONFIRME: { variant: 'success', label: 'Confirmé' },
     PENDING: { variant: 'warning', label: 'En attente' },
     EN_ATTENTE: { variant: 'gray', label: 'En attente' },
+    ECHEC: { variant: 'danger', label: 'Échoué' },
     ECHOUE: { variant: 'danger', label: 'Échoué' },
+    ANNULE: { variant: 'danger', label: 'Annulé' },
     EXPIRE: { variant: 'danger', label: 'Expiré' },
   };
   const config = mapping[statut] || { variant: 'gray', label: statut || 'Inconnu' };
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
-// status_id NGSER : 1=Succès, 0=Échec, 2=Échec montant insuffisant
-function resolveNgserStatus(statusId) {
-  const id = parseInt(statusId, 10);
-  if (id === 1) return 'CONFIRME';
-  if (id === 2) return 'ECHOUE'; // montant insuffisant
-  return 'ECHOUE';
+function isTerminalStatus(statut) {
+  return ['CONFIRME', 'ECHOUE', 'ECHEC', 'ANNULE', 'EXPIRE'].includes(statut);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 export default function PaiementCallback() {
@@ -33,44 +37,68 @@ export default function PaiementCallback() {
   // Params legacy (depuis PaiementInitiation interne)
   const paiementId = searchParams.get('paiement_id');
   const orderNgser = searchParams.get('order_ngser') || searchParams.get('order');
+  const fineoSyncRef = searchParams.get('syncRef') || searchParams.get('sync_ref');
 
   // Params NGSER Payment Data Transfer (redirection post-paiement réel)
   const orderId = searchParams.get('order_id');
   const statusId = searchParams.get('status_id');
-  const statusParam = searchParams.get('status'); // 'success' | 'fail'
   const transactionId = searchParams.get('transaction_id');
   const transactionAmount = searchParams.get('transaction_amount');
 
-  const isNgserRedirect = Boolean(orderId && statusId !== null);
+  const reference = paiementId || orderId || orderNgser || fineoSyncRef || transactionId;
 
   const [paiement, setPaiement] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
 
-  const ngserStatut = isNgserRedirect ? resolveNgserStatus(statusId) : null;
-
   const title = useMemo(() => {
-    const statut = paiement?.statut || ngserStatut;
+    const statut = paiement?.statut;
     if (statut === 'CONFIRME') return 'Paiement confirmé';
-    if (statut === 'ECHOUE') return 'Paiement échoué';
-    if (statusParam === 'success') return 'Paiement confirmé';
-    if (statusParam === 'fail') return 'Paiement échoué';
+    if (['ECHOUE', 'ECHEC', 'ANNULE', 'EXPIRE'].includes(statut)) return 'Paiement échoué';
     return 'Confirmation du paiement';
-  }, [paiement?.statut, ngserStatut, statusParam]);
+  }, [paiement?.statut]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadPaiement() {
-      if (!paiementId) {
-        setStatus('ready');
+      if (!reference) {
+        setStatus('pending');
         return;
       }
+
+      let found = false;
+      let lastError = null;
+
       try {
-        const data = await paiementsApi.getById(paiementId);
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          try {
+            const data = paiementId
+              ? await paiementsApi.getById(paiementId)
+              : await paiementsApi.getByReference(reference);
+
+            if (!isMounted) return;
+
+            found = true;
+            setPaiement(data);
+            setStatus('ready');
+
+            if (isTerminalStatus(data?.statut)) return;
+          } catch (loadError) {
+            lastError = loadError;
+          }
+
+          if (attempt < 5) {
+            await wait(2000);
+            if (!isMounted) return;
+          }
+        }
+
         if (!isMounted) return;
-        setPaiement(data);
-        setStatus('ready');
+        if (!found) {
+          setError(lastError?.message || 'Statut paiement indisponible.');
+          setStatus('pending');
+        }
       } catch (loadError) {
         if (!isMounted) return;
         setError(loadError?.message || 'Statut paiement indisponible.');
@@ -80,11 +108,11 @@ export default function PaiementCallback() {
 
     loadPaiement();
     return () => { isMounted = false; };
-  }, [paiementId]);
+  }, [paiementId, reference]);
 
-  const statutAffiche = paiement?.statut || ngserStatut || 'PENDING';
-  const succes = statutAffiche === 'CONFIRME' || statusParam === 'success';
-  const echec = statutAffiche === 'ECHOUE' || statusParam === 'fail';
+  const statutAffiche = paiement?.statut || 'PENDING';
+  const succes = statutAffiche === 'CONFIRME';
+  const echec = ['ECHOUE', 'ECHEC', 'ANNULE', 'EXPIRE'].includes(statutAffiche);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -92,12 +120,12 @@ export default function PaiementCallback() {
         <div>
           <h1 className="text-2xl font-semibold text-primary">{title}</h1>
           <p className="mt-2 text-sm text-subtext">
-            Le statut définitif est confirmé par notification NGSER. Cette page affiche le dernier
+            Le statut définitif est confirmé par notification fournisseur. Cette page affiche le dernier
             état connu par FORGES.
           </p>
         </div>
 
-        {status === 'loading' && !isNgserRedirect && (
+        {status === 'loading' && (
           <div className="flex justify-center py-8">
             <Spinner size="large" />
           </div>
@@ -109,7 +137,13 @@ export default function PaiementCallback() {
           </div>
         )}
 
-        {(status === 'ready' || isNgserRedirect) && (
+        {status === 'pending' && (
+          <div className="rounded-lg border border-warning bg-warning-soft p-4 text-sm text-warning">
+            La confirmation est en cours chez FORGES. Revenez dans quelques instants si le statut ne change pas.
+          </div>
+        )}
+
+        {(status === 'ready' || status === 'pending') && (
           <div className="space-y-3 rounded-lg border border-border bg-bg p-4">
 
             <div className="flex items-center justify-between">

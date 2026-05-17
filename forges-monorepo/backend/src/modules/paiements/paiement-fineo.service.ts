@@ -3,17 +3,42 @@ import { PrismaClient } from '@prisma/client';
 import { VoucherRepository } from '../vouchers/voucher.repository';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { getDelaiPaiementH } from '../../config/env.config';
+import { CommissionService } from './commission.service';
+import { PaiementReglementService } from './paiement-reglement.service';
 
 const FINEO_PROVIDER = 'FINEO';
+const INTERNAL_PROVIDER = 'INTERNE';
+const FINEO_MIN_AMOUNT_XOF = 100;
+
+export interface PaiementFineoInitResult {
+  paiement_id: string;
+  sync_ref: string;
+  checkout_link: string | null;
+  montant_initie: number;
+  action?: 'AUTO_CONFIRME_ZERO';
+}
 
 export class PaiementFineoService {
+  private readonly reglementService: PaiementReglementService;
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly voucherRepo: VoucherRepository,
     private readonly audit: AuditLogger
-  ) {}
+  ) {
+    this.reglementService = new PaiementReglementService(
+      prisma,
+      audit,
+      new CommissionService(prisma, audit)
+    );
+  }
 
-  async initierPaiement(dossierId: string, apprenantId: string, clientAccount?: string, canal?: string) {
+  async initierPaiement(
+    dossierId: string,
+    apprenantId: string,
+    clientAccount?: string,
+    canal?: string
+  ): Promise<PaiementFineoInitResult> {
     const dossier = await this.prisma.dossier.findUnique({
       where: { id: dossierId },
       include: { formation: true, session: true },
@@ -61,6 +86,27 @@ export class PaiementFineoService {
     const montantFinalXof = this.toXof(montantFinalCentimes);
     const syncRef = this.generateSyncRef();
     const expiresAt = new Date(Date.now() + getDelaiPaiementH() * 3600 * 1000);
+
+    if (montantFinalXof === 0) {
+      return this.autoConfirmerPaiementZero({
+        paiementExistant,
+        dossier,
+        dossierId,
+        syncRef,
+        montantCatalogueCentimes,
+        montantFinalCentimes,
+        expiresAt,
+      });
+    }
+
+    if (montantFinalXof < FINEO_MIN_AMOUNT_XOF) {
+      await this.audit.warning('PAIEMENT_FINEO_MONTANT_MINIMUM', {
+        dossier_id: dossierId,
+        montant_xof: montantFinalXof,
+        minimum_xof: FINEO_MIN_AMOUNT_XOF,
+      });
+      throw new Error('MONTANT_FINEO_MINIMUM');
+    }
 
     const callbackUrl = process.env.FINEO_CALLBACK_URL ||
       `${process.env.BACKEND_URL || 'http://localhost:3000'}/webhooks/fineo`;
@@ -140,7 +186,7 @@ export class PaiementFineoService {
       const voucher = await this.voucherRepo.findByCode(dossier.voucher_code);
       if (voucher?.type === 'PROMOTIONNEL') {
         if (voucher.type_valeur === 'MONTANT') return Math.max(0, montant - voucher.valeur);
-        if (voucher.type_valeur === 'POURCENTAGE') return Math.floor(montant * (1 - voucher.valeur / 100));
+        if (voucher.type_valeur === 'POURCENTAGE') return Math.max(0, Math.floor(montant * (1 - voucher.valeur / 100)));
       }
     }
 
@@ -156,6 +202,82 @@ export class PaiementFineoService {
 
   private toXof(montantCentimes: number): number {
     return Math.round(montantCentimes / 100);
+  }
+
+  private async autoConfirmerPaiementZero(params: {
+    paiementExistant: any;
+    dossier: any;
+    dossierId: string;
+    syncRef: string;
+    montantCatalogueCentimes: number;
+    montantFinalCentimes: number;
+    expiresAt: Date;
+  }): Promise<PaiementFineoInitResult> {
+    const paiementData = {
+      provider: INTERNAL_PROVIDER,
+      order_ngser: params.syncRef,
+      montant_catalogue: params.montantCatalogueCentimes,
+      montant_final: params.montantFinalCentimes,
+      montant_initie: params.montantFinalCentimes,
+      reduction_appliquee: params.montantCatalogueCentimes - params.montantFinalCentimes,
+      methode: 'VOUCHER_PROMO',
+      expires_at: params.expiresAt,
+      ngser_payload_last: {
+        reason: 'RESTE_A_PAYER_ZERO',
+      },
+    };
+
+    const paiement = params.paiementExistant
+      ? await this.prisma.paiement.update({
+          where: { id: params.paiementExistant.id },
+          data: {
+            ...paiementData,
+            statut: 'PENDING',
+            transaction_id: null,
+          },
+        })
+      : await this.prisma.paiement.create({
+          data: {
+            dossier_id: params.dossierId,
+            statut: 'PENDING',
+            tentatives: 0,
+            ...paiementData,
+          },
+        });
+
+    const paiementComplet = await this.prisma.paiement.findUnique({
+      where: { id: paiement.id },
+      include: {
+        dossier: {
+          include: {
+            formation: { include: { partenaire: true } },
+            session: true,
+          },
+        },
+      },
+    });
+
+    await this.reglementService.confirmerProvider({
+      paiement: paiementComplet,
+      transactionId: `AUTO-ZERO-${params.syncRef}`,
+      providerStatus: 'AUTO_CONFIRME_ZERO',
+      payload: paiementData.ngser_payload_last,
+      envoyerRecu: false,
+    });
+
+    await this.audit.info('PAIEMENT_FINEO_AUTO_CONFIRME_ZERO', {
+      paiement_id: paiement.id,
+      dossier_id: params.dossierId,
+      sync_ref: params.syncRef,
+    });
+
+    return {
+      paiement_id: paiement.id,
+      sync_ref: params.syncRef,
+      checkout_link: null,
+      montant_initie: 0,
+      action: 'AUTO_CONFIRME_ZERO',
+    };
   }
 
   private generateSyncRef(): string {
