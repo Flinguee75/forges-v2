@@ -153,7 +153,6 @@ test('UCS12.2 — UI : modale inscription employe 3 etapes (B2B)', async ({ page
   await expect(selectSession).toBeVisible();
   // Selectionner la premiere session disponible (index 1, apres l'option vide)
   const sessionOptions = await selectSession.locator('option').all();
-  const firstRealOption = sessionOptions.find(async (opt) => (await opt.getAttribute('value')) !== '');
   const firstSessionValue = await sessionOptions[1]?.getAttribute('value');
   expect(firstSessionValue, 'Au moins une session ouverte doit etre disponible').toBeTruthy();
   await selectSession.selectOption(firstSessionValue);
