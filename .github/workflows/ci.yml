@@ -566,5 +566,5 @@ jobs:
         if: always()
         with:
           name: playwright-smoke-${{ github.sha }}
-          path: forges-monorepo/frontend/playwright-results/
+          path: forges-monorepo/frontend/test-results/
           retention-days: 7
