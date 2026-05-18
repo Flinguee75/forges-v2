@@ -122,7 +122,14 @@ describe('RM-01 & RM-15 — Unicité Apprenant/Session & Formation (Criticité 5
     expect(res2.status).toBe(409);
     expect(res2.body.error).toMatch(/FORMATION|ALREADY/i);
 
-    // Cleanup
+    // Cleanup: RM-140 crée un paiement direct, il doit être supprimé avant le dossier.
+    await prisma.commissionPartenaire.deleteMany({
+      where: { paiement: { dossier: { session_id: { in: [session1Id, session2Id] } } } },
+    });
+    await prisma.commissionApporteur.deleteMany({
+      where: { paiement: { dossier: { session_id: { in: [session1Id, session2Id] } } } },
+    });
+    await prisma.paiement.deleteMany({ where: { dossier: { session_id: { in: [session1Id, session2Id] } } } });
     await prisma.dossier.deleteMany({ where: { session_id: { in: [session1Id, session2Id] } } });
     await prisma.session.deleteMany({ where: { id: { in: [session1Id, session2Id] } } });
   });

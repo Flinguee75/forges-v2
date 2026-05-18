@@ -182,7 +182,7 @@ describe('Retour NGSER — GET /api/paiements/retour (Payment Data Transfer)', (
   });
 });
 
-describe('IPN NGSER sans signature — RM-158', () => {
+describe('IPN NGSER sans signature — RM-09/RM-158', () => {
   afterEach(async () => {
     await prisma.commissionPartenaire.deleteMany({
       where: { paiement: { dossier_id: { startsWith: 'D-NOSIG-' } } },
@@ -195,7 +195,7 @@ describe('IPN NGSER sans signature — RM-158', () => {
     });
   });
 
-  test('IPN sans x-webhook-signature est accepté et traité (200 accepted:true)', async () => {
+  test('IPN sans x-webhook-signature est rejeté (401)', async () => {
     const account = await createApprenantAccount('nosig-' + Date.now());
     const headers = await auth(account);
 
@@ -225,14 +225,11 @@ describe('IPN NGSER sans signature — RM-158', () => {
       .post('/webhooks/paiement')
       .send(ipnPayload);
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.accepted).toBe(true);
-
-    // Attendre le traitement
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('SIGNATURE_MANQUANTE');
 
     const paiementUpdated = await prisma.paiement.findUnique({ where: { id: paiement.id } });
-    expect(paiementUpdated.statut).toBe('CONFIRME');
+    expect(paiementUpdated.statut).toBe('PENDING');
   });
 
   test('IPN avec signature invalide est rejeté (401)', async () => {

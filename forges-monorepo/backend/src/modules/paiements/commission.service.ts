@@ -1,15 +1,20 @@
 import { PrismaClient, Prisma } from '@prisma/client';
-import { AuditLogger } from '../../shared/audit/audit.logger';
+import type { AuditLogger } from '../../shared/audit/audit.logger';
 import { getCommissionApporteurDefaut, getCommissionForgesDefaut } from '../../config/env.config';
 
-export class CommissionService {
-  private readonly audit: AuditLogger;
+type CommissionAuditEvent = {
+  level: 'info' | 'warning';
+  action: string;
+  metadata: Record<string, any>;
+};
 
+export class CommissionService {
   constructor(
-    private readonly prisma: PrismaClient,
+    prisma: PrismaClient,
     audit?: AuditLogger
   ) {
-    this.audit = audit || new AuditLogger(prisma);
+    void prisma;
+    void audit;
   }
 
   async creerCommissionsApresSuccessPayment(
@@ -18,7 +23,9 @@ export class CommissionService {
     formation: any,
     tx: Prisma.TransactionClient
   ) {
-    const commissions: { partenaire?: any; apporteur?: any } = {};
+    const commissions: { partenaire?: any; apporteur?: any; auditEvents?: CommissionAuditEvent[] } = {
+      auditEvents: [],
+    };
 
     // Commission partenaire
     if (formation.partenaire_id) {
@@ -29,13 +36,14 @@ export class CommissionService {
       );
     }
 
-    const apporteur = await this.resolveApporteur(dossier, tx);
+    const apporteur = await this.resolveApporteur(dossier, tx, commissions.auditEvents);
     if (apporteur) {
       commissions.apporteur = await this.creerCommissionApporteur(
         paiement,
         dossier,
         tx,
-        apporteur
+        apporteur,
+        commissions.auditEvents
       );
     }
 
@@ -82,7 +90,8 @@ export class CommissionService {
     paiement: any,
     dossier: any,
     tx: Prisma.TransactionClient,
-    apporteur: { id: string; taux_commission_pct?: number | null }
+    apporteur: { id: string; taux_commission_pct?: number | null },
+    auditEvents: CommissionAuditEvent[]
   ) {
     // Vérifier si commission existe déjà (idempotence)
     const existante = await tx.commissionApporteur.findUnique({
@@ -90,9 +99,13 @@ export class CommissionService {
     });
 
     if (existante) {
-      await this.audit.info('COMMISSION_APPORTEUR_EXISTANTE', {
-        paiement_id: paiement.id,
-        commission_id: existante.id,
+      auditEvents.push({
+        level: 'info',
+        action: 'COMMISSION_APPORTEUR_EXISTANTE',
+        metadata: {
+          paiement_id: paiement.id,
+          commission_id: existante.id,
+        },
       });
       return existante;
     }
@@ -117,12 +130,16 @@ export class CommissionService {
       },
     });
 
-    await this.audit.info('COMMISSION_APPORTEUR_CREEE', {
-      commission_id: commission.id,
-      paiement_id: paiement.id,
-      apporteur_id: apporteur.id,
-      montant_commission: montantCommission,
-      taux_commission_pct: tauxCommission,
+    auditEvents.push({
+      level: 'info',
+      action: 'COMMISSION_APPORTEUR_CREEE',
+      metadata: {
+        commission_id: commission.id,
+        paiement_id: paiement.id,
+        apporteur_id: apporteur.id,
+        montant_commission: montantCommission,
+        taux_commission_pct: tauxCommission,
+      },
     });
 
     return commission;
@@ -135,7 +152,11 @@ export class CommissionService {
     return `${year}-${month}`;
   }
 
-  private async resolveApporteur(dossier: any, tx: Prisma.TransactionClient) {
+  private async resolveApporteur(
+    dossier: any,
+    tx: Prisma.TransactionClient,
+    auditEvents: CommissionAuditEvent[] = []
+  ) {
     if (dossier.code_apporteur_id) {
       return {
         id: dossier.code_apporteur_id,
@@ -150,9 +171,13 @@ export class CommissionService {
     });
 
     if (!apporteur) {
-      await this.audit.warning('COMMISSION_APPORTEUR_CODE_INTROUVABLE', {
-        dossier_id: dossier.id,
-        code_apporteur: dossier.code_apporteur,
+      auditEvents.push({
+        level: 'warning',
+        action: 'COMMISSION_APPORTEUR_CODE_INTROUVABLE',
+        metadata: {
+          dossier_id: dossier.id,
+          code_apporteur: dossier.code_apporteur,
+        },
       });
       return null;
     }
