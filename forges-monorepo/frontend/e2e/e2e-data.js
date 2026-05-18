@@ -59,6 +59,10 @@ export const E2E_ACCOUNTS = {
     email: 'partenaire-e2e@forges.ci',
     password: 'Test@FORGES2026!',
   },
+  partenaireSuspendu: {
+    email: 'partenaire-suspendu-e2e@forges.ci',
+    password: 'Test@FORGES2026!',
+  },
   apporteur: {
     email: 'apporteur-e2e@forges.ci',
     password: 'Test@FORGES2026!',

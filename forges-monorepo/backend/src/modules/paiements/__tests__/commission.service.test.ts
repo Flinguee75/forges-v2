@@ -97,6 +97,57 @@ describe('CommissionService', () => {
     expect(result.partenaire?.montant_reverse).toBe(80000);
   });
 
+  it('ne cree pas de doublon de commission partenaire si le paiement a deja ete traite', async () => {
+    const commissionExistante = {
+      id: 'cp-existante',
+      paiement_id: 'paiement-duplicate',
+      partenaire_id: 'partenaire-01',
+      formation_id: 'formation-01',
+      montant_reverse: 80000,
+      statut: 'EN_ATTENTE',
+    };
+    const tx = createTx({
+      commissionPartenaire: {
+        findUnique: jest.fn().mockResolvedValue(commissionExistante),
+        create: jest.fn(),
+      },
+    });
+    const service = new CommissionService({} as any, audit as any);
+
+    const result = await service.creerCommissionsApresSuccessPayment(
+      { id: 'paiement-duplicate', montant_catalogue: 100000, montant_final: 100000 },
+      { id: 'dossier-duplicate' },
+      { id: 'formation-01', partenaire_id: 'partenaire-01', prix_coutant: 80000 },
+      tx as any
+    );
+
+    expect(tx.commissionPartenaire.findUnique).toHaveBeenCalledWith({
+      where: { paiement_id: 'paiement-duplicate' },
+    });
+    expect(tx.commissionPartenaire.create).not.toHaveBeenCalled();
+    expect(result.partenaire).toBe(commissionExistante);
+  });
+
+  it('ne reverse jamais plus que le montant catalogue encaisse', async () => {
+    const tx = createTx();
+    const service = new CommissionService({} as any, audit as any);
+
+    await service.creerCommissionsApresSuccessPayment(
+      { id: 'paiement-04', montant_catalogue: 100000, montant_final: 100000 },
+      { id: 'dossier-04' },
+      { id: 'formation-04', partenaire_id: 'partenaire-04', prix_coutant: 120000 },
+      tx as any
+    );
+
+    expect(tx.commissionPartenaire.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        montant_catalogue: 100000,
+        montant_reverse: 100000,
+        commission_forges_pct: 0,
+      }),
+    });
+  });
+
   it('reverse le prix coutant valide de FormationPartenaire si Formation.prix_coutant est absent', async () => {
     const tx = createTx({
       formationPartenaire: {

@@ -19,9 +19,27 @@ function runtimeUnavailable(operation) {
   return error;
 }
 
+function normalizeValidationStatus(statut) {
+  const statuses = {
+    VALIDE: 'VALIDEE',
+    REJETE: 'REJETEE',
+    REVERSE: 'REVERSEE',
+  };
+
+  return statuses[statut] || statut;
+}
+
 function normalizeFormation(formation = {}) {
+  const safeFormation = { ...formation };
+  delete safeFormation.commission_forges_pct;
+  delete safeFormation.prix_catalogue;
+  delete safeFormation.taux_commission_forges;
+
+  const statutValidation = normalizeValidationStatus(safeFormation.statut_validation);
+
   return {
-    ...formation,
+    ...safeFormation,
+    statut_validation: statutValidation,
     titre: formation.titre || formation.intitule || '',
     intitule: formation.intitule || formation.titre || '',
     description: formation.description || formation.description_courte || '',
@@ -31,14 +49,19 @@ function normalizeFormation(formation = {}) {
     duree_jours: formation.duree_jours || formation.duree || 0,
     prix_coutant: formation.prix_coutant ?? formation.prix_coutant_soumis ?? 0,
     prix_coutant_soumis: formation.prix_coutant_soumis ?? formation.prix_coutant ?? 0,
-    motif_rejet: formation.motif_rejet || formation.corrections_suggerees || '',
-    corrections_suggerees: formation.corrections_suggerees || formation.motif_rejet || '',
+    motif_rejet: formation.motif_rejet || formation.commentaire_responsable || '',
+    corrections_suggerees: formation.corrections_suggerees || formation.corrections_suggeres || '',
   };
 }
 
 function normalizeReversement(reversement = {}) {
+  const safeReversement = { ...reversement };
+  delete safeReversement.commission_forges_pct;
+  delete safeReversement.prix_catalogue;
+  delete safeReversement.taux_commission_forges;
+
   return {
-    ...reversement,
+    ...safeReversement,
     id: reversement.id || `${reversement.formation?.intitule || 'reversement'}-${reversement.date_reversement || reversement.date_creation || ''}`,
     montant_net: reversement.montant_net ?? reversement.montant_reverse_xof ?? reversement.montant_reverse ?? 0,
     statut_validation: reversement.statut_validation || reversement.statut || 'EN_ATTENTE',
@@ -48,7 +71,7 @@ function normalizeReversement(reversement = {}) {
     },
     date_validation: reversement.date_validation || reversement.date_reversement || reversement.created_at || null,
     date_reversement: reversement.date_reversement || reversement.date_validation || null,
-    message: reversement.message || (reversement.statut === 'REVERSEE' ? 'Reversement effectué' : 'En attente de reversement'),
+    message: reversement.message || (normalizeValidationStatus(reversement.statut) === 'REVERSEE' ? 'Reversement effectué' : 'En attente de reversement'),
   };
 }
 

@@ -143,27 +143,27 @@ export default function SoumettreFormation() {
       <Card title={copy.section1}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.titleLabel}</label>
-            <input value={formData.titre} onChange={(e) => setField('titre', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-titre" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.titleLabel}</label>
+            <input id="partenaire-formation-titre" value={formData.titre} onChange={(e) => setField('titre', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.titre && <p className="mt-1 text-sm text-red-600">{errors.titre}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.domain}</label>
-            <input value={formData.domaine} onChange={(e) => setField('domaine', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-domaine" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.domain}</label>
+            <input id="partenaire-formation-domaine" value={formData.domaine} onChange={(e) => setField('domaine', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.domaine && <p className="mt-1 text-sm text-red-600">{errors.domaine}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.subdomain}</label>
-            <input value={formData.sous_domaine} onChange={(e) => setField('sous_domaine', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-sous-domaine" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.subdomain}</label>
+            <input id="partenaire-formation-sous-domaine" value={formData.sous_domaine} onChange={(e) => setField('sous_domaine', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.target}</label>
-            <input value={formData.public_cible} onChange={(e) => setField('public_cible', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-public-cible" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.target}</label>
+            <input id="partenaire-formation-public-cible" value={formData.public_cible} onChange={(e) => setField('public_cible', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.public_cible && <p className="mt-1 text-sm text-red-600">{errors.public_cible}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.level}</label>
-            <select value={formData.niveau} onChange={(e) => setField('niveau', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
+            <label htmlFor="partenaire-formation-niveau" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.level}</label>
+            <select id="partenaire-formation-niveau" value={formData.niveau} onChange={(e) => setField('niveau', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
               <option value="DEBUTANT">{copy.beginner}</option>
               <option value="INTERMEDIAIRE">{copy.intermediate}</option>
               <option value="AVANCE">{copy.advanced}</option>
@@ -171,8 +171,8 @@ export default function SoumettreFormation() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.language}</label>
-            <select value={formData.langue} onChange={(e) => setField('langue', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
+            <label htmlFor="partenaire-formation-langue" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.language}</label>
+            <select id="partenaire-formation-langue" value={formData.langue} onChange={(e) => setField('langue', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
               <option value="FR">{copy.french}</option>
               <option value="EN">{copy.english}</option>
               <option value="ES">{copy.spanish}</option>
@@ -180,8 +180,8 @@ export default function SoumettreFormation() {
             </select>
           </div>
           <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.descriptionLabel}</label>
-            <textarea rows="4" value={formData.description} onChange={(e) => setField('description', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-description" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.descriptionLabel}</label>
+            <textarea id="partenaire-formation-description" rows="4" value={formData.description} onChange={(e) => setField('description', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
           </div>
         </div>
@@ -190,22 +190,22 @@ export default function SoumettreFormation() {
       <Card title={copy.section2}>
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.objectives}</label>
-            <textarea rows="4" value={formData.objectifs} onChange={(e) => setField('objectifs', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-objectifs" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.objectives}</label>
+            <textarea id="partenaire-formation-objectifs" rows="4" value={formData.objectifs} onChange={(e) => setField('objectifs', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.objectifs && <p className="mt-1 text-sm text-red-600">{errors.objectifs}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.prerequisites}</label>
-            <textarea rows="3" value={formData.prerequis} onChange={(e) => setField('prerequis', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-prerequis" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.prerequisites}</label>
+            <textarea id="partenaire-formation-prerequis" rows="3" value={formData.prerequis} onChange={(e) => setField('prerequis', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.programme}</label>
-            <textarea rows="6" value={formData.programme} onChange={(e) => setField('programme', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-programme" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.programme}</label>
+            <textarea id="partenaire-formation-programme" rows="6" value={formData.programme} onChange={(e) => setField('programme', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.programme && <p className="mt-1 text-sm text-red-600">{errors.programme}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.skills}</label>
-            <textarea rows="4" value={formData.competences_vises} onChange={(e) => setField('competences_vises', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-competences" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.skills}</label>
+            <textarea id="partenaire-formation-competences" rows="4" value={formData.competences_vises} onChange={(e) => setField('competences_vises', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.competences_vises && <p className="mt-1 text-sm text-red-600">{errors.competences_vises}</p>}
           </div>
         </div>
@@ -214,42 +214,42 @@ export default function SoumettreFormation() {
       <Card title={copy.section3}>
         <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.modality}</label>
-            <select value={formData.modalite} onChange={(e) => setField('modalite', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
+            <label htmlFor="partenaire-formation-modalite" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.modality}</label>
+            <select id="partenaire-formation-modalite" value={formData.modalite} onChange={(e) => setField('modalite', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
               <option value="EN_LIGNE">{copy.online}</option>
               <option value="HYBRIDE">{copy.hybrid}</option>
               <option value="PRESENTIEL">{copy.inPerson}</option>
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.mode}</label>
-            <select value={formData.mode_formation} onChange={(e) => setField('mode_formation', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
+            <label htmlFor="partenaire-formation-mode" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.mode}</label>
+            <select id="partenaire-formation-mode" value={formData.mode_formation} onChange={(e) => setField('mode_formation', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2">
               <option value="AVEC_SESSION">{copy.withSession}</option>
               <option value="A_LA_DEMANDE">{copy.onDemand}</option>
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.duration}</label>
-            <input type="number" min="1" value={formData.duree_heures} onChange={(e) => setField('duree_heures', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-duree" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.duration}</label>
+            <input id="partenaire-formation-duree" type="number" min="1" value={formData.duree_heures} onChange={(e) => setField('duree_heures', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.duree_heures && <p className="mt-1 text-sm text-red-600">{errors.duree_heures}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.capacity}</label>
-            <input type="number" min="1" value={formData.capacite_max} onChange={(e) => setField('capacite_max', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-capacite" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.capacity}</label>
+            <input id="partenaire-formation-capacite" type="number" min="1" value={formData.capacite_max} onChange={(e) => setField('capacite_max', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.capacite_max && <p className="mt-1 text-sm text-red-600">{errors.capacite_max}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.startDate}</label>
-            <input type="date" value={formData.date_debut_souhaitee} onChange={(e) => setField('date_debut_souhaitee', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-date-debut" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.startDate}</label>
+            <input id="partenaire-formation-date-debut" type="date" value={formData.date_debut_souhaitee} onChange={(e) => setField('date_debut_souhaitee', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.endDate}</label>
-            <input type="date" value={formData.date_fin_souhaitee} onChange={(e) => setField('date_fin_souhaitee', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-date-fin" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.endDate}</label>
+            <input id="partenaire-formation-date-fin" type="date" value={formData.date_fin_souhaitee} onChange={(e) => setField('date_fin_souhaitee', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.date_fin_souhaitee && <p className="mt-1 text-sm text-red-600">{errors.date_fin_souhaitee}</p>}
           </div>
           <div className="md:col-span-3">
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.location}</label>
-            <input type="text" value={formData.lieu} onChange={(e) => setField('lieu', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-lieu" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.location}</label>
+            <input id="partenaire-formation-lieu" type="text" value={formData.lieu} onChange={(e) => setField('lieu', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.lieu && <p className="mt-1 text-sm text-red-600">{errors.lieu}</p>}
           </div>
         </div>
@@ -258,12 +258,12 @@ export default function SoumettreFormation() {
       <Card title={copy.section4}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.trainerContact}</label>
-            <input type="text" value={formData.contact_formateur} onChange={(e) => setField('contact_formateur', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-contact-formateur" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.trainerContact}</label>
+            <input id="partenaire-formation-contact-formateur" type="text" value={formData.contact_formateur} onChange={(e) => setField('contact_formateur', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.certification}</label>
-            <input type="text" value={formData.certification} onChange={(e) => setField('certification', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-certification" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.certification}</label>
+            <input id="partenaire-formation-certification" type="text" value={formData.certification} onChange={(e) => setField('certification', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
           </div>
         </div>
       </Card>
@@ -271,8 +271,8 @@ export default function SoumettreFormation() {
       <Card title={copy.section5}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.costPrice}</label>
-            <input type="number" min="1" step="1" value={formData.prix_coutant} onChange={(e) => setField('prix_coutant', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
+            <label htmlFor="partenaire-formation-prix-coutant" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.costPrice}</label>
+            <input id="partenaire-formation-prix-coutant" type="number" min="1" step="1" value={formData.prix_coutant} onChange={(e) => setField('prix_coutant', e.target.value)} className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2" />
             {errors.prix_coutant && <p className="mt-1 text-sm text-red-600">{errors.prix_coutant}</p>}
           </div>
           <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-4 text-sm text-[var(--color-subtext)]">
@@ -284,8 +284,9 @@ export default function SoumettreFormation() {
       {formData.mode_formation === 'A_LA_DEMANDE' && (
         <Card title={copy.section6}>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.contentUrl}</label>
+            <label htmlFor="partenaire-formation-url-contenu" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.contentUrl}</label>
             <input
+              id="partenaire-formation-url-contenu"
               type="url"
               value={formData.url_contenu}
               onChange={(e) => setField('url_contenu', e.target.value)}

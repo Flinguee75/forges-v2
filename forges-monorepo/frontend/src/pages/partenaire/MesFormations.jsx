@@ -141,8 +141,9 @@ export default function MesFormations() {
       <Card title={copy.filtersTitle}>
         <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.search}</label>
+            <label htmlFor="partenaire-formations-search" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.search}</label>
             <input
+              id="partenaire-formations-search"
               type="text"
               value={filtres.search}
               onChange={(e) => updateFilter('search', e.target.value)}
@@ -151,8 +152,9 @@ export default function MesFormations() {
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.validation}</label>
+            <label htmlFor="partenaire-formations-validation" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.validation}</label>
             <select
+              id="partenaire-formations-validation"
               value={filtres.statut_validation}
               onChange={(e) => updateFilter('statut_validation', e.target.value)}
               className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-partenaire)]"
@@ -165,8 +167,9 @@ export default function MesFormations() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.status}</label>
+            <label htmlFor="partenaire-formations-statut" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.status}</label>
             <select
+              id="partenaire-formations-statut"
               value={filtres.statut}
               onChange={(e) => updateFilter('statut', e.target.value)}
               className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-partenaire)]"

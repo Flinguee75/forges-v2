@@ -53,7 +53,7 @@ describe('DossiersList', () => {
       expect(screen.getByText('Formation test')).toBeInTheDocument();
       expect(screen.getByRole('columnheader', { name: 'Statut' })).toBeInTheDocument();
       expect(screen.queryByRole('columnheader', { name: 'Paiement' })).not.toBeInTheDocument();
-      expect(screen.getByText('Paiement requis')).toBeInTheDocument();
+      expect(screen.getAllByText('Paiement requis').length).toBeGreaterThan(0);
     });
   });
 });

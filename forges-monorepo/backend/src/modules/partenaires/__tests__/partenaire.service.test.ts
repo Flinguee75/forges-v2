@@ -817,6 +817,76 @@ describe('MOD-12 — Partenaires & Validation', () => {
           })
         );
       });
+
+      it('devrait effectuer un reversement agrégé retail + abonnement', async () => {
+        const partenaire = {
+          id: 'p-001',
+          raison_sociale: 'Partner A',
+          email_principal: 'partnera@test.com',
+          langue_preferee: 'FR',
+        };
+
+        mockPartRepo.findById.mockResolvedValue(partenaire as any);
+        (mockPrisma.commissionPartenaire.findMany as jest.Mock).mockResolvedValue([
+          { id: 'c-retail-001', montant_reverse: 3000000, statut: 'EN_ATTENTE' },
+          { id: 'c-retail-002', montant_reverse: 2000000, statut: 'EN_ATTENTE' },
+        ]);
+        (mockPrisma.commissionPartenaireAbonnement.findMany as jest.Mock).mockResolvedValue([
+          { id: 'c-abo-001', montant_reverse: 1500000, statut: 'EN_ATTENTE' },
+        ]);
+        (mockPrisma.commissionPartenaire.updateMany as jest.Mock).mockResolvedValue({ count: 2 });
+        (mockPrisma.commissionPartenaireAbonnement.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+        mockEmail.sendReversementPartenaire.mockResolvedValue(undefined as any);
+        mockAudit.info.mockResolvedValue(undefined);
+
+        const result = await partenaireService.effectuerReversementPartenaire('p-001', 'agent-123', {});
+
+        expect(result).toMatchObject({
+          success: true,
+          montant_reverse_xof: 6500000,
+          nb_commissions: 3,
+        });
+        expect(mockPrisma.commissionPartenaire.updateMany).toHaveBeenCalledWith({
+          where: { partenaire_id: 'p-001', statut: 'EN_ATTENTE' },
+          data: expect.objectContaining({
+            statut: 'REVERSE',
+            reverse_par: 'agent-123',
+          }),
+        });
+        expect(mockPrisma.commissionPartenaireAbonnement.updateMany).toHaveBeenCalledWith({
+          where: { partenaire_id: 'p-001', statut: 'EN_ATTENTE' },
+          data: expect.objectContaining({
+            statut: 'REVERSE',
+            reverse_par: 'agent-123',
+          }),
+        });
+        expect(mockEmail.sendReversementPartenaire).toHaveBeenCalledWith(
+          'partnera@test.com',
+          'Partner A',
+          6500000,
+          3,
+          expect.any(String),
+          'FR'
+        );
+      });
+
+      it('devrait rejeter si aucune commission partenaire n’est en attente', async () => {
+        mockPartRepo.findById.mockResolvedValue({
+          id: 'p-001',
+          raison_sociale: 'Partner A',
+          email_principal: 'partnera@test.com',
+        } as any);
+        (mockPrisma.commissionPartenaire.findMany as jest.Mock).mockResolvedValue([]);
+        (mockPrisma.commissionPartenaireAbonnement.findMany as jest.Mock).mockResolvedValue([]);
+
+        await expect(
+          partenaireService.effectuerReversementPartenaire('p-001', 'agent-123', {})
+        ).rejects.toThrow('AUCUNE_COMMISSION_EN_ATTENTE');
+
+        expect(mockPrisma.commissionPartenaire.updateMany).not.toHaveBeenCalled();
+        expect(mockPrisma.commissionPartenaireAbonnement.updateMany).not.toHaveBeenCalled();
+        expect(mockEmail.sendReversementPartenaire).not.toHaveBeenCalled();
+      });
     });
   });
 });

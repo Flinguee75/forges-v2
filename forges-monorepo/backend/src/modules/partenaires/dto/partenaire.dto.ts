@@ -25,7 +25,7 @@ export const SoumettreFormationSchema = z.object({
   objectifs_pedagogiques: z.array(z.string()).min(1).max(10),
   prerequis: z.string().optional(),
   programme_syllabus: z.string().optional(),
-  modalite: z.enum(['PRESENTIEL', 'DISTANCIEL', 'HYBRIDE']).optional(),
+  modalite: z.enum(['PRESENTIEL', 'EN_LIGNE', 'HYBRIDE']).optional(),
   nb_places_max_session: z.number().int().min(1).optional(),
   // RM-129 : prix coûtant soumis par le partenaire
   prix_coutant_propose: z.number().int().min(1, 'Prix coûtant obligatoire en XOF'),

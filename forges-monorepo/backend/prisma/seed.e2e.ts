@@ -47,6 +47,7 @@ const IDS = {
   partenaire: 'part-e2e-01',
   partenaireInvite: 'part-e2e-invite-01',
   partenairePending: 'part-e2e-pending-01',
+  partenaireSuspendu: 'part-e2e-suspendu-01',
   apporteur: 'apt-e2e-rm145-01',
   apporteurSuspendu: 'apt-e2e-susp-01',
   formationStandard: 'F-E2E-STD-01',
@@ -128,6 +129,7 @@ const EMAILS = {
   partenaire: 'partenaire-e2e@forges.ci',
   partenaireInvite: 'partenaire-invite-e2e@forges.ci',
   partenairePending: 'partenaire-pending-e2e@forges.ci',
+  partenaireSuspendu: 'partenaire-suspendu-e2e@forges.ci',
   apporteur: 'apporteur-e2e@forges.ci',
   apporteurSuspendu: 'apporteur-susp-e2e@forges.ci',
 };
@@ -195,7 +197,7 @@ async function cleanupScenarioData() {
     IDS.formationDemande,
     IDS.formationPartenaire,
   ];
-  const partenaireIds = [IDS.partenaire, IDS.partenaireInvite, IDS.partenairePending];
+  const partenaireIds = [IDS.partenaire, IDS.partenaireInvite, IDS.partenairePending, IDS.partenaireSuspendu];
   const sessionIds = [
     IDS.sessionStandard,
     IDS.sessionPremiumRetail,
@@ -262,6 +264,9 @@ async function cleanupScenarioData() {
         { dossier_id: { in: commissionDossierIds } },
         { dossier: { apprenant_id: { in: apprenantIds } } },
         { dossier: { apprenant_id: { startsWith: 'app-rm' } } },
+        { dossier: { session_id: { in: sessionIds } } },
+        { dossier: { formation_id: { in: formationIds } } },
+        { dossier: { formation_id: { startsWith: 'F-RM' } } },
         { dossier: { apprenant: { email: { contains: 'forges.test' } } } },
       ],
     },
@@ -632,6 +637,20 @@ async function main() {
       password_hash: passwordHash,
       commission_forges_pct: 20,
       statut: 'EN_ATTENTE_VERIFICATION',
+      mode_inscription: 'AUTO_INSCRIPTION',
+      responsable_designe_id: IDS.responsable,
+    },
+  });
+  await prisma.partenaire.create({
+    data: {
+      id: IDS.partenaireSuspendu,
+      raison_sociale: 'Partenaire E2E Suspendu',
+      type: 'UNIVERSITE',
+      pays: 'CI',
+      email_principal: EMAILS.partenaireSuspendu,
+      password_hash: passwordHash,
+      commission_forges_pct: 20,
+      statut: 'SUSPENDU',
       mode_inscription: 'AUTO_INSCRIPTION',
       responsable_designe_id: IDS.responsable,
     },
