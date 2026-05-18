@@ -419,6 +419,10 @@ const router = createBrowserRouter([
         element: withSuspense(<CatalogueOrganisationPage />),
       },
       {
+        path: 'catalogue/:id',
+        element: withSuspense(<FormationDetailApprenantPage />),
+      },
+      {
         path: 'formations/:id',
         element: withSuspense(<FormationDetailApprenantPage />),
       },

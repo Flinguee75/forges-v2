@@ -73,4 +73,29 @@ describe('MonAbonnementOrg', () => {
       expect(screen.getByText(/Aucune offre n['’]est sélectionnée pour le moment/i)).toBeInTheDocument();
     });
   });
+
+  it('affiche les montants Organisation en XOF sans conversion centimes', async () => {
+    organisationApiModule.organisationApi.getAbonnementOrganisation.mockResolvedValueOnce({
+      id: 'abo-org-2',
+      statut: 'ACTIF',
+      is_trial: false,
+      offre: 'PRO',
+      date_renouvellement: '2027-04-01T00:00:00.000Z',
+      montant_annuel_xof: 150000,
+      montant_annuel: 150000,
+      can_subscribe: false,
+    });
+
+    render(
+      <BrowserRouter>
+        <MonAbonnementOrg />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('150 000 FCFA').length).toBeGreaterThan(0);
+      expect(screen.queryByText('1 500 000 FCFA')).not.toBeInTheDocument();
+      expect(screen.queryByText('1 500 FCFA')).not.toBeInTheDocument();
+    });
+  });
 });

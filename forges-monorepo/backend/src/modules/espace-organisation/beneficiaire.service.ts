@@ -41,14 +41,17 @@ export class BeneficiaireService {
     // que ImportCSVService traite chaque ligne. Le check ligne par ligne dans
     // ImportCSVService constitue le garde-fou effectif pour l'import en lot.
     const org = await this.orgRepo.findOrganisationById(organisation_id);
-    if (org?.abonnement_b2b) {
-      const nbActifs = await this.orgRepo.countActifsB2B(organisation_id);
-      if (nbActifs >= org.abonnement_b2b.nb_max) {
-        throw new Error('B2B_PLAFOND_ATTEINT');
-      }
+    const quota = await this.getB2BQuota(organisation_id, org);
+    if (quota && !quota.canAddMember) {
+      throw new Error('B2B_PLAFOND_ATTEINT');
     }
 
-    return this.importCSV.importerBeneficiaires(csvContent, organisation_id, userId);
+    return this.importCSV.importerBeneficiaires(
+      csvContent,
+      organisation_id,
+      userId,
+      quota ? { b2bQuota: { nbMax: quota.nbMax } } : undefined
+    );
   }
 
   // UCS12.1 — Dashboard B2B
@@ -79,22 +82,12 @@ export class BeneficiaireService {
 
     if (!apprenant) throw new Error('APPRENANT_NOT_FOUND');
 
-    const org = await this.orgRepo.findOrganisationById(organisation_id);
-
     // RM-62 : désactivation seulement — pas de suppression — certifications conservées
-    // Les deux writes sont atomiques : si le decrement échoue, l'apprenant reste ACTIF.
     await this.prisma.$transaction(async (tx) => {
       await tx.apprenant.update({
         where: { id: apprenant_id },
         data: { statut: 'INACTIF' }
       });
-
-      if (org?.abonnement_b2b_id) {
-        await tx.abonnementB2B.update({
-          where: { id: org.abonnement_b2b_id },
-          data: { nb_actifs: { decrement: 1 } }
-        });
-      }
     });
 
     await this.audit.info('BENEFICIAIRE_DESACTIVE', {
@@ -124,14 +117,9 @@ export class BeneficiaireService {
     // Phase 2 : transaction sérialisable — re-compter dans la transaction pour éviter la race
     let apprenant: any;
     await this.prisma.$transaction(async (tx) => {
-      // RM-61 : re-vérification plafond B2B à l'intérieur de la transaction
-      if (org?.abonnement_b2b) {
-        const nbActifs = await tx.apprenant.count({
-          where: { organisation_id, statut: 'ACTIF' }
-        });
-        if (nbActifs >= org.abonnement_b2b.nb_max) {
-          throw new Error('B2B_PLAFOND_ATTEINT');
-        }
+      const quota = await this.getB2BQuotaInTransaction(tx, organisation_id, org);
+      if (quota && !quota.canAddMember) {
+        throw new Error('B2B_PLAFOND_ATTEINT');
       }
 
       apprenant = await tx.apprenant.create({
@@ -153,13 +141,6 @@ export class BeneficiaireService {
           consentement_version_cgu: '1.0',
         }
       });
-
-      if (org?.abonnement_b2b_id) {
-        await tx.abonnementB2B.update({
-          where: { id: org.abonnement_b2b_id },
-          data: { nb_actifs: { increment: 1 } }
-        });
-      }
     }, { isolationLevel: 'Serializable' });
 
     // Phase 3 : effets de bord hors transaction
@@ -217,12 +198,9 @@ export class BeneficiaireService {
     let voucherOrg: any = null;
 
     if (data.source_financement === 'B2B') {
-      // 4a. Vérifier quota B2B (RM-61)
+      // 4a. Vérifier l'abonnement B2B, sans consommer une place supplémentaire.
       const org = await this.orgRepo.findOrganisationById(organisation_id);
-      if (org?.abonnement_b2b) {
-        const nbActifs = await this.orgRepo.countActifsB2B(organisation_id);
-        if (nbActifs >= org.abonnement_b2b.nb_max) throw new Error('B2B_PLAFOND_ATTEINT');
-      }
+      if (!org?.abonnement_b2b) throw new Error('ABONNEMENT_B2B_INACTIF');
     } else {
       // 4b. Valider le VoucherOrganisation
       voucherOrg = await (this.prisma as any).voucherOrganisation.findFirst({
@@ -289,6 +267,35 @@ export class BeneficiaireService {
     });
 
     return { dossier_id: dossier.id, statut: 'PAYE' };
+  }
+
+  private async getB2BQuota(organisation_id: string, org?: any) {
+    if (!org?.abonnement_b2b) return null;
+
+    const nbActifs = await this.orgRepo.countActifsB2B(organisation_id);
+    return this.buildB2BQuota(org.abonnement_b2b.nb_max, nbActifs);
+  }
+
+  private async getB2BQuotaInTransaction(tx: any, organisation_id: string, org?: any) {
+    if (!org?.abonnement_b2b) return null;
+
+    const nbActifs = await tx.apprenant.count({
+      where: { organisation_id, statut: 'ACTIF' }
+    });
+    return this.buildB2BQuota(org.abonnement_b2b.nb_max, nbActifs);
+  }
+
+  private buildB2BQuota(nbMax: number, nbActifs: number) {
+    const placesRestantes = Math.max(nbMax - nbActifs, 0);
+
+    return {
+      nbMax,
+      nbActifs,
+      placesRestantes,
+      canAddMember: placesRestantes > 0,
+      canImportMembers: placesRestantes > 0,
+      canEnrollBeneficiary: true,
+    };
   }
 
   private async creerPaiementOrganisationConfirme(

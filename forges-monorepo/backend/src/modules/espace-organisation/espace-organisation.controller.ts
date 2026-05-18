@@ -52,7 +52,13 @@ export class EspaceOrganisationController {
   // GET /api/organisation/vouchers — ORGANISATION
   async getMesVouchers(req: Request, res: Response, next: NextFunction) {
     try {
-      const vouchers = await this.orgService.getMesVouchers(req.user!.userId);
+      const { statut, formation_id, page, limit } = req.query;
+      const vouchers = await this.orgService.getMesVouchers(req.user!.userId, {
+        statut,
+        formation_id,
+        page: page ? parseInt(page as string, 10) : 1,
+        limit: limit ? parseInt(limit as string, 10) : 20,
+      });
       res.json(vouchers);
     } catch (error) { next(error); }
   }
@@ -204,7 +210,14 @@ export class EspaceOrganisationController {
         req.body
       );
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message === 'EMAIL_ALREADY_EXISTS') {
+        return res.status(409).json({
+          statusCode: 409,
+          error: 'DUPLICATE_EMAIL',
+          message: 'Un compte avec cet email existe déjà.'
+        });
+      }
       next(error);
     }
   }

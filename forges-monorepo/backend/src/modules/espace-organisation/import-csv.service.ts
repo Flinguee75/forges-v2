@@ -16,7 +16,16 @@ export interface ResultatImport {
   succes: number;
   erreurs: number;
   doublons: number;
+  imported: number;
+  linked: number;
+  skipped: number;
   rapport: Array<{ ligne: number; email: string; statut: string; message?: string }>;
+}
+
+interface ImportOptions {
+  b2bQuota?: {
+    nbMax: number;
+  };
 }
 
 function parseSimpleCsv(csvContent: string): LigneBeneficiaire[] {
@@ -47,7 +56,8 @@ export class ImportCSVService {
   async importerBeneficiaires(
     csvContent: string,
     organisation_id: string,
-    userId: string
+    userId: string,
+    options: ImportOptions = {}
   ): Promise<ResultatImport> {
     const lignes: LigneBeneficiaire[] = parseSimpleCsv(csvContent);
 
@@ -81,22 +91,33 @@ export class ImportCSVService {
         const tempPassword = uuidv4().substring(0, 12) + 'A1!';
         const password_hash = await hash(tempPassword, 12);
 
-        await this.prisma.apprenant.create({
-          data: {
-            email: ligne.email.toLowerCase(),
-            password_hash,
-            nom: ligne.nom,
-            prenoms: ligne.prenoms,
-            type_apprenant: 'PROFESSIONNEL',
-            pays_residence: ligne.pays || 'CI',
-            pays_nationalite: ligne.pays || 'CI',
-            langue_preferee: 'FR',
-            statut: 'ACTIF',
-            organisation_id,
-            consentement_rgpd: false,
-            consentement_timestamp: new Date(),
-            consentement_version_cgu: '1.0',
+        await this.runInTransaction(async (tx) => {
+          if (options.b2bQuota) {
+            const nbActifs = await tx.apprenant.count({
+              where: { organisation_id, statut: 'ACTIF' },
+            });
+            if (nbActifs >= options.b2bQuota.nbMax) {
+              throw new Error('B2B_PLAFOND_ATTEINT');
+            }
           }
+
+          await tx.apprenant.create({
+            data: {
+              email: ligne.email.toLowerCase(),
+              password_hash,
+              nom: ligne.nom,
+              prenoms: ligne.prenoms,
+              type_apprenant: 'PROFESSIONNEL',
+              pays_residence: ligne.pays || 'CI',
+              pays_nationalite: ligne.pays || 'CI',
+              langue_preferee: 'FR',
+              statut: 'ACTIF',
+              organisation_id,
+              consentement_rgpd: false,
+              consentement_timestamp: new Date(),
+              consentement_version_cgu: '1.0',
+            }
+          });
         });
 
         // Envoi identifiants par email
@@ -120,6 +141,22 @@ export class ImportCSVService {
       user_id: userId
     });
 
-    return { succes, erreurs, doublons, rapport };
+    return {
+      succes,
+      erreurs,
+      doublons,
+      imported: succes,
+      linked: 0,
+      skipped: erreurs + doublons,
+      rapport,
+    };
+  }
+
+  private async runInTransaction<T>(callback: (tx: PrismaClient) => Promise<T>): Promise<T> {
+    const transaction = (this.prisma as any).$transaction;
+    if (typeof transaction === 'function') {
+      return transaction.call(this.prisma, callback, { isolationLevel: 'Serializable' });
+    }
+    return callback(this.prisma);
   }
 }

@@ -37,15 +37,11 @@ vi.mock('../../../hooks/useToast', () => ({
 const mockProfilData = {
   email: 'contact@organisation.com',
   type: 'ENTREPRISE',
-  nom_legal: 'Organisation Test SARL',
-  nom_commercial: 'OrgTest',
+  raison_sociale: 'Organisation Test SARL',
   identifiant_legal: 'CI-ABJ-2023-B-12345',
-  secteur_activite: 'Technologies de l\'information',
   pays: 'CI',
   statut: 'ACTIVE',
-  email_contact: 'contact@orgtest.com',
-  telephone_contact: '+225 01 02 03 04 05',
-  contact_referent: 'Kouassi Jean',
+  contact_referent: 'Kouassi Jean-Baptiste Marie',
   langue_preferee: 'FR',
 };
 
@@ -68,10 +64,9 @@ describe('ProfilOrganisationPage - Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Organisation Test SARL')).toBeInTheDocument();
-      expect(screen.getByText('OrgTest')).toBeInTheDocument();
       expect(screen.getByText('contact@organisation.com')).toBeInTheDocument();
-      expect(screen.getByText('Technologies de l\'information')).toBeInTheDocument();
       expect(screen.getByText('CI-ABJ-2023-B-12345')).toBeInTheDocument();
+      expect(screen.getByText('Kouassi Jean-Baptiste Marie')).toBeInTheDocument();
     });
   });
 
@@ -140,8 +135,8 @@ describe('ProfilOrganisationPage - Tests', () => {
     // Wait for form to appear and check all editable fields are present
     // Labels may contain * for required fields, so use regex
     await waitFor(() => {
-      expect(screen.getByLabelText(/Nom légal/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Email de contact/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Raison sociale/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Contact référent/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Pays/i)).toBeInTheDocument();
       expect(screen.getByText('Langue préférée')).toBeInTheDocument();
@@ -189,7 +184,7 @@ describe('ProfilOrganisationPage - Tests', () => {
     await user.click(modifierButton);
 
     // Wait for form to appear
-    const nomLegalInput = await screen.findByLabelText(/Nom légal/i);
+    const nomLegalInput = await screen.findByLabelText(/Raison sociale/i);
     await user.clear(nomLegalInput);
     await user.type(nomLegalInput, 'Nouveau Nom SARL');
 
@@ -199,14 +194,43 @@ describe('ProfilOrganisationPage - Tests', () => {
     await waitFor(() => {
       expect(organisationApi.organisationApi.updateProfil).toHaveBeenCalledWith(
         expect.objectContaining({
-          nom_legal: 'Nouveau Nom SARL',
+          raison_sociale: 'Nouveau Nom SARL',
+          contact_referent: 'Kouassi Jean-Baptiste Marie',
         })
       );
       expect(mockToast).toHaveBeenCalledWith('Profil mis à jour avec succès', 'success');
     });
   });
 
-  it('affiche les sections organisées (Général, Contact, Référent)', async () => {
+  it('conserve les champs non modifiés affichés après une sauvegarde minimale', async () => {
+    const user = userEvent.setup();
+    organisationApi.organisationApi.updateProfil.mockResolvedValueOnce({
+      ...mockProfilData,
+      raison_sociale: 'Nouveau Nom SARL',
+    });
+
+    render(
+      <BrowserRouter>
+        <ProfilOrganisationPage />
+      </BrowserRouter>
+    );
+
+    await user.click(await screen.findByText('Modifier'));
+
+    const raisonSocialeInput = await screen.findByLabelText(/Raison sociale/i);
+    await user.clear(raisonSocialeInput);
+    await user.type(raisonSocialeInput, 'Nouveau Nom SARL');
+    await user.click(screen.getByText('Enregistrer'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Nouveau Nom SARL')).toBeInTheDocument();
+      expect(screen.getByText('contact@organisation.com')).toBeInTheDocument();
+      expect(screen.getByText('Kouassi Jean-Baptiste Marie')).toBeInTheDocument();
+      expect(screen.getByText('CI-ABJ-2023-B-12345')).toBeInTheDocument();
+    });
+  });
+
+  it('affiche les sections organisées (Général, Contact)', async () => {
     render(
       <BrowserRouter>
         <ProfilOrganisationPage />
@@ -216,8 +240,7 @@ describe('ProfilOrganisationPage - Tests', () => {
     await waitFor(() => {
       expect(screen.getByText('Informations générales')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Contact' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Référent' })).toBeInTheDocument();
-      expect(screen.getByText('Kouassi Jean')).toBeInTheDocument();
+      expect(screen.getByText('Kouassi Jean-Baptiste Marie')).toBeInTheDocument();
     });
   });
 
@@ -234,14 +257,14 @@ describe('ProfilOrganisationPage - Tests', () => {
     });
   });
 
-  it('gère les champs optionnels (nom_commercial)', async () => {
-    const mockProfilWithoutCommercial = {
+  it('gère les champs optionnels (identifiant_legal)', async () => {
+    const mockProfilWithoutLegalId = {
       ...mockProfilData,
-      nom_commercial: null,
+      identifiant_legal: null,
     };
 
     organisationApi.organisationApi.getProfil.mockResolvedValueOnce(
-      mockProfilWithoutCommercial
+      mockProfilWithoutLegalId
     );
 
     render(

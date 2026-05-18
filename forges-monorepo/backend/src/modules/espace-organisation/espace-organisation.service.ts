@@ -19,8 +19,8 @@ export class EspaceOrganisationService {
     return this.beneficiaireService.importerBeneficiairesCSV(csvContent, organisation_id, userId);
   }
 
-  getMesVouchers(organisation_id: string) {
-    return this.dashboardService.getMesVouchers(organisation_id);
+  getMesVouchers(organisation_id: string, filters?: any) {
+    return this.dashboardService.getMesVouchers(organisation_id, filters);
   }
 
   getRapportBailleur(organisation_id: string, filters?: any) {

@@ -239,7 +239,12 @@ export default function FormationDetailApprenantPage() {
                   )}
                   <div className="flex gap-2 justify-between">
                     <Button variant="outline" onClick={() => setStep(2)}>Retour</Button>
-                    <Button onClick={handleInscrire} loading={inscriptionLoading} disabled={!canSubmit}>
+                    <Button
+                      onClick={handleInscrire}
+                      loading={inscriptionLoading}
+                      disabled={!canSubmit}
+                      data-testid="btn-confirmer-inscription-employe"
+                    >
                       Inscrire
                     </Button>
                   </div>

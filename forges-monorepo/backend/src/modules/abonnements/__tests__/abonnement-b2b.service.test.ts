@@ -1,4 +1,4 @@
-import { AbonnementB2BService } from '../b2b/abonnement-b2b.service';
+import { AbonnementB2BService, PALIERS_B2B } from '../b2b/abonnement-b2b.service';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { createPrismaMock } from '../../../__tests__/helpers/prisma';
@@ -17,6 +17,15 @@ describe('AbonnementB2BService', () => {
   });
 
   // ─── souscrire ─────────────────────────────────────────────────────
+
+  it('verrouille la grille tarifaire B2B en XOF', () => {
+    expect(PALIERS_B2B).toEqual({
+      STARTER: { nb_max: 20, prix_annuel: 250000 },
+      BUSINESS: { nb_max: 50, prix_annuel: 500000 },
+      ENTERPRISE: { nb_max: 100, prix_annuel: 900000, premium_inclus: 2 },
+      SUR_DEVIS: { nb_max: 999, prix_annuel: 0 },
+    });
+  });
 
   it('crée un abonnement B2B EN_ATTENTE_PAIEMENT et retourne une payment_url', async () => {
     const created = {
@@ -52,7 +61,12 @@ describe('AbonnementB2BService', () => {
     expect(result.payment_url).toBeDefined();
     expect(result.payment_url).not.toContain('mock-ngser');
     expect(result.order_ngser).toBeDefined();
-    expect(result.abonnement).toEqual(created);
+    expect(result.prix_annuel_xof).toBe(500000);
+    expect(result.abonnement).toEqual(expect.objectContaining({
+      ...created,
+      prix_annuel_xof: 500000,
+      montant_annuel_xof: 500000,
+    }));
   });
 
   it('rejette si un abonnement ACTIF existe déjà', async () => {
@@ -76,8 +90,13 @@ describe('AbonnementB2BService', () => {
 
     const result = await service.souscrire('org-01', 'BUSINESS');
 
-    expect(result.abonnement).toEqual(existing);
+    expect(result.abonnement).toEqual(expect.objectContaining({
+      ...existing,
+      prix_annuel_xof: 500000,
+      montant_annuel_xof: 500000,
+    }));
     expect(result.payment_url).toContain('ABO-B2B-2026-001-EXISTING');
+    expect(result.prix_annuel_xof).toBe(500000);
     expect(prisma.abonnementB2B.create).not.toHaveBeenCalled();
   });
 

@@ -13,9 +13,11 @@ export class OrganisationDashboardService {
 
   // UCS12 — Dashboard organisation
   async getDashboard(organisation_id: string) {
-    const [org, stats] = await Promise.all([
+    const [org, stats, recentInscriptions, recentPaiements] = await Promise.all([
       this.orgRepo.findOrganisationById(organisation_id),
       this.orgRepo.getStatsOrganisation(organisation_id),
+      this.orgRepo.findRecentInscriptions(organisation_id),
+      this.orgRepo.findRecentPaiements(organisation_id),
     ]);
 
     if (!org) throw new Error('ORGANISATION_NOT_FOUND');
@@ -38,6 +40,62 @@ export class OrganisationDashboardService {
         abonnement_b2b: org.abonnement_b2b,
       },
       stats,
+      recent_inscriptions: recentInscriptions.map((dossier: any) => ({
+        ...dossier,
+        etudiant: dossier.apprenant
+          ? {
+              ...dossier.apprenant,
+              prenom: dossier.apprenant.prenom || dossier.apprenant.prenoms || '',
+            }
+          : null,
+        session: dossier.session
+          ? {
+              ...dossier.session,
+              formation: dossier.formation
+                ? {
+                    ...dossier.formation,
+                    titre: dossier.formation.titre || dossier.formation.intitule || '',
+                  }
+                : dossier.session.formation,
+            }
+          : null,
+      })),
+      recent_paiements: recentPaiements.map((paiement: any) => ({
+        ...paiement,
+        montant: paiement.montant_final ?? paiement.montant_catalogue ?? 0,
+        methode_paiement: paiement.methode_paiement || paiement.methode || null,
+        dossier: paiement.dossier
+          ? {
+              ...paiement.dossier,
+              etudiant: paiement.dossier.apprenant
+                ? {
+                    ...paiement.dossier.apprenant,
+                    prenom: paiement.dossier.apprenant.prenom || paiement.dossier.apprenant.prenoms || '',
+                  }
+                : null,
+              session: paiement.dossier.session
+                ? {
+                    ...paiement.dossier.session,
+                    formation: paiement.dossier.formation
+                      ? {
+                          ...paiement.dossier.formation,
+                          titre: paiement.dossier.formation.titre || paiement.dossier.formation.intitule || '',
+                        }
+                      : paiement.dossier.session.formation,
+                  }
+                : null,
+            }
+          : null,
+      })),
+      subscription_summary: {
+        organisation: org.abonnement_org || null,
+        b2b: org.abonnement_b2b
+          ? {
+              ...org.abonnement_b2b,
+              exists: true,
+            }
+          : null,
+      },
     };
   }
 
@@ -126,6 +184,7 @@ export class OrganisationDashboardService {
       contact_referent: org.contact_referent,
       type: org.type,
       sous_types: org.sous_types,
+      identifiant_legal: org.identifiant_legal,
       pays: org.pays,
       langue_preferee: org.langue_preferee,
       statut: org.statut,
@@ -134,22 +193,49 @@ export class OrganisationDashboardService {
 
   // UCS12 — Mise à jour profil
   async updateMonProfil(organisation_id: string, data: any) {
-    const updated = await this.prisma.organisation.update({
-      where: { id: organisation_id },
-      data: {
-        raison_sociale: data.raison_sociale,
-        email: data.email,
-        contact_referent: data.contact_referent,
-        pays: data.pays,
-        langue_preferee: data.langue_preferee,
+    const patch = this.buildOrganisationProfilePatch(data);
+
+    let updated;
+    try {
+      updated = await this.prisma.organisation.update({
+        where: { id: organisation_id },
+        data: patch
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002' && Array.isArray(error.meta?.target) && error.meta.target.includes('email')) {
+        throw new Error('EMAIL_ALREADY_EXISTS');
       }
-    });
+      throw error;
+    }
 
     await this.audit.info('PROFIL_ORGANISATION_MIS_A_JOUR', {
       organisation_id,
     });
 
-    return { message: 'Profil mis à jour avec succès', organisation: updated };
+    return {
+      message: 'Profil mis à jour avec succès',
+      organisation: {
+        id: updated.id,
+        raison_sociale: updated.raison_sociale,
+        email: updated.email,
+        contact_referent: updated.contact_referent,
+        type: updated.type,
+        sous_types: updated.sous_types,
+        identifiant_legal: updated.identifiant_legal,
+        pays: updated.pays,
+        langue_preferee: updated.langue_preferee,
+        statut: updated.statut,
+      }
+    };
+  }
+
+  private buildOrganisationProfilePatch(data: any) {
+    const allowedFields = ['raison_sociale', 'email', 'contact_referent', 'pays', 'langue_preferee'];
+    return Object.fromEntries(
+      allowedFields
+        .filter((field) => data[field] !== undefined)
+        .map((field) => [field, data[field]])
+    );
   }
 
   // UCS12 — Rapport bailleur PDF
@@ -158,8 +244,8 @@ export class OrganisationDashboardService {
   }
 
   // UCS12 — Mes vouchers
-  async getMesVouchers(organisation_id: string) {
-    return this.orgRepo.findVouchers(organisation_id);
+  async getMesVouchers(organisation_id: string, filters?: any) {
+    return this.orgRepo.findVouchers(organisation_id, filters);
   }
 
   // UCS12 — Commander des vouchers
@@ -175,15 +261,17 @@ export class OrganisationDashboardService {
     // Les vouchers organisation utilisent PROMOTIONNEL et sont distingués par organisation_id
     const vouchers = [];
     for (let i = 0; i < data.quantite; i++) {
-      const voucher = await this.prisma.voucherApporteur.create({
+      const voucher = await this.prisma.voucherOrganisation.create({
         data: {
           organisation_id,
           formation_id: data.formation_id,
           code: `ORG-${Date.now()}-${i}`,
           statut: 'ACTIF',
-          type: 'PROMOTIONNEL', // Les vouchers org utilisent PROMOTIONNEL (distingués par organisation_id)
+          type: 'ORGANISATION',
           valeur: formation.cout_catalogue || 0,
           type_valeur: 'MONTANT',
+          quota_max: 1,
+          quota_utilise: 0,
           date_expiration: new Date(Date.now() + 365 * 24 * 3600 * 1000), // 1 an
         }
       });

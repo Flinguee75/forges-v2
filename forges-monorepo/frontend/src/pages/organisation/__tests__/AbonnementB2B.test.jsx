@@ -46,7 +46,8 @@ describe('AbonnementB2B', () => {
       downgrade_planifie: 'STARTER',
       downgrade_message: 'Effectif au renouvellement',
       message: 'Le palier est atteint. Une montée en palier est recommandée.',
-      montant_annuel: 3000000,
+      montant_annuel_xof: 500000,
+      montant_annuel: 500000,
       date_renouvellement: '2027-04-01T00:00:00.000Z',
     });
     vi.spyOn(organisationApiModule.organisationApi, 'changerPalierB2B').mockResolvedValue({});
@@ -68,6 +69,20 @@ describe('AbonnementB2B', () => {
       expect(screen.getByText('25 / 25', { selector: 'p.text-xl.font-semibold.text-text' })).toBeInTheDocument();
       expect(screen.getAllByText(/Effectif au renouvellement/).length).toBeGreaterThan(0);
       expect(screen.getByText(/palier est atteint/i)).toBeInTheDocument();
+    });
+  });
+
+  it('affiche les montants B2B en XOF sans conversion centimes', async () => {
+    render(
+      <BrowserRouter>
+        <AbonnementB2B />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('500 000 FCFA').length).toBeGreaterThan(0);
+      expect(screen.queryByText('5 000 FCFA')).not.toBeInTheDocument();
+      expect(screen.queryByText('5 000 000 FCFA')).not.toBeInTheDocument();
     });
   });
 });
