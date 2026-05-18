@@ -189,4 +189,11 @@ export const E2E_SCENARIO = {
   voucherOrganisationUcs12Id: 'vch-org-ucs12-e2e-01',
   voucherOrganisationUcs12Code: 'VORG-E2E-UCS12-01',
   apporteurId: 'apt-e2e-rm145-01',
+  // Partenaire seeded regression scenarios (P3)
+  partenaireFormationValideId: 'F-E2E-PART-01',
+  partenaireFormationMetaValideId: 'FP-E2E-01',
+  partenaireFormationRejeteeId: 'F-E2E-PART-REJETE-01',
+  partenaireFormationMetaRejeteeId: 'FP-E2E-REJETE-01',
+  commissionPartenaireSeedId: 'CP-E2E-SEED-01',
+  dossierPartenaireCommId: 'D-E2E-PART-COMM-01',
 };
