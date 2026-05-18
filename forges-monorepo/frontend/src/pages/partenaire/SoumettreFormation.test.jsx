@@ -86,4 +86,68 @@ describe('SoumettreFormation', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/partenaire/formations');
     });
   });
+
+  it('soumet une formation complete avec montants en centimes et sans champs FORGES readonly', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SoumettreFormation />);
+
+    await user.type(screen.getByLabelText(/^Titre$/i), 'Cyber Defense Bootcamp');
+    await user.type(screen.getByLabelText(/^Domaine$/i), 'Cybersécurité');
+    await user.type(screen.getByLabelText(/Public cible/i), 'Responsables sécurité');
+    await user.type(screen.getByLabelText(/^Description$/i), 'Formation opérationnelle SOC et réponse incident.');
+    await user.type(screen.getByLabelText(/Objectifs/i), 'Diagnostiquer les incidents\nPiloter la réponse');
+    await user.type(screen.getByLabelText(/Programme/i), 'Jour 1 SOC\nJour 2 incident response');
+    await user.type(screen.getByLabelText(/Competences/i), 'Investigation, containment, reporting');
+    await user.type(screen.getByLabelText(/Duree/i), '24');
+    await user.type(screen.getByLabelText(/Capacite/i), '30');
+    await user.type(screen.getByLabelText(/Prix coutant/i), '125000');
+
+    await user.click(screen.getByRole('button', { name: /soumettre pour validation/i }));
+
+    await waitFor(() => expect(soumettreFormation).toHaveBeenCalledTimes(1));
+
+    const [payload, brouillon] = soumettreFormation.mock.calls[0];
+    expect(brouillon).toBe(false);
+    expect(payload).toEqual(expect.objectContaining({
+      titre: 'Cyber Defense Bootcamp',
+      duree_heures: 24,
+      capacite_max: 30,
+      prix_coutant: 12500000,
+    }));
+    expect(payload).not.toHaveProperty('type_formation');
+    expect(payload).not.toHaveProperty('pilier_abonnement');
+    expect(mockShowSuccess).toHaveBeenCalledWith('Formation soumise pour validation. Delai estime : 5 jours ouvres.');
+  });
+
+  it('bloque la soumission incomplete avant appel API', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SoumettreFormation />);
+
+    await user.click(screen.getByRole('button', { name: /soumettre pour validation/i }));
+
+    expect(soumettreFormation).not.toHaveBeenCalled();
+    expect(mockShowError).toHaveBeenCalledWith('Veuillez corriger les erreurs du formulaire.');
+    expect(screen.getAllByText('Champ obligatoire').length).toBeGreaterThan(0);
+  });
+
+  it('exige un lieu pour une formation avec session en presentiel', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SoumettreFormation />);
+
+    await user.type(screen.getByLabelText(/^Titre$/i), 'Atelier sécurité');
+    await user.type(screen.getByLabelText(/^Domaine$/i), 'Cybersécurité');
+    await user.type(screen.getByLabelText(/Public cible/i), 'Managers IT');
+    await user.type(screen.getByLabelText(/^Description$/i), 'Atelier de sécurité applicative.');
+    await user.type(screen.getByLabelText(/Objectifs/i), 'Comprendre les risques');
+    await user.type(screen.getByLabelText(/Programme/i), 'Menaces, contrôles, exercices');
+    await user.type(screen.getByLabelText(/Competences/i), 'Analyse de risque');
+    await user.selectOptions(screen.getByLabelText(/Modalite/i), 'PRESENTIEL');
+    await user.type(screen.getByLabelText(/Duree/i), '8');
+    await user.type(screen.getByLabelText(/Capacite/i), '15');
+    await user.type(screen.getByLabelText(/Prix coutant/i), '50000');
+    await user.click(screen.getByRole('button', { name: /soumettre pour validation/i }));
+
+    expect(soumettreFormation).not.toHaveBeenCalled();
+    expect(screen.getByText('Le lieu est requis pour les formations en presentiel ou hybrides')).toBeInTheDocument();
+  });
 });

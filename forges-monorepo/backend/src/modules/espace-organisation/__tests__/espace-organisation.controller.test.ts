@@ -60,10 +60,15 @@ describe('EspaceOrganisationController', () => {
       limit: 5,
     });
 
-    service.getMesVouchers.mockResolvedValueOnce([{ id: 'voucher-01' }] as any);
+    service.getMesVouchers.mockResolvedValueOnce({ vouchers: [{ id: 'voucher-01' }], total: 1, page: 2, limit: 5 } as any);
     await controller.getMesVouchers(req, res, next);
-    expect(service.getMesVouchers).toHaveBeenCalledWith('org-01');
-    expect(res.json).toHaveBeenCalledWith([{ id: 'voucher-01' }]);
+    expect(service.getMesVouchers).toHaveBeenCalledWith('org-01', {
+      statut: 'PAYE',
+      formation_id: 'formation-01',
+      page: 2,
+      limit: 5,
+    });
+    expect(res.json).toHaveBeenCalledWith({ vouchers: [{ id: 'voucher-01' }], total: 1, page: 2, limit: 5 });
 
     service.getRapportBailleur.mockResolvedValueOnce({ url: 'https://example.test/report.pdf' } as any);
     await controller.getRapportBailleur(

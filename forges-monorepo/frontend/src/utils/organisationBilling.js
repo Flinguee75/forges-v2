@@ -1,7 +1,7 @@
 const ORGANISATION_OFFERS = {
   BASIQUE: {
     label: 'Basique',
-    annualAmount: Number(import.meta.env.VITE_ABO_ORG_BASIQUE_XOF || 5000000),
+    annualAmountXof: Number(import.meta.env.VITE_ABO_ORG_BASIQUE_XOF || 50000),
     description: 'Accès complet à la plateforme après la période d\'essai. Idéal pour démarrer.',
     features: [
       'Tableau de bord organisation',
@@ -14,7 +14,7 @@ const ORGANISATION_OFFERS = {
   },
   PRO: {
     label: 'Pro',
-    annualAmount: Number(import.meta.env.VITE_ABO_ORG_PRO_XOF || 15000000),
+    annualAmountXof: Number(import.meta.env.VITE_ABO_ORG_PRO_XOF || 150000),
     description: 'Pour les organisations à fort volume de formations. Statistiques avancées et exports enrichis.',
     features: [
       'Tout le Basique',
@@ -26,7 +26,7 @@ const ORGANISATION_OFFERS = {
   },
   ENTERPRISE: {
     label: 'Enterprise',
-    annualAmount: Number(import.meta.env.VITE_ABO_ORG_ENTERPRISE_XOF || 40000000),
+    annualAmountXof: Number(import.meta.env.VITE_ABO_ORG_ENTERPRISE_XOF || 400000),
     description: 'Offre complète pour les grandes organisations avec SLA garanti et accès API.',
     features: [
       'Tout le Pro',
@@ -41,28 +41,28 @@ const ORGANISATION_OFFERS = {
 const B2B_PALIERS = {
   STARTER: {
     label: 'Starter',
-    annualAmount: 25000000,
+    annualAmountXof: 250000,
     nbMax: 20,
     range: '1 - 20',
     description: 'Pour les petites équipes. Idéal pour un premier déploiement B2B.',
   },
   BUSINESS: {
     label: 'Business',
-    annualAmount: 50000000,
+    annualAmountXof: 500000,
     nbMax: 50,
     range: '21 - 50',
     description: 'Pour les équipes en croissance avec des besoins de formation réguliers.',
   },
   ENTERPRISE: {
     label: 'Enterprise',
-    annualAmount: 90000000,
+    annualAmountXof: 900000,
     nbMax: 100,
     range: '51 - 100',
     description: 'Pour les grandes organisations. Inclut 2 formations Premium par an.',
   },
   SUR_DEVIS: {
     label: 'Sur devis',
-    annualAmount: 0,
+    annualAmountXof: 0,
     nbMax: 0,
     range: 'Plus de 100',
     description: 'Contactez FORGES pour un tarif adapté à vos volumes.',
@@ -78,10 +78,17 @@ function toIsoDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function formatFcfa(amount) {
-  const value = Math.round(Number(amount || 0) / 100);
+export function formatFcfaFromXof(amountXof) {
+  const value = Math.round(Number(amountXof || 0));
   return `${value.toLocaleString('fr-FR')} FCFA`;
 }
+
+export function formatFcfaFromCentimes(amountCentimes) {
+  const value = Math.round(Number(amountCentimes || 0) / 100);
+  return `${value.toLocaleString('fr-FR')} FCFA`;
+}
+
+export const formatFcfa = formatFcfaFromXof;
 
 export function formatDate(value) {
   const parsed = toIsoDate(value);
@@ -100,6 +107,7 @@ export function getOrganisationOfferList() {
   return Object.entries(ORGANISATION_OFFERS).map(([key, offer]) => ({
     key,
     ...offer,
+    annualAmount: offer.annualAmountXof,
   }));
 }
 
@@ -111,6 +119,7 @@ export function getB2BPalierList() {
   return Object.entries(B2B_PALIERS).map(([key, palier]) => ({
     key,
     ...palier,
+    annualAmount: palier.annualAmountXof,
   }));
 }
 
@@ -196,23 +205,27 @@ export function previewOrganisationSubscription(offre) {
   return {
     offre: normalized,
     label: config.label,
-    annualAmount: config.annualAmount,
-    formattedAmount: formatFcfa(config.annualAmount),
+    annualAmountXof: config.annualAmountXof,
+    annualAmount: config.annualAmountXof,
+    formattedAmount: formatFcfaFromXof(config.annualAmountXof),
   };
 }
 
 export function previewB2BUpgrade(currentPalier, targetPalier) {
   const current = B2B_PALIERS[String(currentPalier || '').toUpperCase()] || B2B_PALIERS.STARTER;
   const target = B2B_PALIERS[String(targetPalier || '').toUpperCase()] || current;
-  const diff = Math.max(0, target.annualAmount - current.annualAmount);
+  const diff = Math.max(0, target.annualAmountXof - current.annualAmountXof);
 
   return {
     currentPalier: currentPalier || 'STARTER',
     targetPalier: targetPalier || currentPalier || 'STARTER',
-    currentAmount: current.annualAmount,
-    targetAmount: target.annualAmount,
+    currentAmountXof: current.annualAmountXof,
+    targetAmountXof: target.annualAmountXof,
+    currentAmount: current.annualAmountXof,
+    targetAmount: target.annualAmountXof,
+    differentialAmountXof: diff,
     differentialAmount: diff,
-    formattedDifferentialAmount: formatFcfa(diff),
+    formattedDifferentialAmount: formatFcfaFromXof(diff),
   };
 }
 

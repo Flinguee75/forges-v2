@@ -44,7 +44,15 @@ describe('EspaceOrganisationService (facade)', () => {
   });
 
   it('importerBeneficiairesCSV delègue au beneficiaireService', async () => {
-    mockBeneficiaireService.importerBeneficiairesCSV.mockResolvedValue({ succes: 1, erreurs: 0, doublons: 0, rapport: [] });
+    mockBeneficiaireService.importerBeneficiairesCSV.mockResolvedValue({
+      succes: 1,
+      erreurs: 0,
+      doublons: 0,
+      imported: 1,
+      linked: 0,
+      skipped: 0,
+      rapport: [],
+    });
     await service.importerBeneficiairesCSV('csv', 'org-01', 'user-01');
     expect(mockBeneficiaireService.importerBeneficiairesCSV).toHaveBeenCalledWith('csv', 'org-01', 'user-01');
   });
@@ -98,9 +106,9 @@ describe('EspaceOrganisationService (facade)', () => {
   });
 
   it('getMesVouchers delègue au dashboardService', async () => {
-    mockDashboardService.getMesVouchers.mockResolvedValue([] as any);
-    await service.getMesVouchers('org-01');
-    expect(mockDashboardService.getMesVouchers).toHaveBeenCalledWith('org-01');
+    mockDashboardService.getMesVouchers.mockResolvedValue({ vouchers: [], total: 0 } as any);
+    await service.getMesVouchers('org-01', { statut: 'ACTIF' });
+    expect(mockDashboardService.getMesVouchers).toHaveBeenCalledWith('org-01', { statut: 'ACTIF' });
   });
 
   it('getRapportBailleur delègue au dashboardService', async () => {

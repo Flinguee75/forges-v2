@@ -29,6 +29,9 @@ describe('ImportCSVService', () => {
       succes: 0,
       erreurs: 0,
       doublons: 0,
+      imported: 0,
+      linked: 0,
+      skipped: 0,
       rapport: [],
     });
   });
@@ -53,6 +56,9 @@ describe('ImportCSVService', () => {
     expect(result.succes).toBe(1);
     expect(result.erreurs).toBe(1);
     expect(result.doublons).toBe(1);
+    expect(result.imported).toBe(1);
+    expect(result.linked).toBe(0);
+    expect(result.skipped).toBe(2);
     expect(prisma.apprenant.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         email: 'new@test.ci',
@@ -79,6 +85,9 @@ describe('ImportCSVService', () => {
       succes: 0,
       erreurs: 1,
       doublons: 0,
+      imported: 0,
+      linked: 0,
+      skipped: 1,
       rapport: [
         { ligne: 2, email: 'broken@test.ci', statut: 'ERREUR', message: 'CREATE_FAILED' },
       ],
@@ -90,6 +99,38 @@ describe('ImportCSVService', () => {
       erreurs: 1,
       doublons: 0,
       user_id: 'user-01',
+    });
+  });
+
+  it('bloque ligne par ligne les créations qui dépassent le quota B2B', async () => {
+    const csv = [
+      'email,nom,prenoms,pays',
+      'first@test.ci,Doe,Jane,CI',
+      'second@test.ci,Doe,John,CI',
+    ].join('\n');
+
+    prisma.apprenant.findUnique.mockResolvedValue(null);
+    prisma.apprenant.count
+      .mockResolvedValueOnce(9)
+      .mockResolvedValueOnce(10);
+    prisma.apprenant.create.mockResolvedValue({ id: 'app-01' } as any);
+    mockEmail.sendTempPassword.mockResolvedValue(undefined);
+    mockAudit.info.mockResolvedValue(undefined);
+
+    const result = await service.importerBeneficiaires(csv, 'org-01', 'user-01', {
+      b2bQuota: { nbMax: 10 },
+    });
+
+    expect(result.succes).toBe(1);
+    expect(result.erreurs).toBe(1);
+    expect(result.imported).toBe(1);
+    expect(result.skipped).toBe(1);
+    expect(prisma.apprenant.create).toHaveBeenCalledTimes(1);
+    expect(result.rapport).toContainEqual({
+      ligne: 3,
+      email: 'second@test.ci',
+      statut: 'ERREUR',
+      message: 'B2B_PLAFOND_ATTEINT',
     });
   });
 });

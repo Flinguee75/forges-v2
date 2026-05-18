@@ -95,6 +95,17 @@ export async function postJson(request, url, data, headers = {}) {
   };
 }
 
+export async function postSignedWebhook(request, url, data, headers = {}) {
+  const signature = createHmac('sha256', WEBHOOK_SECRET)
+    .update(JSON.stringify(data))
+    .digest('hex');
+
+  return postJson(request, url, data, {
+    ...headers,
+    'x-webhook-signature': signature,
+  });
+}
+
 export async function putJson(request, url, data, headers = {}) {
   const response = await request.put(`${API_BASE_URL}${url}`, { data, headers });
   return {

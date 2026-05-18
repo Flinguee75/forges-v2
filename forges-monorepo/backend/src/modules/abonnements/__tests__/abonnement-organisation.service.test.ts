@@ -1,4 +1,4 @@
-import { AbonnementOrganisationService } from '../organisation/abonnement-organisation.service';
+import { AbonnementOrganisationService, TARIFS_ORG } from '../organisation/abonnement-organisation.service';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { createPrismaMock } from '../../../__tests__/helpers/prisma';
@@ -17,6 +17,14 @@ describe('AbonnementOrganisationService', () => {
   });
 
   // ─── souscrire ─────────────────────────────────────────────────────
+
+  it('verrouille la grille tarifaire Organisation en XOF', () => {
+    expect(TARIFS_ORG).toEqual({
+      BASIQUE: 50000,
+      PRO: 150000,
+      ENTERPRISE: 400000,
+    });
+  });
 
   it('rejette si un abonnement ACTIF existe déjà', async () => {
     prisma.abonnementOrganisation.findFirst.mockResolvedValue({
@@ -39,9 +47,13 @@ describe('AbonnementOrganisationService', () => {
 
     const result = await service.souscrire('org-01', 'PRO');
 
-    expect(result.abonnement).toEqual(existing);
+    expect(result.abonnement).toEqual(expect.objectContaining({
+      ...existing,
+      montant_annuel_xof: 150000,
+    }));
     expect(result.payment_url).toContain('ABO-ORG-2026-001-EXISTING');
     expect(result.order_ngser).toBe('ABO-ORG-2026-001-EXISTING');
+    expect(result.montant_annuel_xof).toBe(150000);
     expect(prisma.abonnementOrganisation.create).not.toHaveBeenCalled();
   });
 
@@ -79,7 +91,11 @@ describe('AbonnementOrganisationService', () => {
     expect(result.payment_url).toBeDefined();
     expect(result.payment_url).not.toContain('mock-ngser');
     expect(result.order_ngser).toBeDefined();
-    expect(result.abonnement).toEqual(created);
+    expect(result.montant_annuel_xof).toBe(400000);
+    expect(result.abonnement).toEqual(expect.objectContaining({
+      ...created,
+      montant_annuel_xof: 400000,
+    }));
   });
 
   // ─── envoyerAlertesExpiration (RM-82 : J-7 et J-2) ────────────────

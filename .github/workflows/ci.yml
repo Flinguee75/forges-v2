@@ -434,3 +434,138 @@ jobs:
           name: frontend-build-${{ github.sha }}
           path: forges-monorepo/frontend/dist/
           retention-days: 7
+
+  # ── Job 6 : Smoke API (Playwright API-level) ──────────────────
+  smoke-api:
+    name: Smoke API partenaire
+    runs-on: ubuntu-22.04
+    needs: [test-integration]
+    continue-on-error: true
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: forges_test
+          POSTGRES_PASSWORD: forges_test_pass
+          POSTGRES_DB: forges_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        command: postgres -c max_connections=200
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            forges-monorepo/backend/package-lock.json
+            forges-monorepo/frontend/package-lock.json
+
+      - name: Installer les dépendances backend
+        working-directory: forges-monorepo/backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Générer le client Prisma
+        working-directory: forges-monorepo/backend
+        run: npx prisma generate
+
+      - name: Appliquer les migrations
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+        run: npx prisma migrate deploy
+
+      - name: Charger les fixtures E2E
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test
+          NODE_ENV: test
+          JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
+          JWT_REFRESH_SECRET: ci_refresh_secret_not_for_production_64chars_minimum
+          ENCRYPTION_KEY: ci_encryption_key_32bytes_hex_not_for_prod_change_me_now
+          AES_SECRET_KEY: Y2ktdGVzdC1rZXktZm9yZ2VzMjAyNmNpLXRlc3Qta2U=
+          HMAC_KEY: ci_hmac_key_32bytes_hex_not_for_production_change_me_now
+          WEBHOOK_SECRET: ci_webhook_secret_not_for_production
+          SMTP_HOST: localhost
+          FRONTEND_URL: http://localhost:5173
+        run: npm run prisma:seed:e2e
+
+      - name: Démarrer le backend en arrière-plan
+        working-directory: forges-monorepo/backend
+        env:
+          DATABASE_URL: postgresql://forges_test:forges_test_pass@localhost:5432/forges_test?connection_limit=5
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+          PORT: 3000
+          JWT_SECRET: ci_jwt_secret_not_for_production_64chars_minimum_required
+          JWT_REFRESH_SECRET: ci_refresh_secret_not_for_production_64chars_minimum
+          ENCRYPTION_KEY: ci_encryption_key_32bytes_hex_not_for_prod_change_me_now
+          AES_SECRET_KEY: Y2ktdGVzdC1rZXktZm9yZ2VzMjAyNmNpLXRlc3Qta2U=
+          HMAC_KEY: ci_hmac_key_32bytes_hex_not_for_production_change_me_now
+          WEBHOOK_SECRET: ci_webhook_secret_not_for_production
+          SMTP_HOST: localhost
+          FRONTEND_URL: http://localhost:5173
+          FINEO_BUSINESS_CODE: ci_fineo_business_code_not_for_production
+          FINEO_API_KEY: ci_fineo_api_key_not_for_production
+          NGSER_AUTH_TOKEN: ci_ngser_auth_token_not_for_production
+          NGSER_AUTHENTICATION_TOKEN: ci_ngser_auth_token_not_for_production
+          NGSER_OPERATION_TOKEN_PAIEMENT: ci_ngser_operation_token_not_for_production
+        run: npm run start:e2e &
+
+      - name: Attendre que le backend soit prêt
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Backend ready after ${i}s"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Installer les dépendances frontend
+        working-directory: forges-monorepo/frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Installer Playwright (chromium uniquement)
+        working-directory: forges-monorepo/frontend
+        run: npx playwright install chromium --with-deps
+
+      - name: Exécuter les tests smoke et regression partenaire
+        working-directory: forges-monorepo/frontend
+        env:
+          E2E_API_URL: http://localhost:3000/api
+          WEBHOOK_SECRET: ci_webhook_secret_not_for_production
+        run: |
+          npx playwright test \
+            e2e/partenaire-smoke.spec.js \
+            e2e/partenaire-seeded-regression.spec.js \
+            --project=chromium \
+            --reporter=list
+
+      - name: Uploader le rapport Playwright
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-smoke-${{ github.sha }}
+          path: forges-monorepo/frontend/playwright-results/
+          retention-days: 7

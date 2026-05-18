@@ -9,7 +9,7 @@ import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
 import {
   formatDate,
-  formatFcfa,
+  formatFcfaFromXof,
   getOrganisationOfferLabel,
   getOrganisationOfferList,
   isWelcomeOfferActive,
@@ -227,7 +227,7 @@ export default function MonAbonnementOrg() {
           <Card>
             <p className="text-xs uppercase tracking-[0.22em] text-subtext">Montant annuel</p>
             <p className="mt-2 text-xl font-semibold text-text">
-              {formatFcfa(abonnement.montant_annuel || 0)}
+              {formatFcfaFromXof(abonnement.montant_annuel_xof ?? abonnement.montant_annuel ?? 0)}
             </p>
           </Card>
         </div>
@@ -252,8 +252,8 @@ export default function MonAbonnementOrg() {
           {offerCards.map((offer) => {
             const isSelected = selectedOffer === offer.key;
             const displayAmount = welcomeOfferActive
-              ? Math.round(offer.annualAmount * (1 - ((abonnement?.welcome_offer_pct || 20) / 100)))
-              : offer.annualAmount;
+              ? Math.round(offer.annualAmountXof * (1 - ((abonnement?.welcome_offer_pct || 20) / 100)))
+              : offer.annualAmountXof;
 
             return (
               <div
@@ -269,10 +269,10 @@ export default function MonAbonnementOrg() {
                 </div>
                 <div className="mt-4">
                   <p className="text-sm text-subtext">Tarif annuel</p>
-                  <p className="mt-1 text-2xl font-semibold text-text">{formatFcfa(displayAmount)}</p>
+                  <p className="mt-1 text-2xl font-semibold text-text">{formatFcfaFromXof(displayAmount)}</p>
                   {welcomeOfferActive && (
                     <p className="mt-1 text-xs text-warning">
-                      Tarif catalogue : {formatFcfa(offer.annualAmount)}
+                      Tarif catalogue : {formatFcfaFromXof(offer.annualAmountXof)}
                     </p>
                   )}
                 </div>
