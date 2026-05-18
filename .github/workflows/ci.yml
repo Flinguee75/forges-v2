@@ -200,6 +200,7 @@ jobs:
     name: Tests d'intégration backend
     runs-on: ubuntu-22.04
     needs: test-backend
+    timeout-minutes: 20
     continue-on-error: true
 
     services:
