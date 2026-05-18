@@ -110,8 +110,9 @@ export default function MesReversements() {
       <Card title={copy.filtersTitle}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.month}</label>
+            <label htmlFor="partenaire-reversements-mois" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.month}</label>
             <select
+              id="partenaire-reversements-mois"
               value={filtres.mois}
               onChange={(e) => setFiltres((prev) => ({ ...prev, mois: e.target.value }))}
               className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-partenaire)]"
@@ -125,8 +126,9 @@ export default function MesReversements() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.status}</label>
+            <label htmlFor="partenaire-reversements-statut" className="mb-2 block text-sm font-medium text-[var(--color-text)]">{copy.status}</label>
             <select
+              id="partenaire-reversements-statut"
               value={filtres.statut_validation}
               onChange={(e) => setFiltres((prev) => ({ ...prev, statut_validation: e.target.value }))}
               className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-partenaire)]"

@@ -215,6 +215,8 @@ export class PartenaireService {
       duree_jours: f.duree_jours,
       statut: f.statut,
       statut_validation: f.formation_partenaire?.statut_validation,
+      prix_coutant_soumis: f.formation_partenaire?.prix_coutant_soumis,
+      prix_coutant_valide: f.formation_partenaire?.prix_coutant_valide,
       date_soumission: f.formation_partenaire?.date_soumission,
       date_validation: f.formation_partenaire?.date_validation,
       nb_certifies: f._count?.dossiers || 0,

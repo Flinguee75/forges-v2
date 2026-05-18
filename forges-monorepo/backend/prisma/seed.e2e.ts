@@ -47,6 +47,7 @@ const IDS = {
   partenaire: 'part-e2e-01',
   partenaireInvite: 'part-e2e-invite-01',
   partenairePending: 'part-e2e-pending-01',
+  partenaireSuspendu: 'part-e2e-suspendu-01',
   apporteur: 'apt-e2e-rm145-01',
   apporteurSuspendu: 'apt-e2e-susp-01',
   formationStandard: 'F-E2E-STD-01',
@@ -83,6 +84,11 @@ const IDS = {
   paiementExpire: 'P-E2E-EXPIRE-01',
   accesExpired: 'A-E2E-EXPIRED-01',
   formationPartenaireMeta: 'FP-E2E-01',
+  formationPartenaireRejetee: 'F-E2E-PART-REJETE-01',
+  formationPartenaireMetaRejetee: 'FP-E2E-REJETE-01',
+  dossierPartenaireComm: 'D-E2E-PART-COMM-01',
+  paiementPartenaireComm: 'P-E2E-PART-COMM-01',
+  commissionPartenaireSeed: 'CP-E2E-SEED-01',
   voucher: 'V-E2E-ORG-01',
   expiredVoucher: 'V-E2E-ORG-EXPIRE-01',
 };
@@ -128,6 +134,7 @@ const EMAILS = {
   partenaire: 'partenaire-e2e@forges.ci',
   partenaireInvite: 'partenaire-invite-e2e@forges.ci',
   partenairePending: 'partenaire-pending-e2e@forges.ci',
+  partenaireSuspendu: 'partenaire-suspendu-e2e@forges.ci',
   apporteur: 'apporteur-e2e@forges.ci',
   apporteurSuspendu: 'apporteur-susp-e2e@forges.ci',
 };
@@ -194,8 +201,9 @@ async function cleanupScenarioData() {
     IDS.formationPremiumB2b,
     IDS.formationDemande,
     IDS.formationPartenaire,
+    IDS.formationPartenaireRejetee,
   ];
-  const partenaireIds = [IDS.partenaire, IDS.partenaireInvite, IDS.partenairePending];
+  const partenaireIds = [IDS.partenaire, IDS.partenaireInvite, IDS.partenairePending, IDS.partenaireSuspendu];
   const sessionIds = [
     IDS.sessionStandard,
     IDS.sessionPremiumRetail,
@@ -238,6 +246,7 @@ async function cleanupScenarioData() {
   await prisma.commissionPartenaire.deleteMany({
     where: {
       OR: [
+        { id: IDS.commissionPartenaireSeed },
         { partenaire_id: IDS.partenaire },
         { formation_id: { in: formationIds } },
         { paiement: { dossier: { apprenant_id: { in: apprenantIds } } } },
@@ -262,6 +271,9 @@ async function cleanupScenarioData() {
         { dossier_id: { in: commissionDossierIds } },
         { dossier: { apprenant_id: { in: apprenantIds } } },
         { dossier: { apprenant_id: { startsWith: 'app-rm' } } },
+        { dossier: { session_id: { in: sessionIds } } },
+        { dossier: { formation_id: { in: formationIds } } },
+        { dossier: { formation_id: { startsWith: 'F-RM' } } },
         { dossier: { apprenant: { email: { contains: 'forges.test' } } } },
       ],
     },
@@ -321,7 +333,9 @@ async function cleanupScenarioData() {
     where: {
       OR: [
         { id: IDS.formationPartenaireMeta },
+        { id: IDS.formationPartenaireMetaRejetee },
         { formation_id: IDS.formationPartenaire },
+        { formation_id: IDS.formationPartenaireRejetee },
         { partenaire_id: { in: partenaireIds } },
       ],
     },
@@ -636,6 +650,20 @@ async function main() {
       responsable_designe_id: IDS.responsable,
     },
   });
+  await prisma.partenaire.create({
+    data: {
+      id: IDS.partenaireSuspendu,
+      raison_sociale: 'Partenaire E2E Suspendu',
+      type: 'UNIVERSITE',
+      pays: 'CI',
+      email_principal: EMAILS.partenaireSuspendu,
+      password_hash: passwordHash,
+      commission_forges_pct: 20,
+      statut: 'SUSPENDU',
+      mode_inscription: 'AUTO_INSCRIPTION',
+      responsable_designe_id: IDS.responsable,
+    },
+  });
 
   await prisma.apporteur.create({
     data: {
@@ -721,9 +749,40 @@ async function main() {
       formation_id: IDS.formationPartenaire,
       partenaire_id: IDS.partenaire,
       responsable_validateur_id: IDS.responsable,
-      statut_validation: 'EN_ATTENTE',
+      statut_validation: 'VALIDE',
       prix_coutant_soumis: 200000,
-      date_soumission: daysFromNow(-2),
+      prix_coutant_valide: 200000,
+      date_soumission: daysFromNow(-5),
+      date_validation: daysFromNow(-2),
+      type_formation_assigne: 'STANDARD',
+      pilier_abonnement_assigne: 'RETAIL',
+      inclus_abonnement: true,
+    },
+  });
+
+  await createFormation({
+    id: IDS.formationPartenaireRejetee,
+    intitule: 'Formation partenaire rejetee E2E',
+    type_formation: 'STANDARD',
+    mode_formation: 'AVEC_SESSION',
+    cout_catalogue: 180000,
+    pilier_abonnement: null,
+    inclus_abonnement: false,
+    partenaire_id: IDS.partenaire,
+    prix_coutant: 150000,
+  });
+  await prisma.formationPartenaire.create({
+    data: {
+      id: IDS.formationPartenaireMetaRejetee,
+      formation_id: IDS.formationPartenaireRejetee,
+      partenaire_id: IDS.partenaire,
+      responsable_validateur_id: IDS.responsable,
+      statut_validation: 'REJETE',
+      prix_coutant_soumis: 150000,
+      date_soumission: daysFromNow(-10),
+      date_validation: daysFromNow(-7),
+      commentaire_responsable: 'Contenu insuffisant pour validation',
+      corrections_suggeres: 'Fournir un plan de cours detaille et les prerequis',
     },
   });
 
@@ -940,6 +999,46 @@ async function main() {
       quota_max: 10,
       quota_utilise: 0,
       date_expiration: daysFromNow(365),
+    },
+  });
+
+  // S2 : dossier PAYE + commission partenaire EN_ATTENTE pour regression reversements
+  await prisma.dossier.create({
+    data: {
+      id: IDS.dossierPartenaireComm,
+      apprenant_id: IDS.apprenantDossier,
+      formation_id: IDS.formationPartenaire,
+      session_id: IDS.sessionPartenaire,
+      statut: 'PAYE',
+      source_financement: 'RETAIL',
+      created_at: daysFromNow(-3),
+    },
+  });
+  await prisma.paiement.create({
+    data: {
+      id: IDS.paiementPartenaireComm,
+      dossier_id: IDS.dossierPartenaireComm,
+      montant_catalogue: 250000,
+      montant_final: 250000,
+      methode: 'MOBILE_MONEY',
+      statut: 'CONFIRME',
+      transaction_id: 'tx-e2e-part-comm-01',
+      confirmed_at: daysFromNow(-3),
+      expires_at: daysFromNow(30),
+      created_at: daysFromNow(-3),
+    },
+  });
+  await prisma.commissionPartenaire.create({
+    data: {
+      id: IDS.commissionPartenaireSeed,
+      paiement_id: IDS.paiementPartenaireComm,
+      partenaire_id: IDS.partenaire,
+      formation_id: IDS.formationPartenaire,
+      montant_catalogue: 250000,
+      commission_forges_pct: 20,
+      montant_reverse: 200000,
+      statut: 'EN_ATTENTE',
+      created_at: daysFromNow(-3),
     },
   });
 

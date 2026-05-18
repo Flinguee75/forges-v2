@@ -13,6 +13,15 @@ vi.mock('../../../api/client', () => ({
   },
 }));
 
+vi.mock('../../../utils/authStorage', () => ({
+  getAccessToken: () => 'fake-token',
+  getRefreshToken: () => null,
+  getStoredSession: () => null,
+  setStoredSession: vi.fn(),
+  clearStoredSession: vi.fn(),
+  updateStoredUser: vi.fn(),
+}));
+
 vi.mock('../../../hooks/useApi', () => ({
   useApi: () => ({
     execute: async (fn, options = {}) => {
