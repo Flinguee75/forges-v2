@@ -20,7 +20,8 @@ export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmation
   const plainText = [
     `Bonjour ${options.prenoms},`,
     '',
-    `Votre inscription à la ${options.formation}${sessionLabel} est bien enregistrée.`,
+    `Votre inscription est bien enregistrée pour la ${options.formation}${sessionLabel}.`,
+    `Organisation : ${options.organisation}.`,
     '',
     'Vous pouvez finaliser votre paiement en ligne en vous connectant à votre compte FORGES via le lien ci-dessous :',
     'https://edu.forges-group.com',
@@ -34,7 +35,7 @@ export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmation
   ].join('\n');
 
   return {
-    subject: `Votre inscription ${options.formation} — Finalisez votre paiement`,
+    subject: `FORGES — Votre inscription ${options.formation} — Finalisez votre paiement`,
     text: plainText,
     html: `
 <!DOCTYPE html>
@@ -68,7 +69,11 @@ export function buildEnrollmentConfirmationEmail(options: EnrollmentConfirmation
               Bonjour <strong>${options.prenoms}</strong>,
             </p>
             <p style="margin:0 0 24px;font-size:14px;color:#1C2833;line-height:1.6;">
-              Votre inscription à la <strong style="color:#0D2B45;">${options.formation}${sessionLabel}</strong> est bien enregistrée.
+              Votre inscription est bien enregistrée pour la <strong style="color:#0D2B45;">${options.formation}${sessionLabel}</strong>.
+            </p>
+
+            <p style="margin:0 0 24px;font-size:14px;color:#1C2833;line-height:1.6;">
+              Organisation : <strong>${options.organisation}</strong>
             </p>
 
             <p style="margin:0 0 24px;font-size:14px;color:#1C2833;line-height:1.6;">

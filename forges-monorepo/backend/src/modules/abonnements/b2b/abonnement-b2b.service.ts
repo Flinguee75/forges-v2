@@ -55,6 +55,7 @@ export class AbonnementB2BService {
 
     return {
       id: abo.id,
+      organisation_id: abo.organisation_id,
       palier: abo.palier,
       statut: abo.statut,
       nb_max: abo.nb_max,
