@@ -256,7 +256,7 @@ jobs:
               sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.edu.deploy
               echo "BACKEND_IMAGE_REF=$PREV_IMAGE" >> infra/env/.env.edu.deploy
               docker compose -f infra/docker/docker-compose.edu.deploy.yml \
-                --env-file infra/env/.env.edu.deploy up -d forges-backend-edu
+                --env-file infra/env/.env.edu.deploy up -d backend
               sleep 20
               STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-edu 2>/dev/null || echo "missing")
               echo "Statut apres rollback: $STATUS"
