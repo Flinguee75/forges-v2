@@ -90,10 +90,11 @@ export class CommissionService {
     });
 
     if (existante) {
-      await this.audit.info('COMMISSION_APPORTEUR_EXISTANTE', {
+      // Audit hors transaction pour éviter deadlock avec connection_limit réduit
+      this.audit.info('COMMISSION_APPORTEUR_EXISTANTE', {
         paiement_id: paiement.id,
         commission_id: existante.id,
-      });
+      }).catch(() => undefined);
       return existante;
     }
 
@@ -117,13 +118,14 @@ export class CommissionService {
       },
     });
 
-    await this.audit.info('COMMISSION_APPORTEUR_CREEE', {
+    // Audit hors transaction pour éviter deadlock avec connection_limit réduit
+    this.audit.info('COMMISSION_APPORTEUR_CREEE', {
       commission_id: commission.id,
       paiement_id: paiement.id,
       apporteur_id: apporteur.id,
       montant_commission: montantCommission,
       taux_commission_pct: tauxCommission,
-    });
+    }).catch(() => undefined);
 
     return commission;
   }
@@ -150,10 +152,11 @@ export class CommissionService {
     });
 
     if (!apporteur) {
-      await this.audit.warning('COMMISSION_APPORTEUR_CODE_INTROUVABLE', {
+      // Audit hors transaction pour éviter deadlock avec connection_limit réduit
+      this.audit.warning('COMMISSION_APPORTEUR_CODE_INTROUVABLE', {
         dossier_id: dossier.id,
         code_apporteur: dossier.code_apporteur,
-      });
+      }).catch(() => undefined);
       return null;
     }
 
