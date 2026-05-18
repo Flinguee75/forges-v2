@@ -19,7 +19,7 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
     const dossierId = inscription.body.dossier?.id || inscription.body.data?.id;
     expect(dossierId).toBeTruthy();
 
-    // RM-08 : Initier un paiement (tentative 0)
+    // RM-140 crée le paiement direct, chaque initiation explicite compte comme une tentative.
     const res1 = await request(API_URL)
       .post('/api/paiements')
       .set(headers)
@@ -32,11 +32,10 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
     const paiementId = res1.body.data?.paiement_id;
     expect(paiementId).toBeTruthy();
 
-    // Vérifier le compteur initial
     let paiement = await prisma.paiement.findUnique({ where: { id: paiementId } });
-    expect(paiement.tentatives).toBe(0);
+    expect(paiement.tentatives).toBe(1);
 
-    // Tentative 2 (increment → 1)
+    // Tentative 2 (increment → 2)
     const res2 = await request(API_URL)
       .post('/api/paiements')
       .set(headers)
@@ -44,9 +43,9 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
 
     expect(res2.status).toBe(201); // API retourne toujours 201 avec payment_url
     paiement = await prisma.paiement.findUnique({ where: { id: paiementId } });
-    expect(paiement.tentatives).toBe(1);
+    expect(paiement.tentatives).toBe(2);
 
-    // Tentative 3 (increment → 2)
+    // Tentative 3 (increment → 3)
     const res3 = await request(API_URL)
       .post('/api/paiements')
       .set(headers)
@@ -54,27 +53,17 @@ describe('Vague 3 API — Paiements & Reversements RM-08/10/130/133/134/138/139'
 
     expect(res3.status).toBe(201);
     paiement = await prisma.paiement.findUnique({ where: { id: paiementId } });
-    expect(paiement.tentatives).toBe(2);
+    expect(paiement.tentatives).toBe(3);
 
-    // Tentative 4 (increment → 3)
+    // Tentative 4 - RM-08 : Doit être REJETÉE (tentatives >= 3)
     const res4 = await request(API_URL)
       .post('/api/paiements')
       .set(headers)
       .send({ dossier_id: dossierId, methode: 'MOBILE_MONEY' });
 
-    expect(res4.status).toBe(201);
-    paiement = await prisma.paiement.findUnique({ where: { id: paiementId } });
-    expect(paiement.tentatives).toBe(3);
-
-    // Tentative 5 - RM-08 : Doit être REJETÉE (tentatives >= 3)
-    const res5 = await request(API_URL)
-      .post('/api/paiements')
-      .set(headers)
-      .send({ dossier_id: dossierId, methode: 'MOBILE_MONEY' });
-
-    expect(res5.status).toBe(429); // RM-08 : TOO_MANY_ATTEMPTS
-    expect(res5.body.error).toBe('TOO_MANY_ATTEMPTS');
-    expect(res5.body.message).toMatch(/nombre maximum de tentatives/i);
+    expect(res4.status).toBe(429); // RM-08 : TOO_MANY_ATTEMPTS
+    expect(res4.body.error).toBe('TOO_MANY_ATTEMPTS');
+    expect(res4.body.message).toMatch(/nombre maximum de tentatives/i);
 
     // Vérifier que le compteur n'a pas été incrémenté
     paiement = await prisma.paiement.findUnique({ where: { id: paiementId } });

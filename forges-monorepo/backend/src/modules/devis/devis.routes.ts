@@ -15,8 +15,8 @@ const devisRepository = new DevisRepository(prisma);
 const devisService = new DevisService(devisRepository, prisma, auditLogger, emailService);
 const devisController = new DevisController(devisService);
 
-// POST /api/admin/devis — Créer un devis (ADMIN, AGENT)
-router.post('/admin/devis', authenticate, authorize('ADMIN', 'AGENT'), (req, res, next) => {
+// POST /api/admin/devis — Créer un devis (ADMIN uniquement)
+router.post('/admin/devis', authenticate, authorize('ADMIN'), (req, res, next) => {
   devisController.creerDevis(req, res, next);
 });
 
