@@ -15,7 +15,7 @@ import EmptyState from '../../components/feedback/EmptyState';
 import { buildB2BImportPayload } from '../../utils/csvValidation';
 import {
   formatDate,
-  formatFcfa,
+  formatFcfaFromXof,
   getB2BPalierLabel,
   getB2BPalierList,
   getB2BProgressVariant,
@@ -334,7 +334,9 @@ export default function AbonnementB2B() {
             </Card>
             <Card>
               <p className="text-xs uppercase tracking-[0.22em] text-subtext">Montant annuel</p>
-              <p className="mt-2 text-xl font-semibold text-text">{formatFcfa(b2b?.montant_annuel || 0)}</p>
+              <p className="mt-2 text-xl font-semibold text-text">
+                {formatFcfaFromXof(b2b?.montant_annuel_xof ?? b2b?.montant_annuel ?? 0)}
+              </p>
             </Card>
           </div>
 
@@ -385,7 +387,7 @@ export default function AbonnementB2B() {
                     <div className="mt-4">
                       <p className="text-sm text-subtext">Tarif annuel</p>
                       <p className="mt-1 text-2xl font-semibold text-text">
-                        {palier.annualAmount > 0 ? formatFcfa(palier.annualAmount) : 'Sur devis'}
+                        {palier.annualAmountXof > 0 ? formatFcfaFromXof(palier.annualAmountXof) : 'Sur devis'}
                       </p>
                     </div>
                     {isDowngradeBlocked && (

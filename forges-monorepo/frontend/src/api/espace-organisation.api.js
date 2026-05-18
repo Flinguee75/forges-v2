@@ -18,11 +18,6 @@ function unwrapData(response) {
   return response?.data ?? response;
 }
 
-function toCentimes(amount) {
-  if (amount === undefined || amount === null) return amount;
-  return Number(amount) * 100;
-}
-
 function buildMeta(total = 0, page = 1, limit = 20) {
   const normalizedTotal = Number(total || 0);
   const normalizedPage = Number(page || 1);
@@ -65,14 +60,16 @@ function normalizeDashboard(response) {
 }
 
 function normalizeOrganisationSubscription(response) {
-  const data = unwrapData(response);
-  if (!data) return null;
+  const raw = unwrapData(response);
+  if (!raw) return null;
+  const data = raw?.abonnement ?? raw;
+  const montantAnnuelXof = Number(data.montant_annuel_xof ?? data.montant_annuel ?? raw.montant_annuel_xof ?? 0);
 
   return {
+    ...(raw?.abonnement ? raw : {}),
     ...data,
-    // Backend TARIFS_ORG stocke en XOF (50000, 150000, 400000)
-    // Frontend formatFcfa() divise par 100, donc on doit convertir XOF → centimes
-    montant_annuel: toCentimes(data.montant_annuel ?? 0),
+    montant_annuel_xof: montantAnnuelXof,
+    montant_annuel: montantAnnuelXof,
     date_renouvellement: data.date_renouvellement || data.date_fin || null,
     is_trial: data.is_trial || data.statut === 'ESSAI',
     can_subscribe: data.can_subscribe ?? !['ACTIF', 'ESSAI'].includes(data.statut),
@@ -80,18 +77,25 @@ function normalizeOrganisationSubscription(response) {
 }
 
 function normalizeB2BSubscription(response) {
-  const data = unwrapData(response);
-  if (!data) return null;
+  const raw = unwrapData(response);
+  if (!raw) return null;
+  const data = raw?.abonnement ?? raw;
 
   const nbActifs = Number(data.nb_actifs || 0);
   const nbMax = Number(data.nb_max || 0);
   const taux = Number(data.taux_utilisation || 0);
+  const montantAnnuelXof = Number(
+    data.montant_annuel_xof ?? data.prix_annuel_xof ?? data.montant_annuel ?? data.prix_annuel ?? raw.prix_annuel_xof ?? 0
+  );
 
   return {
+    ...(raw?.abonnement ? raw : {}),
     ...data,
     exists: true,
-    // Backend stocke en XOF, frontend formatFcfa() divise par 100
-    montant_annuel: toCentimes(data.montant_annuel ?? data.prix_annuel ?? 0),
+    montant_annuel_xof: montantAnnuelXof,
+    prix_annuel_xof: Number(data.prix_annuel_xof ?? data.prix_annuel ?? montantAnnuelXof),
+    montant_annuel: montantAnnuelXof,
+    prix_annuel: Number(data.prix_annuel_xof ?? data.prix_annuel ?? montantAnnuelXof),
     date_renouvellement: data.date_renouvellement || data.date_fin || null,
     ratio_utilisation: data.ratio_utilisation ?? (nbMax > 0 ? nbActifs / nbMax : taux / 100),
     message:
@@ -170,7 +174,7 @@ function normalizeVouchers(response) {
           }
         : null,
     })),
-    meta: buildMeta(vouchers.length, 1, vouchers.length || 10),
+    meta: buildMeta(data?.total ?? vouchers.length, data?.page ?? 1, data?.limit ?? (vouchers.length || 10)),
   };
 }
 
@@ -251,29 +255,21 @@ function normalizeOrganisationProfile(response) {
   // Le GET /espace-organisation/profil retourne l'objet org directement
   const data = raw?.organisation ?? raw;
 
-  const [nomReferent = '', prenomReferent = ''] = String(data.contact_referent || '').split(' ');
-
   return {
     ...data,
-    // Mapper raison_sociale → nom_legal pour le formulaire (les deux conservés)
+    // Alias de lecture conservés pour les écrans historiques; l'écriture utilise les champs Prisma.
     nom_legal: data.nom_legal || data.raison_sociale || '',
     raison_sociale: data.raison_sociale || data.nom_legal || '',
-    nom_commercial: data.nom_commercial || '',
-    secteur_activite: data.secteur_activite || '',
-    telephone_contact: data.telephone_contact || '',
     email_contact: data.email_contact || data.email || '',
-    nom_referent: data.nom_referent || nomReferent,
-    prenom_referent: data.prenom_referent || prenomReferent,
+    contact_referent: data.contact_referent || '',
   };
 }
 
 function serializeOrganisationProfile(data = {}) {
-  const contactReferent = [data.nom_referent, data.prenom_referent].filter(Boolean).join(' ').trim();
-
   return cleanQueryParams({
-    raison_sociale: data.nom_legal || data.raison_sociale,
-    email: data.email_contact || data.email,
-    contact_referent: contactReferent || data.contact_referent,
+    raison_sociale: data.raison_sociale,
+    email: data.email,
+    contact_referent: data.contact_referent,
     pays: data.pays,
     langue_preferee: data.langue_preferee,
   });

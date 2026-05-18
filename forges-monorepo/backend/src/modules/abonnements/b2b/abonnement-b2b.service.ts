@@ -4,7 +4,7 @@ import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { PaiementCheckoutService } from '../../paiements/paiement-checkout.service';
 
-// Paliers B2B
+// Paliers B2B, prix annuels en XOF.
 export const PALIERS_B2B = {
   STARTER:    { nb_max: 20,  prix_annuel: 250000 },
   BUSINESS:   { nb_max: 50,  prix_annuel: 500000 },
@@ -44,20 +44,33 @@ export class AbonnementB2BService {
     // RM-115 : calcul taux_utilisation (déclencheur bot si > 80%)
     const taux_utilisation = abo.nb_max > 0 ? Math.round((nb_actifs / abo.nb_max) * 100) : 0;
 
+    return this.toB2BResponse(abo, {
+      nb_actifs,
+      taux_utilisation,
+    });
+  }
+
+  private toB2BResponse(abo: any, extra: Record<string, unknown> = {}) {
+    const prixAnnuelXof = Number(abo.prix_annuel || 0);
+
     return {
       id: abo.id,
       palier: abo.palier,
       statut: abo.statut,
       nb_max: abo.nb_max,
-      nb_actifs,
-      taux_utilisation,
+      nb_actifs: abo.nb_actifs,
+      taux_utilisation: 0,
       prix_annuel: abo.prix_annuel,
+      prix_annuel_xof: prixAnnuelXof,
+      montant_annuel_xof: prixAnnuelXof,
       premium_inclus_par_an: abo.premium_inclus_par_an,
       premium_consommes: abo.premium_consommes,
       date_debut: abo.date_debut,
       date_fin: abo.date_fin,
       descente_planifiee: abo.descente_planifiee || false,
       palier_descente_cible: abo.palier_descente_cible,
+      order_ngser: abo.order_ngser,
+      ...extra,
     };
   }
 
@@ -83,7 +96,12 @@ export class AbonnementB2BService {
       if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
         const session = await this.creerSessionPaiement(existant.id, existant.prix_annuel);
         const paymentUrl = session.payment_url;
-        return { abonnement: existant, payment_url: paymentUrl, order_ngser: existant.order_ngser };
+        return {
+          abonnement: this.toB2BResponse(existant),
+          payment_url: paymentUrl,
+          order_ngser: existant.order_ngser,
+          prix_annuel_xof: Number(existant.prix_annuel || 0),
+        };
       }
       // RM-84 : unicité stricte
       throw new Error('ABONNEMENT_B2B_DEJA_ACTIF');
@@ -114,13 +132,15 @@ export class AbonnementB2BService {
       organisation_id,
       palier: normalizedPalier,
       prix_annuel: config.prix_annuel,
+      prix_annuel_xof: config.prix_annuel,
       order_ngser: orderNgser,
     });
 
     return {
-      abonnement: abo,
+      abonnement: this.toB2BResponse(abo),
       payment_url: session.payment_url,
       order_ngser: orderNgser,
+      prix_annuel_xof: config.prix_annuel,
     };
   }
 
@@ -187,8 +207,13 @@ export class AbonnementB2BService {
       }
     });
 
-    await this.audit.info('ABONNEMENT_B2B_MONTEE_PALIER', { organisation_id, nouveauPalier: normalizedPalier, montant_prorata: montantProrata });
-    return { montant_prorata: montantProrata, nouveau_palier: normalizedPalier };
+    await this.audit.info('ABONNEMENT_B2B_MONTEE_PALIER', {
+      organisation_id,
+      nouveauPalier: normalizedPalier,
+      montant_prorata: montantProrata,
+      montant_prorata_xof: montantProrata,
+    });
+    return { montant_prorata: montantProrata, montant_prorata_xof: montantProrata, nouveau_palier: normalizedPalier };
   }
 
   // RM-69 : alerte quand le plafond de palier est atteint

@@ -4,7 +4,7 @@ import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { PaiementCheckoutService } from '../../paiements/paiement-checkout.service';
 
-// RM-107 : grille tarifaire AbonnementOrganisation
+// RM-107 : grille tarifaire AbonnementOrganisation, montants annuels en XOF.
 export const TARIFS_ORG = {
   BASIQUE:    50000,  // XOF/an
   PRO:       150000,  // XOF/an
@@ -35,16 +35,27 @@ export class AbonnementOrganisationService {
     // Récupérer le nb de gestionnaires selon offre (RM-112)
     const nb_gestionnaires_max = abo.offre === 'BASIQUE' ? 1 : abo.offre === 'PRO' ? 1 : 5;
 
+    return this.toOrganisationResponse(abo, {
+      date_renouvellement: abo.date_fin,
+      nb_gestionnaires_max,
+    });
+  }
+
+  private toOrganisationResponse(abo: any, extra: Record<string, unknown> = {}) {
+    const montantAnnuelXof = Number(abo.montant_annuel || 0);
+
     return {
       id: abo.id,
       offre: abo.offre,
       statut: abo.statut,
       montant_annuel: abo.montant_annuel,
+      montant_annuel_xof: montantAnnuelXof,
       date_debut: abo.date_debut,
       date_fin: abo.date_fin,
-      date_renouvellement: abo.date_fin, // alias explicite pour le normaliseur front
+      date_renouvellement: abo.date_fin,
       renouvellement_auto: abo.renouvellement_auto,
-      nb_gestionnaires_max,
+      order_ngser: abo.order_ngser,
+      ...extra,
     };
   }
 
@@ -59,7 +70,12 @@ export class AbonnementOrganisationService {
       if (existant.statut === 'EN_ATTENTE_PAIEMENT') {
         const session = await this.creerSessionPaiement(existant.id, existant.montant_annuel);
         const paymentUrl = session.payment_url;
-        return { abonnement: existant, payment_url: paymentUrl, order_ngser: existant.order_ngser };
+        return {
+          abonnement: this.toOrganisationResponse(existant),
+          payment_url: paymentUrl,
+          order_ngser: existant.order_ngser,
+          montant_annuel_xof: Number(existant.montant_annuel || 0),
+        };
       }
       // RM-84 : unicité stricte — un seul abonnement actif ou en attente par organisation
       throw new Error('ABONNEMENT_ORG_DEJA_ACTIF');
@@ -89,13 +105,15 @@ export class AbonnementOrganisationService {
       organisation_id,
       offre,
       montant,
+      montant_xof: montant,
       order_ngser: orderNgser,
     });
 
     return {
-      abonnement: abo,
+      abonnement: this.toOrganisationResponse(abo),
       payment_url: session.payment_url,
       order_ngser: orderNgser,
+      montant_annuel_xof: montant,
     };
   }
 

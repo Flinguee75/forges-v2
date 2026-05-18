@@ -96,11 +96,17 @@ describe('BeneficiaireService', () => {
       mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
       mockRepo.countActifsB2B.mockResolvedValue(30); // 30/50 → places dispo
       mockImportCSV.importerBeneficiaires.mockResolvedValue({
-        succes: 3, erreurs: 0, doublons: 0, rapport: []
+        succes: 3, erreurs: 0, doublons: 0, imported: 3, linked: 0, skipped: 0, rapport: []
       });
 
       const result = await service.importerBeneficiairesCSV('csv...', 'org-01', 'user-01');
       expect(result.succes).toBe(3);
+      expect(mockImportCSV.importerBeneficiaires).toHaveBeenCalledWith(
+        'csv...',
+        'org-01',
+        'user-01',
+        { b2bQuota: { nbMax: 50 } }
+      );
     });
   });
 
@@ -121,7 +127,7 @@ describe('BeneficiaireService', () => {
       expect(result.message).toContain('certifications sont conservées');
     });
 
-    it('décrémente nb_actifs B2B dans la même transaction', async () => {
+    it('ne décrémente pas nb_actifs stocké: le comptage actif est la source de vérité', async () => {
       mockPrisma.apprenant.findFirst.mockResolvedValue({ id: 'a-01' });
       tx.apprenant.update.mockResolvedValue({});
       mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
@@ -130,9 +136,7 @@ describe('BeneficiaireService', () => {
 
       await service.desactiverBeneficiaire('a-01', 'org-01', 'user-01');
 
-      expect(tx.abonnementB2B.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { nb_actifs: { decrement: 1 } } })
-      );
+      expect(tx.abonnementB2B.update).not.toHaveBeenCalled();
     });
 
     it('les deux writes sont dans la même transaction ($transaction appelé)', async () => {
@@ -242,7 +246,7 @@ describe('BeneficiaireService', () => {
       );
     });
 
-    it('incrémente nb_actifs B2B dans la même transaction', async () => {
+    it('ne met pas à jour nb_actifs stocké après création: le comptage actif est la source de vérité', async () => {
       mockPrisma.apprenant.findUnique.mockResolvedValue(null);
       mockRepo.findOrganisationById.mockResolvedValue(orgAvecB2B as any);
       tx.apprenant.count.mockResolvedValue(10);
@@ -253,9 +257,7 @@ describe('BeneficiaireService', () => {
 
       await service.createMembre('org-01', { email: 'new@test.ci', nom: 'Doe', prenom: 'John' });
 
-      expect(tx.abonnementB2B.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { nb_actifs: { increment: 1 } } })
-      );
+      expect(tx.abonnementB2B.update).not.toHaveBeenCalled();
     });
   });
 
@@ -399,24 +401,29 @@ describe('BeneficiaireService', () => {
       expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
     });
 
-    // B4 — Quota B2B depasse
-    it('rejette si le quota B2B est depasse', async () => {
+    // B4 — Inscription B2B d'un bénéficiaire existant
+    it('ne bloque pas sur le quota B2B quand le bénéficiaire est déjà rattaché et actif', async () => {
       mockPrisma.apprenant.findFirst.mockResolvedValue(beneficiaire);
       mockPrisma.dossier.findFirst.mockResolvedValue(null);
       mockPrisma.session.findUnique.mockResolvedValue(session as any);
       const orgPleine = { ...orgAvecB2B, abonnement_b2b: { ...orgAvecB2B.abonnement_b2b, nb_max: 30 } };
       mockRepo.findOrganisationById.mockResolvedValue(orgPleine as any);
       mockRepo.countActifsB2B.mockResolvedValue(30);
+      mockPrisma.dossier.create.mockResolvedValue(dossierCree);
+      mockPrisma.paiement.findUnique.mockResolvedValue(null);
+      mockPrisma.paiement.create.mockResolvedValue({ id: 'p-04', dossier_id: 'd-01', statut: 'EN_ATTENTE' });
+      mockPrisma.paiement.update.mockResolvedValue({ id: 'p-04', statut: 'CONFIRME' });
+      mockPrisma.commissionApporteur.aggregate.mockResolvedValue({ _sum: { montant: 0 } });
+      mockAudit.info.mockResolvedValue(undefined);
 
-      await expect(
-        service.inscrireBeneficiaire('org-01', {
-          beneficiaire_id: 'app-01',
-          session_id: 'sess-01',
-          source_financement: 'B2B',
-        })
-      ).rejects.toThrow('B2B_PLAFOND_ATTEINT');
+      await expect(service.inscrireBeneficiaire('org-01', {
+        beneficiaire_id: 'app-01',
+        session_id: 'sess-01',
+        source_financement: 'B2B',
+      })).resolves.toEqual({ dossier_id: 'd-01', statut: 'PAYE' });
 
-      expect(mockPrisma.dossier.create).not.toHaveBeenCalled();
+      expect(mockRepo.countActifsB2B).not.toHaveBeenCalled();
+      expect(mockPrisma.dossier.create).toHaveBeenCalled();
     });
 
     // B5 — Voucher invalide

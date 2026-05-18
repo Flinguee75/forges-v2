@@ -5,7 +5,7 @@ import {
   IsInt,
   Min,
   Max,
-  IsEnum,
+  IsIn,
   IsDateString,
   IsPhoneNumber
 } from 'class-validator';
@@ -176,18 +176,14 @@ export class UpdateProfilOrganisationDto {
   email?: string;
 
   @IsOptional()
-  @IsPhoneNumber()
-  telephone?: string;
-
-  @IsOptional()
-  @IsString()
-  adresse?: string;
-
-  @IsOptional()
-  @IsString()
-  site_web?: string;
-
-  @IsOptional()
   @IsString()
   contact_referent?: string;
+
+  @IsOptional()
+  @IsString()
+  pays?: string;
+
+  @IsOptional()
+  @IsIn(['FR', 'EN', 'ES', 'PT'])
+  langue_preferee?: string;
 }

@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import OrgDashboard from '../OrgDashboard';
 import * as organisationApi from '../../../api/espace-organisation.api';
 
-vi.mock('../../../contexts/AuthContext', () => ({
+vi.mock('../../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { role: 'ORGANISATION' }, updateUser: vi.fn() }),
 }));
 

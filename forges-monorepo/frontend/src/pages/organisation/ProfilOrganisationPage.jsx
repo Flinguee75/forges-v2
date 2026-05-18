@@ -19,8 +19,8 @@ export default function ProfilOrganisationPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [formData, setFormData] = useState({
-    nom_legal: '',
-    email_contact: '',
+    raison_sociale: '',
+    email: '',
     contact_referent: '',
     pays: '',
     langue_preferee: 'FR',
@@ -43,8 +43,8 @@ export default function ProfilOrganisationPage() {
         onSuccess: (data) => {
           setProfil(data);
           setFormData({
-            nom_legal: data.nom_legal || '',
-            email_contact: data.email_contact || '',
+            raison_sociale: data.raison_sociale || '',
+            email: data.email || '',
             contact_referent: data.contact_referent || '',
             pays: data.pays || '',
             langue_preferee: data.langue_preferee || 'FR',
@@ -68,13 +68,11 @@ export default function ProfilOrganisationPage() {
         onSuccess: (data) => {
           showToast('Profil mis à jour avec succès', 'success');
           setIsEditing(false);
-          // Mettre à jour profil et formData directement depuis la réponse PUT normalisée
-          // Le normaliseur garantit que nom_legal = raison_sociale
           if (data) {
             setProfil(data);
             setFormData({
-              nom_legal: data.nom_legal || data.raison_sociale || '',
-              email_contact: data.email_contact || data.email || '',
+              raison_sociale: data.raison_sociale || '',
+              email: data.email || '',
               contact_referent: data.contact_referent || '',
               pays: data.pays || '',
               langue_preferee: data.langue_preferee || 'FR',
@@ -89,8 +87,8 @@ export default function ProfilOrganisationPage() {
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({
-      nom_legal: profil?.nom_legal || '',
-      email_contact: profil?.email_contact || '',
+      raison_sociale: profil?.raison_sociale || '',
+      email: profil?.email || '',
       contact_referent: profil?.contact_referent || '',
       pays: profil?.pays || '',
       langue_preferee: profil?.langue_preferee || 'FR',
@@ -203,19 +201,19 @@ export default function ProfilOrganisationPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               <Input
-                label="Nom légal"
-                value={formData.nom_legal}
+                label="Raison sociale"
+                value={formData.raison_sociale}
                 onChange={(e) =>
-                  setFormData({ ...formData, nom_legal: e.target.value })
+                  setFormData({ ...formData, raison_sociale: e.target.value })
                 }
                 required
               />
               <Input
-                label="Email de contact"
+                label="Email"
                 type="email"
-                value={formData.email_contact}
+                value={formData.email}
                 onChange={(e) =>
-                  setFormData({ ...formData, email_contact: e.target.value })
+                  setFormData({ ...formData, email: e.target.value })
                 }
                 required
               />
@@ -289,25 +287,13 @@ export default function ProfilOrganisationPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-subtext">Nom légal</p>
-                  <p className="font-medium text-text">{profil.nom_legal}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-subtext">Nom commercial</p>
-                  <p className="font-medium text-text">
-                    {profil.nom_commercial || '-'}
-                  </p>
+                  <p className="text-sm text-subtext">Raison sociale</p>
+                  <p className="font-medium text-text">{profil.raison_sociale}</p>
                 </div>
                 <div>
                   <p className="text-sm text-subtext">RCCM / Identifiant légal</p>
                   <p className="font-medium text-text">
                     {profil.identifiant_legal || '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-subtext">Secteur d'activité</p>
-                  <p className="font-medium text-text">
-                    {profil.secteur_activite || '-'}
                   </p>
                 </div>
                 <div>
@@ -327,26 +313,12 @@ export default function ProfilOrganisationPage() {
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-sm text-subtext">Email de contact</p>
-                  <p className="font-medium text-text">{profil.email_contact}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-subtext">Téléphone de contact</p>
-                  <p className="font-medium text-text">
-                    {profil.telephone_contact || '-'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-4 text-lg font-semibold text-primary">
-                Référent
-              </h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
                   <p className="text-sm text-subtext">Référent</p>
                   <p className="font-medium text-text">{profil.contact_referent || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-subtext">Langue préférée</p>
+                  <p className="font-medium text-text">{profil.langue_preferee || 'FR'}</p>
                 </div>
               </div>
             </div>
