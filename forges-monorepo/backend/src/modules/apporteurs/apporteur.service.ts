@@ -308,7 +308,7 @@ export class ApporteurService {
     const montant = await this.apporteurRepo.getCumulDu(apporteur_id);
     if (montant <= 0) throw new Error('AUCUNE_COMMISSION_EN_ATTENTE');
 
-    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_APPORTEUR_XOF || '500000');
+    const seuil = SEUIL_REVERSEMENT_DEFAUT;
     if (montant < seuil) throw new Error('SEUIL_NON_ATTEINT');
 
     await this.apporteurRepo.marquerReverseesCommePayees(apporteur_id, agentId);
@@ -328,8 +328,7 @@ export class ApporteurService {
 
   // GET /api/agent/reversements/apporteurs — AGENT (RM-147)
   async getCommissionsEnAttente(agentId: string) {
-    // RM-147 : seuil minimum 5 000 XOF (stocké en centimes = 500 000)
-    const seuil = parseInt(process.env.SEUIL_REVERSEMENT_APPORTEUR_XOF || '500000'); // 5 000 XOF = 500 000 centimes
+    const seuil = SEUIL_REVERSEMENT_DEFAUT;
 
     // Récupérer commissions VALIDEE groupées par apporteur
     const commissionsGroupees = await this.prisma.commissionApporteur.groupBy({

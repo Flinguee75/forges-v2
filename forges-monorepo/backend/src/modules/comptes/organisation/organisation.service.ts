@@ -1,5 +1,5 @@
 import { hash } from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { OrganisationRepository } from './organisation.repository';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
@@ -38,7 +38,7 @@ export class OrganisationService {
     }
 
     const password_hash = await hash(dto.password, SALT_ROUNDS);
-    const token_confirmation = uuidv4();
+    const token_confirmation = randomUUID();
     const token_expiration = new Date(Date.now() + TOKEN_EXPIRATION_HOURS * 3600 * 1000);
 
     let organisation;
