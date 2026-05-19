@@ -4,6 +4,7 @@ import { useApi } from '../../../hooks/useApi';
 import { useToast } from '../../../hooks/useToast';
 import apporteursApi from '../../../api/apporteurs.api';
 import agentApi from '../../../api/agent.api';
+import { formatMontantXOF } from '../../../utils/montant';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
@@ -16,11 +17,6 @@ function getPreviousMonth() {
   const currentDate = new Date();
   currentDate.setMonth(currentDate.getMonth() - 1);
   return currentDate.toISOString().slice(0, 7);
-}
-
-function formatMontant(centimes) {
-  const montantXOF = Math.round(Number(centimes || 0) / 100);
-  return `${montantXOF.toLocaleString('fr-FR')} FCFA`;
 }
 
 function formatMonthLabel(month) {
@@ -204,7 +200,7 @@ export default function ReversementsApporteurs() {
             </Card>
             <Card title="Commissions à reverser">
               <p className="text-2xl font-semibold text-warning">
-                {formatMontant(agentTotals.totalDue)}
+                {formatMontantXOF(agentTotals.totalDue)}
               </p>
             </Card>
             <Card title="Transactions concernées">
@@ -246,7 +242,7 @@ export default function ReversementsApporteurs() {
                           {reversement.nb_commissions || 0}
                         </td>
                         <td className="py-4 text-right text-sm font-medium text-text">
-                          {formatMontant(reversement.montant_total_xof)}
+                          {formatMontantXOF(reversement.montant_total_xof)}
                         </td>
                         <td className="py-4 text-right">
                           <Button
@@ -276,7 +272,7 @@ export default function ReversementsApporteurs() {
             </Card>
             <Card title="Commissions dues">
               <p className="text-2xl font-semibold text-warning">
-                {formatMontant(supervisorTotals.commissionsTotales)}
+                {formatMontantXOF(supervisorTotals.commissionsTotales)}
               </p>
             </Card>
             <Card title="Top apporteurs">
@@ -320,10 +316,10 @@ export default function ReversementsApporteurs() {
                           {item.nb_transactions || 0}
                         </td>
                         <td className="py-4 text-right text-sm text-text">
-                          {formatMontant(item.montant_base)}
+                          {formatMontantXOF(item.montant_base)}
                         </td>
                         <td className="py-4 text-right text-sm font-medium text-text">
-                          {formatMontant(item.montant_commission)}
+                          {formatMontantXOF(item.montant_commission)}
                         </td>
                       </tr>
                     ))}

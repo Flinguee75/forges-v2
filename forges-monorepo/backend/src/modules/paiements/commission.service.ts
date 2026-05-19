@@ -10,12 +10,9 @@ type CommissionAuditEvent = {
 
 export class CommissionService {
   constructor(
-    prisma: PrismaClient,
-    audit?: AuditLogger
-  ) {
-    void prisma;
-    void audit;
-  }
+    private readonly prisma: PrismaClient,
+    private readonly audit?: AuditLogger
+  ) {}
 
   async creerCommissionsApresSuccessPayment(
     paiement: any,

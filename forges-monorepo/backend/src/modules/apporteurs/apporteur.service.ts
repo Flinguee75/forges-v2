@@ -19,13 +19,19 @@ export class ApporteurService {
     apporteur_id?: string;
     taux?: number;
     message?: string;
+    errorCode?: string;
   }> {
-    // RM-143 : vérifier code existant + statut ACTIF
-    const apporteur = await this.apporteurRepo.findByCode(code);
+    // RM-143 : chercher sans filtre de statut pour distinguer INVALIDE vs INACTIF
+    const apporteurBrut = await this.apporteurRepo.findByCodeAnyStatut(code);
 
-    if (!apporteur) {
-      // RM-143 alt1 : code invalide → transaction continue sans code
-      return { valide: false, message: 'Code apporteur invalide ou inactif.' };
+    if (!apporteurBrut) {
+      // RM-143 alt1 : code inconnu
+      return { valide: false, errorCode: 'CODE_APPORTEUR_INVALIDE', message: 'Code apporteur invalide.' };
+    }
+
+    if (apporteurBrut.statut !== 'ACTIF') {
+      // RM-143 alt2 : code connu mais apporteur suspendu/inactif
+      return { valide: false, errorCode: 'CODE_APPORTEUR_INACTIF', message: 'Code apporteur inactif.' };
     }
 
     // RM-144 : non-cumulable avec un autre voucher
@@ -38,8 +44,8 @@ export class ApporteurService {
 
     return {
       valide: true,
-      apporteur_id: apporteur.id,
-      taux: apporteur.taux_commission_pct,
+      apporteur_id: apporteurBrut.id,
+      taux: apporteurBrut.taux_commission_pct,
     };
   }
 
@@ -62,7 +68,7 @@ export class ApporteurService {
     return {
       // RM-142 : code UUID permanent toujours visible
       code_apporteur: apporteur.code_apporteur,
-      lien_parrainage: `https://forges-group.com/register?ref=${apporteur.code_apporteur}`,
+      lien_parrainage: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/register?ref=${apporteur.code_apporteur}`,
       taux_commission_pct: apporteur.taux_commission_pct,
       statut: apporteur.statut,
 
@@ -308,8 +314,7 @@ export class ApporteurService {
     const montant = await this.apporteurRepo.getCumulDu(apporteur_id);
     if (montant <= 0) throw new Error('AUCUNE_COMMISSION_EN_ATTENTE');
 
-    const seuil = SEUIL_REVERSEMENT_DEFAUT;
-    if (montant < seuil) throw new Error('SEUIL_NON_ATTEINT');
+    if (montant < SEUIL_REVERSEMENT_DEFAUT) throw new Error('SEUIL_NON_ATTEINT');
 
     await this.apporteurRepo.marquerReverseesCommePayees(apporteur_id, agentId);
 
@@ -328,8 +333,6 @@ export class ApporteurService {
 
   // GET /api/agent/reversements/apporteurs — AGENT (RM-147)
   async getCommissionsEnAttente(agentId: string) {
-    const seuil = SEUIL_REVERSEMENT_DEFAUT;
-
     // Récupérer commissions VALIDEE groupées par apporteur
     const commissionsGroupees = await this.prisma.commissionApporteur.groupBy({
       by: ['apporteur_id'],
@@ -345,7 +348,7 @@ export class ApporteurService {
     // Filtrer les apporteurs dont le cumul >= seuil
     const reversementsEnAttente = await Promise.all(
       commissionsGroupees
-        .filter(g => (g._sum.montant_commission_xof || 0) >= seuil)
+        .filter(g => (g._sum.montant_commission_xof || 0) >= SEUIL_REVERSEMENT_DEFAUT)
         .map(async (g) => {
           const apporteur = await this.apporteurRepo.findById(g.apporteur_id);
           if (!apporteur) return null;
@@ -405,13 +408,13 @@ export class ApporteurService {
     const nbActifs = await this.prisma.apporteur.count({ where: { statut: 'ACTIF' } });
     const totalCommissions = await this.prisma.commissionApporteur.aggregate({
       where: { statut: { in: ['EN_ATTENTE', 'VALIDEE'] } },
-      _sum: { montant_commission: true }
+      _sum: { montant_commission_xof: true }
     });
 
     return {
       nb_apporteurs_actifs: nbActifs,
       top_apporteurs: topApporteurs,
-      commissions_totales_dues_xof: totalCommissions._sum.montant_commission || 0,
+      commissions_totales_dues_xof: totalCommissions._sum.montant_commission_xof || 0,
     };
   }
 }

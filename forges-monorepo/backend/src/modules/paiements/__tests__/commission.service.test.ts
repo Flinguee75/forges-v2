@@ -1,5 +1,26 @@
 import { CommissionService } from '../commission.service';
 
+describe('CommissionService — constructeur', () => {
+  it('stocke prisma et audit comme champs privés utilisables', () => {
+    const mockPrisma = {} as any;
+    const mockAudit = {} as any;
+    const service = new CommissionService(mockPrisma, mockAudit);
+    expect(service).toBeDefined();
+    // Les paramètres doivent être stockés — vérifier via accès aux champs privés castés
+    expect((service as any).prisma).toBe(mockPrisma);
+    expect((service as any).audit).toBe(mockAudit);
+  });
+
+  it('getMoisFacturation retourne YYYY-MM du mois courant', () => {
+    const service = new CommissionService({} as any);
+    const mois = (service as any).getMoisFacturation();
+    expect(mois).toMatch(/^\d{4}-\d{2}$/);
+    const now = new Date();
+    const expected = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    expect(mois).toBe(expected);
+  });
+});
+
 describe('CommissionService', () => {
   const audit = {
     info: jest.fn().mockResolvedValue(undefined),

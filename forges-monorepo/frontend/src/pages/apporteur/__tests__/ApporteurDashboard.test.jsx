@@ -57,11 +57,11 @@ const mockDashboardData = {
   workflow_status: 'ACTIF',
   stats_mois_courant: {
     nb_transactions_mois: 12,
-    montant_base_mois: 50000000, // centimes → 500 000 FCFA
-    montant_commission_mois: 2500000, // centimes → 25 000 FCFA
+    montant_base_mois: 500000,
+    montant_commission_mois: 25000,
   },
-  cumul_en_cours: 2500000, // centimes → 25 000 XOF (seuil atteint)
-  cumul_total_percu: 15000000, // centimes → 150 000 FCFA
+  cumul_en_cours: 25000,
+  cumul_total_percu: 150000,
 };
 
 describe('ApporteurDashboard', () => {
