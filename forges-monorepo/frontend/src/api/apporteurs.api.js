@@ -133,12 +133,9 @@ const apporteursApi = {
     return normalizeDashboard(unwrapPayload(response));
   },
 
-  /**
-   * Route absente du backend actuel.
-   * Utiliser getDashboard() ou getMesCommissions() selon le besoin.
-   */
-  getApporteurById: async () => {
-    throw runtimeUnavailable('getApporteurById');
+  getApporteurById: async (id) => {
+    const response = await client.get(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs/${id}`);
+    return normalizeApporteur(unwrapPayload(response));
   },
 
   /**
@@ -241,29 +238,32 @@ const apporteursApi = {
   // ADMIN — GESTION APPORTEURS
   // ============================================
 
-  /**
-   * Route absente du backend actuel.
-   * La liste des apporteurs n'est pas exposee via /admin/apporteurs.
-   */
-  getAllApporteurs: async () => {
-    throw runtimeUnavailable('getAllApporteurs');
+  getAllApporteurs: async (params = {}) => {
+    const response = await client.get(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs`, {
+      params: cleanQueryParams(params),
+    });
+    const payload = unwrapPayload(response);
+    const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+    return {
+      data: items.map(normalizeApporteur),
+      meta: payload?.meta || { page: 1, limit: items.length || 0, total: items.length, totalPages: 1 },
+    };
   },
 
-  /**
-   * Route absente du backend actuel.
-   * La creation admin d'apporteur n'est pas exposee via /admin/apporteurs.
-   * Utiliser register() pour l'auto-inscription (Flux B).
-   */
-  createApporteur: async () => {
-    throw runtimeUnavailable('createApporteur');
+  createApporteur: async (data) => {
+    const payload = {
+      nom: data.nom?.trim?.() || data.nom || '',
+      email: data.email?.trim?.() || data.email || '',
+      type: data.type || 'INDIVIDU',
+      taux_commission_pct: Number(data.taux_commission_pct ?? 5),
+    };
+    const response = await client.post(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs`, payload);
+    return unwrapPayload(response);
   },
 
-  /**
-   * Route absente du backend actuel.
-   * L'approbation admin n'est pas exposee via /admin/apporteurs/:id/approuver.
-   */
-  approuverApporteur: async () => {
-    throw runtimeUnavailable('approuverApporteur');
+  approuverApporteur: async (id, data) => {
+    const response = await client.put(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs/${id}/approuver`, data || {});
+    return normalizeApporteur(unwrapPayload(response));
   },
 
   // ============================================

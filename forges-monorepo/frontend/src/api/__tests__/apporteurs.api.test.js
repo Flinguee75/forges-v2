@@ -49,33 +49,25 @@ describe('apporteurs.api', () => {
     });
   });
 
-  // Bug 2 - Endpoints fantomes
-  it('getApporteurById lance ROUTE_ABSENTE car la route n\'existe pas', async () => {
-    await expect(apporteursApi.getApporteurById('apt-1')).rejects.toMatchObject({
-      code: 'ROUTE_ABSENTE',
-    });
-    expect(apiMocks.get).not.toHaveBeenCalled();
+  it('getApporteurById appelle GET /admin/apporteurs/:id', async () => {
+    await apporteursApi.getApporteurById('apt-1');
+    expect(apiMocks.get).toHaveBeenCalledWith('/admin/apporteurs/apt-1');
   });
 
-  it('getAllApporteurs lance ROUTE_ABSENTE car la route n\'existe pas', async () => {
-    await expect(apporteursApi.getAllApporteurs()).rejects.toMatchObject({
-      code: 'ROUTE_ABSENTE',
-    });
-    expect(apiMocks.get).not.toHaveBeenCalled();
+  it('getAllApporteurs appelle GET /admin/apporteurs', async () => {
+    apiMocks.get.mockResolvedValueOnce({ data: { data: [], meta: { total: 0 } } });
+    await apporteursApi.getAllApporteurs({ search: 'traore' });
+    expect(apiMocks.get).toHaveBeenCalledWith('/admin/apporteurs', { params: { search: 'traore' } });
   });
 
-  it('createApporteur lance ROUTE_ABSENTE car la route n\'existe pas', async () => {
-    await expect(apporteursApi.createApporteur({ nom: 'Test' })).rejects.toMatchObject({
-      code: 'ROUTE_ABSENTE',
-    });
-    expect(apiMocks.post).not.toHaveBeenCalled();
+  it('createApporteur appelle POST /admin/apporteurs', async () => {
+    await apporteursApi.createApporteur({ nom: 'Test', email: 't@t.ci', type: 'INDIVIDU', taux_commission_pct: 5 });
+    expect(apiMocks.post).toHaveBeenCalledWith('/admin/apporteurs', expect.objectContaining({ nom: 'Test', email: 't@t.ci' }));
   });
 
-  it('approuverApporteur lance ROUTE_ABSENTE car la route n\'existe pas', async () => {
-    await expect(apporteursApi.approuverApporteur('apt-1')).rejects.toMatchObject({
-      code: 'ROUTE_ABSENTE',
-    });
-    expect(apiMocks.put).not.toHaveBeenCalled();
+  it('approuverApporteur appelle PUT /admin/apporteurs/:id/approuver', async () => {
+    await apporteursApi.approuverApporteur('apt-1');
+    expect(apiMocks.put).toHaveBeenCalledWith('/admin/apporteurs/apt-1/approuver', {});
   });
 
   it('getApporteurDashboard lance ROUTE_ABSENTE car la route n\'existe pas', async () => {
