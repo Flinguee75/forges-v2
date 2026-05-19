@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import apporteursApi from '../../api/apporteurs.api';
+import { formatMontantXOF } from '../../utils/montant';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/feedback/EmptyState';
 import Spinner from '../../components/feedback/Spinner';
-
-function formatMontant(centimes) {
-  const montantXOF = Math.round(Number(centimes || 0) / 100);
-  return `${montantXOF.toLocaleString('fr-FR')} FCFA`;
-}
 
 function getStatutBadge(statut) {
   const mapping = {
@@ -28,7 +24,7 @@ export default function MesReversements() {
 
   const loadReversements = useCallback(async () => {
     await execute(
-      () => apporteursApi.getMesReversements(),
+      () => apporteursApi.getMesCommissions(),
       {
         onSuccess: (data) => {
           setReversements(data.data || []);
@@ -73,10 +69,10 @@ export default function MesReversements() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="Total reversé">
-          <p className="text-3xl font-semibold text-success">{formatMontant(totalReverse)}</p>
+          <p className="text-3xl font-semibold text-success">{formatMontantXOF(totalReverse)}</p>
         </Card>
         <Card title="Total en attente">
-          <p className="text-3xl font-semibold text-warning">{formatMontant(totalEnAttente)}</p>
+          <p className="text-3xl font-semibold text-warning">{formatMontantXOF(totalEnAttente)}</p>
         </Card>
       </div>
 
@@ -115,16 +111,16 @@ export default function MesReversements() {
                   const statut = getStatutBadge(reversement.statut);
 
                   return (
-                    <tr key={reversement.mois} className="border-b border-border">
-                      <td className="py-4 text-sm text-text">{reversement.mois}</td>
+                    <tr key={reversement.id || reversement.mois} className="border-b border-border">
+                      <td className="py-4 text-sm text-text">{reversement.mois_reference || reversement.mois || 'N/A'}</td>
                       <td className="py-4 text-right text-sm text-text">
                         {reversement.nb_transactions || 0}
                       </td>
                       <td className="py-4 text-right text-sm text-text">
-                        {formatMontant(reversement.montant_base)}
+                        {formatMontantXOF(reversement.montant_base)}
                       </td>
                       <td className="py-4 text-right text-sm font-medium text-text">
-                        {formatMontant(reversement.montant_commission)}
+                        {formatMontantXOF(reversement.montant_commission)}
                       </td>
                       <td className="py-4">
                         <Badge variant={statut.variant} size="small">

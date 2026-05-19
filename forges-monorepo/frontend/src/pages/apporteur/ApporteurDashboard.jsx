@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import apporteursApi from '../../api/apporteurs.api';
+import { formatMontantXOF } from '../../utils/montant';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -11,11 +12,6 @@ import Spinner from '../../components/feedback/Spinner';
 import EmptyState from '../../components/feedback/EmptyState';
 
 const REVERSEMENT_THRESHOLD_XOF = 5000;
-
-function formatMontant(centimes) {
-  const montantXOF = Math.round(Number(centimes || 0) / 100);
-  return `${montantXOF.toLocaleString('fr-FR')} FCFA`;
-}
 
 function getWorkflowConfig(statut) {
   const mapping = {
@@ -216,12 +212,12 @@ export default function ApporteurDashboard() {
         </Card>
         <Card title="CA généré">
           <p className="text-2xl font-semibold text-text">
-            {formatMontant(dashboard.stats_mois_courant?.montant_base_mois)}
+            {formatMontantXOF(dashboard.stats_mois_courant?.montant_base_mois)}
           </p>
         </Card>
         <Card title="Commission du mois">
           <p className="text-2xl font-semibold text-text">
-            {formatMontant(dashboard.stats_mois_courant?.montant_commission_mois)}
+            {formatMontantXOF(dashboard.stats_mois_courant?.montant_commission_mois)}
           </p>
         </Card>
       </div>
@@ -229,7 +225,7 @@ export default function ApporteurDashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="Cumul en cours">
           <p className="text-3xl font-semibold text-warning">
-            {formatMontant(cumulEnCours)}
+            {formatMontantXOF(cumulEnCours)}
           </p>
           <div className="mt-4 rounded-lg border border-warning/20 bg-warning/10 p-4 text-sm text-warning">
             {isEligible
@@ -240,7 +236,7 @@ export default function ApporteurDashboard() {
 
         <Card title="Cumul total perçu">
           <p className="text-3xl font-semibold text-success">
-            {formatMontant(dashboard.cumul_total_percu)}
+            {formatMontantXOF(dashboard.cumul_total_percu)}
           </p>
           <p className="mt-2 text-sm text-subtext">
             Montant total déjà reversé depuis l’activation du compte.

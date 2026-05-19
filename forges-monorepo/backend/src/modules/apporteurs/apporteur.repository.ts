@@ -17,6 +17,12 @@ export class ApporteurRepository {
     });
   }
 
+  async findByCodeAnyStatut(code_apporteur: string) {
+    return this.prisma.apporteur.findFirst({
+      where: { code_apporteur }
+    });
+  }
+
   async findByEmail(email: string) {
     return this.prisma.apporteur.findUnique({ where: { email } });
   }

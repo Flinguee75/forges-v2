@@ -11,6 +11,12 @@ export interface ReglementResult {
   action?: string;
 }
 
+type DeferredAuditEvent = {
+  level: 'info' | 'warning';
+  action: string;
+  metadata: Record<string, any>;
+};
+
 export interface ConfirmerProviderParams {
   paiement: any;
   transactionId: string;
@@ -45,7 +51,7 @@ export class PaiementReglementService {
 
   async confirmerProvider(params: ConfirmerProviderParams): Promise<ReglementResult> {
     const { paiement } = params;
-    let commissions: { partenaire?: any; apporteur?: any } = {};
+    let commissions: { partenaire?: any; apporteur?: any; auditEvents?: DeferredAuditEvent[] } = {};
     let alreadyProcessed = false;
 
     await this.prisma.$transaction(async (tx) => {
@@ -88,6 +94,10 @@ export class PaiementReglementService {
         transaction_id: params.transactionId,
       });
       return { already_processed: true, action: 'NONE' };
+    }
+
+    for (const event of commissions.auditEvents || []) {
+      await this.audit[event.level](event.action, event.metadata);
     }
 
     const envoyerRecu = params.envoyerRecu ?? process.env.NODE_ENV !== 'test';

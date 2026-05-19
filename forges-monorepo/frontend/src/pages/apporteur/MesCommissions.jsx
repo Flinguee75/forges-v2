@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import apporteursApi from '../../api/apporteurs.api';
+import { formatMontantXOF } from '../../utils/montant';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/feedback/EmptyState';
 import Spinner from '../../components/feedback/Spinner';
-
-function formatMontant(centimes) {
-  const montantXOF = Math.round(Number(centimes || 0) / 100);
-  return `${montantXOF.toLocaleString('fr-FR')} FCFA`;
-}
 
 function formatDate(dateString) {
   if (!dateString) {
@@ -129,7 +125,7 @@ export default function MesCommissions() {
           <p className="text-2xl font-semibold text-text">{commissions.length}</p>
         </Card>
         <Card title="Montant cumulé affiché">
-          <p className="text-2xl font-semibold text-text">{formatMontant(totalCommission)}</p>
+          <p className="text-2xl font-semibold text-text">{formatMontantXOF(totalCommission)}</p>
         </Card>
       </div>
 
@@ -173,10 +169,10 @@ export default function MesCommissions() {
                         {commission.mois_reference || 'N/A'}
                       </td>
                       <td className="py-4 text-right text-sm text-text">
-                        {formatMontant(commission.montant_base)}
+                        {formatMontantXOF(commission.montant_base)}
                       </td>
                       <td className="py-4 text-right text-sm font-medium text-text">
-                        {formatMontant(commission.montant_commission)}
+                        {formatMontantXOF(commission.montant_commission)}
                       </td>
                       <td className="py-4">
                         <Badge variant={statut.variant} size="small">
