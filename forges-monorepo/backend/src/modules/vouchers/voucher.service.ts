@@ -131,7 +131,7 @@ export class VoucherService {
     const voucher = await this.voucherRepo.create({
       organisation_id: null,
       formation_id: dto.formation_id,
-      code: uuidv4(),
+      code: dto.code || uuidv4(),
       type: 'PROMOTIONNEL',
       valeur: dto.valeur,
       type_valeur: dto.type_valeur,
