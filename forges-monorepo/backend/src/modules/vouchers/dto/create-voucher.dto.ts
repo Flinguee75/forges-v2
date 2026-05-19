@@ -12,7 +12,9 @@ const baseVoucherSchema = z.object({
 // organisation_id comes from JWT token (req.user.userId), not from body
 export const CreateVoucherSchema = baseVoucherSchema;
 
-export const CreateVoucherPromotionnelSchema = baseVoucherSchema;
+export const CreateVoucherPromotionnelSchema = baseVoucherSchema.extend({
+  code: z.string().trim().min(1).optional(),
+});
 
 export const ListVouchersQuerySchema = z.object({
   type: z.enum(['ORGANISATION', 'PROMOTIONNEL']).optional(),
