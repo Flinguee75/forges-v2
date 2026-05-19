@@ -105,7 +105,7 @@ describe('ReversementsApporteurs', () => {
     });
 
     expect(screen.getByRole('cell', { name: '3' })).toBeInTheDocument();
-    expect(screen.getByRole('cell', { name: /6\s*000 FCFA/ })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: /600\s*000 FCFA/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Effectuer le reversement/i }));
     expect(await screen.findByText(/Confirmer le reversement/i)).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe('ReversementsApporteurs', () => {
     });
 
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getAllByText(/9\s*000 FCFA/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/900\s*000 FCFA/).length).toBeGreaterThan(0);
   });
 
   it('affiche le résumé mensuel consolidé pour ADMIN', async () => {
