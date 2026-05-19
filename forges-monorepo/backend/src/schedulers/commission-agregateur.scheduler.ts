@@ -41,7 +41,7 @@ export class CommissionAgregateurScheduler {
     // Cron: 0 6 1 * * = Le 1er de chaque mois à 06h00
     this.task = cron.schedule('0 6 1 * *', async () => {
       console.log('[CommissionAgregateurScheduler] Exécution — Agrégation mensuelle commissions apporteurs...');
-      await this.agregerCommissionsMoisEcoule();
+      await this.agregerCommissionsMoisEcoule(new Date());
     });
 
     console.log('[CommissionAgregateurScheduler] Démarré — cron: 0 6 1 * * (1er du mois à 06h00)');
@@ -60,9 +60,8 @@ export class CommissionAgregateurScheduler {
   /**
    * Logique principale : agréger les commissions du mois écoulé
    */
-  private async agregerCommissionsMoisEcoule(): Promise<void> {
+  private async agregerCommissionsMoisEcoule(now: Date = new Date()): Promise<void> {
     try {
-      const now = new Date();
 
       // Calculer le premier et dernier jour du mois écoulé
       const premierJourMoisEcoule = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -127,7 +126,7 @@ export class CommissionAgregateurScheduler {
       console.log('[CommissionAgregateurScheduler] Toutes les commissions passées en statut VALIDEE');
 
       // 4. Pour chaque apporteur, calculer le cumul et décider du reversement
-      const seuilReversement = parseInt(process.env.SEUIL_REVERSEMENT_APPORTEUR_XOF || '5000', 10); // 50 XOF par défaut
+      const seuilReversement = parseInt(process.env.SEUIL_REVERSEMENT_APPORTEUR_XOF || '5000', 10); // 5000 XOF par défaut
 
       for (const [apporteurId, commissions] of commissionsParApporteur.entries()) {
         try {
@@ -146,11 +145,11 @@ export class CommissionAgregateurScheduler {
           const nbCommissions = commissions.length;
           const apporteur = commissions[0].apporteur;
 
-          console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : ${nbCommissions} commission(s), cumul = ${montantCumulXof / 100} XOF`);
+          console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : ${nbCommissions} commission(s), cumul = ${montantCumulXof} XOF`);
 
           // 5. Si cumul >= seuil : reversement automatique
           if (montantCumulXof >= seuilReversement) {
-            console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : cumul >= seuil (${seuilReversement / 100} XOF) → Reversement déclenché`);
+            console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : cumul >= seuil (${seuilReversement} XOF) → Reversement déclenché`);
 
             // Marquer les commissions comme REVERSEE
             await this.prisma.commissionApporteur.updateMany({
@@ -175,10 +174,10 @@ export class CommissionAgregateurScheduler {
               methode: 'automatique',
             });
 
-            console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : ${nbCommissions} commission(s) reversées (${montantCumulXof / 100} XOF)`);
+            console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : ${nbCommissions} commission(s) reversées (${montantCumulXof} XOF)`);
           } else {
             // 6. Si cumul < seuil : report au mois suivant
-            console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : cumul < seuil (${seuilReversement / 100} XOF) → Report au mois suivant`);
+            console.log(`[CommissionAgregateurScheduler] Apporteur ${apporteurId} : cumul < seuil (${seuilReversement} XOF) → Report au mois suivant`);
 
             await this.audit.info('COMMISSIONS_AGREGEES_RAPPORT_REPORTE', {
               apporteur_id: apporteurId,
@@ -210,8 +209,8 @@ export class CommissionAgregateurScheduler {
   /**
    * Exécution manuelle (pour tests)
    */
-  async executeNow(): Promise<void> {
+  async executeNow(now: Date = new Date()): Promise<void> {
     console.log('[CommissionAgregateurScheduler] Exécution manuelle déclenchée');
-    await this.agregerCommissionsMoisEcoule();
+    await this.agregerCommissionsMoisEcoule(now);
   }
 }

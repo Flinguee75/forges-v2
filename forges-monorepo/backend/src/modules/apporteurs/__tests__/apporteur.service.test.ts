@@ -24,6 +24,7 @@ describe('ApporteurService (MOD-13)', () => {
     mockRepo = {
       findById: jest.fn(),
       findByCode: jest.fn(),
+      findByCodeAnyStatut: jest.fn(),
       findByEmail: jest.fn(),
       findCommissions: jest.fn(),
       aggregerCommissionsMois: jest.fn(),
@@ -62,6 +63,25 @@ describe('ApporteurService (MOD-13)', () => {
 
       expect(result.code_apporteur).toBe('550e8400-e29b-41d4-a716-446655440000');
       expect(result.lien_parrainage).toContain('550e8400-e29b-41d4-a716-446655440000');
+    });
+
+    // Bug B — lien_parrainage doit utiliser FRONTEND_URL
+    it('getDashboard construit lien_parrainage avec FRONTEND_URL env var', async () => {
+      const originalUrl = process.env.FRONTEND_URL;
+      process.env.FRONTEND_URL = 'https://test.forges.ci';
+
+      mockRepo.findById.mockResolvedValue(apporteurActif as any);
+      mockRepo.aggregerCommissionsMois.mockResolvedValue({ montant_total: 0, nb_transactions: 0 });
+      mockRepo.getCumulDu.mockResolvedValue(0);
+      mockRepo.findCommissions.mockResolvedValue([]);
+
+      const result = await service.getDashboard('apt-01');
+
+      expect(result.lien_parrainage).toContain('test.forges.ci');
+      expect(result.lien_parrainage).not.toContain('forges-group.com');
+      expect(result.lien_parrainage).toBe(`https://test.forges.ci/register?ref=${apporteurActif.code_apporteur}`);
+
+      process.env.FRONTEND_URL = originalUrl;
     });
   });
 
@@ -109,7 +129,7 @@ describe('ApporteurService (MOD-13)', () => {
   // RM-143 : validation code apporteur
   describe('RM-143 — Validation code apporteur', () => {
     it('retourne valide=true si code actif et sans voucher concurrent', async () => {
-      mockRepo.findByCode.mockResolvedValue(apporteurActif as any);
+      mockRepo.findByCodeAnyStatut.mockResolvedValue(apporteurActif as any);
       const result = await service.validerCode('code-valide');
       expect(result.valide).toBe(true);
       expect(result.apporteur_id).toBe('apt-01');
@@ -117,17 +137,53 @@ describe('ApporteurService (MOD-13)', () => {
     });
 
     it('retourne valide=false si code inexistant (transaction continue)', async () => {
-      mockRepo.findByCode.mockResolvedValue(null);
+      mockRepo.findByCodeAnyStatut.mockResolvedValue(null);
       const result = await service.validerCode('code-inexistant');
       expect(result.valide).toBe(false);
       expect(result.message).toBeDefined();
+    });
+
+    // Bug A — RM-143 : distinction INVALIDE vs INACTIF
+    it('retourne errorCode CODE_APPORTEUR_INVALIDE si code inexistant', async () => {
+      mockRepo.findByCodeAnyStatut.mockResolvedValue(null);
+      const result = await service.validerCode('code-inexistant');
+      expect(result.valide).toBe(false);
+      expect(result.errorCode).toBe('CODE_APPORTEUR_INVALIDE');
+    });
+
+    it('retourne errorCode CODE_APPORTEUR_INACTIF si apporteur SUSPENDU', async () => {
+      mockRepo.findByCodeAnyStatut.mockResolvedValue({
+        ...apporteurActif,
+        statut: 'SUSPENDU',
+      } as any);
+      const result = await service.validerCode('code-suspendu');
+      expect(result.valide).toBe(false);
+      expect(result.errorCode).toBe('CODE_APPORTEUR_INACTIF');
+    });
+
+    it('retourne errorCode CODE_APPORTEUR_INACTIF si apporteur EN_ATTENTE_VERIFICATION', async () => {
+      mockRepo.findByCodeAnyStatut.mockResolvedValue({
+        ...apporteurActif,
+        statut: 'EN_ATTENTE_VERIFICATION',
+      } as any);
+      const result = await service.validerCode('code-en-attente');
+      expect(result.valide).toBe(false);
+      expect(result.errorCode).toBe('CODE_APPORTEUR_INACTIF');
+    });
+
+    it('retourne valide=true et sans errorCode si code ACTIF sans voucher', async () => {
+      mockRepo.findByCodeAnyStatut.mockResolvedValue(apporteurActif as any);
+      const result = await service.validerCode('code-valide');
+      expect(result.valide).toBe(true);
+      expect(result.errorCode).toBeUndefined();
+      expect(result.apporteur_id).toBe('apt-01');
     });
   });
 
   // RM-144 : non-cumulable avec un autre voucher
   describe('RM-144 — Non-cumul code apporteur + voucher', () => {
     it('rejette si un voucher est déjà appliqué', async () => {
-      mockRepo.findByCode.mockResolvedValue(apporteurActif as any);
+      mockRepo.findByCodeAnyStatut.mockResolvedValue(apporteurActif as any);
       const result = await service.validerCode('code-valide', 'VCH-PROMO-01');
       expect(result.valide).toBe(false);
       expect(result.message).toContain('non cumulable');
@@ -135,7 +191,7 @@ describe('ApporteurService (MOD-13)', () => {
 
     it('accepte le code apporteur + réduction abonné -15% (RM-88 exception)', async () => {
       // RM-144 exception : -15% abonné n'est pas un voucher
-      mockRepo.findByCode.mockResolvedValue(apporteurActif as any);
+      mockRepo.findByCodeAnyStatut.mockResolvedValue(apporteurActif as any);
       // Pas de voucher_code → valide même si réduction -15% appliquée côté paiement
       const result = await service.validerCode('code-valide', undefined);
       expect(result.valide).toBe(true);
@@ -173,6 +229,27 @@ describe('ApporteurService (MOD-13)', () => {
       expect(result.nb_apporteurs_traites).toBe(1);
       expect(result.montant_total_agregé_xof).toBe(40000);
       expect(mockRepo.validerCommissionsMois).toHaveBeenCalled();
+    });
+  });
+
+  // Bug D — effectuerReversementApporteur doit utiliser SEUIL_REVERSEMENT_DEFAUT et non process.env
+  describe('Bug D — effectuerReversementApporteur utilise SEUIL_REVERSEMENT_DEFAUT', () => {
+    it('rejette si cumul < SEUIL_REVERSEMENT_DEFAUT', async () => {
+      mockRepo.findById.mockResolvedValue(apporteurActif as any);
+      // Retourne un montant inférieur à SEUIL_REVERSEMENT_DEFAUT
+      mockRepo.getCumulDu.mockResolvedValue(SEUIL_REVERSEMENT_DEFAUT - 1);
+
+      await expect(service.effectuerReversementApporteur('apt-01', 'agent-01')).rejects.toThrow('SEUIL_NON_ATTEINT');
+    });
+
+    it('effectue le reversement si cumul >= SEUIL_REVERSEMENT_DEFAUT', async () => {
+      mockRepo.findById.mockResolvedValue(apporteurActif as any);
+      mockRepo.getCumulDu.mockResolvedValue(SEUIL_REVERSEMENT_DEFAUT);
+      mockRepo.marquerReverseesCommePayees.mockResolvedValue({} as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      const result = await service.effectuerReversementApporteur('apt-01', 'agent-01');
+      expect(result.montant_total_xof).toBe(SEUIL_REVERSEMENT_DEFAUT);
     });
   });
 
@@ -235,21 +312,34 @@ describe('ApporteurService (MOD-13)', () => {
         { apporteur_id: 'apt-01', _sum: { montant_commission: 40000, montant_base: 800000 }, _count: 8 }
       ] as any);
       mockPrisma.apporteur.count.mockResolvedValue(12);
-      mockPrisma.commissionApporteur.aggregate.mockResolvedValue({ _sum: { montant_commission: 85000 } });
+      mockPrisma.commissionApporteur.aggregate.mockResolvedValue({ _sum: { montant_commission_xof: 85000 } });
 
       const result = await service.getTdbMensuelSuperviseur();
       expect(result.nb_apporteurs_actifs).toBe(12);
       expect(result.top_apporteurs).toHaveLength(1);
       expect(result.commissions_totales_dues_xof).toBe(85000);
     });
+
+    // Bug C — getTdbMensuelSuperviseur doit agréger sur montant_commission_xof
+    it('getTdbMensuelSuperviseur agrege sur montant_commission_xof', async () => {
+      mockRepo.getTopApporteursMois.mockResolvedValue([]);
+      mockPrisma.apporteur.count.mockResolvedValue(0);
+      mockPrisma.commissionApporteur.aggregate.mockResolvedValue({ _sum: { montant_commission_xof: 95000 } });
+
+      const result = await service.getTdbMensuelSuperviseur();
+
+      expect(mockPrisma.commissionApporteur.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          _sum: { montant_commission_xof: true },
+        })
+      );
+      expect(result.commissions_totales_dues_xof).toBe(95000);
+    });
   });
 
   // ===== SESSION 4 : TESTS COMMISSIONS EN ATTENTE =====
   describe('Session 4 — Commissions En Attente AGENT (RM-147)', () => {
     beforeEach(() => {
-      // Seuil : 5 000 XOF = 500 000 centimes
-      process.env.SEUIL_REVERSEMENT_APPORTEUR_XOF = '500000';
-
       // Ajouter mocks pour groupBy et findMany
       mockPrisma.commissionApporteur = {
         ...mockPrisma.commissionApporteur,
@@ -275,17 +365,17 @@ describe('ApporteurService (MOD-13)', () => {
           code_apporteur: 'CODE-B',
         };
 
-        // Apporteur A : 600 000 centimes (6 000 XOF) >= seuil → INCLUS
+        // Apporteur A : 6 000 XOF >= seuil 5 000 XOF → INCLUS
+        // Apporteur B : 4 000 XOF < seuil 5 000 XOF → EXCLU
         mockPrisma.commissionApporteur.groupBy.mockResolvedValue([
           {
             apporteur_id: 'apt-001',
-            _sum: { montant_commission_xof: 600000 },
+            _sum: { montant_commission_xof: 6000 },
             _count: { id: 2 },
           },
-          // Apporteur B : 400 000 centimes (4 000 XOF) < seuil → EXCLU
           {
             apporteur_id: 'apt-002',
-            _sum: { montant_commission_xof: 400000 },
+            _sum: { montant_commission_xof: 4000 },
             _count: { id: 1 },
           },
         ]);
@@ -301,7 +391,7 @@ describe('ApporteurService (MOD-13)', () => {
         expect(result).toHaveLength(1); // Seulement Apporteur A
         expect(result[0].apporteur_id).toBe('apt-001');
         expect(result[0].nom).toBe('Apporteur A');
-        expect(result[0].montant_total_xof).toBe(600000);
+        expect(result[0].montant_total_xof).toBe(6000);
         expect(result[0].nb_commissions).toBe(2);
       });
 
@@ -314,11 +404,11 @@ describe('ApporteurService (MOD-13)', () => {
           code_apporteur: 'CODE-A',
         };
 
-        // 3 commissions = 700 000 centimes total
+        // 3 commissions = 7 000 XOF total >= seuil
         mockPrisma.commissionApporteur.groupBy.mockResolvedValue([
           {
             apporteur_id: 'apt-001',
-            _sum: { montant_commission_xof: 700000 }, // 300k + 200k + 200k
+            _sum: { montant_commission_xof: 7000 }, // 3000 + 2000 + 2000
             _count: { id: 3 },
           },
         ]);
@@ -329,16 +419,16 @@ describe('ApporteurService (MOD-13)', () => {
         const result = await service.getCommissionsEnAttente('agent-123');
 
         // Assert
-        expect(result[0].montant_total_xof).toBe(700000); // Cumul correct
+        expect(result[0].montant_total_xof).toBe(7000); // Cumul correct
         expect(result[0].nb_commissions).toBe(3);
       });
 
       it('devrait retourner tableau vide si aucun apporteur >= seuil', async () => {
-        // Arrange : tous apporteurs < seuil
+        // Arrange : tous apporteurs < seuil 5 000 XOF
         mockPrisma.commissionApporteur.groupBy.mockResolvedValue([
           {
             apporteur_id: 'apt-001',
-            _sum: { montant_commission_xof: 200000 }, // < seuil
+            _sum: { montant_commission_xof: 2000 }, // < 5000 XOF seuil
             _count: { id: 1 },
           },
         ]);
