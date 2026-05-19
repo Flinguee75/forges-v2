@@ -313,6 +313,7 @@ export class PaiementController {
         order_id,
         status_id,
         transaction_id,
+        transaction_amount,
       } = req.query as Record<string, string>;
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -328,6 +329,21 @@ export class PaiementController {
       });
 
       const redirectUrl = `${frontendUrl}/apprenant/paiements/callback?${params}`;
+
+      if (order_id && status_id && transaction_id) {
+        const ipnPayload = {
+          order_id,
+          status_id: statutInt,
+          transaction_id,
+          transaction_amount: transaction_amount ? Number(transaction_amount) : undefined,
+        };
+
+        if (process.env.NODE_ENV === 'test') {
+          await this.paiementService.traiterIpnNgser(ipnPayload).catch(() => undefined);
+        } else {
+          void this.paiementService.traiterIpnNgser(ipnPayload).catch(() => undefined);
+        }
+      }
 
       return res.redirect(302, redirectUrl);
     } catch (error: any) {

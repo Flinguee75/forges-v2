@@ -29,16 +29,19 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
       .send(payload);
   }
 
-  // Helper: Créer un paiement NGSER en DB
+  // Helper: préparer le paiement NGSER lié au dossier.
+  // RM-140 crée déjà un paiement pour STANDARD+RETAIL, donc le test doit le
+  // réutiliser au lieu de violer l'unicité Paiement.dossier_id.
   async function createNgserPaiement(dossierId) {
-    const dossier = await prisma.dossier.findUnique({ where: { id: dossierId }, select: { formation_id: true } });
+    const dossier = await prisma.dossier.findUnique({
+      where: { id: dossierId },
+      select: { formation_id: true, paiement: true },
+    });
     const formation = await prisma.formation.findUnique({
       where: { id: dossier?.formation_id || ids.standardFormation },
     });
     const orderNgser = `FRG-2026-TEST-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-    return prisma.paiement.create({
-      data: {
-        dossier_id: dossierId,
+    const data = {
         montant_catalogue: formation.cout_catalogue,
         montant_final: formation.cout_catalogue,
         reduction_appliquee: 0,
@@ -49,17 +52,30 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
         provider: 'NGSER',
         order_ngser: orderNgser,
         montant_initie: formation.cout_catalogue,
+    };
+
+    if (dossier?.paiement) {
+      return prisma.paiement.update({
+        where: { id: dossier.paiement.id },
+        data,
+      });
+    }
+
+    return prisma.paiement.create({
+      data: {
+        dossier_id: dossierId,
+        ...data,
       },
     });
   }
 
   beforeAll(async () => {
     // Setup test data
-    await prisma.dossier.deleteMany({
-      where: { id: { startsWith: 'D-IPN-TEST-' } },
-    });
     await prisma.paiement.deleteMany({
       where: { dossier_id: { startsWith: 'D-IPN-TEST-' } },
+    });
+    await prisma.dossier.deleteMany({
+      where: { id: { startsWith: 'D-IPN-TEST-' } },
     });
   });
 
@@ -93,26 +109,8 @@ describe('RM-158/160 — IPN NGSER Format Réel (Idempotence & Montant)', () => 
       expect(inscription.status).toBe(201);
       const dossierId = inscription.body.dossier.id;
 
-      // Créer paiement NGSER directement en DB
-      const formation = await prisma.formation.findUnique({
-        where: { id: ids.standardFormation },
-      });
-      const orderNgser = `FRG-2026-TEST-${Date.now()}`;
-      const paiement = await prisma.paiement.create({
-        data: {
-          dossier_id: dossierId,
-          montant_catalogue: formation.cout_catalogue,
-          montant_final: formation.cout_catalogue,
-          reduction_appliquee: 0,
-          methode: 'MOBILE_MONEY',
-          statut: 'PENDING',
-          tentatives: 0,
-          expires_at: new Date(Date.now() + 72 * 3600 * 1000),
-          provider: 'NGSER',
-          order_ngser: orderNgser,
-          montant_initie: formation.cout_catalogue,
-        },
-      });
+      const formation = await prisma.formation.findUnique({ where: { id: ids.standardFormation } });
+      const paiement = await createNgserPaiement(dossierId);
 
       // Premier IPN — Format NGSER réel
       const ipnPayload1 = {
