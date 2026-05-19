@@ -33,7 +33,7 @@ describe('Vague 1 API — Apporteurs RM-141/RM-142/RM-145/RM-146/RM-147', () => 
     expect(commission.montant_commission).toBe(7500); // cout_catalogue 150000 * 5%
   });
 
-  test.skip('RM-146/RM-147 — aggregation puis reversement si seuil atteint', async () => {
+  test('RM-146/RM-147 — aggregation puis reversement si seuil atteint', async () => {
     await prisma.commissionApporteur.updateMany({
       where: { apporteur_id: ids.apporteur, statut: 'EN_ATTENTE' },
       data: { statut: 'VALIDEE' },

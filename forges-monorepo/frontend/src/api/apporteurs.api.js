@@ -133,53 +133,33 @@ const apporteursApi = {
     return normalizeDashboard(unwrapPayload(response));
   },
 
-  /**
-   * Récupère les détails d'un apporteur (Admin/Superviseur/Agent)
-   */
   getApporteurById: async (id) => {
     const response = await client.get(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs/${id}`);
     return normalizeApporteur(unwrapPayload(response));
   },
 
   /**
-   * Récupère le dashboard d'un apporteur spécifique (Admin/Superviseur/Agent)
-   * Endpoint: GET /apporteurs/:id/dashboard
+   * Route absente du backend actuel.
+   * Utiliser getDashboard() pour le dashboard de l'apporteur connecte.
    */
-  getApporteurDashboard: async (id) => {
-    const response = await client.get(`/apporteurs/${id}/dashboard`);
-    return normalizeDashboard(unwrapPayload(response));
+  getApporteurDashboard: async () => {
+    throw runtimeUnavailable('getApporteurDashboard');
   },
 
   /**
-   * Récupère les commissions d'un apporteur spécifique
-   * Endpoint: GET /apporteurs/:id/commissions
+   * Route absente du backend actuel.
+   * Utiliser getMesCommissions() pour les commissions de l'apporteur connecte.
    */
-  getApporteurCommissions: async (id, params = {}) => {
-    const response = await client.get(`/apporteurs/${id}/commissions`, {
-      params: cleanQueryParams(params),
-    });
-    const payload = unwrapPayload(response);
-    const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
-    return {
-      data: items.map(normalizeCommission),
-      meta: payload?.meta || { page: 1, limit: items.length || 0, total: items.length, totalPages: 1 },
-    };
+  getApporteurCommissions: async () => {
+    throw runtimeUnavailable('getApporteurCommissions');
   },
 
   /**
-   * Récupère les reversements d'un apporteur spécifique
-   * Endpoint: GET /apporteurs/:id/reversements
+   * Route absente du backend actuel.
+   * Utiliser getMesReversements() pour les reversements de l'apporteur connecte.
    */
-  getApporteurReversements: async (id, params = {}) => {
-    const response = await client.get(`/apporteurs/${id}/reversements`, {
-      params: cleanQueryParams(params),
-    });
-    const payload = unwrapPayload(response);
-    const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
-    return {
-      data: items.map(normalizeCommission),
-      meta: payload?.meta || { page: 1, limit: items.length || 0, total: items.length, totalPages: 1 },
-    };
+  getApporteurReversements: async () => {
+    throw runtimeUnavailable('getApporteurReversements');
   },
 
   // ============================================
@@ -213,27 +193,12 @@ const apporteursApi = {
   // ============================================
 
   /**
-   * Historique des reversements de l'apporteur connecté
+   * Historique des reversements de l'apporteur connecte.
+   * Delegue a getMesCommissions avec statut REVERSEE par defaut.
+   * Le caller peut surcharger le statut via params.
    */
   getMesReversements: async (params = {}) => {
-    const dashboard = await apporteursApi.getDashboard(params);
-    const items = Array.isArray(dashboard?.reversements) ? dashboard.reversements : [];
-
-    return {
-      data: items.map((item) => ({
-        ...item,
-        mois: item.mois || formatMontantDate(item.date_validation),
-        montant_base: item.montant_base || 0,
-        montant_commission: item.montant_commission || item.montant_net || 0,
-        statut: item.statut || item.statut_validation || 'REVERSEE',
-      })),
-      meta: {
-        page: 1,
-        limit: items.length || 0,
-        total: items.length,
-        totalPages: 1,
-      },
-    };
+    return apporteursApi.getMesCommissions({ statut: 'REVERSEE', ...params });
   },
 
   // ============================================
@@ -273,9 +238,6 @@ const apporteursApi = {
   // ADMIN — GESTION APPORTEURS
   // ============================================
 
-  /**
-   * Liste tous les apporteurs (Admin uniquement)
-   */
   getAllApporteurs: async (params = {}) => {
     const response = await client.get(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs`, {
       params: cleanQueryParams(params),
@@ -288,9 +250,6 @@ const apporteursApi = {
     };
   },
 
-  /**
-   * Création apporteur par Admin (Flux A)
-   */
   createApporteur: async (data) => {
     const payload = {
       nom: data.nom?.trim?.() || data.nom || '',
@@ -298,15 +257,10 @@ const apporteursApi = {
       type: data.type || 'INDIVIDU',
       taux_commission_pct: Number(data.taux_commission_pct ?? 5),
     };
-
     const response = await client.post(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs`, payload);
     return unwrapPayload(response);
   },
 
-  /**
-   * Approuver un apporteur en attente (Admin)
-   * Génère le code UUID permanent et active le compte
-   */
   approuverApporteur: async (id, data) => {
     const response = await client.put(`${APPORTEURS_ADMIN_BASE_URL}/apporteurs/${id}/approuver`, data || {});
     return normalizeApporteur(unwrapPayload(response));

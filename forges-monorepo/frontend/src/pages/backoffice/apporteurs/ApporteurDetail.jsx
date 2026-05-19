@@ -12,20 +12,14 @@ export default function ApporteurDetail() {
   const navigate = useNavigate();
   const { execute, isLoading } = useApi();
   const [apporteur, setApporteur] = useState(null);
-  const [dashboard, setDashboard] = useState(null);
   const [commissions, setCommissions] = useState([]);
 
   useEffect(() => {
     execute(() => apporteursApi.getApporteurById(id), {
-      onSuccess: setApporteur,
-      showErrorToast: false,
-    });
-    execute(() => apporteursApi.getApporteurDashboard(id), {
-      onSuccess: setDashboard,
-      showErrorToast: false,
-    });
-    execute(() => apporteursApi.getApporteurCommissions(id), {
-      onSuccess: (data) => setCommissions(data?.data || []),
+      onSuccess: (data) => {
+        setApporteur(data);
+        setCommissions(data?.commissions || []);
+      },
       showErrorToast: false,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,25 +63,6 @@ export default function ApporteurDetail() {
           <div><p className="text-xs uppercase tracking-[0.2em] text-subtext">Commissions</p><p className="mt-2">{apporteur.commissions_count || 0}</p></div>
         </div>
       </Card>
-
-      {dashboard && (
-        <Card title="Dashboard">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-sm text-subtext">Transactions mois</p>
-              <p className="mt-1 text-xl font-semibold text-primary">{dashboard.stats_mois?.nb_transactions || 0}</p>
-            </div>
-            <div>
-              <p className="text-sm text-subtext">Commission mois</p>
-              <p className="mt-1 text-xl font-semibold text-primary">{Number(dashboard.stats_mois?.commission_xof || 0).toLocaleString('fr-FR')} FCFA</p>
-            </div>
-            <div>
-              <p className="text-sm text-subtext">Cumul dû</p>
-              <p className="mt-1 text-xl font-semibold text-primary">{Number(dashboard.cumul_du_xof || 0).toLocaleString('fr-FR')} FCFA</p>
-            </div>
-          </div>
-        </Card>
-      )}
 
       <Card title="Commissions récentes">
         {commissions.length === 0 ? (

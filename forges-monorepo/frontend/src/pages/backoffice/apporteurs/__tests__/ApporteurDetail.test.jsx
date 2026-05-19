@@ -20,7 +20,6 @@ vi.mock('../../../../api/apporteurs.api', () => ({
   default: {
     getApporteurById: vi.fn(),
     getApporteurDashboard: vi.fn(),
-    getApporteurCommissions: vi.fn(),
   },
 }));
 
@@ -36,13 +35,10 @@ describe('ApporteurDetail', () => {
       taux_commission_pct: 5,
       statut: 'ACTIF',
       commissions_count: 2,
+      commissions: [
+        { id: 'c-1', mois_reference: '2026-04', statut: 'EN_ATTENTE', montant_commission: 5000 },
+      ],
     });
-    apporteursApi.getApporteurDashboard.mockResolvedValue({
-      stats_mois: { nb_transactions: 4, commission_xof: 3000 },
-      cumul_du_xof: 12000,
-      reversements: [],
-    });
-    apporteursApi.getApporteurCommissions.mockResolvedValue({ data: [] });
   });
 
   it('affiche le détail apporteur aligné au runtime', async () => {
@@ -55,7 +51,9 @@ describe('ApporteurDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Alpha Conseil')).toBeInTheDocument();
       expect(screen.getByText('CODE-1')).toBeInTheDocument();
-      expect(screen.getByText(/Dashboard/i)).toBeInTheDocument();
+      expect(screen.getByText('Commissions récentes')).toBeInTheDocument();
     });
+
+    expect(apporteursApi.getApporteurDashboard).not.toHaveBeenCalled();
   });
 });
