@@ -20,6 +20,7 @@ type DashboardFilters = {
 const PAID_DOSSIER_STATUSES = ['PAYE'];
 const OPEN_SESSION_STATUSES = ['OUVERTE', 'INSCRIPTIONS_OUVERTES', 'EN_COURS'];
 const ACTIVE_ORGANISATION_STATUSES = ['ACTIF', 'ACTIVE'];
+const CENTIMES_PER_XOF = 100;
 const NON_DEVIS_PAIEMENT_REVENUE_WHERE = {
   NOT: {
     dossier: {
@@ -76,6 +77,24 @@ function normalizeGroupBy(rows: Array<Record<string, any>>) {
   }, {});
 }
 
+function xofToCentimes(amountXof?: number | null) {
+  return Number(amountXof || 0) * CENTIMES_PER_XOF;
+}
+
+function mergeDossiersEtDevisParStatut(
+  dossiersParStatutRaw: Array<Record<string, any>>,
+  devisParStatutRaw: Array<Record<string, any>>
+) {
+  const dossiersParStatut = normalizeGroupBy(dossiersParStatutRaw);
+  const devisParStatut = normalizeGroupBy(devisParStatutRaw);
+
+  return {
+    ...dossiersParStatut,
+    DEVIS_PAYE: devisParStatut.PAYE || 0,
+    DEVIS_NON_PAYE: devisParStatut.CREE || 0,
+  };
+}
+
 function groupByMonth<T extends { created_at: Date; [key: string]: any }>(
   items: T[],
   valueKey?: keyof T
@@ -123,6 +142,7 @@ export class DashboardRepository {
       nbAbonnementsRetailActifs,
       nbAbonnementsB2BActifs,
       dossiersParStatut,
+      devisParStatut,
     ] = await Promise.all([
       this.prisma.apprenant.count({ where: { statut: 'ACTIF', role: 'APPRENANT' } }),
       this.prisma.organisation.count({ where: { statut: { in: ACTIVE_ORGANISATION_STATUSES } } }),
@@ -137,6 +157,7 @@ export class DashboardRepository {
       this.prisma.abonnementRetail.count({ where: { statut: 'ACTIF' } }),
       this.prisma.abonnementB2B.count({ where: { statut: 'ACTIF' } }),
       this.prisma.dossier.groupBy({ by: ['statut'], _count: { _all: true } }),
+      this.prisma.devis.groupBy({ by: ['statut'], _count: { _all: true } }),
     ]);
 
     return {
@@ -145,10 +166,10 @@ export class DashboardRepository {
       nb_formations_actives: nbFormations,
       nb_sessions_en_cours: nbSessions,
       nb_dossiers_total: nbDossiers,
-      ca_total_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + (devisPayes._sum.montant_total_xof || 0),
+      ca_total_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + xofToCentimes(devisPayes._sum.montant_total_xof),
       nb_abonnements_retail_actifs: nbAbonnementsRetailActifs,
       nb_abonnements_b2b_actifs: nbAbonnementsB2BActifs,
-      dossiers_par_statut: normalizeGroupBy(dossiersParStatut as any),
+      dossiers_par_statut: mergeDossiersEtDevisParStatut(dossiersParStatut as any, devisParStatut as any),
     };
   }
 
@@ -180,7 +201,7 @@ export class DashboardRepository {
 
     return {
       paiements_en_attente: paiementsEnAttente,
-      ca_confirme_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + (devisPayes._sum.montant_total_xof || 0),
+      ca_confirme_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + xofToCentimes(devisPayes._sum.montant_total_xof),
       reversements_partenaires_a_effectuer_xof: totalReversementsPartenaire._sum.montant_reverse || 0,
       commissions_apporteurs_a_reverser_xof: totalCommissionsApporteur._sum.montant_commission || 0,
       reversements_partenaires_ce_mois_xof: reversementsPartenaireMois._sum.montant_reverse || 0,

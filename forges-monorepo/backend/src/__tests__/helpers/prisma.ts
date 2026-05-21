@@ -77,6 +77,7 @@ export function createPrismaMock(overrides: Record<string, unknown> = {}) {
       update: jest.fn(),
       count: jest.fn(),
       aggregate: jest.fn(),
+      groupBy: jest.fn(),
     },
     voucherApporteur: {
       findUnique: jest.fn(),
