@@ -185,7 +185,7 @@ jobs:
           [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
 
       - name: Déclencher deploy edu
-        if: success()
+        if: github.event_name == 'workflow_dispatch' && success()
         run: |
           gh workflow run "Deploy → https://edu.forges-group.com" \
             --repo ${{ github.repository }} \
