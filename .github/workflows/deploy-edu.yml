@@ -1,6 +1,9 @@
 name: Deploy → https://edu.forges-group.com
 
 on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
   workflow_dispatch:
     inputs:
       image_sha:
@@ -18,9 +21,36 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  IMAGE_NAME: ghcr.io/flinguee75/forges-backend
   NODE_VERSION: '20'
 
 jobs:
+  build-push:
+    name: Build image backend → GHCR (EDU)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.frontend_ref || github.sha }}
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build & push image backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/docker/Dockerfile.backend.prod
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:dev-${{ inputs.image_sha || github.sha }}
+
   build-frontend:
     name: Build frontend Vite (EDU)
     runs-on: ubuntu-22.04
@@ -61,7 +91,7 @@ jobs:
   deploy:
     name: Deploiement sur edu
     runs-on: ubuntu-22.04
-    needs: [build-frontend]
+    needs: [build-push, build-frontend]
     environment:
       name: edu
       url: https://edu.forges-group.com
