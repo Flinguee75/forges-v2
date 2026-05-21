@@ -38,7 +38,7 @@ describe('BackofficeDashboard', () => {
         ca_total_xof: 15000000,
         nb_abonnements_retail_actifs: 42,
         nb_abonnements_b2b_actifs: 7,
-        dossiers_par_statut: { RETENU: 11, PAYE_DIRECTEMENT: 30 },
+        dossiers_par_statut: { RETENU: 11, PAYE_DIRECTEMENT: 30, DEVIS_PAYE: 2, DEVIS_NON_PAYE: 4 },
       },
       timestamp: '2026-04-22T10:00:00.000Z',
     });
@@ -59,6 +59,8 @@ describe('BackofficeDashboard', () => {
       expect(screen.getByText('CA total')).toBeInTheDocument();
       expect(screen.getByText(/150[\s\u202f]?000 FCFA/)).toBeInTheDocument();
       expect(screen.getByText('Paiement requis')).toBeInTheDocument();
+      expect(screen.getByText('Devis payés')).toBeInTheDocument();
+      expect(screen.getByText('Devis non payés')).toBeInTheDocument();
     });
   });
 

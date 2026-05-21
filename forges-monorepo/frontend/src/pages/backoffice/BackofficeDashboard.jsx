@@ -33,6 +33,8 @@ function StatCard({ label, value, sublabel, variant = 'gray' }) {
 }
 
 function formatDossierStatut(statut) {
+  if (statut === 'DEVIS_PAYE') return 'Devis payés';
+  if (statut === 'DEVIS_NON_PAYE') return 'Devis non payés';
   return getDossierStatutMeta(statut).label;
 }
 
