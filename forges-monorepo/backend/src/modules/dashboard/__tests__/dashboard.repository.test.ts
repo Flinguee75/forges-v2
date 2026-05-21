@@ -17,6 +17,7 @@ describe('DashboardRepository', () => {
     prisma.session.count.mockResolvedValueOnce(3);
     prisma.dossier.count.mockResolvedValueOnce(20);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 100000 } } as any);
+    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 50000 } } as any);
     prisma.abonnementRetail.count.mockResolvedValueOnce(5);
     prisma.abonnementB2B.count.mockResolvedValueOnce(1);
     prisma.dossier.groupBy.mockResolvedValueOnce([{ statut: 'PAYE', _count: 12 }] as any);
@@ -27,7 +28,7 @@ describe('DashboardRepository', () => {
       nb_formations_actives: 4,
       nb_sessions_en_cours: 3,
       nb_dossiers_total: 20,
-      ca_total_xof: 100000,
+      ca_total_xof: 150000,
       nb_abonnements_retail_actifs: 5,
       nb_abonnements_b2b_actifs: 1,
       dossiers_par_statut: { PAYE: 12 },
@@ -45,6 +46,7 @@ describe('DashboardRepository', () => {
     prisma.session.count.mockResolvedValueOnce(0);
     prisma.dossier.count.mockResolvedValueOnce(0);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 0 } } as any);
+    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 0 } } as any);
     prisma.abonnementRetail.count.mockResolvedValueOnce(0);
     prisma.abonnementB2B.count.mockResolvedValueOnce(0);
     prisma.dossier.groupBy.mockResolvedValueOnce([] as any);
@@ -56,9 +58,50 @@ describe('DashboardRepository', () => {
     });
   });
 
+  it('inclut les devis PAYE dans le CA total sans compter les paiements issus des vouchers devis', async () => {
+    prisma.apprenant.count.mockResolvedValueOnce(0);
+    prisma.organisation.count.mockResolvedValueOnce(0);
+    prisma.formation.count.mockResolvedValueOnce(0);
+    prisma.session.count.mockResolvedValueOnce(0);
+    prisma.dossier.count.mockResolvedValueOnce(0);
+    prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 120000 } } as any);
+    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 300000 } } as any);
+    prisma.abonnementRetail.count.mockResolvedValueOnce(0);
+    prisma.abonnementB2B.count.mockResolvedValueOnce(0);
+    prisma.dossier.groupBy.mockResolvedValueOnce([] as any);
+
+    await expect(repository.getStatsAdmin()).resolves.toMatchObject({
+      ca_total_xof: 420000,
+    });
+    expect(prisma.paiement.aggregate).toHaveBeenCalledWith({
+      where: {
+        AND: [
+          { statut: 'CONFIRME' },
+          {
+            NOT: {
+              dossier: {
+                voucher_organisation: {
+                  is: {
+                    devis_id: { not: null },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+      _sum: { montant_final: true },
+    });
+    expect(prisma.devis.aggregate).toHaveBeenCalledWith({
+      where: { statut: 'PAYE' },
+      _sum: { montant_total_xof: true },
+    });
+  });
+
   it('retourne les stats agent, responsable et superviseur', async () => {
     prisma.paiement.count.mockResolvedValueOnce(4);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 80000 } } as any);
+    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 20000 } } as any);
     prisma.commissionPartenaire.aggregate
       .mockResolvedValueOnce({ _sum: { montant_reverse: 70000 } } as any)
       .mockResolvedValueOnce({ _sum: { montant_reverse: 15000 } } as any);
@@ -74,7 +117,7 @@ describe('DashboardRepository', () => {
 
     await expect(repository.getStatsAgent()).resolves.toEqual({
       paiements_en_attente: 4,
-      ca_confirme_xof: 80000,
+      ca_confirme_xof: 100000,
       reversements_partenaires_a_effectuer_xof: 70000,
       commissions_apporteurs_a_reverser_xof: 5000,
       reversements_partenaires_ce_mois_xof: 15000,
