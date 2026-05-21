@@ -20,6 +20,17 @@ type DashboardFilters = {
 const PAID_DOSSIER_STATUSES = ['PAYE'];
 const OPEN_SESSION_STATUSES = ['OUVERTE', 'INSCRIPTIONS_OUVERTES', 'EN_COURS'];
 const ACTIVE_ORGANISATION_STATUSES = ['ACTIF', 'ACTIVE'];
+const NON_DEVIS_PAIEMENT_REVENUE_WHERE = {
+  NOT: {
+    dossier: {
+      voucher_organisation: {
+        is: {
+          devis_id: { not: null },
+        },
+      },
+    },
+  },
+};
 
 function buildDateCondition(dateFrom?: string | Date, dateTo?: string | Date): any {
   if (!dateFrom && !dateTo) {
@@ -107,7 +118,8 @@ export class DashboardRepository {
       nbFormations,
       nbSessions,
       nbDossiers,
-      caTotal,
+      paiementsConfirmesHorsDevis,
+      devisPayes,
       nbAbonnementsRetailActifs,
       nbAbonnementsB2BActifs,
       dossiersParStatut,
@@ -117,7 +129,11 @@ export class DashboardRepository {
       this.prisma.formation.count({ where: { statut: 'ACTIVE' } }),
       this.prisma.session.count({ where: { statut: { in: OPEN_SESSION_STATUSES } } }),
       this.prisma.dossier.count(),
-      this.prisma.paiement.aggregate({ where: { statut: 'CONFIRME' }, _sum: { montant_final: true } }),
+      this.prisma.paiement.aggregate({
+        where: mergeWhere({ statut: 'CONFIRME' }, NON_DEVIS_PAIEMENT_REVENUE_WHERE),
+        _sum: { montant_final: true },
+      }),
+      this.prisma.devis.aggregate({ where: { statut: 'PAYE' }, _sum: { montant_total_xof: true } }),
       this.prisma.abonnementRetail.count({ where: { statut: 'ACTIF' } }),
       this.prisma.abonnementB2B.count({ where: { statut: 'ACTIF' } }),
       this.prisma.dossier.groupBy({ by: ['statut'], _count: { _all: true } }),
@@ -129,7 +145,7 @@ export class DashboardRepository {
       nb_formations_actives: nbFormations,
       nb_sessions_en_cours: nbSessions,
       nb_dossiers_total: nbDossiers,
-      ca_total_xof: caTotal._sum.montant_final || 0,
+      ca_total_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + (devisPayes._sum.montant_total_xof || 0),
       nb_abonnements_retail_actifs: nbAbonnementsRetailActifs,
       nb_abonnements_b2b_actifs: nbAbonnementsB2BActifs,
       dossiers_par_statut: normalizeGroupBy(dossiersParStatut as any),
@@ -139,13 +155,18 @@ export class DashboardRepository {
   async getStatsAgent() {
     const [
       paiementsEnAttente,
-      paiementsConfirmes,
+      paiementsConfirmesHorsDevis,
+      devisPayes,
       totalReversementsPartenaire,
       totalCommissionsApporteur,
       reversementsPartenaireMois,
     ] = await Promise.all([
       this.prisma.paiement.count({ where: { statut: 'EN_ATTENTE' } }),
-      this.prisma.paiement.aggregate({ where: { statut: 'CONFIRME' }, _sum: { montant_final: true } }),
+      this.prisma.paiement.aggregate({
+        where: mergeWhere({ statut: 'CONFIRME' }, NON_DEVIS_PAIEMENT_REVENUE_WHERE),
+        _sum: { montant_final: true },
+      }),
+      this.prisma.devis.aggregate({ where: { statut: 'PAYE' }, _sum: { montant_total_xof: true } }),
       this.prisma.commissionPartenaire.aggregate({ where: { statut: 'EN_ATTENTE' }, _sum: { montant_reverse: true } }),
       this.prisma.commissionApporteur.aggregate({ where: { statut: 'EN_ATTENTE' }, _sum: { montant_commission: true } }),
       this.prisma.commissionPartenaire.aggregate({
@@ -159,7 +180,7 @@ export class DashboardRepository {
 
     return {
       paiements_en_attente: paiementsEnAttente,
-      ca_confirme_xof: paiementsConfirmes._sum.montant_final || 0,
+      ca_confirme_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + (devisPayes._sum.montant_total_xof || 0),
       reversements_partenaires_a_effectuer_xof: totalReversementsPartenaire._sum.montant_reverse || 0,
       commissions_apporteurs_a_reverser_xof: totalCommissionsApporteur._sum.montant_commission || 0,
       reversements_partenaires_ce_mois_xof: reversementsPartenaireMois._sum.montant_reverse || 0,
