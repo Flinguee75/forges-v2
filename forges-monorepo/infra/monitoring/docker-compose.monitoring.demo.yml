@@ -49,6 +49,8 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3050}
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/forges-demo.json
+      GF_SMTP_ENABLED: "false"
+      GF_ALERTING_ENABLED: "false"
       GF_UNIFIED_ALERTING_ENABLED: "false"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -90,6 +92,7 @@ services:
     command: sh /silent-check.sh
     environment:
       FORGES_BASE_URL: http://forges-backend-demo:3003
+      FORGES_ENVIRONMENT: demo
       CHECK_INTERVAL: "300"
     depends_on:
       - loki
