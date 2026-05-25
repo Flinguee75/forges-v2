@@ -57,6 +57,12 @@ const TRANSITIONS: Partial<Record<DossierStatut, Partial<Record<DossierStatut, T
         // webhook paiement confirmé — pas de guard supplémentaire
       },
     },
+    ANNULE: {
+      guard: (_ctx) => {
+        // RM-27 : annulation volontaire si paiement EN_ATTENTE uniquement
+        // La vérification statut paiement est dans EspaceApprenantService.annulerDossier()
+      },
+    },
   },
   RETENU: {
     PAYE: {
