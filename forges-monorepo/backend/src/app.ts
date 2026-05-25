@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import { prismaErrorMiddleware } from './shared/middlewares/prisma-error.middleware';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -260,6 +261,9 @@ app.use((req: Request, res: Response) => {
     method: req.method
   });
 });
+
+// Transformation erreurs Prisma en réponses HTTP métier
+app.use(prismaErrorMiddleware);
 
 // Gestionnaire d'erreurs global
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
