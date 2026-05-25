@@ -6,15 +6,21 @@ import { EmailService } from '../../shared/email/email.service';
 import { CreerDevisDto } from './dto/devis.dto';
 import { genererDocxDevis } from './devis-docx.service';
 import { genererPdfDevis } from './devis-pdf.service';
+import { PaiementInitialisationService } from '../paiements/paiement-initialisation.service';
 const SESSION_DEVIS_AUTORISEES = ['PLANIFIEE', 'A_VENIR', 'INSCRIPTIONS_OUVERTES', 'OUVERTE', 'EN_COURS'];
 
 export class DevisService {
+  private readonly paiementInit: PaiementInitialisationService;
+
   constructor(
     private readonly devisRepository: DevisRepository,
     private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger,
-    private readonly emailService: EmailService
-  ) {}
+    private readonly emailService: EmailService,
+    paiementInit?: PaiementInitialisationService
+  ) {
+    this.paiementInit = paiementInit ?? new PaiementInitialisationService(prisma);
+  }
 
   private isNumeroDevisUniqueConstraint(error: unknown) {
     const prismaError = error as {
@@ -280,27 +286,16 @@ export class DevisService {
 
         // Créer le Paiement CONFIRME pour que les KPIs comptabilisent ce CA
         const montant = dossier.formation?.cout_catalogue ?? 0;
-        const existingPaiement = await this.prisma.paiement.findUnique({
-          where: { dossier_id: dossier.id },
+        await this.paiementInit.creerOuRecuperer({
+          dossier_id: dossier.id,
+          montant_catalogue: montant,
+          montant_final: montant,
+          reduction_appliquee: 0,
+          methode: 'VIREMENT',
+          provider: 'VIREMENT',
+          statut: 'CONFIRME',
+          confirmed_at: new Date(),
         });
-        if (!existingPaiement) {
-          await this.prisma.paiement.create({
-            data: {
-              dossier_id: dossier.id,
-              montant_catalogue: montant,
-              montant_final: montant,
-              methode: 'VIREMENT',
-              statut: 'CONFIRME',
-              provider: 'VIREMENT',
-              confirmed_at: new Date(),
-            },
-          });
-        } else if (existingPaiement.statut !== 'CONFIRME') {
-          await this.prisma.paiement.update({
-            where: { dossier_id: dossier.id },
-            data: { statut: 'CONFIRME', montant_final: montant },
-          });
-        }
 
         await this.audit.info('DOSSIER_PAYE_VIA_DEVIS', {
           dossier_id: dossier.id,
