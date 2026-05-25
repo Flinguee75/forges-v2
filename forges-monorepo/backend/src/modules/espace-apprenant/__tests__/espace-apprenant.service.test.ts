@@ -570,3 +570,93 @@ describe("EspaceApprenantService", () => {
     });
   });
 });
+
+describe('EspaceApprenantService.annulerDossier — state machine wiring', () => {
+  function buildService(dossier: any) {
+    const espaceRepo = {
+      findDossierById: jest.fn().mockResolvedValue(dossier),
+    };
+    const attestationService = {} as any;
+    const audit = { info: jest.fn().mockResolvedValue(undefined) };
+    const email = {} as any;
+    const tx = {
+      dossier: { update: jest.fn().mockResolvedValue(dossier) },
+      session: { update: jest.fn().mockResolvedValue({}) },
+      voucherApporteur: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+      voucherApporteur: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    return {
+      service: new EspaceApprenantService(
+        espaceRepo as any,
+        attestationService,
+        prisma as any,
+        audit as any,
+        email
+      ),
+      tx,
+      prisma,
+      audit,
+    };
+  }
+
+  it('refuse annulation PAYE_DIRECTEMENT si paiement non EN_ATTENTE', async () => {
+    const dossier = {
+      id: 'd-01',
+      apprenant_id: 'a-01',
+      statut: 'PAYE_DIRECTEMENT',
+      session_id: 's-01',
+      voucher_code: null,
+      paiement: { statut: 'CONFIRME' },
+    };
+    const { service } = buildService(dossier);
+    await expect(service.annulerDossier('d-01', 'a-01')).rejects.toThrow('DOSSIER_PAYE_NON_ANNULABLE');
+  });
+
+  it('autorise annulation EN_ATTENTE_VERIFICATION (RM-27)', async () => {
+    const dossier = {
+      id: 'd-01',
+      apprenant_id: 'a-01',
+      statut: 'EN_ATTENTE_VERIFICATION',
+      session_id: 's-01',
+      voucher_code: null,
+      paiement: null,
+    };
+    const { service, tx } = buildService(dossier);
+    await service.annulerDossier('d-01', 'a-01');
+    expect(tx.dossier.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { statut: 'ANNULE' } })
+    );
+  });
+
+  it('autorise annulation PAYE_DIRECTEMENT si paiement EN_ATTENTE (RM-27)', async () => {
+    const dossier = {
+      id: 'd-01',
+      apprenant_id: 'a-01',
+      statut: 'PAYE_DIRECTEMENT',
+      session_id: 's-01',
+      voucher_code: null,
+      paiement: { statut: 'EN_ATTENTE' },
+    };
+    const { service, tx } = buildService(dossier);
+    await service.annulerDossier('d-01', 'a-01');
+    expect(tx.dossier.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { statut: 'ANNULE' } })
+    );
+  });
+
+  it('leve TRANSITION_INVALIDE si statut non annulable (ex: PAYE)', async () => {
+    const dossier = {
+      id: 'd-01',
+      apprenant_id: 'a-01',
+      statut: 'PAYE',
+      session_id: 's-01',
+      voucher_code: null,
+      paiement: { statut: 'CONFIRME' },
+    };
+    const { service } = buildService(dossier);
+    await expect(service.annulerDossier('d-01', 'a-01')).rejects.toThrow();
+  });
+});
