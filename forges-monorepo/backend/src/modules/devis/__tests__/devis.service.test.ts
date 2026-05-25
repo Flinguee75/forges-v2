@@ -729,6 +729,8 @@ describe('DevisService.payerDevis — delegation creation paiement a PaiementIni
         statut: 'CONFIRME',
         provider: 'VIREMENT',
         confirmed_at: expect.any(Date),
+        montant_catalogue: 150000,
+        montant_final: 150000,
       })
     );
     expect(localPrisma.paiement.create).not.toHaveBeenCalled();
