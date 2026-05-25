@@ -657,6 +657,6 @@ describe('EspaceApprenantService.annulerDossier — state machine wiring', () =>
       paiement: { statut: 'CONFIRME' },
     };
     const { service } = buildService(dossier);
-    await expect(service.annulerDossier('d-01', 'a-01')).rejects.toThrow();
+    await expect(service.annulerDossier('d-01', 'a-01')).rejects.toThrow('DOSSIER_PAYE_NON_ANNULABLE');
   });
 });

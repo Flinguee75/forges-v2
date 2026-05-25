@@ -47,6 +47,7 @@ export class EspaceApprenantService {
 
     // Vérification machine à états — seule source de vérité pour les transitions de statut
     const machine = new DossierStateMachine();
+    // lève TRANSITION_INVALIDE si le statut n'autorise pas l'annulation
     machine.canTransition(dossier.statut as any, 'ANNULE', {});
 
     // Transaction atomique : les 3 writes doivent réussir ou échouer ensemble
