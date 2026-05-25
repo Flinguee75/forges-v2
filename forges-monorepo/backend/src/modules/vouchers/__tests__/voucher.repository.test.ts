@@ -109,3 +109,33 @@ describe('VoucherRepository', () => {
     });
   });
 });
+
+describe('VoucherRepository.findActiveApporteurByCode', () => {
+  it('appelle prisma.apporteur.findFirst avec les bons filtres', async () => {
+    const apporteur = { id: 'a-01', code_apporteur: 'CODE-UUID', statut: 'ACTIF' };
+    const prisma = {
+      voucherOrganisation: { findUnique: jest.fn(), findMany: jest.fn() },
+      voucherApporteur: { findUnique: jest.fn(), findMany: jest.fn() },
+      organisation: { findUnique: jest.fn() },
+      apporteur: { findFirst: jest.fn().mockResolvedValue(apporteur) },
+    };
+    const repo = new VoucherRepository(prisma as any);
+    const result = await repo.findActiveApporteurByCode('CODE-UUID');
+    expect(prisma.apporteur.findFirst).toHaveBeenCalledWith({
+      where: { code_apporteur: 'CODE-UUID', statut: 'ACTIF' },
+    });
+    expect(result).toEqual(apporteur);
+  });
+
+  it('retourne null si apporteur introuvable', async () => {
+    const prisma = {
+      voucherOrganisation: { findUnique: jest.fn(), findMany: jest.fn() },
+      voucherApporteur: { findUnique: jest.fn(), findMany: jest.fn() },
+      organisation: { findUnique: jest.fn() },
+      apporteur: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const repo = new VoucherRepository(prisma as any);
+    const result = await repo.findActiveApporteurByCode('INCONNU');
+    expect(result).toBeNull();
+  });
+});

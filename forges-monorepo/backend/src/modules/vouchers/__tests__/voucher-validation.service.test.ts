@@ -8,11 +8,7 @@ describe('VoucherValidationService', () => {
   beforeEach(() => {
     mockRepo = {
       findByCode: jest.fn(),
-      prisma: {
-        apporteur: {
-          findFirst: jest.fn(),
-        },
-      },
+      findActiveApporteurByCode: jest.fn(),
     } as any;
 
     service = new VoucherValidationService(mockRepo);
@@ -94,16 +90,14 @@ describe('VoucherValidationService', () => {
   });
 
   it('valide un code apporteur actif', async () => {
-    (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue({ id: 'apt-01' });
+    (mockRepo.findActiveApporteurByCode as jest.Mock).mockResolvedValue({ id: 'apt-01' });
 
     await expect(service.validateApporteur('code-01')).resolves.toEqual({ id: 'apt-01' });
-    expect(mockRepo.prisma.apporteur.findFirst).toHaveBeenCalledWith({
-      where: { code_apporteur: 'code-01', statut: 'ACTIF' },
-    });
+    expect(mockRepo.findActiveApporteurByCode).toHaveBeenCalledWith('code-01');
   });
 
   it('rejette un code apporteur invalide', async () => {
-    (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue(null);
+    (mockRepo.findActiveApporteurByCode as jest.Mock).mockResolvedValue(null);
 
     await expect(service.validateApporteur('code-01')).rejects.toThrow('APPORTEUR_CODE_INVALID');
   });
@@ -116,16 +110,14 @@ describe('VoucherValidationService', () => {
 
   describe('validateApporteurContexte (RM-143/RM-144)', () => {
     it('valide un code apporteur actif sans voucher', async () => {
-      (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue({ id: 'apt-01' });
+      (mockRepo.findActiveApporteurByCode as jest.Mock).mockResolvedValue({ id: 'apt-01' });
 
       await expect(service.validateApporteurContexte('code-01')).resolves.toBeUndefined();
-      expect(mockRepo.prisma.apporteur.findFirst).toHaveBeenCalledWith({
-        where: { code_apporteur: 'code-01', statut: 'ACTIF' },
-      });
+      expect(mockRepo.findActiveApporteurByCode).toHaveBeenCalledWith('code-01');
     });
 
     it('leve VOUCHER_CUMUL_INTERDIT si code apporteur + voucher_code fournis (RM-144)', async () => {
-      (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue({ id: 'apt-01' });
+      (mockRepo.findActiveApporteurByCode as jest.Mock).mockResolvedValue({ id: 'apt-01' });
 
       await expect(
         service.validateApporteurContexte('code-01', 'voucher-org-01')
@@ -133,7 +125,7 @@ describe('VoucherValidationService', () => {
     });
 
     it('leve APPORTEUR_CODE_INVALID si le code apporteur est introuvable ou inactif (RM-143)', async () => {
-      (mockRepo.prisma.apporteur.findFirst as jest.Mock).mockResolvedValue(null);
+      (mockRepo.findActiveApporteurByCode as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.validateApporteurContexte('code-invalide')

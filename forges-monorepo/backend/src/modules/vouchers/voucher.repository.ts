@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 type VoucherType = 'ORGANISATION' | 'APPORTEUR' | 'PROMOTIONNEL';
 
 export class VoucherRepository {
-  constructor(public readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) {}
 
   private getModel(type: VoucherType) {
     if (type === 'ORGANISATION') return this.prisma.voucherOrganisation;
@@ -232,5 +232,11 @@ export class VoucherRepository {
       return this.prisma.voucherOrganisation.delete({ where: { id } });
     }
     return this.prisma.voucherApporteur.delete({ where: { id } });
+  }
+
+  async findActiveApporteurByCode(code: string) {
+    return this.prisma.apporteur.findFirst({
+      where: { code_apporteur: code, statut: 'ACTIF' },
+    });
   }
 }
