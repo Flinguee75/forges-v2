@@ -5,9 +5,6 @@ services:
     image: postgres:16-alpine
     container_name: forges-postgres-demo
     restart: unless-stopped
-    labels:
-      environment: demo
-      service: postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -26,9 +23,6 @@ services:
     image: redis:7-alpine
     container_name: forges-redis-demo
     restart: unless-stopped
-    labels:
-      environment: demo
-      service: redis
     command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$REDIS_PASSWORD\""]
     volumes:
       - redis-demo-data:/data
@@ -41,10 +35,12 @@ services:
       retries: 5
 
   backend:
-    image: ${BACKEND_IMAGE}:demo-${IMAGE_TAG}
+    image: ${BACKEND_IMAGE_REF:?BACKEND_IMAGE_REF is required}
     container_name: forges-backend-demo
     restart: unless-stopped
     labels:
+      com.docker.compose.project: forges-demo
+      com.docker.compose.service: backend
       environment: demo
       service: backend
     env_file:
@@ -52,6 +48,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://forges_demo:hgFoeo7rL1wWogkGy5uIUwNY09kMSHrTLTvD%2FeoSezQ%3D@postgres:5432/forges_demo"
       NODE_ENV: production
+      FRONTEND_URL: ${FRONTEND_URL:-https://demo.forges-group.com}
       PORT: ${BACKEND_INTERNAL_PORT}
       BACKEND_PORT: ${BACKEND_INTERNAL_PORT}
       POSTGRES_HOST: postgres

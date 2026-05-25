@@ -58,8 +58,8 @@ deploy_environment() {
   local backend_port="$5"
   local backend_container="$6"
 
-  : "${BACKEND_IMAGE:?BACKEND_IMAGE is required}"
   : "${IMAGE_TAG:?IMAGE_TAG is required}"
+  : "${BACKEND_IMAGE:?BACKEND_IMAGE is required}"
   : "${GHCR_USERNAME:?GHCR_USERNAME is required}"
   : "${GHCR_TOKEN:?GHCR_TOKEN is required}"
 
@@ -76,6 +76,7 @@ deploy_environment() {
   echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
 
   export BACKEND_IMAGE IMAGE_TAG
+  export BACKEND_IMAGE_REF="${BACKEND_IMAGE_REF:-${BACKEND_IMAGE}:${env_name}-${IMAGE_TAG}}"
 
   run_compose -f "${compose_file}" --env-file "${env_file}" pull
   run_compose -f "${compose_file}" --env-file "${env_file}" rm -sf || true
