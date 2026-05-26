@@ -1,6 +1,5 @@
 import * as cron from 'node-cron';
 import type { PrismaClient } from '@prisma/client';
-import { prisma } from '../shared/prisma/prisma.client';
 import { AuditLogger } from '../shared/audit/audit.logger';
 import { IpnNgserService } from '../modules/paiements/ipn-ngser.service';
 import { NgserClient } from '../modules/paiements/ngser.client';
@@ -25,16 +24,14 @@ export interface ReconciliationResult {
  * 5. Continue après erreur sur un paiement individuel
  */
 export class ReconciliationNgserScheduler {
-  private prisma: PrismaClient;
-  private audit: AuditLogger;
-  private ipnService: IpnNgserService;
   private task: cron.ScheduledTask | null = null;
   private mockMode: boolean;
 
-  constructor() {
-    this.prisma = prisma;
-    this.audit = new AuditLogger();
-    this.ipnService = new IpnNgserService(this.prisma, this.audit);
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly audit: AuditLogger,
+    private readonly ipnService: IpnNgserService,
+  ) {
     this.mockMode = process.env.NGSER_MOCK_MODE === 'true';
   }
 
@@ -226,7 +223,3 @@ export class ReconciliationNgserScheduler {
   }
 }
 
-/**
- * Instance unique du scheduler (singleton)
- */
-export const reconciliationNgserScheduler = new ReconciliationNgserScheduler();

@@ -154,13 +154,6 @@ export class CommissionService {
     tx: Prisma.TransactionClient,
     auditEvents: CommissionAuditEvent[] = []
   ) {
-    if (dossier.code_apporteur_id) {
-      return {
-        id: dossier.code_apporteur_id,
-        taux_commission_pct: dossier.code_apporteur?.apporteur?.taux_commission_pct,
-      };
-    }
-
     if (!dossier.code_apporteur) return null;
 
     const apporteur = await tx.apporteur.findFirst({

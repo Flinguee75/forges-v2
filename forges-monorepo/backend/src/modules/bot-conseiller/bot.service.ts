@@ -1,7 +1,6 @@
 import { BotRepository } from './bot.repository';
 import { BotEngineService, determinerFluxPrioritaire, OPTIONS_BOT } from './bot-engine.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
-import { PrismaClient } from '@prisma/client';
 
 const COOLDOWN_UPGRADE_JOURS = 7;   // RM-120
 const COOLDOWN_3_REFUS_JOURS = 30;  // RM-120
@@ -10,7 +9,6 @@ export class BotService {
   constructor(
     private readonly botRepo: BotRepository,
     private readonly engine: BotEngineService,
-    private readonly prisma: PrismaClient,
     private readonly audit: AuditLogger
   ) {}
 
@@ -31,14 +29,7 @@ export class BotService {
   // UCS15 — Démarrer session bot Apprenant (RM-115, RM-116)
   async demarrerSessionApprenant(apprenant_id: string, langue: string) {
     // RM-125 : lecture seule du profil — ZERO modification
-    const apprenant = await this.prisma.apprenant.findUnique({
-      where: { id: apprenant_id },
-      select: {
-        type_apprenant: true, secteur_activite: true,
-        langue_preferee: true,
-        abonnement_retail: { select: { offre: true, statut: true } }
-      }
-    });
+    const apprenant = await this.botRepo.getProfilApprenant(apprenant_id);
 
     // RM-116 : profil incomplet → invite à compléter
     // RM-35 : secteur_activite obligatoire si type_apprenant=PROFESSIONNEL
@@ -88,29 +79,9 @@ export class BotService {
   // Démarrer session bot pour Organisation (RM-115)
   async demarrerSessionOrganisation(organisation_id: string, langue: string) {
     // RM-125 : lecture seule — ZERO modification
-    const organisation = await this.prisma.organisation.findUnique({
-      where: { id: organisation_id },
-      select: {
-        langue_preferee: true,
-      }
-    });
-
-    // Récupérer l'abonnement B2B
-    const aboB2B = await this.prisma.abonnementB2B.findFirst({
-      where: { organisation_id },
-      select: {
-        palier: true,
-        statut: true,
-      }
-    });
-
-    // Compter les apprenants actifs rattachés
-    const nbApprenants = await this.prisma.apprenant.count({
-      where: {
-        organisation_id,
-        statut: 'ACTIF',
-      }
-    });
+    const organisation = await this.botRepo.getProfilOrganisation(organisation_id);
+    const aboB2B = await this.botRepo.getAbonnementB2B(organisation_id);
+    const nbApprenants = await this.botRepo.countApprenantsActifsOrganisation(organisation_id);
 
     let flux: 'UPGRADE' | 'FEEDBACK' | 'IDLE' = 'IDLE';
 

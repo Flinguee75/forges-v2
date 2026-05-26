@@ -3,6 +3,7 @@ import { AttestationService } from './attestation.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { EmailService } from '../../shared/email/email.service';
 import { PrismaClient } from '@prisma/client';
+import { DossierStateMachine } from '../inscriptions/dossier-state-machine';
 
 export class EspaceApprenantService {
   constructor(
@@ -43,6 +44,11 @@ export class EspaceApprenantService {
         where: { code: dossier.voucher_code }
       });
     }
+
+    // Vérification machine à états — seule source de vérité pour les transitions de statut
+    const machine = new DossierStateMachine();
+    // lève TRANSITION_INVALIDE si le statut n'autorise pas l'annulation
+    machine.canTransition(dossier.statut as any, 'ANNULE', {});
 
     // Transaction atomique : les 3 writes doivent réussir ou échouer ensemble
     await this.prisma.$transaction(async (tx: any) => {

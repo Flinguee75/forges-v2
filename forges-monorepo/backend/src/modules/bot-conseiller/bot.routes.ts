@@ -13,7 +13,7 @@ const router = Router();
 const botRepository = new BotRepository(prisma);
 const botEngine = new BotEngineService(botRepository, prisma);
 const auditLogger = new AuditLogger();
-const botService = new BotService(botRepository, botEngine, prisma, auditLogger);
+const botService = new BotService(botRepository, botEngine, auditLogger);
 const botController = new BotController(botService, prisma);
 
 /**

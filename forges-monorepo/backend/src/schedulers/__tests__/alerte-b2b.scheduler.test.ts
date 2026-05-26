@@ -49,7 +49,17 @@ describe('AlerteB2BScheduler (RM-66)', () => {
     mockAuditError.mockResolvedValue(undefined);
     // Par défaut, findMany retourne [] (appelé 2 fois : J-45 + J-15)
     mockAbonnementB2BFindMany.mockResolvedValue([]);
-    scheduler = new AlerteB2BScheduler();
+    const mockPrismaInstance = {
+      abonnementB2B: { findMany: mockAbonnementB2BFindMany },
+    } as any;
+    const mockEmailInstance = {
+      sendAlerteExpirationB2B: mockSendAlerte,
+    } as any;
+    const mockAuditInstance = {
+      info: mockAuditInfo,
+      error: mockAuditError,
+    } as any;
+    scheduler = new AlerteB2BScheduler(mockPrismaInstance, mockEmailInstance, mockAuditInstance);
   });
 
   it('envoie alerte J-45 avec audit approprié', async () => {

@@ -50,7 +50,23 @@ describe('ReconciliationNgserScheduler — RM-159', () => {
     jest.useFakeTimers();
     jest.setSystemTime(NOW);
     process.env.NGSER_MOCK_MODE = 'true'; // Mode mock par défaut pour les tests
-    scheduler = new ReconciliationNgserScheduler();
+    const mockPrismaInstance = {
+      paiement: {
+        findMany: mockPaiementFindMany,
+        findUnique: mockPaiementFindUnique,
+        update: mockPaiementUpdate,
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    } as any;
+    const mockAuditInstance = {
+      info: mockAuditInfo,
+      warning: mockAuditWarning,
+      error: mockAuditError,
+    } as any;
+    const mockIpnServiceInstance = {
+      traiterIpn: mockTraiterIpn,
+    } as any;
+    scheduler = new ReconciliationNgserScheduler(mockPrismaInstance, mockAuditInstance, mockIpnServiceInstance);
   });
 
   afterEach(() => {

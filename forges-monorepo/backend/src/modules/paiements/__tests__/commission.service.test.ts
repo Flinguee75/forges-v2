@@ -199,3 +199,74 @@ describe('CommissionService', () => {
     });
   });
 });
+
+describe('resolveApporteur — lookup par code string uniquement', () => {
+  const audit = {
+    info: jest.fn().mockResolvedValue(undefined),
+    warning: jest.fn().mockResolvedValue(undefined),
+  };
+
+  function createTx(overrides: Record<string, any> = {}) {
+    return {
+      commissionPartenaire: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockImplementation(async (data: any) => ({ id: 'cp-01', ...data.data })),
+      },
+      commissionApporteur: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockImplementation(async (data: any) => ({ id: 'ca-01', ...data.data })),
+      },
+      apporteur: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      formationPartenaire: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      partenaire: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      ...overrides,
+    };
+  }
+
+  it('retourne null si dossier.code_apporteur est absent', async () => {
+    const tx = createTx();
+    const service = new CommissionService({} as any, audit as any);
+    const result = await (service as any).resolveApporteur({ code_apporteur: undefined }, tx, []);
+    expect(result).toBeNull();
+    expect(tx.apporteur.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('retourne l apporteur trouvé par code string (chemin réel)', async () => {
+    const apporteur = { id: 'apporteur-uuid', taux_commission_pct: 5 };
+    const tx = createTx({
+      apporteur: { findFirst: jest.fn().mockResolvedValue(apporteur) },
+    });
+    const service = new CommissionService({} as any, audit as any);
+    const result = await (service as any).resolveApporteur(
+      { code_apporteur: 'CODE-APPORTEUR-UUID' },
+      tx,
+      []
+    );
+    expect(tx.apporteur.findFirst).toHaveBeenCalledWith({
+      where: { code_apporteur: 'CODE-APPORTEUR-UUID' },
+    });
+    expect(result).toEqual(apporteur);
+  });
+
+  it('retourne null et ajoute un auditEvent si code_apporteur inconnu', async () => {
+    const tx = createTx({
+      apporteur: { findFirst: jest.fn().mockResolvedValue(null) },
+    });
+    const service = new CommissionService({} as any, audit as any);
+    const auditEvents: any[] = [];
+    const result = await (service as any).resolveApporteur(
+      { code_apporteur: 'CODE-INCONNU' },
+      tx,
+      auditEvents
+    );
+    expect(result).toBeNull();
+    expect(auditEvents).toHaveLength(1);
+    expect(auditEvents[0].action).toBe('COMMISSION_APPORTEUR_CODE_INTROUVABLE');
+  });
+});

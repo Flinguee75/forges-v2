@@ -11,6 +11,7 @@ import { PaiementFineoService } from './paiement-fineo.service';
 import { IpnFineoService, FineoCbPayload } from './ipn-fineo.service';
 import { CommissionService } from './commission.service';
 import { PaiementReglementService } from './paiement-reglement.service';
+import { ReconciliationNgserScheduler } from '../../schedulers/reconciliation-ngser.scheduler';
 import { getDelaiPaiementH } from '../../config/env.config';
 
 const MAX_TENTATIVES = 3;      // RM-08
@@ -22,6 +23,7 @@ export class PaiementService {
   private commissionService: CommissionService;
   private paiementFineoService: PaiementFineoService;
   private reglementService: PaiementReglementService;
+  private reconciliationNgserScheduler: ReconciliationNgserScheduler;
 
   constructor(
     private readonly paiementRepo: PaiementRepository,
@@ -37,6 +39,7 @@ export class PaiementService {
     this.ipnNgserService = new IpnNgserService(prisma, audit, this.commissionService);
     this.paiementFineoService = new PaiementFineoService(prisma, voucherRepo, audit);
     this.ipnFineoService = new IpnFineoService(prisma, audit, this.commissionService);
+    this.reconciliationNgserScheduler = new ReconciliationNgserScheduler(prisma, audit, this.ipnNgserService);
   }
 
   async initierPaiementNgser(dto: InitierPaiementNgserDto, apprenantId: string) {
@@ -489,14 +492,13 @@ export class PaiementService {
 
   // Déclencher réconciliation manuelle NGSER (Phase 1 v4.9)
   async reconcilierPaiementsPendingNgser() {
-    const { reconciliationNgserScheduler } = await import('../../schedulers/reconciliation-ngser.scheduler');
     const delaiMinutes = Number(process.env.NGSER_RECONCILIATION_PENDING_MINUTES) || 0;
-    const paiements = await reconciliationNgserScheduler.getPaiementsPendingEligibles(delaiMinutes);
+    const paiements = await this.reconciliationNgserScheduler.getPaiementsPendingEligibles(delaiMinutes);
 
     const results = [];
     for (const paiement of paiements) {
       try {
-        const result = await reconciliationNgserScheduler.reconcilierPaiement(paiement.order_ngser!);
+        const result = await this.reconciliationNgserScheduler.reconcilierPaiement(paiement.order_ngser!);
         results.push({ order_ngser: paiement.order_ngser, ...result });
       } catch (error: any) {
         results.push({ order_ngser: paiement.order_ngser, error: error.message });

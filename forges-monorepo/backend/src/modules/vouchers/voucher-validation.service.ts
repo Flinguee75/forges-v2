@@ -20,9 +20,7 @@ export class VoucherValidationService {
   }
 
   async validateApporteur(code: string) {
-    const apporteur = await this.voucherRepo.prisma.apporteur.findFirst({
-      where: { code_apporteur: code, statut: 'ACTIF' },
-    });
+    const apporteur = await this.voucherRepo.findActiveApporteurByCode(code);
     if (!apporteur) throw new Error('APPORTEUR_CODE_INVALID');
     return apporteur;
   }

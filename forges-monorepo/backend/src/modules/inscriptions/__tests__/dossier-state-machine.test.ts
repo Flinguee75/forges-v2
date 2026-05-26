@@ -183,3 +183,35 @@ describe('DossierStateMachine', () => {
     });
   });
 });
+
+describe('PAYE_DIRECTEMENT -> ANNULE', () => {
+  it('autorise la transition (RM-27 annulation volontaire)', () => {
+    const machine = new DossierStateMachine();
+    expect(() =>
+      machine.canTransition('PAYE_DIRECTEMENT', 'ANNULE', {})
+    ).not.toThrow();
+  });
+});
+
+describe('Transitions invalides — protection machine', () => {
+  it('PAYE -> ANNULE est interdit', () => {
+    const machine = new DossierStateMachine();
+    expect(() =>
+      machine.canTransition('PAYE', 'ANNULE', {})
+    ).toThrow();
+  });
+
+  it('REJETE -> RETENU est interdit', () => {
+    const machine = new DossierStateMachine();
+    expect(() =>
+      machine.canTransition('REJETE', 'RETENU', {})
+    ).toThrow();
+  });
+
+  it('ANNULE -> PAYE est interdit', () => {
+    const machine = new DossierStateMachine();
+    expect(() =>
+      machine.canTransition('ANNULE', 'PAYE', {})
+    ).toThrow();
+  });
+});

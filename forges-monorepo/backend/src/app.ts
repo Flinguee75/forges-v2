@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import { prismaErrorMiddleware } from './shared/middlewares/prisma-error.middleware';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -32,15 +33,24 @@ import { AlerteValidationScheduler } from './schedulers/alerte-validation.schedu
 import { ReversementAbonnementScheduler } from './schedulers/reversement-abonnement.scheduler';
 import { AlerteB2BScheduler } from './schedulers/alerte-b2b.scheduler';
 import { ReconciliationNgserScheduler } from './schedulers/reconciliation-ngser.scheduler';
+import { prisma } from './shared/prisma/prisma.client';
+import { EmailService } from './shared/email/email.service';
+import { AuditLogger } from './shared/audit/audit.logger';
+import { IpnNgserService } from './modules/paiements/ipn-ngser.service';
+
+// Shared deps for all schedulers
+const _email = new EmailService();
+const _audit = new AuditLogger();
+const _ipnNgserService = new IpnNgserService(prisma, _audit);
 
 // Initialiser les schedulers
-const dossierExpirationScheduler = new DossierExpirationScheduler();
-const sessionTransitionScheduler = new SessionTransitionScheduler();
-const commissionAgregateurScheduler = new CommissionAgregateurScheduler();
-const alerteValidationScheduler = new AlerteValidationScheduler();
-const reversementAbonnementScheduler = new ReversementAbonnementScheduler();
-const alerteB2BScheduler = new AlerteB2BScheduler();
-const reconciliationNgserScheduler = new ReconciliationNgserScheduler();
+const dossierExpirationScheduler = new DossierExpirationScheduler(prisma, _email, _audit);
+const sessionTransitionScheduler = new SessionTransitionScheduler(prisma, _audit);
+const commissionAgregateurScheduler = new CommissionAgregateurScheduler(prisma, _audit);
+const alerteValidationScheduler = new AlerteValidationScheduler(prisma, _email, _audit);
+const reversementAbonnementScheduler = new ReversementAbonnementScheduler(prisma, _audit);
+const alerteB2BScheduler = new AlerteB2BScheduler(prisma, _email, _audit);
+const reconciliationNgserScheduler = new ReconciliationNgserScheduler(prisma, _audit, _ipnNgserService);
 
 // Démarrer les schedulers uniquement en production/development (pas en test)
 if (process.env.NODE_ENV !== 'test') {
@@ -51,8 +61,8 @@ if (process.env.NODE_ENV !== 'test') {
   reversementAbonnementScheduler.start();
   alerteB2BScheduler.start();
   reconciliationNgserScheduler.start();
-  console.log('[Schedulers] ✅ Réconciliation NGSER démarrée');
-  console.log('[Schedulers] ✅ Tous les schedulers démarrés');
+  console.log('[Schedulers] Reconciliation NGSER demarree');
+  console.log('[Schedulers] Tous les schedulers demarres');
 }
 
 // Exporter les schedulers pour tests/monitoring
@@ -260,6 +270,9 @@ app.use((req: Request, res: Response) => {
     method: req.method
   });
 });
+
+// Transformation erreurs Prisma en réponses HTTP métier
+app.use(prismaErrorMiddleware);
 
 // Gestionnaire d'erreurs global
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

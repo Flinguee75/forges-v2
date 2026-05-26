@@ -7,6 +7,7 @@ export interface CreerPaiementOptions {
   montant_final: number;
   reduction_appliquee: number;
   methode: string;
+  provider?: string;
   statut?: 'EN_ATTENTE' | 'CONFIRME';
   transaction_id?: string;
   confirmed_at?: Date;
@@ -31,6 +32,7 @@ export class PaiementInitialisationService {
         montant_final: options.montant_final,
         reduction_appliquee: options.reduction_appliquee,
         methode: options.methode,
+        ...(options.provider ? { provider: options.provider } : {}),
         statut,
         transaction_id: options.transaction_id ?? undefined,
         confirmed_at: options.confirmed_at ?? undefined,

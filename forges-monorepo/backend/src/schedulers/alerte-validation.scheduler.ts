@@ -1,6 +1,5 @@
 import * as cron from 'node-cron';
 import type { PrismaClient } from '@prisma/client';
-import { prisma } from '../shared/prisma/prisma.client';
 import { EmailService } from '../shared/email/email.service';
 import { AuditLogger } from '../shared/audit/audit.logger';
 
@@ -20,16 +19,13 @@ const DELAI_ESCALADE_J10 = 10;
  * 4. AuditLog chaque envoi
  */
 export class AlerteValidationScheduler {
-  private prisma: PrismaClient;
-  private email: EmailService;
-  private audit: AuditLogger;
   private task: cron.ScheduledTask | null = null;
 
-  constructor() {
-    this.prisma = prisma;
-    this.email = new EmailService();
-    this.audit = new AuditLogger();
-  }
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly email: EmailService,
+    private readonly audit: AuditLogger,
+  ) {}
 
   start(): void {
     this.task = cron.schedule('0 8 * * *', async () => {

@@ -1,6 +1,5 @@
 import * as cron from 'node-cron';
 import type { PrismaClient } from '@prisma/client';
-import { prisma } from '../shared/prisma/prisma.client';
 import { AuditLogger } from '../shared/audit/audit.logger';
 
 /**
@@ -19,14 +18,12 @@ import { AuditLogger } from '../shared/audit/audit.logger';
  * Note : Les transitions sont idempotentes - on vérifie toujours l'état actuel avant transition
  */
 export class SessionTransitionScheduler {
-  private prisma: PrismaClient;
-  private audit: AuditLogger;
   private task: cron.ScheduledTask | null = null;
 
-  constructor() {
-    this.prisma = prisma;
-    this.audit = new AuditLogger();
-  }
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly audit: AuditLogger,
+  ) {}
 
   /**
    * Démarre le scheduler (quotidien à minuit)

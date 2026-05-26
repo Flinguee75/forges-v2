@@ -3,6 +3,7 @@ jest.mock('../devis-pdf.service', () => ({
 }));
 
 import { DevisService } from '../devis.service';
+import { PaiementInitialisationService } from '../../paiements/paiement-initialisation.service';
 
 const mockDevisRepo = {
   findById: jest.fn(),
@@ -662,5 +663,76 @@ describe('DevisService — payerDevis cascade vouchers (RM-153/154)', () => {
     expect(mockPrisma.voucherOrganisation.updateMany).not.toHaveBeenCalled();
     expect(mockPrisma.dossier.update).not.toHaveBeenCalled();
     expect(result.vouchers_actives).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delegation paiement — payerDevis doit appeler paiementInit.creerOuRecuperer
+// et non prisma.paiement.create directement (refactoring RM-154)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('DevisService.payerDevis — delegation creation paiement a PaiementInitialisationService', () => {
+  it('appelle paiementInit.creerOuRecuperer et non prisma.paiement.create directement', async () => {
+    const mockPaiementInit = {
+      creerOuRecuperer: jest.fn().mockResolvedValue({ id: 'paiement-01', statut: 'CONFIRME' }),
+    };
+
+    const localPrisma = {
+      organisation: { findUnique: jest.fn().mockResolvedValue(orgFixture) },
+      formation: { findUnique: jest.fn().mockResolvedValue(formationFixture) },
+      session: { findUnique: jest.fn().mockResolvedValue(sessionFixture) },
+      voucherOrganisation: {
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([{ id: 'v-1', code: 'V-1' }]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      dossier: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'd-01',
+            source_financement: 'VOUCHER_ORG',
+            formation: { cout_catalogue: 150000 },
+          },
+        ]),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      paiement: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    };
+
+    const localDevisRepo = {
+      findById: jest.fn().mockResolvedValue(devisCreeFix),
+      payer: jest.fn().mockResolvedValue({ ...devisCreeFix, statut: 'PAYE', paid_at: new Date() }),
+    };
+
+    const localAudit = { info: jest.fn().mockResolvedValue(undefined) };
+    const localEmail = { sendVouchersOrganisation: jest.fn().mockResolvedValue(undefined) };
+
+    const service = new DevisService(
+      localDevisRepo as any,
+      localPrisma as any,
+      localAudit as any,
+      localEmail as any,
+      mockPaiementInit as any
+    );
+
+    await service.payerDevis('devis-anssi', 'agent-01');
+
+    expect(mockPaiementInit.creerOuRecuperer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dossier_id: 'd-01',
+        methode: 'VIREMENT',
+        statut: 'CONFIRME',
+        provider: 'VIREMENT',
+        confirmed_at: expect.any(Date),
+        montant_catalogue: 150000,
+        montant_final: 150000,
+      })
+    );
+    expect(localPrisma.paiement.create).not.toHaveBeenCalled();
   });
 });

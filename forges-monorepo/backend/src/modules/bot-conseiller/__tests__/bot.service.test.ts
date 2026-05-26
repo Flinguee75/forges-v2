@@ -7,7 +7,6 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
   let service: BotService;
   let mockRepo: jest.Mocked<BotRepository>;
   let mockEngine: jest.Mocked<BotEngineService>;
-  let mockPrisma: any;
   let mockAudit: jest.Mocked<AuditLogger>;
 
   const sessionEnCours = {
@@ -36,6 +35,10 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
       enregistrerFeedback: jest.fn(),
       enregistrerEnquete: jest.fn(),
       filtrerFormations: jest.fn(),
+      getProfilApprenant: jest.fn(),
+      getProfilOrganisation: jest.fn(),
+      getAbonnementB2B: jest.fn(),
+      countApprenantsActifsOrganisation: jest.fn(),
     } as any;
 
     mockEngine = {
@@ -46,13 +49,9 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
       getQuestionsEnquete: jest.fn(),
     } as any;
 
-    mockPrisma = {
-      apprenant: { findUnique: jest.fn() },
-    };
-
     mockAudit = { info: jest.fn(), warning: jest.fn() } as any;
 
-    service = new BotService(mockRepo, mockEngine, mockPrisma, mockAudit);
+    service = new BotService(mockRepo, mockEngine, mockAudit);
 
     mockEngine.getQuestionsFeedback.mockReturnValue([
       { id: 1, texte: 'Note globale', options: OPTIONS_BOT.NOTE_ETOILES, obligatoire: true },
@@ -100,7 +99,7 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
   // RM-116 : profil incomplet → invite à compléter
   describe('RM-116 — Profil incomplet bloque le bot', () => {
     it('retourne PROFIL_INCOMPLET si secteur manquant', async () => {
-      mockPrisma.apprenant.findUnique.mockResolvedValue({
+      mockRepo.getProfilApprenant.mockResolvedValue({
         type_apprenant: 'PROFESSIONNEL',
         secteur_activite: null,
         langue_preferee: 'FR',
@@ -245,7 +244,7 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
     });
 
     it('valide les 3 questions fermées de l\'enquête', () => {
-      const engine = new BotEngineService(mockRepo, mockPrisma);
+      const engine = new BotEngineService(mockRepo, {} as any);
       const questions = engine.getQuestionsEnquete();
       expect(questions).toHaveLength(3);
       questions.forEach(q => {
@@ -270,8 +269,11 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
     });
 
     it('toutes les interactions sont tracées (MT-01)', async () => {
-      mockPrisma.apprenant.findUnique.mockResolvedValue({
-        secteur_activite: 'Finance', langue_preferee: 'FR', abonnement_retail: null
+      mockRepo.getProfilApprenant.mockResolvedValue({
+        type_apprenant: 'PROFESSIONNEL',
+        secteur_activite: 'Finance',
+        langue_preferee: 'FR',
+        abonnement_retail: null,
       });
       mockRepo.findSessionsSansFeedback.mockResolvedValue([]);
       mockRepo.findDernierRefusUpgrade.mockResolvedValue(null);

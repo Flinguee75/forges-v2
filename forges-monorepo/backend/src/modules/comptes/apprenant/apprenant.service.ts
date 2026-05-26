@@ -1,5 +1,3 @@
-import { hash } from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
 import { ApprenantRepository } from './apprenant.repository';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
@@ -7,9 +5,8 @@ import { RegisterApprenantDto } from './dto/register-apprenant.dto';
 import { UpdateProfilDto } from './dto/update-profil.dto';
 import { isEmailAvailable } from '../../../shared/helpers/email-uniqueness';
 import { PrismaClient } from '@prisma/client';
+import { hashPassword, generateVerificationToken } from '../../../shared/account/account-provisioning';
 
-const SALT_ROUNDS = 12; // MT-02
-const TOKEN_EXPIRATION_HOURS = 24; // RM-30
 const VERSION_CGU = '1.0';
 
 export class ApprenantService {
@@ -39,11 +36,10 @@ export class ApprenantService {
     }
 
     // MT-02 : hachage bcrypt coût 12
-    const password_hash = await hash(dto.password, SALT_ROUNDS);
+    const password_hash = await hashPassword(dto.password);
 
     // Token de confirmation UUID v4, expiration 24h (RM-30)
-    const token_confirmation = uuidv4();
-    const token_expiration = new Date(Date.now() + TOKEN_EXPIRATION_HOURS * 3600 * 1000);
+    const { token: token_confirmation, expiration: token_expiration } = generateVerificationToken();
 
     // RM-33 : conservation consentement RGPD avec timestamp
     const apprenant = await this.apprenantRepo.create({
@@ -106,8 +102,7 @@ export class ApprenantService {
       return { message: 'Si un compte existe, un email a été envoyé.' };
     }
 
-    const token = uuidv4();
-    const expiration = new Date(Date.now() + TOKEN_EXPIRATION_HOURS * 3600 * 1000);
+    const { token, expiration } = generateVerificationToken();
     await this.apprenantRepo.updateToken(apprenant.id, token, expiration);
     await this.email.sendConfirmation(email, token, apprenant.langue_preferee);
     await this.audit.info('TOKEN_RENOUVELE', { apprenant_id: apprenant.id });
