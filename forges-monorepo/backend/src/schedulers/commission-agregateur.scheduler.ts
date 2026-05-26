@@ -1,6 +1,5 @@
 import * as cron from 'node-cron';
 import type { PrismaClient } from '@prisma/client';
-import { prisma } from '../shared/prisma/prisma.client';
 import { AuditLogger } from '../shared/audit/audit.logger';
 
 /**
@@ -25,14 +24,12 @@ import { AuditLogger } from '../shared/audit/audit.logger';
  * manuellement effectuerReversements() si besoin.
  */
 export class CommissionAgregateurScheduler {
-  private prisma: PrismaClient;
-  private audit: AuditLogger;
   private task: cron.ScheduledTask | null = null;
 
-  constructor() {
-    this.prisma = prisma;
-    this.audit = new AuditLogger();
-  }
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly audit: AuditLogger,
+  ) {}
 
   /**
    * Démarre le scheduler (J+1 fin de mois à 06h00)

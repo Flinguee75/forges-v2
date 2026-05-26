@@ -48,7 +48,20 @@ describe('AlerteValidationScheduler', () => {
     mockApprenantFindUnique.mockResolvedValue({ email: 'responsable@test.ci' });
     jest.useFakeTimers();
     jest.setSystemTime(NOW);
-    scheduler = new AlerteValidationScheduler();
+    const mockPrismaInstance = {
+      formationPartenaire: { findMany: mockFormationPartenaireFindMany },
+      apprenant: { findUnique: mockApprenantFindUnique },
+    } as any;
+    const mockEmailInstance = {
+      sendAlerteValidationJ5: mockSendJ5,
+      sendAlerteValidationJ10: mockSendJ10,
+    } as any;
+    const mockAuditInstance = {
+      info: mockAuditInfo,
+      warning: mockAuditWarning,
+      error: mockAuditError,
+    } as any;
+    scheduler = new AlerteValidationScheduler(mockPrismaInstance, mockEmailInstance, mockAuditInstance);
   });
 
   afterEach(() => {

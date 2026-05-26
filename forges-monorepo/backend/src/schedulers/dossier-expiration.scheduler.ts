@@ -1,6 +1,5 @@
 import * as cron from 'node-cron';
 import type { PrismaClient } from '@prisma/client';
-import { prisma } from '../shared/prisma/prisma.client';
 import { EmailService } from '../shared/email/email.service';
 import { AuditLogger } from '../shared/audit/audit.logger';
 import { getDelaiPaiementH } from '../config/env.config';
@@ -18,16 +17,13 @@ import { getDelaiPaiementH } from '../config/env.config';
  * 5. Libérer places session (decrementPlacesOccupees)
  */
 export class DossierExpirationScheduler {
-  private prisma: PrismaClient;
-  private email: EmailService;
-  private audit: AuditLogger;
   private task: cron.ScheduledTask | null = null;
 
-  constructor() {
-    this.prisma = prisma;
-    this.email = new EmailService();
-    this.audit = new AuditLogger();
-  }
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly email: EmailService,
+    private readonly audit: AuditLogger,
+  ) {}
 
   /**
    * Démarre le scheduler (toutes les heures)

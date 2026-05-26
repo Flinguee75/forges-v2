@@ -40,7 +40,19 @@ describe('ReversementAbonnementScheduler', () => {
     mockCommissionAbonnementCreate.mockResolvedValue({});
     mockAuditInfo.mockResolvedValue(undefined);
     mockAuditError.mockResolvedValue(undefined);
-    scheduler = new ReversementAbonnementScheduler();
+    const mockPrismaInstance = {
+      formationPartenaire: { findMany: mockFormationPartenaireFindMany },
+      commissionPartenaireAbonnement: {
+        findFirst: mockCommissionAbonnementFindFirst,
+        create: mockCommissionAbonnementCreate,
+      },
+      accesFormationDemande: { count: mockAccesFormationCount },
+    } as any;
+    const mockAuditInstance = {
+      info: mockAuditInfo,
+      error: mockAuditError,
+    } as any;
+    scheduler = new ReversementAbonnementScheduler(mockPrismaInstance, mockAuditInstance);
   });
 
   it('calcule correctement le reversement selon RM-132 (formule × ÷)', async () => {

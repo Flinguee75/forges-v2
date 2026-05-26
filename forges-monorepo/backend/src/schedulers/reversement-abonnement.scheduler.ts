@@ -1,6 +1,5 @@
 import * as cron from 'node-cron';
 import type { PrismaClient } from '@prisma/client';
-import { prisma } from '../shared/prisma/prisma.client';
 import { AuditLogger } from '../shared/audit/audit.logger';
 
 const DUREE_MOIS_DEFAUT = 1;
@@ -19,14 +18,12 @@ const DUREE_MOIS_DEFAUT = 1;
  * 5. AuditLog chaque calcul
  */
 export class ReversementAbonnementScheduler {
-  private prisma: PrismaClient;
-  private audit: AuditLogger;
   private task: cron.ScheduledTask | null = null;
 
-  constructor() {
-    this.prisma = prisma;
-    this.audit = new AuditLogger();
-  }
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly audit: AuditLogger,
+  ) {}
 
   start(): void {
     this.task = cron.schedule('0 7 1 * *', async () => {

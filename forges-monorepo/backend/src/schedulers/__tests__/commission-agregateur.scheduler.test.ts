@@ -53,7 +53,18 @@ describe('CommissionAgregateurScheduler', () => {
     mockAuditInfo.mockResolvedValue(undefined);
     mockAuditError.mockResolvedValue(undefined);
     mockUpdateMany.mockResolvedValue({ count: 1 });
-    scheduler = new CommissionAgregateurScheduler();
+    const mockPrismaInstance = {
+      commissionApporteur: {
+        findMany: mockFindMany,
+        updateMany: mockUpdateMany,
+        aggregate: mockAggregate,
+      },
+    } as any;
+    const mockAuditInstance = {
+      info: mockAuditInfo,
+      error: mockAuditError,
+    } as any;
+    scheduler = new CommissionAgregateurScheduler(mockPrismaInstance, mockAuditInstance);
   });
 
   // -----------------------------------------------------------------------
@@ -119,7 +130,10 @@ describe('CommissionAgregateurScheduler', () => {
       // cumul = 1000 XOF = seuil exact → reversement
       mockAggregate.mockResolvedValue({ _sum: { montant_commission_xof: 1000 } });
 
-      const schedulerWithEnv = new CommissionAgregateurScheduler();
+      const schedulerWithEnv = new CommissionAgregateurScheduler(
+        { commissionApporteur: { findMany: mockFindMany, updateMany: mockUpdateMany, aggregate: mockAggregate } } as any,
+        { info: mockAuditInfo, error: mockAuditError } as any
+      );
       await schedulerWithEnv.executeNow(NOW);
 
       const reverseeCall = mockUpdateMany.mock.calls.find(
