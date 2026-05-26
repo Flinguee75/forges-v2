@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { xofToCentimes, buildDateCondition } from '../../shared/stats/stats.helpers';
 
 type DashboardScope = {
   formations?: any;
@@ -20,7 +21,6 @@ type DashboardFilters = {
 const PAID_DOSSIER_STATUSES = ['PAYE'];
 const OPEN_SESSION_STATUSES = ['OUVERTE', 'INSCRIPTIONS_OUVERTES', 'EN_COURS'];
 const ACTIVE_ORGANISATION_STATUSES = ['ACTIF', 'ACTIVE'];
-const CENTIMES_PER_XOF = 100;
 const NON_DEVIS_PAIEMENT_REVENUE_WHERE = {
   NOT: {
     dossier: {
@@ -32,24 +32,6 @@ const NON_DEVIS_PAIEMENT_REVENUE_WHERE = {
     },
   },
 };
-
-function buildDateCondition(dateFrom?: string | Date, dateTo?: string | Date): any {
-  if (!dateFrom && !dateTo) {
-    return null;
-  }
-
-  const createdAt: Record<string, Date> = {};
-
-  if (dateFrom) {
-    createdAt.gte = new Date(dateFrom);
-  }
-
-  if (dateTo) {
-    createdAt.lte = new Date(dateTo);
-  }
-
-  return { created_at: createdAt };
-}
 
 function mergeWhere(base?: any, ...conditions: Array<any>) {
   const parts = [base, ...conditions].filter((condition) => condition && Object.keys(condition).length > 0) as Record<string, unknown>[];
@@ -75,10 +57,6 @@ function normalizeGroupBy(rows: Array<Record<string, any>>) {
     acc[row[key]] = row._count?._all || row._count || 0;
     return acc;
   }, {});
-}
-
-function xofToCentimes(amountXof?: number | null) {
-  return Number(amountXof || 0) * CENTIMES_PER_XOF;
 }
 
 function mergeDossiersEtDevisParStatut(
