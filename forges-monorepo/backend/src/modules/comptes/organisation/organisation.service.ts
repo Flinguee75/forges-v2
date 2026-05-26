@@ -1,14 +1,10 @@
-import { hash } from 'bcrypt';
-import { randomUUID } from 'crypto';
 import { OrganisationRepository } from './organisation.repository';
 import { AuditLogger } from '../../../shared/audit/audit.logger';
 import { EmailService } from '../../../shared/email/email.service';
 import { RegisterOrganisationDto } from './dto/register-organisation.dto';
 import { isEmailAvailable } from '../../../shared/helpers/email-uniqueness';
 import { PrismaClient } from '@prisma/client';
-
-const SALT_ROUNDS = 12;
-const TOKEN_EXPIRATION_HOURS = 24;
+import { hashPassword, generateVerificationToken } from '../../../shared/account/account-provisioning';
 
 export class OrganisationService {
   private readonly prisma: PrismaClient;
@@ -37,9 +33,8 @@ export class OrganisationService {
       if (existantIdLegal) throw new Error('IDENTIFIANT_LEGAL_ALREADY_EXISTS');
     }
 
-    const password_hash = await hash(dto.password, SALT_ROUNDS);
-    const token_confirmation = randomUUID();
-    const token_expiration = new Date(Date.now() + TOKEN_EXPIRATION_HOURS * 3600 * 1000);
+    const password_hash = await hashPassword(dto.password);
+    const { token: token_confirmation, expiration: token_expiration } = generateVerificationToken();
 
     let organisation;
     try {
