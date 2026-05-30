@@ -98,9 +98,11 @@ describe('SoumettreFormation', () => {
     await user.type(screen.getByLabelText(/Objectifs/i), 'Diagnostiquer les incidents\nPiloter la réponse');
     await user.type(screen.getByLabelText(/Programme/i), 'Jour 1 SOC\nJour 2 incident response');
     await user.type(screen.getByLabelText(/Competences/i), 'Investigation, containment, reporting');
+    await user.selectOptions(screen.getByLabelText(/Mode/i), 'A_LA_DEMANDE');
     await user.type(screen.getByLabelText(/Duree/i), '24');
     await user.type(screen.getByLabelText(/Capacite/i), '30');
     await user.type(screen.getByLabelText(/Prix coutant/i), '125000');
+    await user.type(screen.getByLabelText(/URL du contenu/i), 'https://lms.forges.test/formations/cyber-defense');
 
     await user.click(screen.getByRole('button', { name: /soumettre pour validation/i }));
 
@@ -113,6 +115,8 @@ describe('SoumettreFormation', () => {
       duree_heures: 24,
       capacite_max: 30,
       prix_coutant: 12500000,
+      mode_formation: 'A_LA_DEMANDE',
+      url_contenu: 'https://lms.forges.test/formations/cyber-defense',
     }));
     expect(payload).not.toHaveProperty('type_formation');
     expect(payload).not.toHaveProperty('pilier_abonnement');

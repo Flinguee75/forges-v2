@@ -164,6 +164,7 @@ function mapSoumissionPayload(formationData = {}, brouillon = false) {
     nb_places_max_session: Number(formationData.nb_places_max_session || formationData.capacite_max || 1),
     prix_coutant_propose: Number(formationData.prix_coutant_propose || formationData.prix_coutant || 0),
     commentaire_positionnement: formationData.commentaire_positionnement || formationData.sous_domaine || undefined,
+    url_contenu: formationData.url_contenu || undefined,
     brouillon,
   };
 }

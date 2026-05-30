@@ -246,9 +246,8 @@ export class FormationService {
       throw new Error('NOT_INCLUDED_IN_SUBSCRIPTION');
     }
 
-    // TODO: Vérifier que l'utilisateur a un abonnement actif
-    // const hasActiveSubscription = await this.checkActiveSubscription(userId, userRole);
-    // if (!hasActiveSubscription) throw new Error('NO_ACTIVE_SUBSCRIPTION');
+    const hasActiveSubscription = await this.checkActiveSubscription(userId, userRole);
+    if (!hasActiveSubscription) throw new Error('NO_ACTIVE_SUBSCRIPTION');
 
     // Vérifier si accès déjà existant et non expiré
     const existingAccess = await this.formationRepo.findAccesDemande(formationId, userId);
@@ -287,5 +286,22 @@ export class FormationService {
         statut: 'ACTIF',
       },
     });
+  }
+
+  async checkActiveSubscription(userId: string, userRole: string): Promise<boolean> {
+    if (userRole !== 'APPRENANT') {
+      return false;
+    }
+
+    const abonnement = await this.prisma.abonnementRetail.findFirst({
+      where: {
+        apprenant_id: userId,
+        statut: 'ACTIF',
+        date_debut: { lte: new Date() },
+        date_fin: { gte: new Date() },
+      },
+    });
+
+    return Boolean(abonnement);
   }
 }
