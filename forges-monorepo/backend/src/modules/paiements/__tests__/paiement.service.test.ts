@@ -746,4 +746,72 @@ describe('PaiementService', () => {
       expect(stats.avg_confirmation_time_seconds).toBe(0);
     });
   });
+
+  describe('Méthodes de délégation', () => {
+    it('délègue initierPaiementNgser au service NGSER', async () => {
+      const mockNgserSvc = { initierPaiement: jest.fn().mockResolvedValue({ payment_url: 'https://ngser.test' }) };
+      const s = new PaiementService(
+        mockPaiementRepo, mockCommissionRepo, mockVoucherRepo,
+        mockPrisma, mockAudit, mockEmail, mockNgserSvc as any
+      );
+      const result = await s.initierPaiementNgser({ dossier_id: 'd-01' }, 'a-01');
+      expect(result).toEqual({ payment_url: 'https://ngser.test' });
+      expect(mockNgserSvc.initierPaiement).toHaveBeenCalledWith({ dossier_id: 'd-01' }, 'a-01');
+    });
+
+    it('délègue initierPaiementFineo au service Fineo', async () => {
+      const mockResult = { checkout_link: 'https://fineo.test' };
+      jest.spyOn((service as any).paiementFineoService, 'initierPaiement').mockResolvedValueOnce(mockResult as any);
+      const result = await service.initierPaiementFineo('d-01', 'a-01');
+      expect(result).toEqual(mockResult);
+    });
+
+    it('délègue traiterCallbackFineo au service IPN Fineo', async () => {
+      const mockResult = { statut: 'CONFIRME' };
+      jest.spyOn((service as any).ipnFineoService, 'traiterCallback').mockResolvedValueOnce(mockResult as any);
+      const result = await service.traiterCallbackFineo({ transaction_id: 'TXN-01' } as any);
+      expect(result).toEqual(mockResult);
+    });
+
+    it('délègue traiterIpnNgser au service IPN NGSER', async () => {
+      const mockResult = { statut: 'CONFIRME' };
+      jest.spyOn((service as any).ipnNgserService, 'traiterIpn').mockResolvedValueOnce(mockResult as any);
+      const result = await service.traiterIpnNgser({ order_ngser: 'FRG-001' });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('retourne les paiements d un apprenant', async () => {
+      (mockPaiementRepo as any).findByApprenant = jest.fn().mockResolvedValue([{ id: 'p-01' }]);
+      const result = await service.getPaiementsByApprenant('a-01');
+      expect(result).toEqual([{ id: 'p-01' }]);
+    });
+
+    it('retourne null si le paiement est introuvable via getPaiementById', async () => {
+      mockPrisma.paiement.findUnique.mockResolvedValueOnce(null);
+      const result = await service.getPaiementById('p-inexistant');
+      expect(result).toBeNull();
+    });
+
+    it('retourne le paiement sans organisation si voucher_organisation absent', async () => {
+      const mockPaiement = { id: 'p-01', dossier: { voucher_organisation: null } };
+      mockPrisma.paiement.findUnique.mockResolvedValueOnce(mockPaiement);
+      const result = await service.getPaiementById('p-01');
+      expect((result as any)._organisation_voucher_nom).toBeNull();
+    });
+
+    it('résout le nom organisation via voucher_organisation si présent', async () => {
+      const mockPaiement = { id: 'p-01', dossier: { voucher_organisation: { organisation_id: 'org-01' } } };
+      mockPrisma.paiement.findUnique.mockResolvedValueOnce(mockPaiement);
+      mockPrisma.organisation = { findUnique: jest.fn().mockResolvedValue({ raison_sociale: 'TechCorp' }) };
+      const result = await service.getPaiementById('p-01');
+      expect((result as any)._organisation_voucher_nom).toBe('TechCorp');
+    });
+
+    it('reconcilierPaiementsPendingNgser retourne un résumé', async () => {
+      jest.spyOn((service as any).reconciliationNgserScheduler, 'getPaiementsPendingEligibles').mockResolvedValueOnce([]);
+      const result = await service.reconcilierPaiementsPendingNgser();
+      expect(result.nb_paiements_trouves).toBe(0);
+      expect(result.results).toEqual([]);
+    });
+  });
 });

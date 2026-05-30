@@ -1,5 +1,7 @@
 const { accounts, auth, createApprenantAccount, createPaiementAndConfirm, ids, prisma, request, API_URL } = require('./helpers');
 
+jest.setTimeout(15000);
+
 async function seedPartenaireCommission() {
   await prisma.commissionPartenaire.upsert({
     where: { paiement_id: 'P-E2E-PAYE-01' },

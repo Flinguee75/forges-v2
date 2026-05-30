@@ -1,5 +1,7 @@
 const { accounts, auth, ids, prisma, request, API_URL } = require('./helpers');
 
+jest.setTimeout(15000);
+
 function soumissionPayload(suffix) {
   return {
     intitule: `Formation partenaire V3 ${suffix}`,

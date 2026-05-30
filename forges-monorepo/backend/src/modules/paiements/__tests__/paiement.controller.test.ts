@@ -385,7 +385,8 @@ describe('PaiementController', () => {
   });
 
   describe('retourPaiementNgser — PDT securise', () => {
-    it('ne declenche pas de traitement IPN meme avec status_id=1', async () => {
+    it('declenche le fallback IPN (RM-158) si order_id + status_id + transaction_id presents', async () => {
+      mockService.traiterIpnNgser.mockResolvedValue(undefined as any);
       const req = createMockReq({
         query: {
           order_id: 'FRG-2026-042-A3F7B2',
@@ -398,7 +399,9 @@ describe('PaiementController', () => {
 
       await controller.retourPaiementNgser(req, res, next);
 
-      expect(mockService.traiterIpnNgser).not.toHaveBeenCalled();
+      expect(mockService.traiterIpnNgser).toHaveBeenCalledWith(
+        expect.objectContaining({ order_id: 'FRG-2026-042-A3F7B2', status_id: 1, transaction_id: 'TXN-001' })
+      );
     });
 
     it('redirige vers /apprenant/paiements/callback avec status=success si status_id=1', async () => {

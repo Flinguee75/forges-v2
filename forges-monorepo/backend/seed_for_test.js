@@ -793,11 +793,11 @@ async function seed() {
       updated_at: agoH(74),
     },
     {
-      // D2: UCS08 Rejeter — EN_ATTENTE_VERIFICATION fresh dossier for reject test
+      // D2: UCS08 Rejeter — EN_ATTENTE_VERIFICATION Premium+Retail for reject test (RM-05)
       id: IDS.d_rejeter_01,
-      apprenant_id: IDS.apprenant1,
-      formation_id: IDS.f_std_01,
-      session_id: IDS.s_open_01,
+      apprenant_id: IDS.apprenant3,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_prem_01,
       statut: 'EN_ATTENTE_VERIFICATION',
       source_financement: 'RETAIL',
       created_at: agoH(1),

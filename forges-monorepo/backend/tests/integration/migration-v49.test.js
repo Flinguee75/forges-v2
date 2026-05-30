@@ -6,6 +6,7 @@ describe('Migration v4.9 - schema DB', () => {
   });
 
   test('MIG-01: le modele Devis existe avec montants XOF entiers', async () => {
+    await prisma.organisation.deleteMany({ where: { id: 'org-test-mig' } });
     await prisma.organisation.create({
       data: {
         id: 'org-test-mig',

@@ -229,6 +229,31 @@ describe('resolveApporteur — lookup par code string uniquement', () => {
     };
   }
 
+  it('ne cree pas de doublon de commission apporteur si le paiement a deja ete traite', async () => {
+    const commissionExistante = { id: 'ca-existante', paiement_id: 'paiement-dup' };
+    const tx = createTx({
+      commissionApporteur: {
+        findUnique: jest.fn().mockResolvedValue(commissionExistante),
+        create: jest.fn(),
+      },
+      apporteur: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'apporteur-01', taux_commission_pct: 5 }),
+      },
+    });
+    const service = new CommissionService({} as any, audit as any);
+    const auditEvents: any[] = [];
+    const result = await (service as any).creerCommissionApporteur(
+      { id: 'paiement-dup', montant_final: 100000 },
+      { id: 'dossier-01', code_apporteur: 'CODE-UUID' },
+      tx,
+      { id: 'apporteur-01', taux_commission_pct: 5 },
+      auditEvents
+    );
+    expect(tx.commissionApporteur.create).not.toHaveBeenCalled();
+    expect(result).toBe(commissionExistante);
+    expect(auditEvents[0].action).toBe('COMMISSION_APPORTEUR_EXISTANTE');
+  });
+
   it('retourne null si dossier.code_apporteur est absent', async () => {
     const tx = createTx();
     const service = new CommissionService({} as any, audit as any);

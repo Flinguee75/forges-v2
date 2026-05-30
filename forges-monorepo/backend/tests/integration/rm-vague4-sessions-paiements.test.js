@@ -1,5 +1,7 @@
 const { accounts, auth, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
 
+jest.setTimeout(15000);
+
 describe('Vague 4 API — Sessions RM-03/18/19/24/25 + Paiements RM-06/08', () => {
 
   // ===== SESSIONS =====

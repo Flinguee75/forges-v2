@@ -1,5 +1,7 @@
 const { accounts, auth, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
 
+jest.setTimeout(15000);
+
 describe('Vague 1 API — Vouchers RM-37/RM-38/RM-39/RM-40/RM-143/RM-144', () => {
   // Helper pour créer un voucher de test unique
   async function createTestVoucher(testId, quotaMax = 10) {

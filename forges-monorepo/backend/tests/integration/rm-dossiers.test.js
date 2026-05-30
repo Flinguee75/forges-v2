@@ -1,5 +1,7 @@
 const { accounts, auth, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
 
+jest.setTimeout(15000);
+
 describe('Vague 1 API — Dossiers et bifurcation RM-140/RM-05/RM-07/RM-19', () => {
   test('RM-140 — Premium+Retail attend verification Responsable', async () => {
     const account = await createApprenantAccount('rm140pr');

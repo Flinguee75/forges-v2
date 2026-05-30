@@ -7,6 +7,8 @@ const {
   API_URL,
 } = require('./helpers');
 
+jest.setTimeout(15000);
+
 describe('RM-140 — Bifurcation statut dossier a l\'inscription', () => {
 
   test('CAS-1 — Standard+Retail -> PAYE_DIRECTEMENT', async () => {

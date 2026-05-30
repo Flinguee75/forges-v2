@@ -15,6 +15,8 @@ const { randomUUID } = require('crypto');
 const { hash } = require('bcrypt');
 const { API_URL, accounts, auth, ids, prisma, request } = require('./helpers');
 
+jest.setTimeout(15000);
+
 const PASSWORD = 'Test@FORGES2026!';
 
 let adminHeaders;

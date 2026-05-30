@@ -330,8 +330,23 @@ export class PaiementController {
 
       const redirectUrl = `${frontendUrl}/apprenant/paiements/callback?${params}`;
 
-      // PDT (browser redirect) — redirection seule, sans traitement paiement.
-      // La confirmation passe exclusivement par le webhook IPN server-to-server (HMAC vérifié).
+      // RM-158 : fallback IPN via retour — si le webhook server-to-server n'est pas arrivé,
+      // le retour navigateur déclenche le traitement IPN en dernier recours.
+      if (order_id && status_id && transaction_id) {
+        const ipnPayload = {
+          order_id,
+          status_id: statutInt,
+          transaction_id,
+          transaction_amount: transaction_amount ? Number(transaction_amount) : undefined,
+        };
+
+        if (process.env.NODE_ENV === 'test') {
+          await this.paiementService.traiterIpnNgser(ipnPayload).catch(() => undefined);
+        } else {
+          void this.paiementService.traiterIpnNgser(ipnPayload).catch(() => undefined);
+        }
+      }
+
       return res.redirect(302, redirectUrl);
     } catch (error: any) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
