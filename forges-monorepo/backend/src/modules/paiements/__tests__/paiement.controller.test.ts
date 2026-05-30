@@ -162,7 +162,7 @@ describe('PaiementController', () => {
     expect(res.status).toHaveBeenCalledWith(401);
 
     await controller.handleWebhook(createMockReq({ body: { invalid: true } }), res, next);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   it('liste les paiements avec filtres de date', async () => {

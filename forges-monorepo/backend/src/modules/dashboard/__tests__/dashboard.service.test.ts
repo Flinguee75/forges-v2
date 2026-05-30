@@ -16,7 +16,7 @@ describe('DashboardService', () => {
     ca_total_xof: 170000000,
     nb_abonnements_retail_actifs: 320,
     nb_abonnements_b2b_actifs: 18,
-    dossiers_par_statut: { PAYE: 2800, EN_ATTENTE_VERIFICATION: 120, ANNULE: 480 },
+    dossiers_par_statut: { PAYE: 2800, EN_ATTENTE_VERIFICATION: 120, ANNULE: 480, DEVIS_PAYE: 10, DEVIS_NON_PAYE: 5 },
   };
 
   const statsPartenaire = {
