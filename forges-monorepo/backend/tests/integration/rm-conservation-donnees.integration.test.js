@@ -22,6 +22,11 @@ describe('Wave 3 - Conservation donnees', () => {
       .send({ offre: 'ESSENTIEL' })
       .expect(201);
 
+    await prisma.abonnementRetail.update({
+      where: { apprenant_id: apprenant.id },
+      data: { statut: 'ACTIF' },
+    });
+
     const dossier = await prisma.dossier.create({
       data: {
         apprenant_id: apprenant.id,

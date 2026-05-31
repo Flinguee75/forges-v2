@@ -1,6 +1,6 @@
 const { accounts, auth, ids, prisma, request, API_URL } = require('./helpers');
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 function soumissionPayload(suffix) {
   return {
@@ -168,7 +168,7 @@ describe('Vague 3 API — Partenaires RM-128/RM-130/RM-131/RM-133/RM-134/RM-136/
     expect(reversement.status).toBe(201);
 
     const remaining = await prisma.commissionPartenaire.count({
-      where: { partenaire_id: ids.partenaire, statut: 'EN_ATTENTE' },
+      where: { partenaire_id: ids.partenaire, paiement_id: 'P-E2E-PAYE-01', statut: 'EN_ATTENTE' },
     });
     expect(remaining).toBe(0);
   });

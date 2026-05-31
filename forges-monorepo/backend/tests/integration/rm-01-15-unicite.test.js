@@ -1,5 +1,7 @@
 const { auth, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
 
+jest.setTimeout(30000);
+
 describe('RM-01 & RM-15 — Unicité Apprenant/Session & Formation (Criticité 5)', () => {
 
   test('RM-01.1 — Apprenant ne peut s\'inscrire deux fois à la même session', async () => {

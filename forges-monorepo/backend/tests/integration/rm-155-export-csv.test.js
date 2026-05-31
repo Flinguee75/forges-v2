@@ -13,6 +13,7 @@ const { API_URL, accounts, auth, request } = require('./helpers');
 let partenaireHeaders;
 let adminHeaders;
 let apprenantHeaders;
+let exportCsvReference;
 const MOIS_TEST = '2025-04';
 
 beforeAll(async () => {
@@ -21,17 +22,17 @@ beforeAll(async () => {
     auth(accounts.admin),
     auth(accounts.apprenant),
   ]);
+
+  exportCsvReference = await request(API_URL)
+    .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
+    .set(partenaireHeaders);
 });
 
 describe('RM-155 — Export CSV Partenaire', () => {
 
   describe("RBAC — controle d'acces", () => {
     it('PARTENAIRE peut acceder a GET /api/partenaires/export-csv', async () => {
-      const res = await request(API_URL)
-        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-        .set(partenaireHeaders);
-
-      expect([200]).toContain(res.status);
+      expect(exportCsvReference.status).toBe(200);
     });
 
     it('ADMIN recoit 403 sur /api/partenaires/export-csv', async () => {
@@ -89,31 +90,19 @@ describe('RM-155 — Export CSV Partenaire', () => {
 
   describe('Format CSV', () => {
     it('Content-Type est text/csv', async () => {
-      const res = await request(API_URL)
-        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-        .set(partenaireHeaders);
-
-      expect(res.status).toBe(200);
-      expect(res.headers['content-type']).toMatch(/text\/csv/);
+      expect(exportCsvReference.status).toBe(200);
+      expect(exportCsvReference.headers['content-type']).toMatch(/text\/csv/);
     });
 
     it('Content-Disposition contient attachment et nom de fichier .csv', async () => {
-      const res = await request(API_URL)
-        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-        .set(partenaireHeaders);
-
-      expect(res.status).toBe(200);
-      expect(res.headers['content-disposition']).toMatch(/attachment/);
-      expect(res.headers['content-disposition']).toMatch(/\.csv/);
+      expect(exportCsvReference.status).toBe(200);
+      expect(exportCsvReference.headers['content-disposition']).toMatch(/attachment/);
+      expect(exportCsvReference.headers['content-disposition']).toMatch(/\.csv/);
     });
 
     it('header CSV contient exactement les colonnes du spec v4.9', async () => {
-      const res = await request(API_URL)
-        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-        .set(partenaireHeaders);
-
-      expect(res.status).toBe(200);
-      const firstLine = res.text.split('\n')[0];
+      expect(exportCsvReference.status).toBe(200);
+      const firstLine = exportCsvReference.text.split('\n')[0];
       expect(firstLine).toBe(
         'identifiant_anonymise,formation_intitule,activation_confirmee_le,statut_acces,certification_obtenue,url_verification_certificat,langue_formation'
       );
@@ -122,24 +111,16 @@ describe('RM-155 — Export CSV Partenaire', () => {
 
   describe('Absence de PII (RM-155)', () => {
     it("le CSV ne contient pas d'email", async () => {
-      const res = await request(API_URL)
-        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-        .set(partenaireHeaders);
-
-      expect(res.status).toBe(200);
-      expect(res.text).not.toMatch(/@/);
+      expect(exportCsvReference.status).toBe(200);
+      expect(exportCsvReference.text).not.toMatch(/@/);
     });
 
     it("le CSV ne contient pas l'ID apprenant brut", async () => {
-      const res = await request(API_URL)
-        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-        .set(partenaireHeaders);
-
-      expect(res.status).toBe(200);
+      expect(exportCsvReference.status).toBe(200);
       // Les lignes de données ne doivent pas contenir un UUID brut non haché
       // On vérifie que les données apprenants ne sont pas exposées en clair
       // L'identifiant_anonymise est un hash hex de 64 chars — pas un UUID
-      const lines = res.text.split('\n').filter(l => l.trim() && !l.startsWith('identifiant'));
+      const lines = exportCsvReference.text.split('\n').filter(l => l.trim() && !l.startsWith('identifiant'));
       for (const line of lines) {
         const firstCol = line.split(',')[0];
         // Doit être un hash hex 64 chars, pas un UUID (qui contient des tirets)
@@ -150,28 +131,22 @@ describe('RM-155 — Export CSV Partenaire', () => {
     });
 
     it('le CSV ne contient pas de token NGSER ni de credentials', async () => {
-      const res = await request(API_URL)
-        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-        .set(partenaireHeaders);
-
-      expect(res.status).toBe(200);
-      expect(res.text).not.toContain('Bearer');
-      expect(res.text).not.toContain('TOKEN-');
-      expect(res.text).not.toContain('payment_token');
-      expect(res.text).not.toContain('auth_token');
+      expect(exportCsvReference.status).toBe(200);
+      expect(exportCsvReference.text).not.toContain('Bearer');
+      expect(exportCsvReference.text).not.toContain('TOKEN-');
+      expect(exportCsvReference.text).not.toContain('payment_token');
+      expect(exportCsvReference.text).not.toContain('auth_token');
     });
   });
 
   describe('HMAC stable (MT-02)', () => {
     it('deux exports successifs du meme mois produisent le meme identifiant_anonymise', async () => {
-      const [res1, res2] = await Promise.all([
-        request(API_URL)
-          .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-          .set(partenaireHeaders),
-        request(API_URL)
-          .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
-          .set(partenaireHeaders),
-      ]);
+      const res1 = await request(API_URL)
+        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
+        .set(partenaireHeaders);
+      const res2 = await request(API_URL)
+        .get(`/api/partenaires/export-csv?mois=${MOIS_TEST}`)
+        .set(partenaireHeaders);
 
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);

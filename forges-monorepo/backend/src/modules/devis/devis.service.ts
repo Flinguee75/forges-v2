@@ -263,7 +263,7 @@ export class DevisService {
         agent_id: agentId,
       });
 
-      this.emailService.sendVouchersOrganisation(
+      await this.emailService.sendVouchersOrganisation(
         organisation.email,
         voucherCodes,
         formation.intitule,

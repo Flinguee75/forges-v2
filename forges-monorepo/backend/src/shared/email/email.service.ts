@@ -28,6 +28,11 @@ export class EmailService {
   private translationsCache: Map<string, Record<string, any>> = new Map();
 
   constructor() {
+    if (process.env.NODE_ENV === 'test' && process.env.EMAIL_REAL_SMTP !== 'true') {
+      this.transporter = nodemailer.createTransport({ jsonTransport: true });
+      return;
+    }
+
     // Priorité au SMTP "runtime" (Plesk/deploy) pour permettre de forcer Office 365.
     // Les variables BREVO_* restent en fallback de compatibilité.
     const smtpHost = process.env.SMTP_HOST || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';

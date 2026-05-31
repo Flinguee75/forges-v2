@@ -155,7 +155,7 @@ describe('Vague 4 API — Formations RM-04/11/12/87/91-96', () => {
 
   // RM-93 : disponibilité immédiate pour formations À la demande
   test('RM-93 — formations À la demande accessibles immédiatement après paiement', async () => {
-    const headers = await auth(accounts.apprenantStd);
+    const headers = await auth(accounts.apprenantPremiumRetail);
 
     // Accéder à une formation À la demande
     const res = await request(API_URL)
@@ -171,7 +171,7 @@ describe('Vague 4 API — Formations RM-04/11/12/87/91-96', () => {
 
   // RM-94 : formations Standard À la demande incluses dans abonnement
   test('RM-94 — formation Standard À la demande accessible sans surcoût si abonné', async () => {
-    const headers = await auth(accounts.apprenantStd);
+    const headers = await auth(accounts.apprenantPremiumRetail);
 
     const acces = await request(API_URL)
       .post(`/api/formations/${ids.demandeFormation}/acceder`)
@@ -197,7 +197,7 @@ describe('Vague 4 API — Formations RM-04/11/12/87/91-96', () => {
       return;
     }
 
-    const headers = await auth(accounts.apprenantStd);
+    const headers = await auth(accounts.apprenantPremiumRetail);
 
     const res = await request(API_URL)
       .post(`/api/formations/${premiumDemande.id}/acceder`)

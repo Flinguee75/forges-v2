@@ -12,7 +12,7 @@ describe('Vague 1 API — Abonnements RM-102/RM-92/RM-94/RM-103', () => {
   });
 
   test('RM-94/RM-92 — un abonne accede a une formation Standard a la demande pour 365j', async () => {
-    const headers = await auth(accounts.apprenantStd);
+    const headers = await auth(accounts.apprenantPremiumRetail);
     const res = await request(API_URL)
       .post(`/api/formations/${ids.demandeFormation}/acceder`)
       .set(headers)

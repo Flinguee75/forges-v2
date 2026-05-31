@@ -130,7 +130,7 @@ router.post('/', authenticate, authorize('ADMIN', 'SUPERVISEUR'), async (req, re
       },
     });
 
-    emailService.sendTempPassword(email, tempPassword, langue_preferee, 'ORGANISATION').catch((err) => {
+    await emailService.sendTempPassword(email, tempPassword, langue_preferee, 'ORGANISATION').catch((err) => {
       console.error('[backoffice-organisations] sendTempPassword failed:', err);
     });
 

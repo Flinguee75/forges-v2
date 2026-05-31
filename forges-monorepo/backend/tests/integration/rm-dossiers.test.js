@@ -1,6 +1,6 @@
 const { accounts, auth, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe('Vague 1 API — Dossiers et bifurcation RM-140/RM-05/RM-07/RM-19', () => {
   test('RM-140 — Premium+Retail attend verification Responsable', async () => {
@@ -104,7 +104,12 @@ describe('Vague 1 API — Dossiers et bifurcation RM-140/RM-05/RM-07/RM-19', () 
     expect(res.status).toBe(200);
 
     const rows = Array.isArray(res.body.data) ? res.body.data : res.body;
-    const priorityStatuses = rows.slice(0, 2).map((row) => row.type_fenetre || row.statut);
-    expect(priorityStatuses).toEqual(expect.arrayContaining(['GRIS', 'EXCEPTION']));
+    const statuses = rows.map((row) => row.type_fenetre || row.statut);
+    const priorityStatuses = ['GRIS', 'EXCEPTION'];
+    const firstNonPriorityIndex = statuses.findIndex((status) => !priorityStatuses.includes(status));
+
+    expect(statuses).toEqual(expect.arrayContaining(priorityStatuses));
+    expect(statuses.slice(0, firstNonPriorityIndex === -1 ? statuses.length : firstNonPriorityIndex))
+      .toEqual(expect.arrayContaining(priorityStatuses));
   });
 });

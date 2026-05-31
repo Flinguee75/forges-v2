@@ -308,8 +308,8 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res, next) => {
       admin_id: (req as any).user.userId,
     });
 
-    // Envoyer les credentials par email (non bloquant)
-    emailService.sendTempPassword(emailNormalise, motDePasseTemp, dto.langue_preferee, 'APPRENANT').catch((err) => {
+    // Email best-effort: sendEmail capture les erreurs SMTP sans bloquer la creation.
+    await emailService.sendTempPassword(emailNormalise, motDePasseTemp, dto.langue_preferee, 'APPRENANT').catch((err) => {
       console.error('[backoffice-apprenants] sendTempPassword failed:', err);
     });
 

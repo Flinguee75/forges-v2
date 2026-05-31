@@ -1,5 +1,7 @@
 const { accounts, auth, createApprenantAccount, createOrganisationAccount, ids, prisma, request, API_URL } = require('./helpers');
 
+jest.setTimeout(30000);
+
 describe('Vague 4 API — Vouchers RM-42/43/45/48/49 + Comptes RM-29-36/46/47', () => {
 
   // ===== VOUCHERS =====

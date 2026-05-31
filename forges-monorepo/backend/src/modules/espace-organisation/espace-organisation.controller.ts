@@ -157,6 +157,7 @@ export class EspaceOrganisationController {
     } catch (error: any) {
       if (error.message === 'APPRENANT_NON_BENEFICIAIRE') return res.status(403).json({ error: 'APPRENANT_NON_BENEFICIAIRE' });
       if (error.message === 'INSCRIPTION_DEJA_EXISTANTE') return res.status(409).json({ error: 'INSCRIPTION_DEJA_EXISTANTE' });
+      if (error.message === 'ABONNEMENT_B2B_INACTIF') return res.status(403).json({ error: 'ABONNEMENT_B2B_INACTIF' });
       if (error.message === 'B2B_PLAFOND_ATTEINT') return res.status(409).json({ error: 'B2B_PLAFOND_ATTEINT' });
       if (error.message === 'VOUCHER_INVALIDE') return res.status(422).json({ error: 'VOUCHER_INVALIDE' });
       next(error);

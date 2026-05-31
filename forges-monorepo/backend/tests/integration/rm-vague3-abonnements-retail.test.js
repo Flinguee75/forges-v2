@@ -16,6 +16,17 @@
 const request = require('supertest');
 const { createApprenantAccount, auth, accounts, ids, API_URL, prisma } = require('./helpers');
 
+async function activerAbonnementRetail(apprenantId) {
+  const abonnement = await prisma.abonnementRetail.findUnique({
+    where: { apprenant_id: apprenantId },
+  });
+  await prisma.abonnementRetail.update({
+    where: { id: abonnement.id },
+    data: { statut: 'ACTIF' },
+  });
+  return abonnement.id;
+}
+
 describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
   // ============================================
   // RM-70 : Unicité abonnement Retail
@@ -42,11 +53,11 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
       expect(response.body.data).toBeTruthy();
       expect(response.body.data.abonnement).toBeTruthy();
       expect(response.body.data.abonnement.offre).toBe('ESSENTIEL');
-      expect(response.body.data.abonnement.statut).toBe('ACTIF');
+      expect(response.body.data.abonnement.statut).toBe('EN_ATTENTE_PAIEMENT');
       expect(response.body.data.abonnement.consentement_auto).toBe(true);
     });
 
-    test('❌ Tenter 2ème abonnement → 409 ABONNEMENT_DEJA_ACTIF', async () => {
+    test('✅ Retenter avant paiement → 201 idempotent, puis 409 une fois ACTIF', async () => {
       const response = await request(API_URL)
         .post('/api/abonnements/retail')
         .set(apprenantToken)
@@ -55,11 +66,21 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
           consentement_auto: true,
         });
 
-      expect(response.status).toBe(409);
-      expect(response.body.error).toBe('ABONNEMENT_DEJA_ACTIF');
+      expect(response.status).toBe(201);
+
+      await activerAbonnementRetail(apprenantAccount.id);
+      const duplicateActif = await request(API_URL)
+        .post('/api/abonnements/retail')
+        .set(apprenantToken)
+        .send({
+          offre: 'PREMIUM',
+          consentement_auto: true,
+        });
+
+      expect(duplicateActif.status).toBe(409);
+      expect(duplicateActif.body.error).toBe('ABONNEMENT_DEJA_ACTIF');
     });
   });
-
   // ============================================
   // RM-72 : Limite 3 formations simultanées ⚠️ CORRECTION IMPLÉMENTÉE
   // ============================================
@@ -227,6 +248,7 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
           offre: 'PREMIUM',
           consentement_auto: true,
         });
+      await activerAbonnementRetail(apprenant76.id);
     });
 
     test('✅ 1ère suspension → OK', async () => {
@@ -278,6 +300,7 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
           offre: 'ESSENTIEL',
           consentement_auto: true,
         });
+      await activerAbonnementRetail(apprenant77.id);
 
       const response = await request(API_URL)
         .delete('/api/abonnements/retail')
@@ -308,6 +331,7 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
           offre: 'ESSENTIEL',
           consentement_auto: true,
         });
+      await activerAbonnementRetail(apprenant79.id);
 
       const response = await request(API_URL)
         .put('/api/abonnements/retail/upgrade')
@@ -340,6 +364,7 @@ describe('[VAGUE 3] Abonnements Retail — RM-70-79, 104, 106', () => {
           offre: 'PREMIUM',
           consentement_auto: true,
         });
+      await activerAbonnementRetail(apprenant104.id);
 
       const response = await request(API_URL)
         .put('/api/abonnements/retail/downgrade')

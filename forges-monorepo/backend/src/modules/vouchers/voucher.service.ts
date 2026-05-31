@@ -105,7 +105,7 @@ export class VoucherService {
     });
 
     if (!dto.devis_id) {
-      this.email.sendVouchersOrganisation(
+      await this.email.sendVouchersOrganisation(
         organisation.email,
         [voucher.code],
         formation.intitule,

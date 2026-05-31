@@ -29,8 +29,19 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
       .post('/api/abonnements/retail')
       .set(headers)
       .send({ offre: 'PREMIUM' });
-    expect(duplicate.status).toBe(409);
-    expect(duplicate.body.error).toBe('ABONNEMENT_DEJA_ACTIF');
+    expect(duplicate.status).toBe(201);
+    expect(duplicate.body.data.order_ngser).toBe(first.body.data.order_ngser);
+
+    await prisma.abonnementRetail.update({
+      where: { id: first.body.data.abonnement.id },
+      data: { statut: 'ACTIF' },
+    });
+    const duplicateActif = await request(API_URL)
+      .post('/api/abonnements/retail')
+      .set(headers)
+      .send({ offre: 'PREMIUM' });
+    expect(duplicateActif.status).toBe(409);
+    expect(duplicateActif.body.error).toBe('ABONNEMENT_DEJA_ACTIF');
   });
 
   test('RM-79/RM-104/RM-76/RM-105/RM-77 — cycle upgrade, downgrade, suspension acces et resilitation Retail', async () => {
@@ -38,6 +49,10 @@ describe('Vague 3 API — Abonnements RM-60/61/64/65/68/70/75/76/77/79/84/104/10
     const headers = await auth(account);
 
     const created = await request(API_URL).post('/api/abonnements/retail').set(headers).send({ offre: 'ESSENTIEL' }).expect(201);
+    await prisma.abonnementRetail.update({
+      where: { id: created.body.data.abonnement.id },
+      data: { statut: 'ACTIF' },
+    });
 
     const upgrade = await request(API_URL).put('/api/abonnements/retail/upgrade').set(headers).send({});
     expect(upgrade.status).toBe(200);
