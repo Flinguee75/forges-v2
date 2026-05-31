@@ -17,7 +17,8 @@ describe('DashboardRepository', () => {
     prisma.session.count.mockResolvedValueOnce(3);
     prisma.dossier.count.mockResolvedValueOnce(20);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 100000 } } as any);
-    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 50000 } } as any);
+    prisma.devis.findMany.mockResolvedValueOnce([{ id: 'devis-01', montant_total_xof: 50000 }] as any);
+    prisma.paiement.findMany.mockResolvedValueOnce([] as any);
     prisma.abonnementRetail.count.mockResolvedValueOnce(5);
     prisma.abonnementB2B.count.mockResolvedValueOnce(1);
     prisma.dossier.groupBy.mockResolvedValueOnce([{ statut: 'PAYE', _count: 12 }] as any);
@@ -50,7 +51,8 @@ describe('DashboardRepository', () => {
     prisma.session.count.mockResolvedValueOnce(0);
     prisma.dossier.count.mockResolvedValueOnce(0);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 0 } } as any);
-    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 0 } } as any);
+    prisma.devis.findMany.mockResolvedValueOnce([] as any);
+    prisma.paiement.findMany.mockResolvedValueOnce([] as any);
     prisma.abonnementRetail.count.mockResolvedValueOnce(0);
     prisma.abonnementB2B.count.mockResolvedValueOnce(0);
     prisma.dossier.groupBy.mockResolvedValueOnce([] as any);
@@ -70,7 +72,8 @@ describe('DashboardRepository', () => {
     prisma.session.count.mockResolvedValueOnce(0);
     prisma.dossier.count.mockResolvedValueOnce(0);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 120000 } } as any);
-    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 300000 } } as any);
+    prisma.devis.findMany.mockResolvedValueOnce([{ id: 'devis-01', montant_total_xof: 300000 }] as any);
+    prisma.paiement.findMany.mockResolvedValueOnce([] as any);
     prisma.abonnementRetail.count.mockResolvedValueOnce(0);
     prisma.abonnementB2B.count.mockResolvedValueOnce(0);
     prisma.dossier.groupBy.mockResolvedValueOnce([] as any);
@@ -103,9 +106,9 @@ describe('DashboardRepository', () => {
       },
       _sum: { montant_final: true },
     });
-    expect(prisma.devis.aggregate).toHaveBeenCalledWith({
+    expect(prisma.devis.findMany).toHaveBeenCalledWith({
       where: { statut: 'PAYE' },
-      _sum: { montant_total_xof: true },
+      select: { id: true, montant_total_xof: true },
     });
     expect(prisma.devis.groupBy).toHaveBeenCalledWith({
       by: ['statut'],
@@ -116,7 +119,8 @@ describe('DashboardRepository', () => {
   it('retourne les stats agent, responsable et superviseur', async () => {
     prisma.paiement.count.mockResolvedValueOnce(4);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _sum: { montant_final: 80000 } } as any);
-    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 20000 } } as any);
+    prisma.devis.findMany.mockResolvedValueOnce([{ id: 'devis-01', montant_total_xof: 20000 }] as any);
+    prisma.paiement.findMany.mockResolvedValueOnce([] as any);
     prisma.commissionPartenaire.aggregate
       .mockResolvedValueOnce({ _sum: { montant_reverse: 70000 } } as any)
       .mockResolvedValueOnce({ _sum: { montant_reverse: 15000 } } as any);
@@ -225,7 +229,8 @@ describe('DashboardRepository', () => {
     prisma.dossier.count.mockResolvedValueOnce(18).mockResolvedValueOnce(12);
     prisma.dossier.groupBy.mockResolvedValueOnce([{ statut: 'PAYE', _count: { _all: 12 } }] as any);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _count: { _all: 4 }, _sum: { montant_final: 420000 } } as any);
-    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 0 } } as any);
+    prisma.devis.findMany.mockResolvedValueOnce([] as any);
+    prisma.paiement.findMany.mockResolvedValueOnce([] as any);
 
     await expect(repository.getGlobalStats('ADMIN', 'admin-01')).resolves.toMatchObject({
       totalFormations: 7,
@@ -313,19 +318,25 @@ describe('DashboardRepository', () => {
     });
   });
 
-  it('calcule le CA global avec les dossiers payés hors devis et les devis payés', async () => {
+  it('réconcilie le CA global avec les dossiers payés et les devis payés sans sous-compter les dossiers rattachés aux devis', async () => {
     prisma.formation.count.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
     prisma.session.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
     prisma.dossier.count.mockResolvedValueOnce(7).mockResolvedValueOnce(4);
     prisma.dossier.groupBy.mockResolvedValueOnce([{ statut: 'PAYE', _count: { _all: 4 } }] as any);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _count: { _all: 4 }, _sum: { montant_final: 300000000 } } as any);
-    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 6000000 } } as any);
+    prisma.devis.findMany.mockResolvedValueOnce([{ id: 'devis-01', montant_total_xof: 6000000 }] as any);
+    prisma.paiement.findMany.mockResolvedValueOnce([
+      {
+        montant_final: 900000000,
+        dossier: { voucher_organisation: { devis_id: 'devis-01' } },
+      },
+    ] as any);
 
     await expect(repository.getGlobalStats('ADMIN', 'admin-01')).resolves.toMatchObject({
       totalDossiers: 7,
       totalDossiersConfirmes: 4,
       paiementsConfirmes: 4,
-      montantPayeTotal: 900000000,
+      montantPayeTotal: 1200000000,
     });
 
     expect(prisma.paiement.aggregate).toHaveBeenCalledWith({
@@ -348,9 +359,29 @@ describe('DashboardRepository', () => {
       _count: { _all: true },
       _sum: { montant_final: true },
     });
-    expect(prisma.devis.aggregate).toHaveBeenCalledWith({
+    expect(prisma.devis.findMany).toHaveBeenCalledWith({
       where: { statut: 'PAYE' },
-      _sum: { montant_total_xof: true },
+      select: { id: true, montant_total_xof: true },
+    });
+    expect(prisma.paiement.findMany).toHaveBeenCalledWith({
+      where: {
+        statut: 'CONFIRME',
+        dossier: {
+          voucher_organisation: {
+            devis_id: { in: ['devis-01'] },
+          },
+        },
+      },
+      select: {
+        montant_final: true,
+        dossier: {
+          select: {
+            voucher_organisation: {
+              select: { devis_id: true },
+            },
+          },
+        },
+      },
     });
   });
 });

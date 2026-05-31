@@ -125,13 +125,51 @@ export class DashboardRepository {
 
     const [paiementsConfirmesHorsDevis, devisPayes] = await Promise.all([
       this.prisma.paiement.aggregate(paiementAggregateArgs),
-      this.prisma.devis.aggregate({
+      this.prisma.devis.findMany({
         where: mergeWhere(whereDevis, { statut: 'PAYE' }),
-        _sum: { montant_total_xof: true },
+        select: { id: true, montant_total_xof: true },
       }),
     ]);
 
     const paiementStats = paiementsConfirmesHorsDevis as any;
+    const devisIds = devisPayes.map((devis: any) => devis.id);
+    const paiementsDevis = devisIds.length > 0
+      ? await this.prisma.paiement.findMany({
+          where: mergeWhere(wherePaiements, {
+            statut: 'CONFIRME',
+            dossier: {
+              voucher_organisation: {
+                devis_id: { in: devisIds },
+              },
+            },
+          }),
+          select: {
+            montant_final: true,
+            dossier: {
+              select: {
+                voucher_organisation: {
+                  select: { devis_id: true },
+                },
+              },
+            },
+          },
+        })
+      : [];
+
+    const paiementParDevis = paiementsDevis.reduce<Record<string, number>>((acc, paiement: any) => {
+      const devisId = paiement.dossier?.voucher_organisation?.devis_id;
+      if (!devisId) {
+        return acc;
+      }
+      acc[devisId] = (acc[devisId] || 0) + Number(paiement.montant_final || 0);
+      return acc;
+    }, {});
+
+    const caDevis = devisPayes.reduce((sum: number, devis: any) => {
+      const montantDevis = xofToCentimes(devis.montant_total_xof);
+      const montantPaiements = paiementParDevis[devis.id] || 0;
+      return sum + Math.max(montantDevis, montantPaiements);
+    }, 0);
 
     return {
       paiementsConfirmes: options.includeCount
@@ -139,7 +177,7 @@ export class DashboardRepository {
         : undefined,
       montantTotal:
         (paiementStats._sum.montant_final || 0) +
-        xofToCentimes(devisPayes._sum.montant_total_xof),
+        caDevis,
     };
   }
 
