@@ -3,7 +3,7 @@ set -e
 ENV=$1
 TAG=$2
 if [ -z "$ENV" ]; then
-  echo "Usage: $0 <dev|test|demo> [tag]"
+  echo "Usage: $0 <dev|test|demo|edu> [tag]"
   exit 1
 fi
 # Construction temporaire
@@ -21,8 +21,15 @@ npm run build
 npx prisma generate
 # Tests (facultatif)
 npm run test || { echo "Tests échoués, déploiement annulé"; exit 1; }
-# Seed interactif
-read -p "Voulez-vous exécuter le seed (vider + recharger données) ? (oui/non) " SEED
+# Seed: non-interactif en CI via FORCE_SEED, interactif en local.
+if [ -n "${FORCE_SEED:-}" ]; then
+  SEED="$FORCE_SEED"
+else
+  read -p "Voulez-vous executer le seed (vider + recharger donnees) ? (oui/non) " SEED
+fi
+if [ "$SEED" = "true" ]; then
+  SEED="oui"
+fi
 if [ "$SEED" = "oui" ]; then
   npx prisma migrate reset --force
   npx prisma db seed
