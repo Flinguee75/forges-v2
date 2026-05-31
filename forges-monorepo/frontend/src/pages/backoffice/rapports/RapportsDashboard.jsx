@@ -64,7 +64,7 @@ export default function RapportsDashboard() {
     { label: 'Formations', value: stats?.totalFormationsActives ?? stats?.totalFormations ?? 0 },
     { label: 'Sessions', value: stats?.totalSessionsOuvertes ?? stats?.totalSessions ?? 0 },
     { label: 'Dossiers', value: stats?.totalDossiers ?? 0 },
-    { label: 'Paiements confirmés', value: formatFcfa(stats?.montantPayeTotal ?? 0) },
+    { label: 'CA total', value: formatFcfa(stats?.montantPayeTotal ?? 0) },
   ];
 
   return (

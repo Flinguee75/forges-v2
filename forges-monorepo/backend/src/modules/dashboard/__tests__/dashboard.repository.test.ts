@@ -225,6 +225,7 @@ describe('DashboardRepository', () => {
     prisma.dossier.count.mockResolvedValueOnce(18).mockResolvedValueOnce(12);
     prisma.dossier.groupBy.mockResolvedValueOnce([{ statut: 'PAYE', _count: { _all: 12 } }] as any);
     prisma.paiement.aggregate.mockResolvedValueOnce({ _count: { _all: 4 }, _sum: { montant_final: 420000 } } as any);
+    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 0 } } as any);
 
     await expect(repository.getGlobalStats('ADMIN', 'admin-01')).resolves.toMatchObject({
       totalFormations: 7,
@@ -309,6 +310,47 @@ describe('DashboardRepository', () => {
         statut_paiement: 'CONFIRME',
         montant_paiement: 250000,
       }],
+    });
+  });
+
+  it('calcule le CA global avec les dossiers payés hors devis et les devis payés', async () => {
+    prisma.formation.count.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+    prisma.session.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+    prisma.dossier.count.mockResolvedValueOnce(7).mockResolvedValueOnce(4);
+    prisma.dossier.groupBy.mockResolvedValueOnce([{ statut: 'PAYE', _count: { _all: 4 } }] as any);
+    prisma.paiement.aggregate.mockResolvedValueOnce({ _count: { _all: 4 }, _sum: { montant_final: 300000000 } } as any);
+    prisma.devis.aggregate.mockResolvedValueOnce({ _sum: { montant_total_xof: 6000000 } } as any);
+
+    await expect(repository.getGlobalStats('ADMIN', 'admin-01')).resolves.toMatchObject({
+      totalDossiers: 7,
+      totalDossiersConfirmes: 4,
+      paiementsConfirmes: 4,
+      montantPayeTotal: 900000000,
+    });
+
+    expect(prisma.paiement.aggregate).toHaveBeenCalledWith({
+      where: {
+        AND: [
+          { statut: 'CONFIRME' },
+          {
+            NOT: {
+              dossier: {
+                voucher_organisation: {
+                  is: {
+                    devis_id: { not: null },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+      _count: { _all: true },
+      _sum: { montant_final: true },
+    });
+    expect(prisma.devis.aggregate).toHaveBeenCalledWith({
+      where: { statut: 'PAYE' },
+      _sum: { montant_total_xof: true },
     });
   });
 });

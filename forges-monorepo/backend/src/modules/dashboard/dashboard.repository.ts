@@ -6,6 +6,7 @@ type DashboardScope = {
   sessions?: any;
   dossiers?: any;
   paiements?: any;
+  devis?: any;
 };
 
 type DashboardFilters = {
@@ -108,6 +109,40 @@ function groupByMonth<T extends { created_at: Date; [key: string]: any }>(
 export class DashboardRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
+  private async aggregateChiffreAffaires(
+    wherePaiements: any = {},
+    whereDevis: any = {},
+    options: { includeCount?: boolean } = {}
+  ) {
+    const paiementAggregateArgs: any = {
+      where: mergeWhere(wherePaiements, { statut: 'CONFIRME' }, NON_DEVIS_PAIEMENT_REVENUE_WHERE),
+      _sum: { montant_final: true },
+    };
+
+    if (options.includeCount) {
+      paiementAggregateArgs._count = { _all: true };
+    }
+
+    const [paiementsConfirmesHorsDevis, devisPayes] = await Promise.all([
+      this.prisma.paiement.aggregate(paiementAggregateArgs),
+      this.prisma.devis.aggregate({
+        where: mergeWhere(whereDevis, { statut: 'PAYE' }),
+        _sum: { montant_total_xof: true },
+      }),
+    ]);
+
+    const paiementStats = paiementsConfirmesHorsDevis as any;
+
+    return {
+      paiementsConfirmes: options.includeCount
+        ? paiementStats._count?._all || 0
+        : undefined,
+      montantTotal:
+        (paiementStats._sum.montant_final || 0) +
+        xofToCentimes(devisPayes._sum.montant_total_xof),
+    };
+  }
+
   async getStatsAdmin() {
     const [
       nbApprenants,
@@ -115,8 +150,7 @@ export class DashboardRepository {
       nbFormations,
       nbSessions,
       nbDossiers,
-      paiementsConfirmesHorsDevis,
-      devisPayes,
+      chiffreAffaires,
       nbAbonnementsRetailActifs,
       nbAbonnementsB2BActifs,
       dossiersParStatut,
@@ -127,11 +161,7 @@ export class DashboardRepository {
       this.prisma.formation.count({ where: { statut: 'ACTIVE' } }),
       this.prisma.session.count({ where: { statut: { in: OPEN_SESSION_STATUSES } } }),
       this.prisma.dossier.count(),
-      this.prisma.paiement.aggregate({
-        where: mergeWhere({ statut: 'CONFIRME' }, NON_DEVIS_PAIEMENT_REVENUE_WHERE),
-        _sum: { montant_final: true },
-      }),
-      this.prisma.devis.aggregate({ where: { statut: 'PAYE' }, _sum: { montant_total_xof: true } }),
+      this.aggregateChiffreAffaires(),
       this.prisma.abonnementRetail.count({ where: { statut: 'ACTIF' } }),
       this.prisma.abonnementB2B.count({ where: { statut: 'ACTIF' } }),
       this.prisma.dossier.groupBy({ by: ['statut'], _count: { _all: true } }),
@@ -144,7 +174,7 @@ export class DashboardRepository {
       nb_formations_actives: nbFormations,
       nb_sessions_en_cours: nbSessions,
       nb_dossiers_total: nbDossiers,
-      ca_total_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + xofToCentimes(devisPayes._sum.montant_total_xof),
+      ca_total_xof: chiffreAffaires.montantTotal,
       nb_abonnements_retail_actifs: nbAbonnementsRetailActifs,
       nb_abonnements_b2b_actifs: nbAbonnementsB2BActifs,
       dossiers_par_statut: mergeDossiersEtDevisParStatut(dossiersParStatut as any, devisParStatut as any),
@@ -154,18 +184,13 @@ export class DashboardRepository {
   async getStatsAgent() {
     const [
       paiementsEnAttente,
-      paiementsConfirmesHorsDevis,
-      devisPayes,
+      chiffreAffaires,
       totalReversementsPartenaire,
       totalCommissionsApporteur,
       reversementsPartenaireMois,
     ] = await Promise.all([
       this.prisma.paiement.count({ where: { statut: 'EN_ATTENTE' } }),
-      this.prisma.paiement.aggregate({
-        where: mergeWhere({ statut: 'CONFIRME' }, NON_DEVIS_PAIEMENT_REVENUE_WHERE),
-        _sum: { montant_final: true },
-      }),
-      this.prisma.devis.aggregate({ where: { statut: 'PAYE' }, _sum: { montant_total_xof: true } }),
+      this.aggregateChiffreAffaires(),
       this.prisma.commissionPartenaire.aggregate({ where: { statut: 'EN_ATTENTE' }, _sum: { montant_reverse: true } }),
       this.prisma.commissionApporteur.aggregate({ where: { statut: 'EN_ATTENTE' }, _sum: { montant_commission: true } }),
       this.prisma.commissionPartenaire.aggregate({
@@ -179,7 +204,7 @@ export class DashboardRepository {
 
     return {
       paiements_en_attente: paiementsEnAttente,
-      ca_confirme_xof: (paiementsConfirmesHorsDevis._sum.montant_final || 0) + xofToCentimes(devisPayes._sum.montant_total_xof),
+      ca_confirme_xof: chiffreAffaires.montantTotal,
       reversements_partenaires_a_effectuer_xof: totalReversementsPartenaire._sum.montant_reverse || 0,
       commissions_apporteurs_a_reverser_xof: totalCommissionsApporteur._sum.montant_commission || 0,
       reversements_partenaires_ce_mois_xof: reversementsPartenaireMois._sum.montant_reverse || 0,
@@ -374,10 +399,16 @@ export class DashboardRepository {
       scope.paiements,
       filters.formation_id ? { dossier: { formation_id: filters.formation_id } } : null,
       filters.session_id ? { dossier: { session_id: filters.session_id } } : null,
-      filters.paiement_statut ? { statut: filters.paiement_statut } : null,
       filters.methode ? { methode: filters.methode } : null,
       dateCondition
     );
+    const whereDevis = mergeWhere(
+      scope.devis,
+      filters.formation_id ? { formation_id: filters.formation_id } : null,
+      filters.session_id ? { session_id: filters.session_id } : null,
+      dateCondition
+    );
+    const includePaidDevis = !filters.paiement_statut || filters.paiement_statut === 'CONFIRME';
 
     const [
       totalFormations,
@@ -387,7 +418,7 @@ export class DashboardRepository {
       totalDossiers,
       totalDossiersConfirmes,
       dossiersByStatutRaw,
-      paiementsConfirmesAgg,
+      chiffreAffaires,
     ] = await Promise.all([
       this.prisma.formation.count({ where: whereFormations }),
       this.prisma.formation.count({ where: mergeWhere(whereFormations, { statut: 'ACTIVE' }) }),
@@ -396,11 +427,11 @@ export class DashboardRepository {
       this.prisma.dossier.count({ where: whereDossiers }),
       this.prisma.dossier.count({ where: mergeWhere(whereDossiers, { statut: { in: PAID_DOSSIER_STATUSES } }) }),
       this.prisma.dossier.groupBy({ by: ['statut'], where: whereDossiers, _count: { _all: true } }),
-      this.prisma.paiement.aggregate({
-        where: mergeWhere(wherePaiements, { statut: 'CONFIRME' }),
-        _count: { _all: true },
-        _sum: { montant_final: true },
-      }),
+      this.aggregateChiffreAffaires(
+        mergeWhere(wherePaiements, filters.paiement_statut ? { statut: filters.paiement_statut } : null),
+        includePaidDevis ? whereDevis : { id: '__never_include_devis__' },
+        { includeCount: true }
+      ),
     ]);
 
     return {
@@ -411,8 +442,8 @@ export class DashboardRepository {
       totalDossiers,
       totalDossiersConfirmes,
       dossiersByStatut: normalizeGroupBy(dossiersByStatutRaw as any),
-      paiementsConfirmes: paiementsConfirmesAgg._count._all || 0,
-      montantPayeTotal: paiementsConfirmesAgg._sum.montant_final || 0,
+      paiementsConfirmes: chiffreAffaires.paiementsConfirmes || 0,
+      montantPayeTotal: chiffreAffaires.montantTotal,
     };
   }
 
@@ -702,6 +733,11 @@ export class DashboardRepository {
             },
           },
         },
+        devis: {
+          formation: {
+            responsable_id: userId,
+          },
+        },
       };
     }
 
@@ -711,6 +747,7 @@ export class DashboardRepository {
         sessions: { formation: { responsable_id: userId } },
         dossiers: { formation: { responsable_id: userId } },
         paiements: { dossier: { formation: { responsable_id: userId } } },
+        devis: { formation: { responsable_id: userId } },
       };
     }
 
