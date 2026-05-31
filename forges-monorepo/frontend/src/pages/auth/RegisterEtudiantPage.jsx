@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Card from '../../components/ui/Card';
+import Icon from '../../components/ui/Icon';
 
 /**
  * RegisterEtudiantPage - Formulaire d'inscription étudiant
@@ -14,6 +15,9 @@ import Card from '../../components/ui/Card';
 export default function RegisterEtudiantPage() {
   const navigate = useNavigate();
   const { execute, isLoading, error } = useApi();
+  const selectClassName = 'w-full appearance-none px-4 py-2.5 border rounded-lg bg-white text-text transition-colors focus:outline-none focus:ring-2 focus:ring-primary';
+  const activeTypeClass = 'border-primary bg-primary text-white shadow-md shadow-primary/15';
+  const inactiveTypeClass = 'border-border bg-white text-text hover:border-secondary hover:bg-bg';
 
   const [formData, setFormData] = useState({
     email: '',
@@ -150,18 +154,27 @@ export default function RegisterEtudiantPage() {
     <div className="min-h-screen bg-bg py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
-          {/* Breadcrumb */}
-          <nav className="mb-6 text-sm">
-            <Link to="/" className="text-secondary hover:text-primary">
-              Accueil
+          <div className="mb-6">
+            <Link
+              to="/register"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-primary/20 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              aria-label="Retour au choix d'inscription"
+            >
+              <Icon name="arrowRight" size={16} className="rotate-180" />
+              Retour au choix d'inscription
             </Link>
-            <span className="mx-2 text-subtext">/</span>
-            <Link to="/register" className="text-secondary hover:text-primary">
-              Inscription
-            </Link>
-            <span className="mx-2 text-subtext">/</span>
-            <span className="text-text">Apprenant</span>
-          </nav>
+            <nav className="mt-4 text-sm text-subtext" aria-label="Fil d'Ariane">
+              <Link to="/" className="text-secondary hover:text-primary">
+                Accueil
+              </Link>
+              <span className="mx-2 text-subtext">/</span>
+              <Link to="/register" className="text-secondary hover:text-primary">
+                Inscription
+              </Link>
+              <span className="mx-2 text-subtext">/</span>
+              <span className="text-text">Apprenant</span>
+            </nav>
+          </div>
 
           <Card>
             {/* Header */}
@@ -242,14 +255,17 @@ export default function RegisterEtudiantPage() {
                           secteur_activite: '',
                         }))
                       }
-                      className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                      aria-pressed={formData.type_apprenant === 'APPRENANT'}
+                      className={`cursor-pointer p-4 border-2 rounded-lg text-left transition-all duration-200 ${
                         formData.type_apprenant === 'APPRENANT'
-                          ? 'border-primary bg-primary bg-opacity-5'
-                          : 'border-border hover:border-secondary'
+                          ? activeTypeClass
+                          : inactiveTypeClass
                       }`}
                     >
-                      <div className="font-semibold text-text">Apprenant</div>
-                      <div className="text-sm text-subtext">
+                      <div className={`font-semibold ${formData.type_apprenant === 'APPRENANT' ? 'text-white' : 'text-text'}`}>
+                        Apprenant
+                      </div>
+                      <div className={`text-sm ${formData.type_apprenant === 'APPRENANT' ? 'text-white/80' : 'text-subtext'}`}>
                         Formation académique
                       </div>
                     </button>
@@ -262,16 +278,17 @@ export default function RegisterEtudiantPage() {
                           niveau_etude: '',
                         }))
                       }
-                      className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                      aria-pressed={formData.type_apprenant === 'PROFESSIONNEL'}
+                      className={`cursor-pointer p-4 border-2 rounded-lg text-left transition-all duration-200 ${
                         formData.type_apprenant === 'PROFESSIONNEL'
-                          ? 'border-primary bg-primary bg-opacity-5'
-                          : 'border-border hover:border-secondary'
+                          ? activeTypeClass
+                          : inactiveTypeClass
                       }`}
                     >
-                      <div className="font-semibold text-text">
+                      <div className={`font-semibold ${formData.type_apprenant === 'PROFESSIONNEL' ? 'text-white' : 'text-text'}`}>
                         Professionnel
                       </div>
-                      <div className="text-sm text-subtext">
+                      <div className={`text-sm ${formData.type_apprenant === 'PROFESSIONNEL' ? 'text-white/80' : 'text-subtext'}`}>
                         Formation continue
                       </div>
                     </button>
@@ -304,7 +321,7 @@ export default function RegisterEtudiantPage() {
                       name="niveau_etude"
                       value={formData.niveau_etude}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                      className={`${selectClassName} ${
                         validationErrors.niveau_etude
                           ? 'border-danger'
                           : 'border-border'
@@ -346,7 +363,7 @@ export default function RegisterEtudiantPage() {
                       name="pays_residence"
                       value={formData.pays_residence}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                      className={`${selectClassName} ${
                         validationErrors.pays_residence
                           ? 'border-danger'
                           : 'border-border'
@@ -384,7 +401,7 @@ export default function RegisterEtudiantPage() {
                       name="pays_nationalite"
                       value={formData.pays_nationalite}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                      className={`${selectClassName} ${
                         validationErrors.pays_nationalite
                           ? 'border-danger'
                           : 'border-border'

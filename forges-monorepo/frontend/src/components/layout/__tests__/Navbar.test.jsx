@@ -99,4 +99,24 @@ describe('Navbar', () => {
     expect(screen.queryByText('API en ligne')).not.toBeInTheDocument();
     expect(document.querySelector('span.text-success, span.text-warning, span.text-danger')).toBeTruthy();
   });
+
+  it('affiche des CTA publics plus visibles sur fond clair', () => {
+    render(
+      <BrowserRouter>
+        <Navbar variant="public" />
+      </BrowserRouter>
+    );
+
+    const loginLink = screen.getByRole('link', { name: /connexion/i });
+    const registerLink = screen.getByRole('link', { name: /inscription/i });
+    const logoLink = screen.getByRole('link', { name: /accueil forges/i });
+
+    expect(loginLink.className).toContain('border-primary/25');
+    expect(loginLink.className).toContain('cursor-pointer');
+    expect(loginLink.className).toContain('text-primary');
+    expect(registerLink.className).toContain('bg-primary');
+    expect(registerLink.className).toContain('cursor-pointer');
+    expect(registerLink.className).toContain('hover:bg-[#0F2F43]');
+    expect(logoLink.className).toContain('hover:scale-[1.03]');
+  });
 });

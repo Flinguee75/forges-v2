@@ -1,8 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import FeatureIcon from '../../components/ui/FeatureIcon';
+import Icon from '../../components/ui/Icon';
 import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
 import logoAspire from '../../assets/logo_aspire.png';
@@ -12,57 +10,241 @@ import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
 import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
 import { formatPaymentExpirationShort } from '../../utils/paymentDeadline';
 
-/**
- * LandingPage - Page d'accueil publique haute conversion
- * Référence: CLAUDE.md section 17 - Étape F-5
- * Optimisée pour conversions et SEO
- */
+const CONTACT_EMAIL = 'contact@forges-group.com';
+
 const COLLABORATEURS = [
   { sigle: 'GWU/CCDL', nom: 'George Washington University & CCDL', logo: imageCcdlGw },
   { sigle: 'ASPIRE', nom: 'Aspire Institute', logo: logoAspire },
   { sigle: 'AIC', nom: 'AI Crafters', logo: logoAiCrafters },
 ];
 
-const COULEURS_SIGLE = [
-  { bg: 'bg-primary', text: 'text-white' },
-  { bg: 'bg-secondary', text: 'text-white' },
-  { bg: 'bg-success', text: 'text-white' },
-  { bg: 'bg-apporteur', text: 'text-white' },
+const HERO_PROOFS = [
+  { value: '+3', label: 'Partenaires' },
+  { value: '100%', label: 'Mobile' },
+  { value: '4', label: 'Langues' },
 ];
 
-function CarouselCollaborateurs() {
-  const items = [...COLLABORATEURS, ...COLLABORATEURS];
+const AUDIENCES = [
+  {
+    title: 'Apprenants',
+    text: 'Accédez au catalogue, suivez vos dossiers, payez en ligne et téléchargez vos attestations officielles.',
+    cta: 'Je me forme',
+    to: '/register/etudiant',
+    icon: 'academicCap',
+    tone: 'secondary',
+  },
+  {
+    title: 'Organisations',
+    text: 'Pilotez les inscriptions, financez les parcours avec vouchers et suivez vos équipes dans un tableau de bord dédié.',
+    cta: 'Je forme mon équipe',
+    to: '/register/organisation',
+    icon: 'building',
+    tone: 'success',
+  },
+];
+
+const STEPS = [
+  {
+    title: 'Choisir le bon profil',
+    text: 'Compte individuel, organisation, partenaire ou apporteur : chaque parcours commence au bon endroit.',
+  },
+  {
+    title: "S'inscrire ou financer",
+    text: 'Formations avec session, à la demande, vouchers et paiements locaux sont gérés dans le même flux.',
+  },
+  {
+    title: 'Suivre les preuves',
+    text: 'Dossiers, paiements, attestations, commissions et rapports restent consultables dans les espaces dédiés.',
+  },
+];
+
+const BENEFITS = [
+  {
+    icon: 'bookOpen',
+    title: 'Catalogue lisible',
+    text: 'Des formations certifiantes triées par besoin, format, durée, prix et éligibilité abonnement.',
+  },
+  {
+    icon: 'creditCard',
+    title: 'Paiements locaux',
+    text: 'Mobile Money, carte, virement et vouchers organisationnels pour couvrir les usages terrain.',
+  },
+  {
+    icon: 'document',
+    title: 'Attestations officielles',
+    text: 'Documents PDF disponibles après formation terminée et paiement confirmé.',
+  },
+  {
+    icon: 'chartBar',
+    title: 'Pilotage équipe',
+    text: 'Les comptes organisation suivent inscriptions, membres, vouchers, paiements et abonnements B2B.',
+  },
+  {
+    icon: 'checkCircle',
+    title: 'Flux vérifiés',
+    text: 'Les règles de validation, délais, capacités et statuts sont contrôlées côté service.',
+  },
+  {
+    icon: 'users',
+    title: 'Écosystème complet',
+    text: 'Apprenants, organisations, partenaires fournisseurs et apporteurs travaillent dans un même cadre.',
+  },
+];
+
+function CtaLink({ to, children, variant = 'primary', className = '' }) {
+  const variants = {
+    primary: 'bg-primary text-white hover:bg-[#0F2F43] hover:text-white focus:ring-primary',
+    secondary: 'bg-primary text-white hover:bg-[#0F2F43] hover:text-white focus:ring-secondary',
+    light: 'border-white bg-white text-primary hover:bg-[#EAF2F8] hover:text-primary focus:ring-white',
+    outline: 'border-border bg-white text-primary hover:border-primary hover:bg-bg hover:text-primary focus:ring-primary',
+    dark: 'border-white/70 bg-primary text-white hover:bg-[#0F2F43] hover:text-white focus:ring-white',
+    darkPrimary: 'border-white/70 bg-[#12364D] text-white hover:bg-[#0F2F43] hover:text-white focus:ring-white',
+  };
+
   return (
-    <div className="overflow-hidden relative w-full">
-      <style>{`
-        @keyframes scroll-left {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .carousel-track {
-          display: flex;
-          width: max-content;
-          animation: scroll-left 18s linear infinite;
-        }
-        .carousel-track:hover { animation-play-state: paused; }
-      `}</style>
-      <div
-        className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(to right, white, transparent)' }}
-      />
-      <div
-        className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(to left, white, transparent)' }}
-      />
-      <div className="carousel-track gap-8 px-4">
-        {items.map((c, idx) => (
-          <div key={idx} className="flex flex-col items-center gap-3 w-48 flex-shrink-0">
-            <div className="w-36 h-36 rounded-2xl flex items-center justify-center shadow-md overflow-hidden bg-white border border-gray-100">
-              {c.logo
-                ? <img src={c.logo} alt={c.nom} className="w-full h-full object-contain p-3 mix-blend-multiply" />
-                : <span className={`text-sm text-center px-2 font-bold drop-shadow-md ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].bg} ${COULEURS_SIGLE[idx % COULEURS_SIGLE.length].text}`}>{c.sigle}</span>}
+    <Link
+      to={to}
+      className={`inline-flex min-h-[48px] items-center justify-center rounded-lg border border-transparent px-5 py-3 text-sm font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${variants[variant]} ${className}`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function SectionHeading({ eyebrow, title, description, align = 'center' }) {
+  const alignment = align === 'left' ? 'text-left' : 'mx-auto text-center';
+
+  return (
+    <div className={`max-w-3xl ${alignment}`}>
+      {eyebrow && (
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-secondary">
+          {eyebrow}
+        </p>
+      )}
+      <h2 className="mt-3 text-3xl font-bold leading-tight text-primary md:text-4xl">
+        {title}
+      </h2>
+      {description && (
+        <p className="mt-4 text-base leading-7 text-subtext md:text-lg">
+          {description}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CheckItem({ children }) {
+  return (
+    <li className="flex gap-3 text-sm leading-6 text-white/95">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
+        <Icon name="check" size={14} />
+      </span>
+      <span>{children}</span>
+    </li>
+  );
+}
+
+function ProductPreview() {
+  const milestones = [
+    { label: 'Inscription validée', state: 'done' },
+    { label: 'Module principal en cours', state: 'done' },
+    { label: 'Évaluation finale', state: 'current' },
+    { label: 'Attestation numérique après clôture', state: 'next' },
+  ];
+
+  return (
+    <div className="landing-float relative mx-auto max-w-md rounded-2xl border border-white/70 bg-white p-4 shadow-2xl shadow-primary/20">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex items-center gap-3">
+          <picture>
+            <source srcSet={logoForgesWebp} type="image/webp" />
+            <img src={logoForges} alt="FORGES" className="h-10 w-10 rounded-full object-cover" />
+          </picture>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/60">Parcours certifiant</p>
+            <p className="text-sm font-semibold text-text">Formation professionnelle</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success">
+          En cours
+        </span>
+      </div>
+
+      <div className="rounded-xl border border-border bg-bg p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">Progression formation</p>
+            <h3 className="mt-2 text-lg font-bold leading-snug text-primary">Certification professionnelle en cours</h3>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-primary">68%</span>
+        </div>
+
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white">
+          <div className="landing-meter h-full w-[68%] rounded-full bg-success" />
+        </div>
+
+        <div className="mt-4 grid gap-2">
+          {milestones.map((milestone) => (
+            <div key={milestone.label} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-xs font-medium text-text">
+              <span
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                  milestone.state === 'done'
+                    ? 'bg-success-soft text-success'
+                    : milestone.state === 'current'
+                      ? 'bg-warning-soft text-warning'
+                      : 'bg-secondary-soft text-secondary'
+                }`}
+              >
+                <Icon name={milestone.state === 'done' ? 'check' : 'clock'} size={13} />
+              </span>
+              {milestone.label}
             </div>
-            <p className="text-xs text-center text-subtext font-medium leading-tight max-w-[10rem]">{c.nom}</p>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-lg bg-secondary-soft p-3">
+          <p className="text-xs text-subtext">Modules validés</p>
+          <p className="mt-1 text-xl font-bold text-primary">2/4</p>
+        </div>
+        <div className="rounded-lg bg-success-soft p-3">
+          <p className="text-xs text-subtext">Certification</p>
+          <p className="mt-1 text-xl font-bold text-success">En vue</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CarouselCollaborateurs() {
+  const items = [...COLLABORATEURS, ...COLLABORATEURS, ...COLLABORATEURS];
+
+  return (
+    <div className="landing-partner-carousel relative w-full overflow-hidden" aria-label="Partenaires FORGES">
+      <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-white to-transparent" />
+      <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-white to-transparent" />
+
+      <div className="landing-partner-track flex w-max gap-5 px-4">
+        {items.map((collaborateur, index) => (
+          <div
+            key={`${collaborateur.sigle}-${index}`}
+            className="flex w-48 shrink-0 flex-col items-center gap-3 rounded-xl border border-border bg-white p-4 shadow-sm"
+          >
+            <div className="flex h-24 w-full items-center justify-center overflow-hidden rounded-lg bg-bg">
+              {collaborateur.logo ? (
+                <img
+                  src={collaborateur.logo}
+                  alt={collaborateur.nom}
+                  className="h-full w-full object-contain p-3 mix-blend-multiply"
+                />
+              ) : (
+                <span className="text-sm font-bold text-primary">{collaborateur.sigle}</span>
+              )}
+            </div>
+            <p className="text-center text-xs font-medium leading-tight text-subtext">
+              {collaborateur.nom}
+            </p>
           </div>
         ))}
       </div>
@@ -74,675 +256,328 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
   const paymentExpirationHours = usePaymentExpirationHours();
 
+  const faqItems = [
+    {
+      question: 'Comment créer un compte sur FORGES ?',
+      answer: "L'inscription est gratuite et prend moins de 2 minutes. Choisissez votre profil, renseignez vos informations et confirmez votre email.",
+    },
+    {
+      question: 'Quels modes de paiement sont acceptés ?',
+      answer: 'FORGES prend en charge les paiements locaux comme Mobile Money, les cartes bancaires, les virements et les vouchers prépayés pour organisations.',
+    },
+    {
+      question: 'Combien de temps faut-il pour valider mon inscription ?',
+      answer: `Les dossiers Premium Retail sont examinés avant paiement. Une fois retenu, le paiement doit être effectué dans les ${formatPaymentExpirationShort(paymentExpirationHours)}. Les autres parcours vont directement au paiement.`,
+    },
+    {
+      question: 'Comment obtenir mon attestation ?',
+      answer: "L'attestation officielle en PDF est disponible dans votre espace personnel lorsque le paiement est confirmé et la session clôturée.",
+    },
+    {
+      question: 'Une structure peut-elle former plusieurs personnes ?',
+      answer: 'Oui. Les comptes organisation disposent de vouchers, abonnements B2B, gestion des membres et rapports consolidés.',
+    },
+  ];
+
   const toggleFaq = (index) => {
-    setOpenFaq(openFaq === index ? null : index);
+    setOpenFaq((current) => (current === index ? null : index));
   };
 
   return (
-    <>
-    <div className="min-h-screen bg-bg">
-      {/* Hero Section - High Converting */}
-      <section className="bg-gradient-to-br from-primary via-secondary to-primary text-white py-24 md:py-32 relative overflow-hidden">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-        </div>
+    <div className="min-h-screen overflow-hidden bg-bg">
+      <section className="relative isolate overflow-hidden bg-primary text-white">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(46,134,193,0.72),transparent_34%),linear-gradient(135deg,#12364D_0%,#1B4F72_48%,#2E86C1_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-28 bg-gradient-to-t from-bg to-transparent" />
 
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-5xl mx-auto text-center">
-            {/* Logo */}
-            <div className="flex justify-center mb-12">
-              <div className="relative">
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-white/40 rounded-full blur-3xl scale-110" aria-hidden="true"></div>
-                <picture>
-                  <source srcSet={logoForgesWebp} type="image/webp" />
-                  <img
-                    src={logoForges}
-                    alt="FORGES"
-                    className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full object-cover shadow-2xl ring-8 ring-white/20"
-                  />
-                </picture>
-              </div>
-            </div>
-
-            {/* Badge Made in Africa */}
-            <div className="inline-flex items-center gap-2 bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-full mb-8">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-sm font-medium">Plateforme africaine de formation professionnelle</span>
-            </div>
-
-            {/* Compelling Headline */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight leading-tight">
-              Votre Passerelle vers<br />l'Excellence Professionnelle
+        <div className="mx-auto grid min-h-[calc(100dvh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_0.85fr] lg:px-8 lg:py-20">
+          <div className="landing-reveal max-w-3xl">
+            <h1 className="mt-0 text-4xl font-extrabold leading-[1.05] tracking-normal text-white md:mt-0 md:text-6xl">
+              Apprendre en Afrique de l’Ouest, progresser en entreprise
             </h1>
 
-            {/* Powerful Subheadline */}
-            <p className="text-xl md:text-2xl mb-4 font-light max-w-3xl mx-auto leading-relaxed">
-              FORGES simplifie l'accès à la formation de qualité en Afrique
+            <p className="mt-6 max-w-2xl text-base leading-8 text-white/90 md:text-xl">
+              FORGES relie les apprenants et les entreprises autour de parcours certifiants utiles, clairs et suivis.
             </p>
 
-            {/* Value Proposition */}
-            <p className="text-base md:text-lg mb-10 text-white/95 max-w-2xl mx-auto leading-relaxed">
-              Inscription en ligne, paiements sécurisés, suivi en temps réel et attestations officielles.
-              Tout ce dont vous avez besoin pour gérer vos formations du début à la fin.
-            </p>
-
-            {/* Strong CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
-              <Link to="/register" className="min-h-[48px] min-w-[280px] inline-flex items-center justify-center">
-                <Button variant="white" size="large" className="min-w-[280px] min-h-[48px] font-semibold px-8 py-3">
-                  Créer un compte gratuit
-                </Button>
-              </Link>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <CtaLink to="/register/etudiant" variant="light" className="sm:min-w-44">
+                Je me forme
+              </CtaLink>
+              <CtaLink to="/register/organisation" variant="dark" className="sm:min-w-52">
+                Je forme mon équipe
+              </CtaLink>
             </div>
 
-            {/* Trust Indicators */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto pt-10 border-t border-white border-opacity-20">
-              <div className="flex flex-col items-center">
-                <div className="text-4xl md:text-5xl font-bold mb-2">100%</div>
-                <div className="text-sm md:text-base text-white/95">Digital & Mobile</div>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="text-4xl md:text-5xl font-bold mb-2">Sécurisé</div>
-                <div className="text-sm md:text-base text-white/95">Paiements Mobile Money</div>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="text-4xl md:text-5xl font-bold mb-2">Rapide</div>
-                <div className="text-sm md:text-base text-white/95">Inscription en 2 minutes</div>
-              </div>
+            <div className="mt-10 grid gap-4 border-t border-white/20 pt-8 sm:grid-cols-3">
+              {HERO_PROOFS.map((proof) => (
+                <div key={proof.label}>
+                  <p className="text-3xl font-bold text-white">{proof.value}</p>
+                  <p className="mt-1 text-sm text-white/80">{proof.label}</p>
+                </div>
+              ))}
             </div>
+          </div>
 
-            {/* Social Proof Teaser */}
-            <div className="mt-12 text-sm text-white/90">
-              Rejoignez les professionnels et organisations qui développent leurs compétences avec FORGES
-            </div>
+          <div className="landing-reveal landing-reveal-delay">
+            <ProductPreview />
           </div>
         </div>
       </section>
 
-      {/* Formation Vedette — Masterclass GWU/CCDL */}
-      <section className="py-20 bg-gradient-to-br from-primary to-secondary text-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-10">
-              <span className="inline-block bg-white bg-opacity-20 text-white text-xs font-bold uppercase tracking-widest px-4 py-1 rounded-full mb-4">
-                Formation Bientôt Disponible
-              </span>
-              <h2 className="text-3xl md:text-4xl font-bold mb-3">
-                Masterclass GWU/CCDL — Cybersécurité & IA
+      <section className="relative -mt-10 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-2">
+          {AUDIENCES.map((audience) => (
+            <div
+              key={audience.title}
+              className="landing-card rounded-xl border border-border bg-white p-6 shadow-lg shadow-primary/5"
+            >
+              <div className="flex items-start gap-4">
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${audience.tone === 'success' ? 'bg-success-soft text-success' : 'bg-secondary-soft text-secondary'}`}>
+                  <Icon name={audience.icon} size={24} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-primary">{audience.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-subtext">{audience.text}</p>
+                  <CtaLink to={audience.to} variant={audience.tone === 'success' ? 'primary' : 'secondary'} className="mt-5">
+                    {audience.cta}
+                  </CtaLink>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-10 overflow-hidden rounded-2xl bg-primary text-white shadow-xl shadow-primary/10 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="relative min-h-72 bg-white lg:h-full">
+              <picture>
+                <source srcSet={imageCcdlGwWebp} type="image/webp" />
+                <img
+                  src={imageCcdlGw}
+                  alt="Masterclass GWU CCDL"
+                  className="h-full min-h-72 w-full object-contain p-5"
+                />
+              </picture>
+              <div className="absolute left-5 top-5 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-primary shadow-sm">
+                Formation vedette
+              </div>
+            </div>
+
+            <div className="p-6 md:p-10">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/70">
+                Crédibilité académique
+              </p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight text-white md:text-4xl">
+                Masterclass GWU/CCDL - Cybersécurité & IA
               </h2>
-              <p className="text-lg text-white/95">
-                Masterclass internationale co-délivrée par la George Washington University et le CCDL. 10 jours intensifs sur la cybersécurité stratégique et la gouvernance IA, du 1er au 11 juin 2026 à Abidjan. Certification reconnue par le gouvernement ivoirien, badge numérique vérifiable.
+              <p className="mt-4 text-base leading-7 text-white/90">
+                Formation internationale co-délivrée par la George Washington University et le CCDL :
+                10 jours intensifs à Abidjan autour de la cybersécurité stratégique et de la gouvernance IA.
               </p>
-            </div>
 
-            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white border-opacity-20">
-              <div className="grid md:grid-cols-2">
-                {/* Image GWU/CCDL */}
-                <div className="relative min-h-64 md:min-h-0">
-                  <picture>
-                    <source srcSet={imageCcdlGwWebp} type="image/webp" />
-                    <img
-                      src={imageCcdlGw}
-                      alt="Masterclass GWU CCDL"
-                      className="w-full h-full object-contain bg-white/10"
-                    />
-                  </picture>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                </div>
-
-                {/* Infos */}
-                <div className="p-8 space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Durée</p>
-                      <p className="font-semibold text-sm">10 jours</p>
-                    </div>
-                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Format</p>
-                      <p className="font-semibold text-sm">Présentiel</p>
-                    </div>
-                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Lieu</p>
-                      <p className="font-semibold text-sm">AIGF, Anoumabo, Abidjan</p>
-                    </div>
-                    <div className="bg-white bg-opacity-10 rounded-xl p-3">
-                      <p className="text-xs text-white/90 uppercase tracking-wide mb-1">Tarif</p>
-                      <p className="font-bold text-lg">3 000 000 FCFA</p>
-                    </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Durée', '10 jours'],
+                  ['Format', 'Présentiel'],
+                  ['Lieu', 'Abidjan'],
+                  ['Tarif', '3 000 000 FCFA'],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-lg border border-white/20 bg-white/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/70">{label}</p>
+                    <p className="mt-1 font-semibold text-white">{value}</p>
                   </div>
-                  <ul className="space-y-2 text-sm text-white/95">
-                    <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Maîtriser le paysage mondial des menaces cyber et cadres de gouvernance
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Comprendre opportunités, risques et implications stratégiques de l'IA
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                      Certification Certified Strategic Cybersecurity & AI Governance Analyst
-                    </li>
-                  </ul>
-                  <Link to="/catalogue">
-                    <Button variant="white" size="large" className="w-full font-semibold">
-                      S'inscrire à cette formation
-                    </Button>
-                  </Link>
-                </div>
+                ))}
               </div>
+
+              <ul className="mt-6 space-y-3">
+                <CheckItem>Cybermenaces, gouvernance, risque et cadres stratégiques.</CheckItem>
+                <CheckItem>IA, opportunités, risques et implications de décision.</CheckItem>
+                <CheckItem>Badge numérique vérifiable et certification reconnue.</CheckItem>
+              </ul>
+
+              <CtaLink to="/catalogue" variant="light" className="mt-8 w-full sm:w-auto">
+                Voir cette formation
+              </CtaLink>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Nos Partenaires */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-              Nos Partenaires
-            </h2>
-            <p className="text-lg text-subtext max-w-2xl mx-auto">
-              FORGES s'appuie sur un réseau de partenaires académiques, institutionnels et privés de premier plan
-            </p>
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Réseau"
+            title="Partenaires de confiance"
+            description="FORGES s'appuie sur un réseau académique, institutionnel et privé qui renforce la qualité des parcours proposés."
+          />
+          <div className="mt-10">
+            <CarouselCollaborateurs />
           </div>
-          <CarouselCollaborateurs />
         </div>
       </section>
 
-      {/* How It Works - Simple 3 Steps */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-primary mb-6">
-              Comment ça marche ?
-            </h2>
-            <p className="text-lg md:text-xl text-subtext leading-relaxed">
-              Trois étapes simples pour commencer votre parcours de formation
-            </p>
-          </div>
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Parcours"
+            title="Un flux clair du choix à la preuve"
+            description="La landing garde l'explication simple, mais met davantage en avant la valeur concrete pour chaque profil."
+          />
 
-          <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
-            <div className="text-center relative">
-              <div className="mb-6 flex justify-center">
-                <div className="relative">
-                  <FeatureIcon type="student" color="secondary" size="large" />
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center text-sm font-bold">
-                    1
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <div key={step.title} className="landing-card rounded-xl border border-border bg-white p-6 shadow-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
+                  {index + 1}
+                </div>
+                <h3 className="mt-5 text-lg font-bold text-primary">{step.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-subtext">{step.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+            <SectionHeading
+              align="left"
+              eyebrow="Avantages"
+              title="Ce que chaque profil comprend rapidement"
+              description="La page met en avant les bénéfices utiles sans multiplier les blocs répétitifs."
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {BENEFITS.map((benefit) => (
+                <div key={benefit.title} className="landing-card rounded-xl border border-border bg-bg p-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-secondary shadow-sm">
+                    <Icon name={benefit.icon} size={22} />
                   </div>
+                  <h3 className="mt-4 text-base font-bold text-primary">{benefit.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-subtext">{benefit.text}</p>
                 </div>
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-3">
-                Créez votre compte
-              </h3>
-              <p className="text-subtext leading-relaxed">
-                Inscription gratuite en 2 minutes. Choisissez votre profil : Apprenant ou Organisation.
-                Aucune carte bancaire requise.
-              </p>
-            </div>
-
-            <div className="text-center relative">
-              <div className="mb-6 flex justify-center">
-                <div className="relative">
-                  <FeatureIcon type="book" color="success" size="large" />
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-success text-white rounded-full flex items-center justify-center text-sm font-bold">
-                    2
-                  </div>
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-3">
-                Choisissez votre formation
-              </h3>
-              <p className="text-subtext leading-relaxed">
-                Explorez notre catalogue de formations professionnelles. Filtrez par domaine, durée et prix.
-                Inscrivez-vous en un clic.
-              </p>
-            </div>
-
-            <div className="text-center relative">
-              <div className="mb-6 flex justify-center">
-                <div className="relative">
-                  <FeatureIcon type="check" color="primary" size="large" />
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">
-                    3
-                  </div>
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-3">
-                Suivez votre progression
-              </h3>
-              <p className="text-subtext leading-relaxed">
-                Tableau de bord intuitif pour suivre vos dossiers, paiements et télécharger vos attestations officielles.
-              </p>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features - Benefits Oriented */}
-      <section className="py-20 bg-bg">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-primary mb-6">
-              Pourquoi choisir FORGES ?
-            </h2>
-            <p className="text-lg md:text-xl text-subtext leading-relaxed">
-              Une plateforme conçue pour répondre aux défis spécifiques de la formation en Afrique
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
-            <Card className="text-center hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-secondary">
-              <div className="mb-6 flex justify-center">
-                <FeatureIcon type="book" color="secondary" size="medium" />
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-3">
-                Catalogue Adapté au Marché Local
-              </h3>
-              <p className="text-subtext leading-relaxed">
-                Des formations <strong>pertinentes</strong> pour le marché africain : comptabilité OHADA,
-                agriculture durable, technologies adaptées, et bien plus.
-              </p>
-            </Card>
-
-            <Card className="text-center hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-success">
-              <div className="mb-6 flex justify-center">
-                <FeatureIcon type="check" color="success" size="medium" />
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-3">
-                Zéro Papier, 100% Digital
-              </h3>
-              <p className="text-subtext leading-relaxed">
-                Fini les files d'attente et la paperasse. Tout se passe en ligne :
-                inscription, paiement, suivi et <strong>attestations PDF sécurisées</strong>.
-              </p>
-            </Card>
-
-            <Card className="text-center hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-primary">
-              <div className="mb-6 flex justify-center">
-                <FeatureIcon type="users" color="primary" size="medium" />
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-3">
-                Solutions Entreprise & Organisations
-              </h3>
-              <p className="text-subtext leading-relaxed">
-                Formez vos équipes à grande échelle avec des <strong>vouchers prépayés</strong>,
-                un tableau de bord RH et des rapports consolidés.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section - Detailed */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-              Avantages pour tous les profils
-            </h2>
-            <p className="text-lg text-subtext max-w-2xl mx-auto">
-              FORGES répond aux besoins spécifiques du marché africain
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            <div className="flex gap-4 items-start bg-bg p-6 rounded-lg border border-gray-200 hover:border-secondary transition-colors">
-              <div className="flex-shrink-0 mt-1">
-                <FeatureIcon type="check" color="success" size="small" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary mb-2 text-lg">Paiements locaux acceptés</h3>
-                <p className="text-sm text-subtext">Mobile Money, Orange Money, Wave, cartes bancaires et virements : tous les modes de paiement africains sont pris en charge</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start bg-bg p-6 rounded-lg border border-gray-200 hover:border-secondary transition-colors">
-              <div className="flex-shrink-0 mt-1">
-                <FeatureIcon type="check" color="success" size="small" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary mb-2 text-lg">Attestations officielles en PDF</h3>
-                <p className="text-sm text-subtext">Téléchargez vos attestations certifiées immédiatement après validation de votre formation, sans déplacement</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start bg-bg p-6 rounded-lg border border-gray-200 hover:border-secondary transition-colors">
-              <div className="flex-shrink-0 mt-1">
-                <FeatureIcon type="check" color="success" size="small" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary mb-2 text-lg">Sécurité certifiée</h3>
-                <p className="text-sm text-subtext">Vos données personnelles et paiements protégés par chiffrement AES-256 et conformes aux standards internationaux</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start bg-bg p-6 rounded-lg border border-gray-200 hover:border-secondary transition-colors">
-              <div className="flex-shrink-0 mt-1">
-                <FeatureIcon type="check" color="success" size="small" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary mb-2 text-lg">Accessible 24/7 partout</h3>
-                <p className="text-sm text-subtext">Plateforme responsive accessible depuis mobile, tablette ou ordinateur, même avec une connexion faible</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start bg-bg p-6 rounded-lg border border-gray-200 hover:border-secondary transition-colors">
-              <div className="flex-shrink-0 mt-1">
-                <FeatureIcon type="check" color="success" size="small" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary mb-2 text-lg">Support client réactif</h3>
-                <p className="text-sm text-subtext">Équipe support disponible par email et téléphone pour vous accompagner à chaque étape de votre parcours</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start bg-bg p-6 rounded-lg border border-gray-200 hover:border-secondary transition-colors">
-              <div className="flex-shrink-0 mt-1">
-                <FeatureIcon type="check" color="success" size="small" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary mb-2 text-lg">Vouchers pour organisations</h3>
-                <p className="text-sm text-subtext">Système de vouchers prépayés pour former vos employés ou membres en masse avec tableau de bord consolidé</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-20 bg-bg">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-                Questions fréquentes
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <div className="rounded-2xl bg-primary p-8 text-white md:p-10">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/70">Décision</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight text-white md:text-4xl">
+                Commencez par le parcours qui correspond à votre besoin
               </h2>
-              <p className="text-lg text-subtext">
-                Tout ce que vous devez savoir sur FORGES
+              <p className="mt-4 text-base leading-7 text-white/90">
+                Un particulier peut s'inscrire au catalogue. Une structure peut financer, suivre et consolider
+                les formations de ses membres.
               </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+                <CtaLink to="/register/etudiant" variant="light">
+                  Créer un compte apprenant
+                </CtaLink>
+                <CtaLink to="/register/organisation" variant="dark">
+                  Créer un compte organisation
+                </CtaLink>
+              </div>
             </div>
 
             <div className="space-y-4">
-              {/* FAQ 1 */}
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleFaq(0)}
-                  className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-primary">
-                    Comment créer un compte sur FORGES ?
-                  </span>
-                  <svg
-                    className={`w-5 h-5 text-secondary transition-transform ${openFaq === 0 ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openFaq === 0 && (
-                  <div className="px-6 pb-4 text-subtext">
-                    L'inscription est gratuite et prend moins de 2 minutes. Cliquez sur "Créer un compte",
-                    choisissez votre profil (Apprenant ou Organisation), remplissez vos informations et confirmez
-                    votre email. Aucune carte bancaire n'est requise pour créer un compte.
-                  </div>
-                )}
-              </div>
+              <SectionHeading
+                align="left"
+                eyebrow="FAQ"
+                title="Questions fréquentes"
+                description="Les réponses essentielles restent disponibles sans alourdir la première lecture."
+              />
 
-              {/* FAQ 2 */}
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleFaq(1)}
-                  className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-primary">
-                    Quels modes de paiement sont acceptés ?
-                  </span>
-                  <svg
-                    className={`w-5 h-5 text-secondary transition-transform ${openFaq === 1 ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openFaq === 1 && (
-                  <div className="px-6 pb-4 text-subtext">
-                    FORGES accepte tous les modes de paiement populaires en Afrique : Mobile Money
-                    (Orange Money, MTN Mobile Money, Wave), cartes bancaires Visa/Mastercard,
-                    virements bancaires, et vouchers prépayés pour les organisations.
-                  </div>
-                )}
-              </div>
+              <div className="space-y-3">
+                {faqItems.map((item, index) => {
+                  const isOpen = openFaq === index;
 
-              {/* FAQ 3 */}
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleFaq(2)}
-                  className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-primary">
-                    Combien de temps faut-il pour valider mon inscription ?
-                  </span>
-                  <svg
-                    className={`w-5 h-5 text-secondary transition-transform ${openFaq === 2 ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openFaq === 2 && (
-                  <div className="px-6 pb-4 text-subtext">
-                    Une fois votre dossier d'inscription soumis, il est examiné par l'équipe de la formation
-                    dans un délai de 24 à {formatPaymentExpirationShort(paymentExpirationHours)}. Vous recevez une notification par email dès que votre
-                    dossier est validé. Le paiement doit être effectué dans les {formatPaymentExpirationShort(paymentExpirationHours)} suivant la validation.
-                  </div>
-                )}
-              </div>
-
-              {/* FAQ 4 */}
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleFaq(3)}
-                  className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-primary">
-                    Comment obtenir mon attestation de formation ?
-                  </span>
-                  <svg
-                    className={`w-5 h-5 text-secondary transition-transform ${openFaq === 3 ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openFaq === 3 && (
-                  <div className="px-6 pb-4 text-subtext">
-                    Votre attestation officielle en PDF est disponible immédiatement dans votre espace personnel
-                    une fois votre formation terminée et votre paiement confirmé. Vous pouvez la télécharger
-                    autant de fois que nécessaire, sans frais supplémentaires.
-                  </div>
-                )}
-              </div>
-
-              {/* FAQ 5 */}
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleFaq(4)}
-                  className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-primary">
-                    Les organisations peuvent-elles former plusieurs employés ?
-                  </span>
-                  <svg
-                    className={`w-5 h-5 text-secondary transition-transform ${openFaq === 4 ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openFaq === 4 && (
-                  <div className="px-6 pb-4 text-subtext">
-                    Oui, les comptes Organisation ont accès à un système de vouchers prépayés qui permet
-                    d'inscrire plusieurs employés ou membres à des formations. Vous bénéficiez d'un tableau
-                    de bord consolidé pour suivre toutes les inscriptions, un système de gestion des bénéficiaires,
-                    et des rapports détaillés.
-                  </div>
-                )}
-              </div>
-
-              {/* FAQ 6 */}
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleFaq(5)}
-                  className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-primary">
-                    Mes données sont-elles sécurisées ?
-                  </span>
-                  <svg
-                    className={`w-5 h-5 text-secondary transition-transform ${openFaq === 5 ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openFaq === 5 && (
-                  <div className="px-6 pb-4 text-subtext">
-                    Absolument. FORGES utilise un chiffrement AES-256 pour protéger vos données personnelles,
-                    HTTPS obligatoire pour toutes les communications, et respecte les standards internationaux
-                    de sécurité. Vos informations de paiement ne sont jamais stockées sur nos serveurs et transitent
-                    par des passerelles de paiement certifiées.
-                  </div>
-                )}
+                  return (
+                    <div key={item.question} className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => toggleFaq(index)}
+                        aria-expanded={isOpen}
+                        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-primary transition-colors hover:bg-bg focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary"
+                      >
+                        <span>{item.question}</span>
+                        <Icon
+                          name="arrowRight"
+                          size={18}
+                          className={`shrink-0 text-secondary transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                        />
+                      </button>
+                      <div className={`landing-faq-panel ${isOpen ? 'landing-faq-panel-open' : ''}`}>
+                        <p className="px-5 pb-5 text-sm leading-6 text-subtext">{item.answer}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Preview Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-              Choisissez votre profil
-            </h2>
-            <p className="text-lg text-subtext">
-              Deux types de comptes adaptés à vos besoins
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <Card className="hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-secondary">
-              <div className="text-center p-6">
-                <div className="mb-6 flex justify-center">
-                  <FeatureIcon type="student" color="secondary" size="large" />
-                </div>
-
-                <h3 className="text-2xl font-bold text-primary mb-3">
-                  Compte Apprenant
-                </h3>
-                <p className="text-subtext mb-6">
-                  Pour les particuliers souhaitant développer leurs compétences professionnelles ou académiques
+      <section className="bg-bg py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-8 overflow-hidden rounded-2xl border border-border bg-white shadow-lg shadow-primary/5 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="bg-primary p-8 text-white md:p-10">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/70">Contact</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight text-white md:text-4xl">
+                Nous contacter
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-7 text-white/90">
+                Une question sur une inscription, un partenariat ou un parcours certifiant ?
+                Écrivez-nous et l’équipe FORGES vous répondra par email.
+              </p>
+              <div className="mt-8 rounded-xl border border-white/15 bg-white/10 p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">
+                  Adresse email
                 </p>
-
-                <div className="text-left mb-6 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Accès complet au catalogue de formations</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Suivi personnalisé de vos dossiers</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Attestations PDF téléchargeables</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Codes promo et réductions</span>
-                  </div>
-                </div>
-
-                <Link to="/register/etudiant">
-                  <Button variant="secondary" size="large" className="w-full font-semibold">
-                    Créer un compte étudiant
-                  </Button>
-                </Link>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="mt-3 inline-flex text-lg font-semibold text-white underline-offset-4 transition-colors hover:underline focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary"
+                >
+                  {CONTACT_EMAIL}
+                </a>
               </div>
-            </Card>
+            </div>
 
-            <Card className="hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-primary">
-              <div className="text-center p-6">
-                <div className="mb-6 flex justify-center">
-                  <FeatureIcon type="building" color="primary" size="large" />
-                </div>
-
-                <h3 className="text-2xl font-bold text-primary mb-3">
-                  Compte Organisation
-                </h3>
-                <p className="text-subtext mb-6">
-                  Pour les entreprises, associations et organismes gouvernementaux qui forment leurs équipes
+            <div className="p-8 md:p-10">
+              <div className="rounded-2xl border border-border bg-bg p-6 md:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary">
+                  Réponse orientée
                 </p>
-
-                <div className="text-left mb-6 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Gestion centralisée de vos employés</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Système de vouchers prépayés</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Tableau de bord et rapports consolidés</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <FeatureIcon type="check" color="success" size="small" className="mt-1 flex-shrink-0" />
-                    <span className="text-sm text-text">Support dédié pour grandes équipes</span>
-                  </div>
-                </div>
-
-                <Link to="/register/organisation">
-                  <Button variant="primary" size="large" className="w-full font-semibold">
-                    Créer un compte organisation
-                  </Button>
-                </Link>
+                <ul className="mt-5 space-y-4">
+                  <li className="rounded-xl bg-white px-4 py-3 text-sm leading-6 text-text shadow-sm">
+                    Inscriptions apprenants et organisations
+                  </li>
+                  <li className="rounded-xl bg-white px-4 py-3 text-sm leading-6 text-text shadow-sm">
+                    Partenariats et formations certifiantes
+                  </li>
+                  <li className="rounded-xl bg-white px-4 py-3 text-sm leading-6 text-text shadow-sm">
+                    Questions sur l’accompagnement et les parcours
+                  </li>
+                </ul>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-lg border border-transparent bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0F2F43] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              >
+                Nous écrire
+              </a>
               </div>
-            </Card>
-          </div>
-
-          <div className="text-center mt-10">
-            <p className="text-subtext text-lg">
-              Vous avez déjà un compte ?{' '}
-              <Link to="/login" className="text-secondary hover:text-primary font-semibold underline">
-                Se connecter
-              </Link>
-            </p>
+            </div>
           </div>
         </div>
       </section>
     </div>
-    </>
   );
 }

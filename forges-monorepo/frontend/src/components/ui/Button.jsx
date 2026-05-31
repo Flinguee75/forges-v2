@@ -5,13 +5,16 @@ export default function Button({
   variant = 'primary',
   size = 'medium',
   type = 'button',
+  fullWidth = false,
   disabled = false,
   loading = false,
   onClick,
   className = '',
   ...props
 }) {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg border border-transparent shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles = `inline-flex items-center justify-center font-medium rounded-lg border border-transparent shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+    fullWidth ? 'w-full' : ''
+  }`;
 
   const variants = {
     primary: 'bg-action-primary bg-action-primary-hover text-on-action focus:ring-primary',
@@ -55,6 +58,7 @@ Button.propTypes = {
   variant: PropTypes.oneOf(['primary', 'secondary', 'success', 'warning', 'danger', 'outline', 'white']),
   size: PropTypes.oneOf(['small', 'medium', 'large']),
   type: PropTypes.oneOf(['button', 'submit', 'reset']),
+  fullWidth: PropTypes.bool,
   disabled: PropTypes.bool,
   loading: PropTypes.bool,
   onClick: PropTypes.func,

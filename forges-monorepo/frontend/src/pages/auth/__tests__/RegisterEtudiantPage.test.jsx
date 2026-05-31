@@ -47,8 +47,10 @@ describe('RegisterEtudiantPage', () => {
   it('affiche le champ prénoms et le consentement RGPD', () => {
     renderWithProviders(<RegisterEtudiantPage />);
 
+    expect(screen.getByRole('link', { name: /retour au choix d'inscription/i })).toHaveAttribute('href', '/register');
     expect(screen.getByLabelText(/prénoms/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/consentement rgpd/i)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^nom$/i })).toBeInTheDocument();
   });
 
   it('envoie un payload compatible avec le backend', async () => {
@@ -59,9 +61,9 @@ describe('RegisterEtudiantPage', () => {
 
     renderWithProviders(<RegisterEtudiantPage />);
 
-    await user.type(screen.getByLabelText(/^nom \*/i), 'Koné');
-    await user.type(screen.getByLabelText(/prénoms \*/i), 'Amadou');
-    await user.type(screen.getByLabelText(/email \*/i), 'test@example.ci');
+    await user.type(screen.getByRole('textbox', { name: /^nom$/i }), 'Koné');
+    await user.type(screen.getByLabelText(/prénoms/i), 'Amadou');
+    await user.type(screen.getByLabelText(/email/i), 'test@example.ci');
     const passwordInputs = screen.getAllByLabelText(/mot de passe/i);
     await user.type(passwordInputs[0], 'Test@2026A');
     await user.type(passwordInputs[1], 'Test@2026A');
@@ -81,5 +83,13 @@ describe('RegisterEtudiantPage', () => {
       );
       expect(mockNavigate).toHaveBeenCalledWith('/login', expect.any(Object));
     });
+  });
+
+  it('met en évidence le profil sélectionné avec un contraste lisible', () => {
+    renderWithProviders(<RegisterEtudiantPage />);
+
+    expect(screen.getByRole('button', { name: /apprenant/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /apprenant/i })).toHaveClass('bg-primary', 'text-white');
+    expect(screen.getByRole('button', { name: /professionnel/i })).toHaveAttribute('aria-pressed', 'false');
   });
 });

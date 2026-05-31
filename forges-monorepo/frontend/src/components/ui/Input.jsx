@@ -13,7 +13,8 @@ export default function Input({
   id,
   ...props
 }) {
-  const inputId = id || `input-${label?.toLowerCase().replace(/\s+/g, '-')}`;
+  const normalizedLabel = label?.replace(/\s*\*\s*$/, '').trim();
+  const inputId = id || `input-${normalizedLabel?.toLowerCase().replace(/\s+/g, '-')}`;
 
   const inputClasses = `w-full px-4 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
     error
@@ -25,8 +26,8 @@ export default function Input({
     <div className="w-full">
       {label && (
         <label htmlFor={inputId} className="block text-sm font-medium text-text mb-1.5">
-          {label}
-          {required && <span className="text-danger ml-1">*</span>}
+          {normalizedLabel}
+          {required && <span aria-hidden="true" className="text-danger ml-1">*</span>}
         </label>
       )}
       <input

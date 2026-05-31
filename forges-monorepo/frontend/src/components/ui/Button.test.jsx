@@ -171,6 +171,12 @@ describe('Button', () => {
       // Doit aussi conserver les classes de base
       expect(button).toHaveClass('bg-action-primary');
     });
+
+    it('devrait prendre toute la largeur quand fullWidth est true', () => {
+      render(<Button fullWidth>Full width</Button>);
+      const button = screen.getByText('Full width');
+      expect(button).toHaveClass('w-full');
+    });
   });
 
   // Tests des props HTML natives

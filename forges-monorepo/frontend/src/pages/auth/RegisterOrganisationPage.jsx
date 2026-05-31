@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Card from '../../components/ui/Card';
+import Icon from '../../components/ui/Icon';
 
 /**
  * RegisterOrganisationPage - Formulaire d'inscription organisation
@@ -14,6 +15,7 @@ import Card from '../../components/ui/Card';
 export default function RegisterOrganisationPage() {
   const navigate = useNavigate();
   const { execute, isLoading, error } = useApi();
+  const selectClassName = 'w-full appearance-none px-4 py-2.5 border rounded-lg bg-white text-text transition-colors focus:outline-none focus:ring-2 focus:ring-primary';
 
   const [formData, setFormData] = useState({
     raison_sociale: '',
@@ -135,18 +137,27 @@ export default function RegisterOrganisationPage() {
     <div className="min-h-screen bg-bg py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
-          {/* Breadcrumb */}
-          <nav className="mb-6 text-sm">
-            <Link to="/" className="text-secondary hover:text-primary">
-              Accueil
+          <div className="mb-6">
+            <Link
+              to="/register"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-primary/20 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              aria-label="Retour au choix d'inscription"
+            >
+              <Icon name="arrowRight" size={16} className="rotate-180" />
+              Retour au choix d'inscription
             </Link>
-            <span className="mx-2 text-subtext">/</span>
-            <Link to="/register" className="text-secondary hover:text-primary">
-              Inscription
-            </Link>
-            <span className="mx-2 text-subtext">/</span>
-            <span className="text-text">Organisation</span>
-          </nav>
+            <nav className="mt-4 text-sm text-subtext" aria-label="Fil d'Ariane">
+              <Link to="/" className="text-secondary hover:text-primary">
+                Accueil
+              </Link>
+              <span className="mx-2 text-subtext">/</span>
+              <Link to="/register" className="text-secondary hover:text-primary">
+                Inscription
+              </Link>
+              <span className="mx-2 text-subtext">/</span>
+              <span className="text-text">Organisation</span>
+            </nav>
+          </div>
 
           <Card>
             {/* Header */}
@@ -190,7 +201,7 @@ export default function RegisterOrganisationPage() {
                     name="type"
                     value={formData.type}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className={selectClassName}
                     required
                   >
                     <option value="ENTREPRISE">Entreprise</option>
@@ -221,7 +232,7 @@ export default function RegisterOrganisationPage() {
                     name="pays"
                     value={formData.pays}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`${selectClassName} ${
                       validationErrors.pays ? 'border-danger' : 'border-border'
                     }`}
                     required

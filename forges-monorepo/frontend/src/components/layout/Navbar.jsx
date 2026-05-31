@@ -214,16 +214,23 @@ export default function Navbar({
         <div className="flex min-w-0 items-center gap-4">
           {isPublic ? (
             <>
-              <Link to="/" className="flex items-center">
+              <Link
+                to="/"
+                className="flex items-center rounded-full transition-transform duration-200 hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                aria-label="Accueil FORGES"
+              >
                 <picture>
                   <source srcSet={logoForgesWebp} type="image/webp" />
                   <img src={logoForges} alt="FORGES" className="h-14 w-14 rounded-full object-cover" />
                 </picture>
               </Link>
               <nav className="hidden items-center gap-6 md:flex">
-                <Link to="/" className="font-medium text-text transition-colors hover:text-primary">
-                  Accueil
-                </Link>
+              <Link
+                to="/"
+                className="rounded-md font-medium text-text transition-colors duration-200 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              >
+                Accueil
+              </Link>
               </nav>
             </>
           ) : (
@@ -263,12 +270,15 @@ export default function Navbar({
 
         {isPublic ? (
           <div className="flex items-center gap-3">
-            <Link to="/login" className="font-medium text-primary transition-colors hover:text-secondary">
+            <Link
+              to="/login"
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-primary/25 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-[#EAF2F8] hover:text-primary hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
               Connexion
             </Link>
             <Link
               to="/register"
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-secondary"
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0F2F43] hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
               Inscription
             </Link>

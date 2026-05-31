@@ -47,8 +47,10 @@ describe('RegisterOrganisationPage', () => {
   it('affiche le consentement RGPD et le contact référent', () => {
     renderWithProviders(<RegisterOrganisationPage />);
 
+    expect(screen.getByRole('link', { name: /retour au choix d'inscription/i })).toHaveAttribute('href', '/register');
     expect(screen.getByLabelText(/contact référent/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/consentement rgpd/i)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^raison sociale$/i })).toBeInTheDocument();
   });
 
   it('envoie un payload aligné sur le backend', async () => {
@@ -59,7 +61,7 @@ describe('RegisterOrganisationPage', () => {
 
     renderWithProviders(<RegisterOrganisationPage />);
 
-    await user.type(screen.getByLabelText(/raison sociale/i), 'TechCorp Dev CI');
+    await user.type(screen.getByRole('textbox', { name: /^raison sociale$/i }), 'TechCorp Dev CI');
     await user.selectOptions(screen.getByLabelText(/type d'organisation/i), 'ENTREPRISE');
     await user.type(screen.getByLabelText(/identifiant légal/i), 'CI-ABJ-01-2024-B12-12345');
     await user.type(screen.getByLabelText(/^email de l'organisation/i), 'org@test.ci');

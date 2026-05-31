@@ -152,4 +152,112 @@
   .animate-slide-in {
     animation: slide-in 0.3s ease-out;
   }
+
+  @keyframes landing-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes landing-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes landing-meter {
+    from {
+      transform: scaleX(0.72);
+      opacity: 0.72;
+    }
+    to {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes landing-partner-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-33.333%);
+    }
+  }
+
+  .landing-reveal {
+    animation: landing-reveal 0.7s ease-out both;
+  }
+
+  .landing-reveal-delay {
+    animation-delay: 0.12s;
+  }
+
+  .landing-float {
+    animation: landing-float 5s ease-in-out infinite;
+  }
+
+  .landing-meter {
+    animation: landing-meter 1.6s ease-out both;
+    transform-origin: left center;
+  }
+
+  .landing-partner-track {
+    animation: landing-partner-scroll 28s linear infinite;
+  }
+
+  .landing-partner-carousel:hover .landing-partner-track {
+    animation-play-state: paused;
+  }
+
+  .landing-card {
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  }
+
+  .landing-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(46, 134, 193, 0.42);
+    box-shadow: 0 18px 36px rgba(18, 54, 77, 0.12);
+  }
+
+  .landing-faq-panel {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(-4px);
+    transition: max-height 0.24s ease, opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .landing-faq-panel-open {
+    max-height: 160px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .landing-reveal,
+    .landing-float,
+    .landing-meter,
+    .landing-partner-track {
+      animation: none !important;
+    }
+
+    .landing-card,
+    .landing-faq-panel {
+      transition-duration: 0.01ms !important;
+    }
+
+    .landing-card:hover {
+      transform: none;
+    }
+  }
 }
