@@ -569,7 +569,7 @@ export default function LandingPage() {
                 </ul>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-lg border border-transparent bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0F2F43] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-lg border border-primary/20 bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-[#EAF2F8] hover:text-primary hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 Nous écrire
               </a>
