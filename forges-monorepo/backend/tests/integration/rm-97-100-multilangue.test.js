@@ -1,4 +1,4 @@
-const { accounts, auth, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
+lconst { accounts, auth, createApprenantAccount, ids, prisma, request, API_URL } = require('./helpers');
 
 describe('Vague 4 API — Multi-langue RM-97 à RM-101', () => {
 

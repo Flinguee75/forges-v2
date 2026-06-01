@@ -292,7 +292,7 @@ export default function LandingPage() {
         <div className="mx-auto grid min-h-[calc(100dvh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_0.85fr] lg:px-8 lg:py-20">
           <div className="landing-reveal max-w-3xl">
             <h1 className="mt-0 text-4xl font-extrabold leading-[1.05] tracking-normal text-white md:mt-0 md:text-6xl">
-              Apprendre en Afrique de l’Ouest, progresser en entreprise
+              Apprendre en Afrique, progresser en entreprise
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-white/90 md:text-xl">
