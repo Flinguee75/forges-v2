@@ -919,6 +919,151 @@
         }
       },
       "options": { "tooltip": { "mode": "multi" } }
+    },
+    {
+      "title": "Acquisitions — Nouveaux comptes",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 152 }
+    },
+    {
+      "title": "Nouveaux apprenants (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 153 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"COMPTE_CREE\" [24h]))",
+          "refId": "A",
+          "legendFormat": "apprenants"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#1ABC9C" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "teal", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Nouvelles organisations (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 153 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"ORGANISATION_CREEE\" [24h]))",
+          "refId": "A",
+          "legendFormat": "organisations"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#F39C12" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Comptes actives (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 153 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"COMPTE_ACTIVE|ORGANISATION_ACTIVEE\" [24h]))",
+          "refId": "A",
+          "legendFormat": "activations"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#27AE60" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Total inscriptions cette semaine (7j)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 153 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"COMPTE_CREE|ORGANISATION_CREEE\" [7d]))",
+          "refId": "A",
+          "legendFormat": "inscrits semaine"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#8E44AD" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "Nouvelles inscriptions par heure (7j)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 158 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"COMPTE_CREE\" [1h]))",
+          "refId": "A",
+          "legendFormat": "apprenants / heure"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=\"ORGANISATION_CREEE\" [1h]))",
+          "refId": "B",
+          "legendFormat": "organisations / heure"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"COMPTE_ACTIVE|ORGANISATION_ACTIVEE\" [1h]))",
+          "refId": "C",
+          "legendFormat": "activations / heure"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": true, "drawStyle": "bars", "barAlignment": 0 },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "apprenants / heure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#1ABC9C" } }] },
+          { "matcher": { "id": "byName", "options": "organisations / heure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#F39C12" } }] },
+          { "matcher": { "id": "byName", "options": "activations / heure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#27AE60" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi" } }
+    },
+    {
+      "title": "Dernieres creations de compte",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 167 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service_name=~\"unknown_service|backend\"} | json | __error__=\"\" | action=~\"COMPTE_CREE|ORGANISATION_CREEE|COMPTE_ACTIVE|ORGANISATION_ACTIVEE\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
     }
   ],
   "schemaVersion": 39,
@@ -931,7 +1076,7 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
