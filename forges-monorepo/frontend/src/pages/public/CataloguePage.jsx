@@ -7,6 +7,7 @@ import EmptyState from '../../components/feedback/EmptyState';
 import Spinner from '../../components/feedback/Spinner';
 import Pagination from '../../components/ui/Pagination';
 import FormationMarketplaceCard from '../../components/catalogue/FormationMarketplaceCard';
+import { useSEO, getCatalogSchema } from '../../hooks/useSEO';
 
 /**
  * CataloguePage - Page publique affichant le catalogue des formations
@@ -19,6 +20,15 @@ export default function CataloguePage() {
   const [pagination, setPagination] = useState(null);
 
   const { execute, isLoading, error } = useApi();
+
+  useSEO({
+    title: 'Catalogue des formations certifiantes — FORGES',
+    description: 'Toutes les formations certifiantes en cybersecurite, IA, data science et transformation digitale. Filtrez par format, duree et prix. Abidjan, Cote d\'Ivoire.',
+    keywords: 'catalogue formations certifiantes, cybersecurite, intelligence artificielle, data science, bootcamp Abidjan, formation en ligne Afrique',
+    canonical: 'https://edu.forges-group.com/catalogue',
+    ogImage: 'https://edu.forges-group.com/logo_forges.png',
+    schema: getCatalogSchema(formations),
+  });
 
   const loadFormations = async (page = 1, searchTerm = '') => {
     await execute(

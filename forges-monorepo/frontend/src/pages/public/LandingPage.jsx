@@ -9,6 +9,7 @@ import imageCcdlGw from '../../assets/image_ccdl_gw.png';
 import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
 import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
 import { formatPaymentExpirationShort } from '../../utils/paymentDeadline';
+import { useSEO, getOrganizationSchema } from '../../hooks/useSEO';
 
 const CONTACT_EMAIL = 'contact@forges-group.com';
 
@@ -255,6 +256,15 @@ function CarouselCollaborateurs() {
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
   const paymentExpirationHours = usePaymentExpirationHours();
+
+  useSEO({
+    title: 'FORGES — Formations Certifiantes | Cybersecurite, IA, Data Science en Cote d\'Ivoire',
+    description: 'Plateforme africaine de formations certifiantes en cybersecurite, IA, data science et transformation digitale. Certifications reconnues pour les professionnels d\'Afrique de l\'Ouest.',
+    keywords: 'formations en ligne Cote d\'Ivoire, cybersecurite Abidjan, intelligence artificielle Afrique, data science Afrique de l\'Ouest, certification professionnelle',
+    canonical: 'https://edu.forges-group.com/',
+    ogImage: 'https://edu.forges-group.com/logo_forges.png',
+    schema: getOrganizationSchema(),
+  });
 
   const faqItems = [
     {

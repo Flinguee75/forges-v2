@@ -134,7 +134,7 @@ export function getCatalogSchema(formations = []) {
     '@type': 'CollectionPage',
     name: 'Catalogue FORGES',
     description: 'Formations certifiantes en cybersécurité, IA, data science et transformation digitale',
-    url: 'https://edu.forges-group.com/formations',
+    url: 'https://edu.forges-group.com/catalogue',
     image: '/logo_forges.png',
     mainEntity: {
       '@type': 'ItemList',
@@ -160,15 +160,11 @@ export function getOrganizationSchema() {
     url: 'https://edu.forges-group.com',
     logo: 'https://edu.forges-group.com/logo_forges.png',
     description: 'Plateforme de formations certifiantes professionnelles',
-    sameAs: [
-      'https://twitter.com/forges',
-      'https://linkedin.com/company/forges',
-    ],
+    sameAs: [],
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Service',
-      telephone: '+1-XXX-XXX-XXXX',
-      email: 'contact@forges.com',
+      email: 'contact@forges-group.com',
     },
   };
 }
