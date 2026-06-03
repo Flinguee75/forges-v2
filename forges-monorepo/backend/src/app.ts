@@ -177,6 +177,52 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
+// Sitemap XML dynamique — formations publiques + pages statiques
+app.get('/sitemap.xml', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const baseUrl = process.env.FRONTEND_URL || 'https://edu.forges-group.com';
+    const today = new Date().toISOString().split('T')[0];
+
+    const formations = await prisma.formation.findMany({
+      where: { statut: 'ACTIVE' },
+      select: { id: true, created_at: true },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const staticPages = [
+      { loc: `${baseUrl}/`, priority: '1.0', changefreq: 'weekly' },
+      { loc: `${baseUrl}/catalogue`, priority: '0.9', changefreq: 'daily' },
+    ];
+
+    const formationUrls = formations.map((f) => ({
+      loc: `${baseUrl}/formations/${f.id}`,
+      priority: '0.8',
+      changefreq: 'weekly',
+      lastmod: f.created_at ? f.created_at.toISOString().split('T')[0] : today,
+    }));
+
+    const allUrls = [
+      ...staticPages.map((p) => ({ ...p, lastmod: today })),
+      ...formationUrls,
+    ];
+
+    const urlEntries = allUrls
+      .map(
+        (u) =>
+          `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n    <xhtml:link rel="alternate" hreflang="fr" href="${u.loc}"/>\n  </url>`
+      )
+      .join('\n');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urlEntries}\n</urlset>`;
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(xml);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Routes des modules
 import authRoutes from './modules/auth/auth.routes';
 import comptesRoutes from './modules/comptes/comptes.routes';
