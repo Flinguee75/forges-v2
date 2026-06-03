@@ -28,7 +28,7 @@ scrape_configs:
         replacement: forges-edu
     pipeline_stages:
       - match:
-          selector: '{compose_project!="forges-edu"}'
+          selector: '{compose_project!~"forges-edu|forges-monitoring-edu"}'
           action: drop
       - json:
           expressions:

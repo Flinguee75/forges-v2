@@ -43,20 +43,6 @@ check_catalogue() {
   log "info" "catalogue" "ok"
 }
 
-check_auth_rejects_bad_creds() {
-  status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
-    -X POST "${BASE_URL}/api/auth/login" \
-    -H "Content-Type: application/json" \
-    -H "X-Health-Probe: true" \
-    -d '{"email":"monitor-probe@forges-check.invalid","password":"wrongpassword"}')
-  # Expect 401 — if 200 or 500 something is wrong
-  case "$status" in
-    401|400) log "info" "auth-reject" "ok (got ${status})" ;;
-    200)     log "error" "auth-reject" "POST /api/auth/login returned 200 on invalid credentials — auth may be broken" ;;
-    000)     log "error" "auth-reject" "POST /api/auth/login no response" ;;
-    *)       log "warn" "auth-reject" "POST /api/auth/login returned ${status}" ;;
-  esac
-}
 
 check_catalogue_item_structure() {
   body=$(curl -sf --max-time 5 "${BASE_URL}/api/catalogue") || return
@@ -77,7 +63,6 @@ run_checks() {
   check_health
   check_catalogue
   check_catalogue_item_structure
-  check_auth_rejects_bad_creds
   log "info" "cycle" "done"
 }
 

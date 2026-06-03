@@ -9,4 +9,4 @@ contactPoints:
         settings:
           addresses: TidianeCisse9@outlook.fr
           singleEmail: true
-        disableResolveMessage: false
+        disableResolveMessage: true

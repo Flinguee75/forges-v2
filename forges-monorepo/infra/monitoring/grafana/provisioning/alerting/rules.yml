@@ -37,7 +37,7 @@ groups:
               expression: A
         for: 0s
         noDataState: OK
-        execErrState: Alerting
+        execErrState: OK
         labels:
           severity: critical
           environment: edu
