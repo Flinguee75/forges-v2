@@ -62,7 +62,7 @@ export default function FormationDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (formation !== null && !loadingFormation && !loadingSessions) {
+    if (!loadingFormation && !loadingSessions) {
       document.dispatchEvent(new Event('prerender-ready'));
     }
   }, [formation, loadingFormation, loadingSessions]);

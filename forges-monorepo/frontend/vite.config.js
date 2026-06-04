@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import Prerenderer from '@prerenderer/rollup-plugin';
 import Renderer from '@prerenderer/renderer-puppeteer';
 import { execSync } from 'child_process';
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import process from 'node:process';
 import { getPrerenderRoutes } from './scripts/prerender-routes.mjs';
 
@@ -12,6 +14,22 @@ const commitSha = process.env.VITE_COMMIT_SHA ||
 export default defineConfig(async () => {
   const isPrerenderBuild = process.env.PRERENDER === '1';
   const prerenderRoutes = isPrerenderBuild ? await getPrerenderRoutes() : [];
+
+  // Capture the prerendered root route HTML so we can write it in closeBundle
+  let rootRouteHtml = null;
+
+  // Plugin to write root index.html after bundle closes (workaround for Rolldown asset emit bug)
+  const writeRootIndexPlugin = isPrerenderBuild ? {
+    name: 'write-root-index',
+    closeBundle() {
+      if (rootRouteHtml) {
+        const outDir = join(process.cwd(), 'dist');
+        mkdirSync(outDir, { recursive: true });
+        writeFileSync(join(outDir, 'index.html'), rootRouteHtml, 'utf-8');
+        console.log('[prerender] dist/index.html written (root route)');
+      }
+    },
+  } : null;
 
   return {
     define: {
@@ -30,9 +48,13 @@ export default defineConfig(async () => {
           postProcess(renderedRoute) {
             renderedRoute.html = renderedRoute.html
               .replace(/http:\/\/localhost:\d+\//g, '/');
+            if (renderedRoute.route === '/') {
+              rootRouteHtml = renderedRoute.html;
+            }
             return renderedRoute;
           },
         }),
+        writeRootIndexPlugin,
       ] : []),
     ],
     build: {

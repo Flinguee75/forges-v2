@@ -44,6 +44,9 @@ export default function CataloguePage() {
           setPagination(data.meta || null);
           document.dispatchEvent(new Event('prerender-ready'));
         },
+        onError: () => {
+          document.dispatchEvent(new Event('prerender-ready'));
+        },
       }
     );
   };
