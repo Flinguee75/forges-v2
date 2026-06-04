@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:e2e": "node ./scripts/run-e2e.mjs",
     "test:e2e:headed": "E2E_HEADLESS=false node ./scripts/run-e2e.mjs",
-    "test:e2e:debug": "PWDEBUG=1 E2E_HEADLESS=false node ./scripts/run-e2e.mjs --debug"
+    "test:e2e:debug": "PWDEBUG=1 E2E_HEADLESS=false node ./scripts/run-e2e.mjs --debug",
+    "build:ssg": "PRERENDER=1 PRERENDER_API_URL=http://localhost:3006 vite build"
   },
   "dependencies": {
     "axios": "^1.13.6",
