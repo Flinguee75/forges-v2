@@ -42,6 +42,7 @@ export default function CataloguePage() {
         onSuccess: (data) => {
           setFormations(data.data || []);
           setPagination(data.meta || null);
+          document.dispatchEvent(new Event('prerender-ready'));
         },
       }
     );

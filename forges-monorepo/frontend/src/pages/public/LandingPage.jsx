@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '../../components/ui/Icon';
 import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
@@ -265,6 +265,10 @@ export default function LandingPage() {
     ogImage: 'https://edu.forges-group.com/logo_forges.png',
     schema: getOrganizationSchema(),
   });
+
+  useEffect(() => {
+    document.dispatchEvent(new Event('prerender-ready'));
+  }, []);
 
   const faqItems = [
     {

@@ -61,6 +61,12 @@ export default function FormationDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  useEffect(() => {
+    if (formation !== null && !loadingFormation && !loadingSessions) {
+      document.dispatchEvent(new Event('prerender-ready'));
+    }
+  }, [formation, loadingFormation, loadingSessions]);
+
   // SEO Hook - Mettre à jour les meta tags quand la formation est chargée
   useSEO({
     title: formation ? `${getFormationTitre(formation)} | FORGES` : 'FORGES',
