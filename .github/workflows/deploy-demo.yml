@@ -136,14 +136,6 @@ jobs:
           rsync -avz --mkpath \
             infra/docker/docker-compose.demo.deploy.yml \
             ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/docker/
-          rsync -avz --mkpath \
-            infra/scripts/backup-demo.sh \
-            infra/scripts/restore-demo.sh \
-            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/scripts/
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }} \
-            "chmod +x ${{ secrets.DEMO_DEPLOY_PATH }}/infra/scripts/backup-demo.sh \
-                      ${{ secrets.DEMO_DEPLOY_PATH }}/infra/scripts/restore-demo.sh"
 
       - name: Lire image precedente (base rollback)
         id: prev-image
