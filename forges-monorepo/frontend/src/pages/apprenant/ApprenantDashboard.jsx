@@ -111,76 +111,103 @@ export default function ApprenantDashboard() {
         <div className="grid gap-4 md:grid-cols-3">
 
           {/* Formations */}
-          <Card className="flex flex-col gap-5 p-5">
-            <div>
+          <Card bodyClassName="flex flex-col p-5">
+            <div className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 14, height: 14 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-subtext flex-shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-subtext">Formations</p>
-              <div className="mt-3 flex items-end justify-between gap-2">
+            </div>
+            <div className="mt-4 flex-1">
+              <div className="flex items-baseline gap-2">
                 <p className="text-4xl font-bold tabular-nums text-text leading-none">{stats.total}</p>
-                <div className="flex flex-col items-end gap-1.5 pb-0.5">
+                <p className="text-xs text-subtext">dans le catalogue</p>
+              </div>
+              {(stats.inclus > 0 || stats.premium > 0) && (
+                <div className="mt-3 flex items-center gap-2">
                   {stats.inclus > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
+                    <span className="text-xs font-medium text-success">
                       {stats.inclus} incluses
                     </span>
                   )}
+                  {stats.inclus > 0 && stats.premium > 0 && (
+                    <span className="h-3 w-px bg-border" />
+                  )}
                   {stats.premium > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium text-info">
+                    <span className="text-xs font-medium text-info">
                       {stats.premium} Premium
                     </span>
                   )}
                 </div>
-              </div>
-              <p className="mt-1.5 text-xs text-subtext">dans le catalogue</p>
+              )}
             </div>
-            <Link to="/apprenant/catalogue" className="mt-auto">
-              <Button variant="outline" className="w-full">
-                Parcourir le catalogue
-              </Button>
+            <Link to="/apprenant/catalogue" className="mt-auto pt-4">
+              <Button variant="outline" className="w-full">Parcourir le catalogue</Button>
             </Link>
           </Card>
 
           {/* Abonnement */}
-          <Card className="flex flex-col gap-5 p-5">
-            <div>
+          <Card bodyClassName="flex flex-col p-5">
+            <div className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 14, height: 14 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-subtext flex-shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+              </svg>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-subtext">Abonnement</p>
+            </div>
+            <div className="mt-4 flex-1">
               {abonnement ? (
                 <>
-                  <div className="mt-3 flex items-center gap-2.5">
-                    <p className="text-2xl font-bold text-text leading-none">{abonnement.offre}</p>
+                  <div className="flex items-center gap-2.5">
+                    <p className="text-2xl font-bold text-text leading-none">
+                      {abonnement.offre || abonnement.type_abonnement || 'Essentiel'}
+                    </p>
                     <Badge variant={abonnement.statut === 'ACTIF' ? 'success' : 'warning'}>
-                      {abonnement.statut === 'ACTIF' ? 'Actif' : abonnement.statut}
+                      {abonnement.statut === 'ACTIF' ? 'Actif' : (abonnement.statut || 'Actif')}
                     </Badge>
                   </div>
                   {abonnement.montant_mensuel && (
-                    <p className="mt-1.5 text-xs text-subtext">{formatMoney(abonnement.montant_mensuel)} / mois</p>
+                    <p className="mt-2 text-xs text-subtext">{formatMoney(abonnement.montant_mensuel)} / mois</p>
                   )}
-                  {abonnement.date_fin && (
-                    <p className="mt-1 text-xs text-subtext">Renouvellement le {formatDate(abonnement.date_fin)}</p>
-                  )}
+                  <p className="mt-1.5 text-xs text-subtext">
+                    {abonnement.date_fin ? `Valide jusqu’au ${formatDate(abonnement.date_fin)}` : 'Acces illimite'}
+                  </p>
                 </>
               ) : (
                 <>
-                  <p className="mt-3 text-base font-semibold text-subtext">Aucun abonnement</p>
-                  <p className="mt-1 text-xs text-subtext">
-                    Acces illimite aux formations incluses avec Essentiel ou Premium.
-                  </p>
+                  <p className="text-sm font-semibold text-text">Formations sans limite</p>
+                  <ul className="mt-3 space-y-2">
+                    {['Formations incluses dans votre offre', 'Tarifs reduits sur les Premium', 'Acces aux nouvelles sessions en priorite'].map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-xs text-subtext">
+                        <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 12, height: 12 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="mt-0.5 flex-shrink-0 text-primary">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
                 </>
               )}
             </div>
-            <Link to={abonnement ? '/apprenant/abonnement' : '/apprenant/abonnement/souscrire'} className="mt-auto">
+            <Link to={abonnement ? '/apprenant/abonnement' : '/apprenant/abonnement/souscrire'} className="mt-auto pt-4">
               <Button variant={abonnement ? 'outline' : 'primary'} className="w-full">
-                {abonnement ? 'Gerer mon abonnement' : 'Souscrire'}
+                {abonnement ? 'Gerer mon abonnement' : 'Decouvrir les offres'}
               </Button>
             </Link>
           </Card>
 
           {/* Dossiers */}
-          <Card className="flex flex-col gap-5 p-5">
-            <div>
+          <Card bodyClassName="flex flex-col p-5">
+            <div className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 14, height: 14 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-subtext flex-shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+              </svg>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-subtext">Dossiers</p>
-              <div className="mt-3 flex items-end justify-between gap-2">
+            </div>
+            <div className="mt-4 flex-1">
+              <div className="flex items-baseline gap-2">
                 <p className="text-4xl font-bold tabular-nums text-text leading-none">{stats.dossiersTotal}</p>
                 {stats.dossiersActifs > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning pb-0.5">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-warning">
                     <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                     {stats.dossiersActifs} en attente
                   </span>
@@ -188,14 +215,12 @@ export default function ApprenantDashboard() {
               </div>
               <p className="mt-1.5 text-xs text-subtext">
                 {stats.dossiersActifs > 0
-                  ? `${stats.dossiersActifs} dossier${stats.dossiersActifs > 1 ? 's' : ''} necessite${stats.dossiersActifs > 1 ? 'nt' : ''} votre attention`
+                  ? `${stats.dossiersActifs} dossier${stats.dossiersActifs > 1 ? 's' : ''} a traiter`
                   : 'Aucun dossier en attente'}
               </p>
             </div>
-            <Link to="/apprenant/dossiers" className="mt-auto">
-              <Button variant="outline" className="w-full">
-                Voir mes dossiers
-              </Button>
+            <Link to="/apprenant/dossiers" className="mt-auto pt-4">
+              <Button variant="outline" className="w-full">Voir mes dossiers</Button>
             </Link>
           </Card>
         </div>
