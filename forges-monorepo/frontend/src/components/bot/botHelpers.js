@@ -324,6 +324,7 @@ const QUESTION_LIBRARY = {
     },
   },
   note_globale: {
+    type: 'star',
     question: {
       FR: 'Quelle note globale donnez-vous à votre expérience ?',
       EN: 'What overall rating would you give your experience?',
@@ -339,6 +340,7 @@ const QUESTION_LIBRARY = {
     },
   },
   qualite_contenu: {
+    type: 'star',
     question: {
       FR: 'Comment évaluez-vous la qualité du contenu ?',
       EN: 'How would you rate the quality of the content?',
@@ -354,6 +356,7 @@ const QUESTION_LIBRARY = {
     },
   },
   qualite_animation: {
+    type: 'star',
     question: {
       FR: 'Comment évaluez-vous la qualité de l’animation ?',
       EN: 'How would you rate the quality of the facilitation?',
@@ -369,6 +372,7 @@ const QUESTION_LIBRARY = {
     },
   },
   utilite_professionnelle: {
+    type: 'star',
     question: {
       FR: 'Dans quelle mesure cette formation vous sera utile ?',
       EN: 'How useful will this training be for you?',
@@ -418,6 +422,12 @@ const QUESTION_LIBRARY = {
     },
   },
   commentaire_feedback: {
+    label: {
+      FR: 'Commentaire',
+      EN: 'Comment',
+      ES: 'Comentario',
+      PT: 'Comentario',
+    },
     question: {
       FR: 'Vous pouvez ajouter un commentaire optionnel puis confirmer son envoi.',
       EN: 'You can add an optional comment and then confirm sending it.',
@@ -738,6 +748,8 @@ function getQuestionFromLibrary(questionId, language) {
 
   return {
     id: questionId,
+    type: entry.type || null,
+    label: entry.label ? resolveLocalizedValue(entry.label, normalizedLanguage) : null,
     question: resolveLocalizedValue(entry.question, normalizedLanguage),
     options: Object.entries(entry.options || {}).map(([value, label]) => ({
       value,
@@ -1043,20 +1055,25 @@ export function getConversationHistoryEntries(session, language = 'FR') {
       const questionDefinition = (questionId && questionMap.get(questionId)) || getQuestionFromLibrary(questionId, normalizedLanguage);
       const resolvedValue = resolveStepValue(step);
 
+      const rawTimelineAnswer = ((normalizedLanguage !== 'FR' && questionDefinition)
+        ? getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage)
+        : null)
+        || step.answer_label
+        || step.answerLabel
+        || getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage);
+      const isStarQ = questionDefinition?.type === 'star' || (Array.isArray(questionDefinition?.options) && questionDefinition.options.every(o => !isNaN(Number(o?.value ?? o))));
       return {
         id: `${questionId || 'timeline'}-${step.answered_at || step.answeredAt || index}`,
         questionId,
-        questionLabel: ((normalizedLanguage !== 'FR' && questionDefinition?.question) ? questionDefinition.question : null)
+        questionLabel: resolveLocalizedValue(questionDefinition?.label, normalizedLanguage)
+          || ((normalizedLanguage !== 'FR' && questionDefinition?.question) ? questionDefinition.question : null)
           || resolveLocalizedValue(step.question, normalizedLanguage)
           || questionDefinition?.question
           || questionId
           || `Question ${index + 1}`,
-        answerLabel: ((normalizedLanguage !== 'FR' && questionDefinition)
-          ? getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage)
-          : null)
-          || step.answer_label
-          || step.answerLabel
-          || getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage),
+        answerLabel: (isStarQ && rawTimelineAnswer && !isNaN(Number(rawTimelineAnswer)))
+          ? `${rawTimelineAnswer}/5`
+          : rawTimelineAnswer,
         commentaire: step.commentaire || step.comment || '',
         answeredAt: step.answered_at || step.answeredAt || null,
       };
@@ -1069,17 +1086,22 @@ export function getConversationHistoryEntries(session, language = 'FR') {
     const questionId = step.question_id || step.questionId || null;
     const questionDefinition = (questionId && questionMap.get(questionId)) || getQuestionFromLibrary(questionId, normalizedLanguage);
     const resolvedValue = resolveStepValue(step);
-    const questionLabel = ((normalizedLanguage !== 'FR' && questionDefinition?.question) ? questionDefinition.question : null)
+    const questionLabel = resolveLocalizedValue(questionDefinition?.label, normalizedLanguage)
+      || ((normalizedLanguage !== 'FR' && questionDefinition?.question) ? questionDefinition.question : null)
       || resolveLocalizedValue(step.question, normalizedLanguage)
       || questionDefinition?.question
       || questionId
       || `Question ${index + 1}`;
-    const answerLabel = ((normalizedLanguage !== 'FR' && questionDefinition)
+    const rawAnswerLabel = ((normalizedLanguage !== 'FR' && questionDefinition)
       ? getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage)
       : null)
       || step.answer_label
       || step.answerLabel
       || getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage);
+    const isStarQuestion = questionDefinition?.type === 'star' || (Array.isArray(questionDefinition?.options) && questionDefinition.options.every(o => !isNaN(Number(o?.value ?? o))));
+    const answerLabel = (isStarQuestion && rawAnswerLabel && !isNaN(Number(rawAnswerLabel)))
+      ? `${rawAnswerLabel}/5`
+      : rawAnswerLabel;
 
     return {
       id: `${questionId || 'step'}-${step.answered_at || step.answeredAt || index}`,
