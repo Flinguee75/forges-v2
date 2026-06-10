@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Icon from '../ui/Icon';
+import BotWidget from '../bot/BotWidget';
 
 /**
  * EtudiantLayout - Layout pour l'espace étudiant
@@ -90,6 +91,7 @@ export default function EtudiantLayout() {
 
         <Footer />
       </div>
+      <BotWidget />
     </div>
   );
 }

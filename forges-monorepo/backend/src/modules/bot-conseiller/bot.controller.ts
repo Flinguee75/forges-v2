@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { BotService } from './bot.service';
+import { presentBotSession } from './bot.presenter';
 
 export class BotController {
   constructor(
@@ -15,7 +16,7 @@ export class BotController {
       const result = req.user!.role === 'ORGANISATION'
         ? await this.botService.demarrerSessionOrganisation(req.user!.userId, langue)
         : await this.botService.demarrerSessionApprenant(req.user!.userId, langue);
-      res.status(201).json({ statusCode: 201, data: result });
+      res.status(201).json({ statusCode: 201, data: presentBotSession(result) });
     } catch (error) { next(error); }
   }
 
@@ -23,7 +24,10 @@ export class BotController {
   async getActiveSession(req: Request, res: Response, next: NextFunction) {
     try {
       const session = await this.botService.getSessionActive(req.user!.userId);
-      res.status(200).json({ statusCode: 200, data: session ?? null });
+      res.status(200).json({
+        statusCode: 200,
+        data: session ? presentBotSession(session) : null,
+      });
     } catch (error) {
       next(error);
     }
@@ -32,7 +36,7 @@ export class BotController {
   async getSessionById(req: Request, res: Response, next: NextFunction) {
     try {
       const session = await this.botService.getSessionById(req.params.id, req.user!.userId);
-      res.status(200).json({ statusCode: 200, data: session });
+      res.status(200).json({ statusCode: 200, data: presentBotSession(session) });
     } catch (error: any) {
       if (error.message === 'SESSION_INVALIDE') {
         return res.status(404).json({
@@ -57,8 +61,14 @@ export class BotController {
           message: 'Les champs question_id et valeur sont obligatoires.'
         });
       }
-      const result = await this.botService.repondre(req.params.id, question_id, valeur);
-      res.status(200).json({ statusCode: 200, data: result });
+      const result = await this.botService.repondre(
+        req.params.id,
+        question_id,
+        valeur,
+        req.body.commentaire ?? null,
+        req.user?.userId,
+      );
+      res.status(200).json({ statusCode: 200, data: presentBotSession(result) });
     } catch (error: any) {
       if (error.message === 'SESSION_INVALIDE') return res.status(404).json({
         statusCode: 404,
@@ -74,6 +84,16 @@ export class BotController {
         statusCode: 400,
         error: 'NOTE_GLOBALE_OBLIGATOIRE',
         message: 'La note globale est obligatoire (RM-122).'
+      });
+      if (error.message === 'COMMENTAIRE_TROP_LONG') return res.status(400).json({
+        statusCode: 400,
+        error: 'COMMENTAIRE_TROP_LONG',
+        message: 'Le commentaire est limité à 500 caractères.'
+      });
+      if (error.message === 'FEEDBACK_DEJA_COLLECTE') return res.status(409).json({
+        statusCode: 409,
+        error: 'FEEDBACK_DEJA_COLLECTE',
+        message: 'Un feedback a déjà été collecté pour cette formation.'
       });
       next(error);
     }
@@ -141,7 +161,7 @@ export class BotController {
       if (formation_id) where.formation_id = formation_id;
       if (canal) where.canal = canal;
 
-      const [feedbacks, total] = await Promise.all([
+      const [feedbacks, total, noteStats, recommendedCount] = await Promise.all([
         this.prisma.feedbackFormation.findMany({
           where,
           include: {
@@ -149,6 +169,12 @@ export class BotController {
               select: {
                 nom: true,
                 prenoms: true,
+                email: true,
+              },
+            },
+            organisation: {
+              select: {
+                raison_sociale: true,
                 email: true,
               },
             },
@@ -168,13 +194,17 @@ export class BotController {
           orderBy: { date_saisie: 'desc' },
         }),
         this.prisma.feedbackFormation.count({ where }),
+        this.prisma.feedbackFormation.aggregate({
+          where,
+          _avg: { note_globale: true },
+        }),
+        this.prisma.feedbackFormation.count({
+          where: { ...where, recommande: true },
+        }),
       ]);
 
-      // Calcul statistiques
-      const totalNotes = feedbacks.reduce((sum, f) => sum + f.note_globale, 0);
-      const moyenne_globale = feedbacks.length > 0 ? totalNotes / feedbacks.length : 0;
-      const nbRecommandations = feedbacks.filter(f => f.recommande).length;
-      const taux_recommandation = feedbacks.length > 0 ? (nbRecommandations / feedbacks.length) * 100 : 0;
+      const moyenne_globale = noteStats._avg.note_globale ?? 0;
+      const taux_recommandation = total > 0 ? (recommendedCount / total) * 100 : 0;
 
       res.status(200).json({
         statusCode: 200,

@@ -37,17 +37,7 @@ export default function FeedbacksAdmin() {
 
   const renderStars = (note) => {
     return (
-      <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <span
-            key={star}
-            className={star <= note ? 'text-yellow-500' : 'text-gray-300'}
-          >
-            ★
-          </span>
-        ))}
-        <span className="ml-2 text-sm text-gray-600">({note}/5)</span>
-      </div>
+      <span className="font-semibold text-primary">{note}/5</span>
     );
   };
 
@@ -110,7 +100,7 @@ export default function FeedbacksAdmin() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Apprenant
+                    Auteur
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Formation
@@ -134,9 +124,13 @@ export default function FeedbacksAdmin() {
                   <tr key={fb.id}>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {fb.apprenant?.nom} {fb.apprenant?.prenoms}
+                        {fb.apprenant
+                          ? `${fb.apprenant.nom} ${fb.apprenant.prenoms}`
+                          : fb.organisation?.raison_sociale}
                       </div>
-                      <div className="text-sm text-gray-500">{fb.apprenant?.email}</div>
+                      <div className="text-sm text-gray-500">
+                        {fb.apprenant?.email || fb.organisation?.email}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">

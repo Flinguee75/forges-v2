@@ -38,7 +38,13 @@ describe('BotController', () => {
       await controller.getActiveSession(req, res, next);
 
       expect(mockService.getSessionActive).toHaveBeenCalledWith('app-01');
-      expect(res.json).toHaveBeenCalledWith({ statusCode: 200, data: mockSession });
+      expect(res.json).toHaveBeenCalledWith({
+        statusCode: 200,
+        data: expect.objectContaining({
+          id: 'sess-01',
+          statut: 'ACTIVE',
+        }),
+      });
     });
 
     it('retourne 200 avec data null si aucune session active', async () => {

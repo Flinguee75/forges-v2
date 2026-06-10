@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Icon from '../ui/Icon';
+import BotWidget from '../bot/BotWidget';
 
 /**
  * OrgLayout - Layout pour l'espace organisation
@@ -93,6 +94,7 @@ export default function OrgLayout() {
 
         <Footer />
       </div>
+      <BotWidget />
     </div>
   );
 }

@@ -284,6 +284,14 @@ jobs:
             echo "Migrations OK"
           ENDSSH
 
+      - name: Preparer scenario Bot Conseiller demo
+        env:
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            "docker exec forges-backend-demo sh -c 'cd /app && node prisma/seed.bot-demo.js'"
+
       - name: Rollback vers version precedente
         if: failure()
         env:

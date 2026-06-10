@@ -1,6 +1,8 @@
 import { BotRepository } from './bot.repository';
 import { BotEngineService, determinerFluxPrioritaire, OPTIONS_BOT } from './bot-engine.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
+import { FEEDBACK_QUESTION_IDS, getFeedbackQuestions } from './feedback.questions';
+import { FeedbackEligibilityService, FeedbackTarget } from './feedback-eligibility.service';
 
 const COOLDOWN_UPGRADE_JOURS = 7;   // RM-120
 const COOLDOWN_3_REFUS_JOURS = 30;  // RM-120
@@ -9,7 +11,8 @@ export class BotService {
   constructor(
     private readonly botRepo: BotRepository,
     private readonly engine: BotEngineService,
-    private readonly audit: AuditLogger
+    private readonly audit: AuditLogger,
+    private readonly feedbackEligibility?: FeedbackEligibilityService,
   ) {}
 
   // Récupérer la session active de l'utilisateur
@@ -47,7 +50,12 @@ export class BotService {
     }
 
     // Évaluer conditions flux
-    const sessionsSansFeedback = await this.botRepo.findSessionsSansFeedback(apprenant_id);
+    const feedbackTarget = this.feedbackEligibility
+      ? await this.feedbackEligibility.findForApprenant(apprenant_id)
+      : null;
+    const sessionsSansFeedback = feedbackTarget
+      ? [this.legacyTarget(feedbackTarget, apprenant.langue_preferee || langue)]
+      : await this.botRepo.findSessionsSansFeedback(apprenant_id);
     const dernierRefus = await this.botRepo.findDernierRefusUpgrade(apprenant_id);
     const joursDepuisRefus = dernierRefus?.dernier_refus_upgrade_le
       ? Math.floor((Date.now() - dernierRefus.dernier_refus_upgrade_le.getTime()) / (24 * 3600 * 1000))
@@ -65,9 +73,12 @@ export class BotService {
 
     const session = await this.botRepo.creerSession({
       utilisateur_id: apprenant_id,
+      apprenant_id,
+      organisation_id: null,
       type_utilisateur: 'APPRENANT',
       flux_actif: flux,
       langue: apprenant.langue_preferee || langue,
+      ...(feedbackTarget && { contexte: this.targetContext(feedbackTarget) }),
     });
 
     await this.audit.info('BOT_SESSION_DEMARREE', { session_id: session.id, flux, apprenant_id });
@@ -113,16 +124,24 @@ export class BotService {
     }
 
     // Vérifier s'il y a des sessions clôturées sans feedback (organisations peuvent aussi donner du feedback)
-    const sessionsSansFeedback = await this.botRepo.findSessionsSansFeedback(organisation_id);
-    if (sessionsSansFeedback.length > 0) {
+    const feedbackTarget = this.feedbackEligibility
+      ? await this.feedbackEligibility.findForOrganisation(organisation_id)
+      : null;
+    const sessionsSansFeedback = feedbackTarget
+      ? [this.legacyTarget(feedbackTarget, organisation?.langue_preferee || langue)]
+      : [];
+    if (feedbackTarget || sessionsSansFeedback.length > 0) {
       flux = 'FEEDBACK'; // Feedback prioritaire
     }
 
     const session = await this.botRepo.creerSession({
       utilisateur_id: organisation_id,
+      apprenant_id: null,
+      organisation_id,
       type_utilisateur: 'ORGANISATION',
       flux_actif: flux,
       langue: organisation?.langue_preferee || langue,
+      ...(feedbackTarget && { contexte: this.targetContext(feedbackTarget) }),
     });
 
     await this.audit.info('BOT_SESSION_ORGANISATION_DEMARREE', {
@@ -147,6 +166,27 @@ export class BotService {
     };
   }
 
+  private targetContext(target: FeedbackTarget) {
+    return {
+      formation_id: target.formationId,
+      session_id: target.sessionId,
+      mode_formation: target.modeFormation,
+      formation_intitule: target.formationIntitule,
+    };
+  }
+
+  private legacyTarget(target: FeedbackTarget, langue: string) {
+    return {
+      langue,
+      formation: {
+        id: target.formationId,
+        intitule: target.formationIntitule,
+        mode_formation: target.modeFormation,
+      },
+      session_id: target.sessionId,
+    };
+  }
+
   // Première question pour l'upgrade Organisation
   private getPremiereQuestionUpgradeOrganisation(session_id: string, palier_actuel?: string) {
     const palierSuivant = palier_actuel === 'STARTER' ? 'BUSINESS' : 'ENTERPRISE';
@@ -162,9 +202,20 @@ export class BotService {
   }
 
   // Réponse à une question du bot (RM-118 : valider que la valeur est dans les options)
-  async repondre(session_id: string, question_id: number, valeur: any) {
+  async repondre(
+    session_id: string,
+    question_id: number | string,
+    valeur: any,
+    commentaire: string | null = null,
+    utilisateurId?: string,
+  ) {
     const session = await this.botRepo.findSession(session_id);
-    if (!session || session.statut !== 'EN_COURS') throw new Error('SESSION_INVALIDE');
+    if (
+      !session ||
+      session.statut !== 'EN_COURS' ||
+      (utilisateurId && session.utilisateur_id !== utilisateurId)
+    ) throw new Error('SESSION_INVALIDE');
+    if (commentaire && commentaire.length > 500) throw new Error('COMMENTAIRE_TROP_LONG');
 
     // RM-125 : bot ne modifie AUCUNE donnée utilisateur directement
     // RM-118 : valider que la valeur est dans les options autorisées
@@ -172,14 +223,22 @@ export class BotService {
     if (!estValide) throw new Error('REPONSE_HORS_LISTE');
 
     // Enregistrer dans l'historique
-    const historique = [...(session.historique as any[] || []), { question_id, valeur, timestamp: new Date() }];
+    const normalizedQuestionId = session.flux_actif === 'FEEDBACK'
+      ? this.normalizeFeedbackQuestionId(question_id)
+      : question_id;
+    const historique = [...(session.historique as any[] || []), {
+      question_id: normalizedQuestionId,
+      valeur,
+      ...(commentaire !== null && { commentaire }),
+      timestamp: new Date(),
+    }];
     await this.botRepo.updateSession(session_id, { historique });
 
-    return this.getSuiteFlux(session, question_id, valeur, historique);
+    return this.getSuiteFlux(session, normalizedQuestionId, valeur, historique);
   }
 
   // Logique de suite selon le flux
-  private async getSuiteFlux(session: any, question_id: number, valeur: any, historique: any[]) {
+  private async getSuiteFlux(session: any, question_id: number | string, valeur: any, historique: any[]) {
     switch (session.flux_actif) {
 
       case 'ORIENTATION':
@@ -199,7 +258,7 @@ export class BotService {
     }
   }
 
-  private async handleOrientation(session: any, question_id: number, valeur: any, historique: any[]) {
+  private async handleOrientation(session: any, question_id: number | string, valeur: any, historique: any[]) {
     if (question_id === 1) { // Objectif
       return { question_id: 2, texte: 'Dans quel secteur travaillez-vous ?', options: OPTIONS_BOT.SECTEUR };
     }
@@ -226,7 +285,7 @@ export class BotService {
     }
   }
 
-  private async handleUpgrade(session: any, question_id: number, valeur: any) {
+  private async handleUpgrade(session: any, question_id: number | string, valeur: any) {
     if (question_id === 1) { // Accepter/refuser
       if (valeur === 'Non') {
         // RM-120 : enregistrer refus
@@ -248,39 +307,68 @@ export class BotService {
     }
   }
 
-  private async handleFeedback(session: any, question_id: number, valeur: any, historique: any[]) {
-    const formationId = session.contexte?.formation_id;
-    const questions = this.engine.getQuestionsFeedback('', session.langue);
-    const derniereQuestion = questions[questions.length - 1];
+  private async handleFeedback(session: any, question_id: number | string, valeur: any, historique: any[]) {
+    const contexte = session.contexte || {};
+    const questions = getFeedbackQuestions(session.langue, contexte.mode_formation);
+    const currentIndex = questions.findIndex(question => question.id === question_id);
 
-    if (question_id < derniereQuestion.id) {
-      const prochaine = questions[question_id]; // question_id 1-based
-      return { question: prochaine };
+    if (currentIndex < questions.length - 1) {
+      return this.feedbackSessionView(session, historique, questions[currentIndex + 1]);
     }
 
-    // Dernière réponse → enregistrer feedback (RM-122)
-    const h = historique;
-    const noteGlobale = h.find((r: any) => r.question_id === 1)?.valeur;
+    const find = (id: string) => historique.find((item: any) => item.question_id === id);
+    const noteGlobale = find(FEEDBACK_QUESTION_IDS.NOTE_GLOBALE)?.valeur;
     if (!noteGlobale) throw new Error('NOTE_GLOBALE_OBLIGATOIRE');
+    const noteContenu = find(FEEDBACK_QUESTION_IDS.NOTE_CONTENU)?.valeur;
+    const noteFormateur = find(FEEDBACK_QUESTION_IDS.NOTE_FORMATEUR)?.valeur;
+    const commentaireStep = find(FEEDBACK_QUESTION_IDS.COMMENTAIRE);
 
-    await this.botRepo.enregistrerFeedback({
-      apprenant_id: session.utilisateur_id,
-      formation_id: formationId || '',
-      note_globale: noteGlobale,
-      note_contenu: h.find((r: any) => r.question_id === 2)?.valeur,
-      note_formateur: h.find((r: any) => r.question_id === 3)?.valeur,
-      commentaire: h.find((r: any) => r.question_id === 4)?.valeur,
-      recommande: h.find((r: any) => r.question_id === 5)?.valeur === 'Oui',
-      session_bot_id: session.id,
+    try {
+      await this.botRepo.enregistrerFeedback({
+        apprenant_id: session.type_utilisateur === 'APPRENANT' ? session.utilisateur_id : null,
+        organisation_id: session.type_utilisateur === 'ORGANISATION' ? session.utilisateur_id : null,
+        formation_id: contexte.formation_id,
+        session_id: contexte.session_id || null,
+        canal: 'BOT',
+        note_globale: Number(noteGlobale),
+        note_contenu: noteContenu && noteContenu !== 'PASSER' ? Number(noteContenu) : null,
+        note_formateur: noteFormateur && noteFormateur !== 'PASSER' ? Number(noteFormateur) : null,
+        commentaire_libre: commentaireStep?.commentaire || null,
+        recommande: ['OUI', 'Oui'].includes(
+          find(FEEDBACK_QUESTION_IDS.RECOMMANDE)?.valeur,
+        ),
+        session_bot_id: session.id,
+      } as any);
+    } catch (error: any) {
+      if (error?.code === 'P2002') throw new Error('FEEDBACK_DEJA_COLLECTE');
+      throw error;
+    }
+
+    await this.audit.info('FEEDBACK_COLLECTE', {
+      session_id: session.id,
+      formation_id: contexte.formation_id,
+      type_utilisateur: session.type_utilisateur,
     });
-
-    await this.audit.info('FEEDBACK_ENREGISTRE', { session_id: session.id, formation_id: formationId });
     await this.botRepo.cloturerSession(session.id, 'TERMINEE');
-    return { fin: true, message: 'Merci pour votre retour !' };
+    return this.feedbackSessionView({ ...session, statut: 'TERMINEE' }, historique, null);
   }
 
-  private async handleEnquete(session: any, question_id: number, valeur: any, historique: any[]) {
-    if (question_id < 3) {
+  private feedbackSessionView(session: any, historique: any[], question: any) {
+    return {
+      id: session.id,
+      flux_actif: 'FEEDBACK',
+      statut: session.statut,
+      langue: session.langue,
+      current_question: question,
+      historique: {
+        steps: historique,
+        metadata: { feedback: session.contexte || {} },
+      },
+    };
+  }
+
+  private async handleEnquete(session: any, question_id: number | string, valeur: any, historique: any[]) {
+    if (typeof question_id === 'number' && question_id < 3) {
       const questions = this.engine.getQuestionsEnquete();
       return { question: questions[question_id] }; // 0-based index
     }
@@ -306,13 +394,19 @@ export class BotService {
 
   private getPremiereQuestion(session_id: string, flux: string, sessionSansFeedback?: any) {
     switch (flux) {
-      case 'FEEDBACK':
+      case 'FEEDBACK': {
+        const questions = getFeedbackQuestions(
+          sessionSansFeedback?.langue || 'FR',
+          sessionSansFeedback?.formation?.mode_formation || 'AVEC_SESSION',
+        );
         return {
           session_id,
           flux: 'FEEDBACK',
+          langue: sessionSansFeedback?.langue || 'FR',
           contexte_formation: sessionSansFeedback?.formation?.intitule,
-          question: { id: 1, texte: `Comment évaluez-vous globalement "${sessionSansFeedback?.formation?.intitule}" ?`, options: OPTIONS_BOT.NOTE_ETOILES, obligatoire: true }
+          question: questions[0],
         };
+      }
       case 'UPGRADE':
         return {
           session_id,
@@ -329,7 +423,7 @@ export class BotService {
     }
   }
 
-  private validerReponseQuestion(flux: string, question_id: number, valeur: any): boolean {
+  private validerReponseQuestion(flux: string, question_id: number | string, valeur: any): boolean {
     // RM-118 : toutes les valeurs doivent être dans les listes autorisées
     switch (flux) {
       case 'ORIENTATION':
@@ -340,10 +434,7 @@ export class BotService {
       case 'UPGRADE':
         return ['Oui', 'Non'].includes(valeur);
       case 'FEEDBACK':
-        if ([1, 2, 3].includes(question_id)) return OPTIONS_BOT.NOTE_ETOILES.includes(valeur);
-        if (question_id === 4) return typeof valeur === 'string' && valeur.length <= 500; // seul champ texte libre
-        if (question_id === 5) return OPTIONS_BOT.RECOMMANDE.includes(valeur as any);
-        return false;
+        return this.validerReponseFeedback(question_id, valeur);
       case 'ENQUETE':
         if (question_id === 1) return OPTIONS_BOT.DOMAINE_ENQUETE.includes(valeur as any);
         if (question_id === 2) return OPTIONS_BOT.NIVEAU.includes(valeur as any);
@@ -352,6 +443,34 @@ export class BotService {
       default:
         return false;
     }
+  }
+
+  private validerReponseFeedback(questionId: number | string, valeur: any): boolean {
+    const id = this.normalizeFeedbackQuestionId(questionId);
+    if (id === FEEDBACK_QUESTION_IDS.NOTE_GLOBALE) {
+      return ['1', '2', '3', '4', '5'].includes(String(valeur));
+    }
+    if ([FEEDBACK_QUESTION_IDS.NOTE_CONTENU, FEEDBACK_QUESTION_IDS.NOTE_FORMATEUR].includes(id as any)) {
+      return ['1', '2', '3', '4', '5', 'PASSER'].includes(String(valeur));
+    }
+    if (id === FEEDBACK_QUESTION_IDS.COMMENTAIRE) {
+      return ['ENVOYER', 'PASSER'].includes(String(valeur));
+    }
+    if (id === FEEDBACK_QUESTION_IDS.RECOMMANDE) {
+      return ['OUI', 'NON', 'Oui', 'Non'].includes(String(valeur));
+    }
+    return false;
+  }
+
+  private normalizeFeedbackQuestionId(questionId: number | string): string {
+    const legacyIds: Record<number, string> = {
+      1: FEEDBACK_QUESTION_IDS.NOTE_GLOBALE,
+      2: FEEDBACK_QUESTION_IDS.NOTE_CONTENU,
+      3: FEEDBACK_QUESTION_IDS.NOTE_FORMATEUR,
+      4: FEEDBACK_QUESTION_IDS.COMMENTAIRE,
+      5: FEEDBACK_QUESTION_IDS.RECOMMANDE,
+    };
+    return typeof questionId === 'number' ? legacyIds[questionId] : questionId;
   }
 
   // Abandon session (RM-115)

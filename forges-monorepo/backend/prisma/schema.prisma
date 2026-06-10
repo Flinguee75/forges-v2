@@ -494,6 +494,7 @@ model ConversationBot {
   actions_declenchees      String[]   @default([])
   langue                   String     @default("FR")
   refus_upgrade_dates      DateTime[] @default([])
+  contexte                 Json?
 }
 
 model EnqueteCatalogue {
@@ -526,13 +527,15 @@ model FeedbackFormation {
   note_globale      Int
   note_contenu      Int?
   note_formateur    Int?
-  commentaire       String?
   commentaire_libre String?       @db.VarChar(500)
   session_bot_id    String?
   recommande        Boolean
   apprenant         Apprenant?    @relation(fields: [apprenant_id], references: [id])
   organisation      Organisation? @relation(fields: [organisation_id], references: [id])
   formation         Formation     @relation(fields: [formation_id], references: [id])
+
+  @@unique([apprenant_id, formation_id])
+  @@unique([organisation_id, formation_id])
 }
 
 model CommissionPartenaire {
