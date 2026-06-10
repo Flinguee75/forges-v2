@@ -66,28 +66,26 @@ export default function BotMessagesContainer({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-bg/60 p-4">
-      <div className="space-y-4">
-        <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-secondary">
+    <div className="flex-1 overflow-y-auto p-4">
+      <div className="space-y-3">
+        <div className="rounded-xl border border-border bg-white px-4 py-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-primary/70">
             {getFluxLabel(session.flux_actif, language)}
           </p>
-          <p className="mt-2 text-sm text-text">{getFluxWelcomeMessage(session.flux_actif, language)}</p>
+          <p className="mt-1.5 text-sm text-text leading-relaxed">{getFluxWelcomeMessage(session.flux_actif, language)}</p>
         </div>
 
         {session.flux_actif === 'FEEDBACK' && feedbackFormationLabel ? (
-          <div className="rounded-xl border border-border bg-bg px-4 py-3 text-sm text-text shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-subtext">
-              {copy.feedbackContext}
-            </p>
-            <div className="mt-2 space-y-1">
-              <p>
-                <span className="font-semibold text-text">{copy.feedbackFormation}:</span> {feedbackFormationLabel}
-              </p>
+          <div className="flex items-start gap-3 rounded-xl border border-border bg-bg px-4 py-3 shadow-sm">
+            <div className="mt-0.5 flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 13, height: 13 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-primary">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-text truncate">{feedbackFormationLabel}</p>
               {feedbackMeta.session_id ? (
-                <p className="text-xs text-subtext">
-                  <span className="font-semibold text-text">{copy.feedbackSession}:</span> {feedbackMeta.session_id}
-                </p>
+                <p className="text-xs text-subtext mt-0.5">{copy.feedbackSession} · {feedbackMeta.session_id}</p>
               ) : null}
             </div>
           </div>
@@ -100,16 +98,16 @@ export default function BotMessagesContainer({
         )}
 
         {historyEntries.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-subtext">
+          <div className="space-y-2">
+            <p className="px-1 text-[10px] font-semibold uppercase tracking-widest text-subtext">
               {copy.history}
             </p>
             {historyEntries.map((entry) => (
-              <div key={entry.id} className="space-y-2 rounded-xl border border-border bg-white p-3 shadow-sm">
+              <div key={entry.id} className="space-y-2 rounded-xl border border-border bg-white px-3 py-3 shadow-sm">
                 <BotQuestion question={entry.questionLabel} />
                 <BotMessage text={entry.answerLabel} isUser />
                 {entry.commentaire ? (
-                  <BotMessage text={`Commentaire : ${entry.commentaire}`} isUser />
+                  <BotMessage text={entry.commentaire} isUser />
                 ) : null}
               </div>
             ))}
@@ -117,7 +115,7 @@ export default function BotMessagesContainer({
         )}
 
         {session.statut === 'ACTIVE' && session.current_question && (
-          <div className="space-y-3 rounded-xl border border-secondary-soft bg-white p-4 shadow-sm">
+          <div className="space-y-3 rounded-xl border border-primary/20 bg-white p-4 shadow-sm">
             <BotQuestion question={session.current_question.question} />
             <BotQuestionOptions
               question={session.current_question}
@@ -131,10 +129,10 @@ export default function BotMessagesContainer({
         {recommendations.length > 0 && (
           <div className="space-y-3 rounded-xl border border-border bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-subtext">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-subtext">
                 {copy.recommendations}
               </p>
-              <span className="text-xs text-subtext">
+              <span className="rounded-full bg-bg border border-border px-2 py-0.5 text-xs text-subtext">
                 {recommendations.length} {recommendations.length > 1 ? copy.recommendationUnitPlural : copy.recommendationUnitSingular}
               </span>
             </div>
@@ -165,7 +163,10 @@ export default function BotMessagesContainer({
         )}
 
         {session.statut === 'TERMINEE' && (
-          <div className="rounded-xl border border-success-soft bg-success-soft px-4 py-3 text-sm text-success">
+          <div className="flex items-center gap-3 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-sm text-success">
+            <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 16, height: 16 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="flex-shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             {getFluxCompletionMessage(session.flux_actif, language)}
           </div>
         )}

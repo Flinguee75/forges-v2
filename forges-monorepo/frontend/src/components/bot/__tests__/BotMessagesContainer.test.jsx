@@ -43,7 +43,7 @@ describe('BotMessagesContainer', () => {
     );
 
     expect(screen.getByText('Pilotage de projet certifiant')).toBeInTheDocument();
-    expect(screen.getByText('session-demo-01')).toBeInTheDocument();
+    expect(screen.getByText(/session-demo-01/)).toBeInTheDocument();
     expect(screen.getByText('5', { exact: true })).toBeInTheDocument();
     expect(screen.getByText('Oui', { exact: true, selector: 'div' })).toBeInTheDocument();
   });

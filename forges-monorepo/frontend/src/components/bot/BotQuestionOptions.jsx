@@ -127,18 +127,18 @@ function BotQuestionOptionsContent({ question, language = 'FR', onSubmit, isLoad
         />
       )}
 
-      <div className={`grid gap-2 ${optionValues.length > 3 ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-1.5 ${optionValues.length > 3 ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
         {options.map((option) => (
-          <Button
+          <button
             key={option.value}
-            variant="outline"
-            size="medium"
+            type="button"
             onClick={() => submitValue(option.value)}
             disabled={isLoading}
-            className="justify-start text-left"
+            className="flex items-center gap-2.5 rounded-xl border border-border bg-bg px-3.5 py-2.5 text-left text-sm text-text transition-all hover:border-primary/40 hover:bg-primary/5 hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
+            <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-border group-hover:bg-primary" />
             {option.label}
-          </Button>
+          </button>
         ))}
       </div>
 

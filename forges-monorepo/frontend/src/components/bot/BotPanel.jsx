@@ -31,7 +31,7 @@ export default function BotPanel({
 
   return (
     <div
-      className="bot-panel-enter fixed bottom-6 right-6 z-50 flex h-[min(90vh,44rem)] w-[min(100vw-3rem,26rem)] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-2xl max-md:inset-0 max-md:h-[100dvh] max-md:w-full max-md:rounded-none"
+      className="bot-panel-enter fixed bottom-20 right-6 z-50 flex h-[min(90vh,46rem)] w-[min(100vw-3rem,24rem)] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-2xl max-md:inset-0 max-md:h-[100dvh] max-md:w-full max-md:rounded-none"
       role="dialog"
       aria-labelledby="bot-title"
       aria-modal="true"
@@ -56,7 +56,7 @@ export default function BotPanel({
 
       {/* Footer - Bouton Fermer si conversation terminée */}
       {session?.statut === 'TERMINEE' && (
-        <div className="border-t border-border bg-bg/70 p-4">
+        <div className="border-t border-border bg-white p-3">
           <div className="flex gap-2">
             <Button
               variant="outline"

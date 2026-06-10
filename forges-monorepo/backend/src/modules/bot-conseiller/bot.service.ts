@@ -273,15 +273,30 @@ export class BotService {
     }
   }
 
+  private orientationSessionView(session: any, historique: any[], question: any) {
+    return {
+      id: session.id,
+      flux_actif: 'ORIENTATION',
+      statut: session.statut,
+      langue: session.langue,
+      current_question: question,
+      historique: { steps: historique, metadata: {} },
+    };
+  }
+
   private async handleOrientation(session: any, question_id: number | string, valeur: any, historique: any[]) {
     if (question_id === 1) { // Objectif
-      return { question_id: 2, texte: 'Dans quel secteur travaillez-vous ?', options: OPTIONS_BOT.SECTEUR };
+      return this.orientationSessionView(session, historique, {
+        id: 2, question: 'Dans quel secteur travaillez-vous ?', options: OPTIONS_BOT.SECTEUR,
+      });
     }
     if (question_id === 2) { // Secteur
-      return { question_id: 3, texte: 'Quel est votre niveau actuel ?', options: OPTIONS_BOT.NIVEAU };
+      return this.orientationSessionView(session, historique, {
+        id: 3, question: 'Quel est votre niveau actuel ?', options: OPTIONS_BOT.NIVEAU,
+      });
     }
     if (question_id === 3) { // Niveau → filtrer catalogue
-      const estAbonne = false; // charge depuis profil
+      const estAbonne = false;
       const formations = await this.engine.fluxOrientation(
         { secteur: historique.find(h => h.question_id === 2)?.valeur },
         session.langue,

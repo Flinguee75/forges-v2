@@ -1,5 +1,12 @@
 import { BotQuestionView, BotSessionView } from './bot.types';
 import { getFeedbackQuestions } from './feedback.questions';
+import { OPTIONS_BOT } from './bot-engine.service';
+
+const ORIENTATION_QUESTIONS = [
+  { id: 1, question: 'Quel est votre objectif de formation ?', options: OPTIONS_BOT.OBJECTIF },
+  { id: 2, question: 'Dans quel secteur travaillez-vous ?', options: OPTIONS_BOT.SECTEUR },
+  { id: 3, question: 'Quel est votre niveau actuel ?', options: OPTIONS_BOT.NIVEAU },
+];
 
 const FEEDBACK_QUESTION_IDS = [
   'feedback_note_globale',
@@ -61,6 +68,9 @@ export function presentBotSession(result: any): BotSessionView {
       result.langue,
       result.contexte?.mode_formation,
     ).find(question => !answered.has(question.id)) ?? null;
+  }
+  if (!currentQuestion && flux === 'ORIENTATION' && status === 'ACTIVE') {
+    currentQuestion = ORIENTATION_QUESTIONS[historySteps.length] ?? null;
   }
 
   return {
