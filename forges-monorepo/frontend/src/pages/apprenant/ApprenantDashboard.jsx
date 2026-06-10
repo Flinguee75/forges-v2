@@ -103,33 +103,33 @@ export default function ApprenantDashboard() {
 
         {/* En-tete */}
         <div>
-          <h1 className="text-3xl font-bold text-text">Tableau de bord</h1>
-          <p className="mt-2 text-base text-subtext">Formations, abonnement et dossiers en un coup d&apos;oeil.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-text">Tableau de bord</h1>
+          <p className="mt-1 text-sm text-subtext">Formations, abonnement et dossiers en un coup d&apos;oeil.</p>
         </div>
 
         {/* 3 blocs principaux */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
 
           {/* Formations */}
-          <Card className="flex flex-col gap-6 p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-subtext">Formations</p>
-                <p className="mt-2 text-5xl font-bold text-text">{stats.total}</p>
-                <p className="mt-1 text-sm text-subtext">dans le catalogue</p>
+          <Card className="flex flex-col gap-5 p-5">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-subtext">Formations</p>
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <p className="text-4xl font-bold tabular-nums text-text leading-none">{stats.total}</p>
+                <div className="flex flex-col items-end gap-1.5 pb-0.5">
+                  {stats.inclus > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
+                      {stats.inclus} incluses
+                    </span>
+                  )}
+                  {stats.premium > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium text-info">
+                      {stats.premium} Premium
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-col gap-2 text-right">
-                {stats.inclus > 0 && (
-                  <span className="inline-block rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success">
-                    {stats.inclus} incluses
-                  </span>
-                )}
-                {stats.premium > 0 && (
-                  <span className="inline-block rounded-full bg-info/10 px-3 py-1 text-sm font-medium text-info">
-                    {stats.premium} Premium
-                  </span>
-                )}
-              </div>
+              <p className="mt-1.5 text-xs text-subtext">dans le catalogue</p>
             </div>
             <Link to="/apprenant/catalogue" className="mt-auto">
               <Button variant="outline" className="w-full">
@@ -139,65 +139,59 @@ export default function ApprenantDashboard() {
           </Card>
 
           {/* Abonnement */}
-          <Card className="flex flex-col gap-6 p-6">
+          <Card className="flex flex-col gap-5 p-5">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-subtext">Abonnement</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-subtext">Abonnement</p>
               {abonnement ? (
                 <>
-                  <div className="mt-2 flex items-center gap-3">
-                    <p className="text-4xl font-bold text-text">{abonnement.offre}</p>
-                    <Badge
-                      variant={abonnement.statut === 'ACTIF' ? 'success' : 'warning'}
-                    >
+                  <div className="mt-3 flex items-center gap-2.5">
+                    <p className="text-2xl font-bold text-text leading-none">{abonnement.offre}</p>
+                    <Badge variant={abonnement.statut === 'ACTIF' ? 'success' : 'warning'}>
                       {abonnement.statut === 'ACTIF' ? 'Actif' : abonnement.statut}
                     </Badge>
                   </div>
                   {abonnement.montant_mensuel && (
-                    <p className="mt-1 text-sm text-subtext">
-                      {formatMoney(abonnement.montant_mensuel)} / mois
-                    </p>
+                    <p className="mt-1.5 text-xs text-subtext">{formatMoney(abonnement.montant_mensuel)} / mois</p>
                   )}
                   {abonnement.date_fin && (
-                    <p className="mt-1 text-sm text-subtext">
-                      Renouvellement le {formatDate(abonnement.date_fin)}
-                    </p>
+                    <p className="mt-1 text-xs text-subtext">Renouvellement le {formatDate(abonnement.date_fin)}</p>
                   )}
                 </>
               ) : (
                 <>
-                  <p className="mt-2 text-2xl font-semibold text-subtext">Aucun abonnement</p>
-                  <p className="mt-1 text-sm text-subtext">
+                  <p className="mt-3 text-base font-semibold text-subtext">Aucun abonnement</p>
+                  <p className="mt-1 text-xs text-subtext">
                     Acces illimite aux formations incluses avec Essentiel ou Premium.
                   </p>
                 </>
               )}
             </div>
             <Link to={abonnement ? '/apprenant/abonnement' : '/apprenant/abonnement/souscrire'} className="mt-auto">
-              <Button
-                variant={abonnement ? 'outline' : 'primary'}
-                className="w-full"
-              >
+              <Button variant={abonnement ? 'outline' : 'primary'} className="w-full">
                 {abonnement ? 'Gerer mon abonnement' : 'Souscrire'}
               </Button>
             </Link>
           </Card>
 
           {/* Dossiers */}
-          <Card className="flex flex-col gap-6 p-6">
+          <Card className="flex flex-col gap-5 p-5">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-subtext">Dossiers</p>
-              <p className="mt-2 text-5xl font-bold text-text">{stats.dossiersTotal}</p>
-              <p className="mt-1 text-sm text-subtext">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-subtext">Dossiers</p>
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <p className="text-4xl font-bold tabular-nums text-text leading-none">{stats.dossiersTotal}</p>
+                {stats.dossiersActifs > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning pb-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                    {stats.dossiersActifs} en attente
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 text-xs text-subtext">
                 {stats.dossiersActifs > 0
-                  ? `${stats.dossiersActifs} en attente de traitement`
+                  ? `${stats.dossiersActifs} dossier${stats.dossiersActifs > 1 ? 's' : ''} necessite${stats.dossiersActifs > 1 ? 'nt' : ''} votre attention`
                   : 'Aucun dossier en attente'}
               </p>
             </div>
-            {stats.dossiersActifs > 0 && (
-              <div className="rounded-lg border border-warning bg-warning/5 px-4 py-3 text-sm text-warning font-medium">
-                {stats.dossiersActifs} dossier{stats.dossiersActifs > 1 ? 's' : ''} necessitent votre attention
-              </div>
-            )}
             <Link to="/apprenant/dossiers" className="mt-auto">
               <Button variant="outline" className="w-full">
                 Voir mes dossiers

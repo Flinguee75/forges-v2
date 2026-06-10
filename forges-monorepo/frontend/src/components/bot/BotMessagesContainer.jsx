@@ -84,9 +84,6 @@ export default function BotMessagesContainer({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-text truncate">{feedbackFormationLabel}</p>
-              {feedbackMeta.session_id ? (
-                <p className="text-xs text-subtext mt-0.5">{copy.feedbackSession} · {feedbackMeta.session_id}</p>
-              ) : null}
             </div>
           </div>
         ) : null}
