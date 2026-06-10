@@ -105,10 +105,11 @@ export default function BotMessagesContainer({
             {historyEntries.map((entry) => (
               <div key={entry.id} className="space-y-2 rounded-xl border border-border bg-white px-3 py-3 shadow-sm">
                 <BotQuestion question={entry.questionLabel} />
-                <BotMessage text={entry.answerLabel} isUser />
                 {entry.commentaire ? (
                   <BotMessage text={entry.commentaire} isUser />
-                ) : null}
+                ) : (
+                  <BotMessage text={entry.answerLabel} isUser />
+                )}
               </div>
             ))}
           </div>

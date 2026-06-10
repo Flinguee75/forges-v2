@@ -85,6 +85,9 @@ export function presentBotSession(result: any): BotSessionView {
           steps: historySteps,
           metadata: result.metadata ?? {
             ...(result.contexte && { feedback: result.contexte }),
+            ...(result.contexte_formation && !result.contexte && {
+              feedback: { formation_intitule: result.contexte_formation },
+            }),
           },
         },
     recommendations: result.recommendations ?? result.formations ?? [],
