@@ -46,6 +46,25 @@ describe('botHelpers', () => {
     expect(entries[0].commentaire).toBe('Très pertinent');
   });
 
+  it('reconstruit l’historique quand le backend renvoie valeur au lieu de value', () => {
+    const entries = getConversationHistoryEntries({
+      historique: {
+        steps: [
+          {
+            question_id: 'recommandation',
+            valeur: 'OUI',
+            question: 'Recommanderiez-vous cette formation à un collègue ?',
+            answered_at: '2026-04-01T11:00:00.000Z',
+          },
+        ],
+      },
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].questionLabel).toContain('Recommanderiez-vous');
+    expect(entries[0].answerLabel).toBe('Oui');
+  });
+
   it('privilégie les recommandations fournies par le backend', () => {
     const session = {
       current_question: {

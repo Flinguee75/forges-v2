@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { dashboardApi } from '../../api/dashboard.api';
+import { botApi } from '../../api/bot.api';
 import { trackClick } from '../../utils/analytics';
 import RuntimeUnavailable from '../../components/feedback/RuntimeUnavailable';
 import Spinner from '../../components/feedback/Spinner';
@@ -83,6 +84,8 @@ export default function BackofficeDashboard() {
   const { user } = useAuth();
   const { execute, isLoading } = useApi();
   const [snapshot, setSnapshot] = useState(null);
+  const [botFeedbacks, setBotFeedbacks] = useState([]);
+  const [botFeedbackMeta, setBotFeedbackMeta] = useState(null);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
@@ -95,6 +98,21 @@ export default function BackofficeDashboard() {
           onSuccess: (data) => setSnapshot(data),
         }
       );
+
+      if (user?.role === 'ADMIN') {
+        const botFeedbackResponse = await execute(
+          () => botApi.getFeedbacksFormations({ page: 1, limit: 5 }),
+          {
+            showErrorToast: false,
+          }
+        ).catch(() => null);
+
+        setBotFeedbacks(botFeedbackResponse?.data?.feedbacks || []);
+        setBotFeedbackMeta(botFeedbackResponse?.data?.meta || null);
+      } else {
+        setBotFeedbacks([]);
+        setBotFeedbackMeta(null);
+      }
     };
 
     if (user?.role) {
@@ -142,6 +160,7 @@ export default function BackofficeDashboard() {
 
   const data = snapshot?.data || {};
   const role = snapshot?.role || user?.role;
+  const isAdmin = role === 'ADMIN';
 
   const cards = role === 'ADMIN'
     ? [
@@ -215,6 +234,85 @@ export default function BackofficeDashboard() {
                 <p className="mt-2 text-xl font-semibold text-text">{count}</p>
               </div>
             ))}
+          </div>
+        </Card>
+      ) : null}
+
+      {isAdmin ? (
+        <Card title="Bot conseiller">
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/60">
+              Feedbacks bot récents
+            </p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-border bg-bg px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.22em] text-subtext">Feedbacks</p>
+                <p className="mt-2 text-xl font-semibold text-text">{botFeedbackMeta?.total || 0}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-bg px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.22em] text-subtext">Moyenne</p>
+                <p className="mt-2 text-xl font-semibold text-text">
+                  {(botFeedbackMeta?.moyenne_globale ?? 0).toLocaleString('fr-FR')}/5
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-bg px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.22em] text-subtext">Recommandation</p>
+                <p className="mt-2 text-xl font-semibold text-text">{botFeedbackMeta?.taux_recommandation || 0}%</p>
+              </div>
+            </div>
+
+            {botFeedbacks.length === 0 ? (
+              <p className="text-sm text-subtext">Aucun feedback bot récent.</p>
+            ) : (
+              <div className="space-y-3">
+                {botFeedbacks.map((feedback) => {
+                  const authorName = [
+                    feedback.apprenant?.prenoms,
+                    feedback.apprenant?.nom,
+                  ].filter(Boolean).join(' ') || feedback.organisation?.raison_sociale || 'Auteur inconnu';
+
+                  return (
+                    <div key={feedback.id} className="rounded-lg border border-border p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-text">
+                            {feedback.formation?.intitule || 'Formation inconnue'}
+                          </p>
+                          <p className="mt-1 text-xs text-subtext">
+                            {authorName}
+                          </p>
+                        </div>
+                        <Badge variant={feedback.recommande ? 'success' : 'gray'} size="small">
+                          {feedback.recommande ? 'Recommandé' : 'Non recommandé'}
+                        </Badge>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Badge variant="info" size="small">
+                          {feedback.note_globale}/5
+                        </Badge>
+                        <span className="text-xs text-subtext">
+                          {new Date(feedback.date_saisie).toLocaleString('fr-FR')}
+                        </span>
+                      </div>
+                      {feedback.commentaire_libre ? (
+                        <p className="mt-3 text-sm text-text">
+                          {feedback.commentaire_libre}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Link
+                to="/backoffice/bot/feedbacks"
+                className="inline-flex items-center rounded-lg border border-primary/25 bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-[#EAF2F8]"
+              >
+                Voir tous les feedbacks
+              </Link>
+            </div>
           </div>
         </Card>
       ) : null}

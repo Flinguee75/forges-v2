@@ -87,6 +87,7 @@ export default function PartenaireLayout() {
           title={activeItem.name}
           user={user}
           onLogout={handleLogout}
+          showApiBadge={false}
         />
 
         <main className="min-w-0 flex-1 p-6">

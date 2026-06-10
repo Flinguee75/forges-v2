@@ -201,6 +201,17 @@ export class BotService {
     };
   }
 
+  // Normalise un question_id présenté ("orientation_1", "enquete_2") vers sa forme interne (1, 2, …)
+  private normalizeQuestionId(flux: string, question_id: number | string): number | string {
+    if (typeof question_id === 'number') return question_id;
+    const prefix = flux.toLowerCase() + '_';
+    if (question_id.startsWith(prefix)) {
+      const num = parseInt(question_id.slice(prefix.length), 10);
+      if (!isNaN(num)) return num;
+    }
+    return question_id;
+  }
+
   // Réponse à une question du bot (RM-118 : valider que la valeur est dans les options)
   async repondre(
     session_id: string,
@@ -217,15 +228,19 @@ export class BotService {
     ) throw new Error('SESSION_INVALIDE');
     if (commentaire && commentaire.length > 500) throw new Error('COMMENTAIRE_TROP_LONG');
 
+    const normalized_question_id = session.flux_actif === 'FEEDBACK'
+      ? question_id
+      : this.normalizeQuestionId(session.flux_actif, question_id);
+
     // RM-125 : bot ne modifie AUCUNE donnée utilisateur directement
     // RM-118 : valider que la valeur est dans les options autorisées
-    const estValide = this.validerReponseQuestion(session.flux_actif, question_id, valeur);
+    const estValide = this.validerReponseQuestion(session.flux_actif, normalized_question_id, valeur);
     if (!estValide) throw new Error('REPONSE_HORS_LISTE');
 
     // Enregistrer dans l'historique
     const normalizedQuestionId = session.flux_actif === 'FEEDBACK'
       ? this.normalizeFeedbackQuestionId(question_id)
-      : question_id;
+      : normalized_question_id;
     const historique = [...(session.historique as any[] || []), {
       question_id: normalizedQuestionId,
       valeur,

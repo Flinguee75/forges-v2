@@ -7,7 +7,8 @@ export default function BotCommentaireInput({
   maxLength = 500,
   placeholder = 'Votre commentaire...',
 }) {
-  const remaining = maxLength - (value?.length || 0);
+  const used = value?.length || 0;
+  const remaining = maxLength - used;
 
   return (
     <div className="space-y-2">
@@ -26,7 +27,7 @@ export default function BotCommentaireInput({
           {error || '\u00A0'}
         </span>
         <span className={`${remaining < 50 ? 'text-warning' : 'text-subtext'}`}>
-          {remaining} / {maxLength}
+          {used} / {maxLength}
         </span>
       </div>
     </div>

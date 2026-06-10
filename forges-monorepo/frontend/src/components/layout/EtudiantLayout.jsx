@@ -82,6 +82,7 @@ export default function EtudiantLayout() {
           title="Espace Apprenant"
           user={user}
           onLogout={handleLogout}
+          showApiBadge={false}
           showSystemStatus={true}
         />
 

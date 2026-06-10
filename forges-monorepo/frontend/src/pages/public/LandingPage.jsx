@@ -10,6 +10,10 @@ import imageCcdlGwWebp from '../../assets/image_ccdl_gw.webp';
 import { usePaymentExpirationHours } from '../../hooks/usePaymentExpirationHours';
 import { formatPaymentExpirationShort } from '../../utils/paymentDeadline';
 import { useSEO, getOrganizationSchema } from '../../hooks/useSEO';
+import { formationsApi } from '../../api/formations.api';
+import { useApi } from '../../hooks/useApi';
+import FormationMarketplaceCard from '../../components/catalogue/FormationMarketplaceCard';
+import Spinner from '../../components/feedback/Spinner';
 
 const CONTACT_EMAIL = 'contact@forges-group.com';
 
@@ -255,7 +259,9 @@ function CarouselCollaborateurs() {
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [featuredFormations, setFeaturedFormations] = useState([]);
   const paymentExpirationHours = usePaymentExpirationHours();
+  const { execute: fetchFeatured, isLoading: loadingFeatured } = useApi();
 
   useSEO({
     title: 'FORGES — Formations Certifiantes | Cybersecurite, IA, Data Science en Cote d\'Ivoire',
@@ -266,8 +272,24 @@ export default function LandingPage() {
     schema: getOrganizationSchema(),
   });
 
+  const loadFeatured = async () => {
+    await fetchFeatured(
+      () => formationsApi.getCatalogue({ page: 1, limit: 4 }),
+      {
+        onSuccess: (data) => {
+          setFeaturedFormations(data.data || []);
+          document.dispatchEvent(new Event('prerender-ready'));
+        },
+        onError: () => {
+          document.dispatchEvent(new Event('prerender-ready'));
+        },
+      }
+    );
+  };
+
   useEffect(() => {
-    document.dispatchEvent(new Event('prerender-ready'));
+    loadFeatured();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const faqItems = [
@@ -359,6 +381,44 @@ export default function LandingPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="py-20 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between gap-4 mb-10">
+            <SectionHeading
+              align="left"
+              eyebrow="Catalogue"
+              title="Formations disponibles"
+              description="Parcourez les formations certifiantes ouvertes aux inscriptions."
+            />
+            <CtaLink to="/catalogue" variant="outline" className="shrink-0">
+              Voir tout le catalogue
+            </CtaLink>
+          </div>
+
+          {loadingFeatured && (
+            <div className="flex justify-center py-12">
+              <Spinner size="large" />
+            </div>
+          )}
+
+          {!loadingFeatured && featuredFormations.length > 0 && (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+              {featuredFormations.map((formation) => (
+                <FormationMarketplaceCard key={formation.id} formation={formation} />
+              ))}
+            </div>
+          )}
+
+          {!loadingFeatured && featuredFormations.length === 0 && (
+            <div className="flex justify-center py-8">
+              <CtaLink to="/catalogue" variant="primary">
+                Voir le catalogue
+              </CtaLink>
+            </div>
+          )}
         </div>
       </section>
 

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import BackofficeDashboard from '../BackofficeDashboard';
 import { dashboardApi } from '../../../api/dashboard.api';
+import { botApi } from '../../../api/bot.api';
 
 let mockUser = { id: '1', role: 'ADMIN' };
 
@@ -41,6 +42,33 @@ describe('BackofficeDashboard', () => {
         dossiers_par_statut: { RETENU: 11, PAYE_DIRECTEMENT: 30, DEVIS_PAYE: 2, DEVIS_NON_PAYE: 4 },
       },
       timestamp: '2026-04-22T10:00:00.000Z',
+    });
+    vi.spyOn(botApi, 'getFeedbacksFormations').mockResolvedValue({
+      data: {
+        feedbacks: [
+          {
+            id: 'fb-01',
+            note_globale: 5,
+            recommande: true,
+            date_saisie: '2026-06-10T09:40:00.000Z',
+            commentaire_libre: 'Très clair',
+            formation: {
+              intitule: 'Pilotage de projet certifiant',
+              partenaire: { raison_sociale: 'FORGES' },
+            },
+            apprenant: {
+              nom: 'Doe',
+              prenoms: 'Jane',
+              email: 'jane.doe@example.com',
+            },
+          },
+        ],
+        meta: {
+          total: 1,
+          moyenne_globale: 5,
+          taux_recommandation: 100,
+        },
+      },
     });
   });
 
@@ -88,5 +116,21 @@ describe('BackofficeDashboard', () => {
     expect(
       screen.getByText('Dashboard backoffice indisponible')
     ).toBeInTheDocument();
+  });
+
+  it('affiche un aperçu des feedbacks bot pour l admin', async () => {
+    render(
+      <BrowserRouter>
+        <BackofficeDashboard />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Bot conseiller')).toBeInTheDocument();
+      expect(screen.getByText('Feedbacks bot récents')).toBeInTheDocument();
+      expect(screen.getByText('Pilotage de projet certifiant')).toBeInTheDocument();
+      expect(screen.getByText('Très clair')).toBeInTheDocument();
+      expect(botApi.getFeedbacksFormations).toHaveBeenCalledWith({ page: 1, limit: 5 });
+    });
   });
 });

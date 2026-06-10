@@ -111,6 +111,40 @@ describe('BotQuestionOptions', () => {
     expect(buttons).toHaveLength(0);
   });
 
+  it('B6 — affiche exactement 5 étoiles et un bouton Passer pour feedback_note_contenu (RM-122)', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <BotQuestionOptions
+        question={{
+          id: 'feedback_note_contenu',
+          question: 'Quelle note donnez-vous au contenu ?',
+          options: [
+            { value: '1', label: '1' },
+            { value: '2', label: '2' },
+            { value: '3', label: '3' },
+            { value: '4', label: '4' },
+            { value: '5', label: '5' },
+            { value: 'PASSER', label: 'PASSER' },
+          ],
+          allow_commentaire: false,
+        }}
+        onSubmit={onSubmit}
+        isLoading={false}
+      />
+    );
+
+    const starButtons = screen.getAllByRole('button', { name: /étoile/i });
+    expect(starButtons).toHaveLength(5);
+
+    const skipButton = screen.getByRole('button', { name: /passer/i });
+    expect(skipButton).toBeInTheDocument();
+
+    await user.click(skipButton);
+    expect(onSubmit).toHaveBeenCalledWith('PASSER', null);
+  });
+
   it('rejette une valeur hors de options[] (RM-118)', () => {
     const onSubmit = vi.fn();
 

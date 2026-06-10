@@ -10,6 +10,9 @@ const BOT_COPY = {
     statusInProgress: 'Conversation en cours',
     statusCompleted: 'Conversation terminée',
     history: 'Historique',
+    feedbackContext: 'Contexte du feedback',
+    feedbackFormation: 'Formation',
+    feedbackSession: 'Session',
     recommendations: 'Recommandations',
     recommendationUnitSingular: 'formation',
     recommendationUnitPlural: 'formations',
@@ -45,6 +48,9 @@ const BOT_COPY = {
     statusInProgress: 'Conversation in progress',
     statusCompleted: 'Conversation completed',
     history: 'History',
+    feedbackContext: 'Feedback context',
+    feedbackFormation: 'Training',
+    feedbackSession: 'Session',
     recommendations: 'Recommendations',
     recommendationUnitSingular: 'training program',
     recommendationUnitPlural: 'training programs',
@@ -80,6 +86,9 @@ const BOT_COPY = {
     statusInProgress: 'Conversacion en curso',
     statusCompleted: 'Conversacion finalizada',
     history: 'Historial',
+    feedbackContext: 'Contexto del feedback',
+    feedbackFormation: 'Formacion',
+    feedbackSession: 'Sesion',
     recommendations: 'Recomendaciones',
     recommendationUnitSingular: 'formacion',
     recommendationUnitPlural: 'formaciones',
@@ -115,6 +124,9 @@ const BOT_COPY = {
     statusInProgress: 'Conversa em curso',
     statusCompleted: 'Conversa concluida',
     history: 'Historico',
+    feedbackContext: 'Contexto do feedback',
+    feedbackFormation: 'Formacao',
+    feedbackSession: 'Sessao',
     recommendations: 'Recomendacoes',
     recommendationUnitSingular: 'formacao',
     recommendationUnitPlural: 'formacoes',
@@ -823,6 +835,17 @@ function normalizeQuestion(question, language) {
   };
 }
 
+function resolveStepValue(step) {
+  return step?.value
+    ?? step?.valeur
+    ?? step?.answer
+    ?? step?.response
+    ?? step?.reponse
+    ?? step?.answerValue
+    ?? step?.answer_value
+    ?? null;
+}
+
 function normalizeHistoryStep(step, language, questionMap) {
   if (!step || typeof step !== 'object') {
     return null;
@@ -831,19 +854,21 @@ function normalizeHistoryStep(step, language, questionMap) {
   const questionId = step.question_id || step.questionId || null;
   const questionDefinition = (questionId && questionMap.get(questionId)) || getQuestionFromLibrary(questionId, language);
   const normalizedLanguage = resolveBotLanguage(language);
+  const resolvedValue = resolveStepValue(step);
   const answerLabel =
     ((normalizedLanguage !== 'FR' && questionDefinition)
-      ? getQuestionOptionLabel(questionDefinition, step.value, normalizedLanguage)
+      ? getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage)
       : null)
     || step.answer_label
     || step.answerLabel
-    || getQuestionOptionLabel(questionDefinition, step.value, normalizedLanguage)
-    || step.value
+    || getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage)
+    || resolvedValue
     || 'Réponse';
 
   return {
     ...step,
     question_id: questionId,
+    value: resolvedValue,
     question:
       ((normalizedLanguage !== 'FR' && questionDefinition?.question) ? questionDefinition.question : null)
       || resolveLocalizedValue(step.question, normalizedLanguage)
@@ -1016,6 +1041,7 @@ export function getConversationHistoryEntries(session, language = 'FR') {
     return timeline.map((step, index) => {
       const questionId = step.question_id || step.questionId || null;
       const questionDefinition = (questionId && questionMap.get(questionId)) || getQuestionFromLibrary(questionId, normalizedLanguage);
+      const resolvedValue = resolveStepValue(step);
 
       return {
         id: `${questionId || 'timeline'}-${step.answered_at || step.answeredAt || index}`,
@@ -1026,11 +1052,11 @@ export function getConversationHistoryEntries(session, language = 'FR') {
           || questionId
           || `Question ${index + 1}`,
         answerLabel: ((normalizedLanguage !== 'FR' && questionDefinition)
-          ? getQuestionOptionLabel(questionDefinition, step.value, normalizedLanguage)
+          ? getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage)
           : null)
           || step.answer_label
           || step.answerLabel
-          || getQuestionOptionLabel(questionDefinition, step.value, normalizedLanguage),
+          || getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage),
         commentaire: step.commentaire || step.comment || '',
         answeredAt: step.answered_at || step.answeredAt || null,
       };
@@ -1042,17 +1068,18 @@ export function getConversationHistoryEntries(session, language = 'FR') {
   return steps.map((step, index) => {
     const questionId = step.question_id || step.questionId || null;
     const questionDefinition = (questionId && questionMap.get(questionId)) || getQuestionFromLibrary(questionId, normalizedLanguage);
+    const resolvedValue = resolveStepValue(step);
     const questionLabel = ((normalizedLanguage !== 'FR' && questionDefinition?.question) ? questionDefinition.question : null)
       || resolveLocalizedValue(step.question, normalizedLanguage)
       || questionDefinition?.question
       || questionId
       || `Question ${index + 1}`;
     const answerLabel = ((normalizedLanguage !== 'FR' && questionDefinition)
-      ? getQuestionOptionLabel(questionDefinition, step.value, normalizedLanguage)
+      ? getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage)
       : null)
       || step.answer_label
       || step.answerLabel
-      || getQuestionOptionLabel(questionDefinition, step.value, normalizedLanguage);
+      || getQuestionOptionLabel(questionDefinition, resolvedValue, normalizedLanguage);
 
     return {
       id: `${questionId || 'step'}-${step.answered_at || step.answeredAt || index}`,

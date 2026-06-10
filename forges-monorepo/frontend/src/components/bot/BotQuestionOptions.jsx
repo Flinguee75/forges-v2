@@ -80,10 +80,12 @@ function BotQuestionOptionsContent({ question, language = 'FR', onSubmit, isLoad
   };
 
   if (RATING_QUESTION_IDS.has(question.id)) {
+    const starOptions = options.filter((o) => o.value !== 'PASSER');
+    const skipOption = options.find((o) => o.value === 'PASSER');
     return (
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-1">
-          {options.map((option, index) => (
+          {starOptions.map((option, index) => (
             <StarButton
               key={option.value}
               active={hoveredRating ? index < hoveredRating : false}
@@ -95,6 +97,16 @@ function BotQuestionOptionsContent({ question, language = 'FR', onSubmit, isLoad
             />
           ))}
         </div>
+        {skipOption && (
+          <Button
+            variant="outline"
+            size="small"
+            onClick={() => submitValue(skipOption.value)}
+            disabled={isLoading}
+          >
+            {skipOption.label}
+          </Button>
+        )}
         {commentaireError && (
           <p className="text-xs text-danger">{commentaireError}</p>
         )}

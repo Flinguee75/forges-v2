@@ -30,6 +30,8 @@ export default function BotMessagesContainer({
   const historyEntries = getConversationHistoryEntries(session, language);
   const recommendations = getSessionRecommendations(session);
   const orientationMeta = session?.historique?.metadata?.orientation || {};
+  const feedbackMeta = session?.historique?.metadata?.feedback || {};
+  const feedbackFormationLabel = feedbackMeta.formation_intitule || feedbackMeta.formation_id || '';
 
   // Auto-scroll vers le bas quand de nouveaux messages arrivent
   useEffect(() => {
@@ -72,6 +74,24 @@ export default function BotMessagesContainer({
           </p>
           <p className="mt-2 text-sm text-text">{getFluxWelcomeMessage(session.flux_actif, language)}</p>
         </div>
+
+        {session.flux_actif === 'FEEDBACK' && feedbackFormationLabel ? (
+          <div className="rounded-xl border border-border bg-bg px-4 py-3 text-sm text-text shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-subtext">
+              {copy.feedbackContext}
+            </p>
+            <div className="mt-2 space-y-1">
+              <p>
+                <span className="font-semibold text-text">{copy.feedbackFormation}:</span> {feedbackFormationLabel}
+              </p>
+              {feedbackMeta.session_id ? (
+                <p className="text-xs text-subtext">
+                  <span className="font-semibold text-text">{copy.feedbackSession}:</span> {feedbackMeta.session_id}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         {error && (
           <div className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">

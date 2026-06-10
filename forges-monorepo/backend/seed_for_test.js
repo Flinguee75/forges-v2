@@ -58,6 +58,7 @@ const IDS = {
   s_closed_01:   'ses-clos-00001-0000-0000-000000000003',
   s_future_01:   'ses-fut-000001-0000-0000-000000000004',
   s_open_02:     'ses-open-00002-0000-0000-000000000005',  // Pour UCS07 (apprenant3)
+  s_bot_fb_01:   'ses-botfb-0001-0000-0000-000000000006',  // Pour UCS16 bot feedback (apprenant2)
 
   // Dossiers
   d_attente_01:  'dos-att-000001-0000-0000-000000000001',
@@ -66,6 +67,7 @@ const IDS = {
   d_retenu_exp:  'dos-exp-000001-0000-0000-000000000004',
   d_rejeter_01:  'dos-rej-000001-0000-0000-000000000005',  // D2: UCS08 Rejeter
   d_webhook_01:  'dos-wbk-000001-0000-0000-000000000006',  // D3: UCS09 Webhook (RETENU pour apprenant1)
+  d_bot_fb_01:   'dos-botfb-0001-0000-0000-000000000007',  // UCS16 bot feedback — apprenant2 PAYE sur GWU
 
   // Vouchers
   vch_org_01:    'vch-org-000001-0000-0000-000000000001',
@@ -145,7 +147,7 @@ async function check() {
 
   const expected = {
     apprenant: 2, organisation: 1, partenaire: 1,
-    formation: 5, session: 4, dossier: 6, voucherOrganisation: 3,
+    formation: 5, session: 6, dossier: 7, voucherOrganisation: 3,
     abonnementRetail: 1, abonnementB2B: 1, apporteur: 1,
     contratInstitutionnel: 1, devis: 4,
   };
@@ -694,6 +696,19 @@ async function seed() {
       places_restantes: 8,
       statut: 'INSCRIPTIONS_OUVERTES',
     },
+    {
+      // S-BOT-FB-01 : [F-PREM-01] Cybersécurité GWU — terminée aujourd'hui (UCS16 bot feedback apprenant2)
+      id: IDS.s_bot_fb_01,
+      formation_id: IDS.f_prem_01,
+      date_ouverture: agoD(70),
+      date_cloture: agoH(2),
+      date_debut: agoD(60),
+      date_fin: agoH(1),
+      capacite: 10,
+      nb_inscrits: 1,
+      places_restantes: 9,
+      statut: 'CLOTUREE',
+    },
   ]});
 
   // ── 6. ABONNEMENT RETAIL — REMOVED (D4: Subscribe test creates it) ───
@@ -801,6 +816,17 @@ async function seed() {
       statut: 'EN_ATTENTE_VERIFICATION',
       source_financement: 'RETAIL',
       created_at: agoH(1),
+      updated_at: agoH(1),
+    },
+    {
+      // D-BOT-FB-01 : PAYE — apprenant2, session GWU terminée aujourd'hui (UCS16 bot feedback)
+      id: IDS.d_bot_fb_01,
+      apprenant_id: IDS.apprenant2,
+      formation_id: IDS.f_prem_01,
+      session_id: IDS.s_bot_fb_01,
+      statut: 'PAYE',
+      source_financement: 'RETAIL',
+      created_at: agoD(60),
       updated_at: agoH(1),
     },
     {
