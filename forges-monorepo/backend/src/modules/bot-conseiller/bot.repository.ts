@@ -191,6 +191,42 @@ export class BotRepository {
     });
   }
 
+  // RM-125 : lecture seule du profil apprenant — ZERO modification
+  async getProfilApprenant(apprenant_id: string) {
+    return this.prisma.apprenant.findUnique({
+      where: { id: apprenant_id },
+      select: {
+        type_apprenant: true,
+        secteur_activite: true,
+        langue_preferee: true,
+        abonnement_retail: { select: { offre: true, statut: true } },
+      },
+    });
+  }
+
+  // RM-125 : lecture seule du profil organisation — ZERO modification
+  async getProfilOrganisation(organisation_id: string) {
+    return this.prisma.organisation.findUnique({
+      where: { id: organisation_id },
+      select: { langue_preferee: true },
+    });
+  }
+
+  // RM-125 : lecture seule de l'abonnement B2B — ZERO modification
+  async getAbonnementB2B(organisation_id: string) {
+    return this.prisma.abonnementB2B.findFirst({
+      where: { organisation_id },
+      select: { palier: true, statut: true },
+    });
+  }
+
+  // RM-125 : comptage apprenants actifs d'une organisation — ZERO modification
+  async countApprenantsActifsOrganisation(organisation_id: string): Promise<number> {
+    return this.prisma.apprenant.count({
+      where: { organisation_id, statut: 'ACTIF' },
+    });
+  }
+
   // RM-118 : filtrage catalogue par profil
   async filtrerFormations(filtres: {
     type_formation?: string[];
