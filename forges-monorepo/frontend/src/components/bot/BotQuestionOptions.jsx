@@ -14,6 +14,9 @@ const RATING_QUESTION_IDS = new Set([
   'qualite_contenu',
   'qualite_animation',
   'utilite_professionnelle',
+  'feedback_note_globale',
+  'feedback_note_contenu',
+  'feedback_note_formateur',
 ]);
 
 const EMPTY_OPTIONS = [];

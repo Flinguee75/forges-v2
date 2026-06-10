@@ -707,8 +707,17 @@ function resolveLocalizedValue(value, language) {
   return null;
 }
 
+const QUESTION_LIBRARY_ALIASES = {
+  feedback_note_globale: 'note_globale',
+  feedback_note_contenu: 'qualite_contenu',
+  feedback_note_formateur: 'qualite_animation',
+  feedback_commentaire: 'commentaire_feedback',
+  feedback_recommande: 'recommandation',
+};
+
 function getQuestionFromLibrary(questionId, language) {
-  const entry = QUESTION_LIBRARY[questionId];
+  const libraryId = QUESTION_LIBRARY_ALIASES[questionId] || questionId;
+  const entry = QUESTION_LIBRARY[libraryId];
   if (!entry) {
     return null;
   }
@@ -855,6 +864,9 @@ function normalizeHistoryStep(step, language, questionMap) {
 export function normalizeBotSession(session, language = 'FR') {
   if (!session || typeof session !== 'object') {
     return null;
+  }
+  if (session.data && typeof session.data === 'object') {
+    return normalizeBotSession(session.data, language);
   }
 
   const normalizedLanguage = resolveBotLanguage(language);

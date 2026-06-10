@@ -116,10 +116,13 @@ export function useBot({ language = 'FR' } = {}) {
     setError(null);
 
     try {
-      const payload = { value };
-      if (question.allow_commentaire && typeof commentaire === 'string') {
-        payload.commentaire = commentaire.trim();
-      }
+      const payload = {
+        question_id: question.id,
+        valeur: String(value),
+        commentaire: question.allow_commentaire && typeof commentaire === 'string'
+          ? commentaire.trim() || null
+          : null,
+      };
 
       const result = await botApi.submitResponse(session.id, payload);
       const normalizedSession = normalizeBotSession(result, resolvedLanguage);

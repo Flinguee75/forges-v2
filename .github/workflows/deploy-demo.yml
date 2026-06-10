@@ -5,12 +5,19 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
+    inputs:
+      image_sha:
+        description: 'SHA de commit de l image backend a deployer'
+        required: false
+        default: ''
+      frontend_ref:
+        description: 'SHA ou ref git pour le build frontend (doit correspondre a image_sha)'
+        required: false
+        default: ''
 
-# Tous les deploys (test, dev, demo) ciblent le meme serveur Docker.
-# On serialise pour eviter les races sur le daemon Docker (ex: container
-# d'un autre env vu en "removal in progress" pendant un compose up).
+# Groupe separe : demo peut etre redeployee sans bloquer dev/edu.
 concurrency:
-  group: forges-server-deploy
+  group: forges-demo-deploy
   cancel-in-progress: false
 
 env:
@@ -19,12 +26,14 @@ env:
 
 jobs:
   build-push:
-    name: Build image backend → GHCR
+    name: Build image backend → GHCR (DEMO)
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.frontend_ref || github.sha }}
 
       - name: Login GHCR
         uses: docker/login-action@v3
@@ -41,15 +50,17 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:demo
-            ${{ env.IMAGE_NAME }}:demo-${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:demo-${{ inputs.image_sha || github.sha }}
 
   build-frontend:
-    name: Build frontend Vite
+    name: Build frontend Vite (DEMO)
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.frontend_ref || github.sha }}
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -58,16 +69,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: forges-monorepo/frontend/package-lock.json
 
-      - name: Installer dépendances frontend
+      - name: Installer dependances frontend
         working-directory: forges-monorepo/frontend
         run: npm ci --no-audit --no-fund
 
-      - name: Build Vite (demo)
+      - name: Build Vite (DEMO)
         working-directory: forges-monorepo/frontend
         env:
           VITE_API_URL: https://demo.forges-group.com/api
           VITE_ENV: demo
-          VITE_COMMIT_SHA: ${{ github.sha }}
+          VITE_COMMIT_SHA: ${{ inputs.image_sha || github.sha }}
         run: npm run build
 
       - name: Upload dist frontend
@@ -76,11 +87,10 @@ jobs:
           name: frontend-dist-demo
           path: forges-monorepo/frontend/dist/
           retention-days: 1
-          # Inclure .htaccess et autres fichiers caches (sinon SPA fallback perdu)
           include-hidden-files: true
 
   deploy:
-    name: Déploiement sur demo
+    name: Deploiement sur demo
     runs-on: ubuntu-22.04
     needs: [build-push, build-frontend]
     environment:
@@ -90,6 +100,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.frontend_ref || github.sha }}
 
       - name: Download dist frontend
         uses: actions/download-artifact@v4
@@ -105,7 +117,7 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Transférer frontend (rsync)
+      - name: Transferer frontend (rsync)
         run: |
           rsync -rltz --delete --omit-dir-times --no-perms --no-group \
             --chmod=D755,F644 \
@@ -119,104 +131,222 @@ jobs:
             ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }} \
             "find ${{ secrets.DEMO_FRONTEND_DEPLOY_PATH }} -not -path '*/.env' -not -path '*/infra/*' -not -path '*/uploads/*' -type f -exec chmod 644 {} \; && find ${{ secrets.DEMO_FRONTEND_DEPLOY_PATH }} -type d -exec chmod 755 {} \;"
 
-      - name: Transférer docker-compose (rsync)
+      - name: Transferer docker-compose demo et scripts (rsync)
         run: |
           rsync -avz --mkpath \
             infra/docker/docker-compose.demo.deploy.yml \
             ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/docker/
+          rsync -avz --mkpath \
+            infra/scripts/backup-demo.sh \
+            infra/scripts/restore-demo.sh \
+            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/scripts/
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }} \
+            "chmod +x ${{ secrets.DEMO_DEPLOY_PATH }}/infra/scripts/backup-demo.sh \
+                      ${{ secrets.DEMO_DEPLOY_PATH }}/infra/scripts/restore-demo.sh"
 
-      - name: Transférer monitoring stack (rsync)
-        run: |
-          rsync -avz --mkpath --delete \
-            --exclude='backups/' \
-            forges-monorepo/infra/monitoring/ \
-            ${{ secrets.DEMO_SERVER_USER }}@${{ secrets.DEMO_SERVER_HOST }}:${{ secrets.DEMO_DEPLOY_PATH }}/infra/monitoring/
-
-      - name: Docker pull + migrate + restart
+      - name: Lire image precedente (base rollback)
+        id: prev-image
         env:
           DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+        run: |
+          PREV=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            "grep '^BACKEND_IMAGE_REF=' $DEPLOY_PATH/infra/env/.env.demo.deploy 2>/dev/null | cut -d= -f2- || echo ''")
+          echo "prev_image=${PREV}" >> $GITHUB_OUTPUT
+          echo "Image precedente: ${PREV:-aucune}"
+
+      - name: Verifier et pull image backend
+        env:
           SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
           SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ github.actor }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ inputs.image_sha || github.sha }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
-            DEPLOY_PATH="$DEPLOY_PATH" \
-            GHCR_TOKEN="$GHCR_TOKEN" \
-            GHCR_USER="$GHCR_USER" \
-            IMAGE_TAG="$IMAGE_TAG" \
+            GHCR_TOKEN="$GHCR_TOKEN" GHCR_USER="$GHCR_USER" IMAGE_TAG="$IMAGE_TAG" \
             bash -s << 'ENDSSH'
               set -euo pipefail
-              mkdir -p "$DEPLOY_PATH/infra/docker"
-              cd "$DEPLOY_PATH"
-
               echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-              sed -i '/^IMAGE_TAG=/d' .env && echo "IMAGE_TAG=$IMAGE_TAG" >> .env
-              docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env pull backend
-
-              # Nettoyage robuste : supprime TOUT container matchant le pattern env
-              # (incluant containers hash-prefixed et residus en etat Created/Exited).
-              # Les donnees sont preservees via les volumes nommes (forges-postgres-demo, forges-redis-demo).
-              # Pas de docker network prune ici : il casserait les deploys paralleles test/dev.
-              ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-demo$' || true)
-              if [ -n "$ZOMBIES" ]; then
-                echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
+              if ! docker manifest inspect ghcr.io/flinguee75/forges-backend:demo-$IMAGE_TAG >/dev/null 2>&1; then
+                echo "Image introuvable: ghcr.io/flinguee75/forges-backend:demo-$IMAGE_TAG"
+                exit 1
               fi
-
-              docker compose -f infra/docker/docker-compose.demo.deploy.yml --env-file .env up -d
-
-              echo "Attente healthcheck backend..."
-              for i in $(seq 1 30); do
-                STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-demo 2>/dev/null || echo "missing")
-                echo "  [$i/30] $STATUS"
-                [ "$STATUS" = "healthy" ] && break
-                sleep 5
-              done
-              # Le projet n'utilise pas de migrations versionnees (pas de prisma/migrations/).
-              # On synchronise le schema avec `prisma db push` (idempotent).
-              echo "Synchronisation schema Prisma (db push)..."
-              for attempt in 1 2 3; do
-                docker exec forges-backend-demo sh -c 'cd /app && npx prisma db push --skip-generate --accept-data-loss' && break
-                echo "  Tentative $attempt echouee, retry dans 10s..."
-                sleep 10
-              done
-              echo "Migrations OK"
+              docker pull ghcr.io/flinguee75/forges-backend:demo-$IMAGE_TAG
+              echo "Pull OK: ghcr.io/flinguee75/forges-backend:demo-$IMAGE_TAG"
           ENDSSH
 
-      - name: Healthcheck
-        run: |
-          sleep 8
-          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://demo.forges-group.com/health || echo "000")
-          [ "$HTTP_CODE" = "200" ] && echo "API OK" || echo "Healthcheck: $HTTP_CODE"
-
-      - name: Disable monitoring stack
+      - name: Backup pre-deploy (forges_demo)
         env:
           DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
           SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
           SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
-            DEPLOY_PATH="$DEPLOY_PATH" \
-            'bash -s' <<'ENDSSH'
-          set -euo pipefail
-          cd "$DEPLOY_PATH/infra/monitoring"
-          chmod +x monitoring-demo.sh
-          printf 'y\n' | ./monitoring-demo.sh cleanup
-          echo "Monitoring stack disabled and cleaned up."
+            DEPLOY_PATH="$DEPLOY_PATH" bash -s << 'ENDSSH'
+              set -euo pipefail
+              SCRIPT="$DEPLOY_PATH/infra/scripts/backup-demo.sh"
+              if [ -f "$SCRIPT" ]; then
+                bash "$SCRIPT" --pre-deploy
+              else
+                echo "[backup-demo] Script absent (premier deploy) - backup ignore"
+              fi
           ENDSSH
 
-      - name: Résumé
+      - name: Deployer nouvelle version
+        env:
+          DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+          FRONTEND_DEPLOY_PATH: ${{ secrets.DEMO_FRONTEND_DEPLOY_PATH }}
+          IMAGE_TAG: ${{ inputs.image_sha || github.sha }}
+          DEMO_ENV_DEPLOY: ${{ secrets.DEMO_ENV_DEPLOY }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" FRONTEND_DEPLOY_PATH="$FRONTEND_DEPLOY_PATH" IMAGE_TAG="$IMAGE_TAG" DEMO_ENV_DEPLOY="$DEMO_ENV_DEPLOY" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              mkdir -p "$DEPLOY_PATH/infra/docker" "$DEPLOY_PATH/infra/env"
+              cd "$DEPLOY_PATH"
+              if [ ! -f infra/env/.env.demo.deploy ]; then
+                if [ -n "${DEMO_ENV_DEPLOY:-}" ]; then
+                  echo "$DEMO_ENV_DEPLOY" | base64 -d > infra/env/.env.demo.deploy
+                elif [ -f .env ]; then
+                  cp .env infra/env/.env.demo.deploy
+                else
+                  echo "Env demo introuvable: definir DEMO_ENV_DEPLOY ou creer infra/env/.env.demo.deploy"
+                  exit 1
+                fi
+              fi
+              for env_target in infra/env/.env.demo.deploy "$FRONTEND_DEPLOY_PATH/.env"; do
+                [ -f "$env_target" ] || continue
+                if ! grep -q '^WEBHOOK_SECRET=' "$env_target"; then
+                  webhook_secret=$(grep '^PAYMENT_WEBHOOK_SECRET=' "$env_target" | tail -1 | cut -d= -f2-)
+                  if [ -z "$webhook_secret" ]; then
+                    echo "PAYMENT_WEBHOOK_SECRET absent dans $env_target"
+                    exit 1
+                  fi
+                  printf '\nWEBHOOK_SECRET=%s\n' "$webhook_secret" >> "$env_target"
+                fi
+              done
+              sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.demo.deploy
+              echo "BACKEND_IMAGE_REF=ghcr.io/flinguee75/forges-backend:demo-$IMAGE_TAG" >> infra/env/.env.demo.deploy
+              ZOMBIES=$(docker ps -a --format '{{.Names}}' | grep -E '(^|_)forges-(backend|postgres|redis)-demo$' || true)
+              [ -n "$ZOMBIES" ] && echo "$ZOMBIES" | xargs -r docker rm -f 2>/dev/null || true
+              docker compose -f infra/docker/docker-compose.demo.deploy.yml \
+                --env-file infra/env/.env.demo.deploy up -d
+          ENDSSH
+
+      - name: Healthcheck container (150s)
+        env:
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST bash -s << 'ENDSSH'
+            set -euo pipefail
+            HEALTHY=false
+            for i in $(seq 1 30); do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-demo 2>/dev/null || echo "missing")
+              echo "  [$i/30] $STATUS"
+              [ "$STATUS" = "healthy" ] && HEALTHY=true && break
+              sleep 5
+            done
+            [ "$HEALTHY" = "true" ] || { echo "Backend non healthy apres 150s"; exit 1; }
+          ENDSSH
+
+      - name: Appliquer migrations Prisma
+        env:
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST bash -s << 'ENDSSH'
+            set -euo pipefail
+            RESULT=$(docker exec forges-backend-demo sh -c 'cd /app && npx prisma migrate deploy 2>&1' || true)
+            echo "$RESULT"
+            if echo "$RESULT" | grep -q "P3005"; then
+              echo "P3005 detecte : DB existante sans historique migrations - baseline en cours..."
+              docker exec forges-backend-demo sh -c '
+                cd /app
+                for dir in prisma/migrations/*/; do
+                  [ -d "$dir" ] || continue
+                  name=$(basename "$dir")
+                  npx prisma migrate resolve --applied "$name" 2>/dev/null && echo "  Baseline: $name" || true
+                done
+              '
+              echo "Baseline termine - application des migrations restantes..."
+              docker exec forges-backend-demo sh -c 'cd /app && npx prisma migrate deploy'
+            elif echo "$RESULT" | grep -qE "error|Error|ERROR"; then
+              echo "Erreur migration inattendue"
+              exit 1
+            fi
+            echo "Migrations OK"
+          ENDSSH
+
+      - name: Preparer scenario Bot Conseiller demo
+        env:
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            "docker exec forges-backend-demo sh -c 'cd /app && node prisma/seed.bot-demo.js'"
+
+      - name: Rollback vers version precedente
+        if: failure()
+        env:
+          DEPLOY_PATH: ${{ secrets.DEMO_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.DEMO_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.DEMO_SERVER_HOST }}
+          PREV_IMAGE: ${{ steps.prev-image.outputs.prev_image }}
+        run: |
+          if [ -z "$PREV_IMAGE" ]; then
+            echo "Aucune image precedente - rollback impossible (premier deploy ?)"
+            exit 0
+          fi
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST \
+            DEPLOY_PATH="$DEPLOY_PATH" PREV_IMAGE="$PREV_IMAGE" \
+            bash -s << 'ENDSSH'
+              set -euo pipefail
+              cd "$DEPLOY_PATH"
+              echo "Rollback vers: $PREV_IMAGE"
+              sed -i '/^BACKEND_IMAGE_REF=/d' infra/env/.env.demo.deploy
+              echo "BACKEND_IMAGE_REF=$PREV_IMAGE" >> infra/env/.env.demo.deploy
+              docker compose -f infra/docker/docker-compose.demo.deploy.yml \
+                --env-file infra/env/.env.demo.deploy up -d backend
+              sleep 20
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' forges-backend-demo 2>/dev/null || echo "missing")
+              echo "Statut apres rollback: $STATUS"
+              [ "$STATUS" = "healthy" ] \
+                && echo "Rollback OK - ancienne version restauree" \
+                || echo "Rollback: container non healthy ($STATUS)"
+          ENDSSH
+
+      - name: Healthcheck public (demo.forges-group.com)
+        run: |
+          sleep 8
+          HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://demo.forges-group.com/health || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "DEMO OK"
+          else
+            echo "Healthcheck DEMO echoue: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Resume
         if: always()
         run: |
-          echo "## Deploy DEMO — ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Deploy DEMO -- ${{ inputs.image_sha || github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "| Champ | Valeur |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| URL | https://demo.forges-group.com |" >> $GITHUB_STEP_SUMMARY
-          echo "| Image | ${{ env.IMAGE_NAME }}:demo-${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Déployé par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA deploye | ${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image demandee | ghcr.io/flinguee75/forges-backend:demo-${{ inputs.image_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fallback | image precedente si healthcheck KO |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | forges-backend-demo (port 3003) |" >> $GITHUB_STEP_SUMMARY
+          echo "| DB | forges_demo (independante de dev/edu) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploye par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
 
-      - name: Nettoyer clé SSH
+      - name: Nettoyer cle SSH
         if: always()
         run: rm -f ~/.ssh/id_rsa

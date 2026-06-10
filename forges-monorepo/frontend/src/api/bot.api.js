@@ -6,8 +6,8 @@ export const botApi = {
   getActiveSession: () => apiClient.get('/bot/session/active'),
   getSession: (sessionId) => apiClient.get(`/bot/session/${sessionId}`),
   abandonSession: (sessionId) => apiClient.post(`/bot/session/${sessionId}/abandon`, {}),
-  submitResponse: (sessionId, { value, commentaire }) =>
-    apiClient.post(`/bot/session/${sessionId}/reponse`, { value, commentaire }),
+  submitResponse: (sessionId, payload) =>
+    apiClient.post(`/bot/session/${sessionId}/reponse`, payload),
 
   // Routes backoffice
   getEnquetesCatalogue: (params = {}) => apiClient.get('/bot/backoffice/enquetes', { params }),

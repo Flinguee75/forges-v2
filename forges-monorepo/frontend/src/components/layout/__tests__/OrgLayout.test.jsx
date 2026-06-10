@@ -9,6 +9,9 @@ vi.mock('../../../hooks/useAuth', () => ({
     logout: vi.fn(),
   }),
 }));
+vi.mock('../../bot/BotWidget', () => ({
+  default: () => <div data-testid="bot-widget" />,
+}));
 
 describe('OrgLayout', () => {
   it('affiche les entrees de navigation F17', () => {
@@ -22,5 +25,6 @@ describe('OrgLayout', () => {
     expect(screen.getByText('Abonnement B2B')).toBeInTheDocument();
     expect(screen.getByText('Vouchers')).toBeInTheDocument();
     expect(screen.getByText('Inscriptions')).toBeInTheDocument();
+    expect(screen.getByTestId('bot-widget')).toBeInTheDocument();
   });
 });

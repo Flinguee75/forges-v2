@@ -6,6 +6,7 @@ import { BotRepository } from './bot.repository';
 import { BotEngineService } from './bot-engine.service';
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { prisma } from '../../shared/prisma/prisma.client';
+import { FeedbackEligibilityService } from './feedback-eligibility.service';
 
 const router = Router();
 
@@ -13,7 +14,8 @@ const router = Router();
 const botRepository = new BotRepository(prisma);
 const botEngine = new BotEngineService(botRepository, prisma);
 const auditLogger = new AuditLogger();
-const botService = new BotService(botRepository, botEngine, prisma, auditLogger);
+const feedbackEligibility = new FeedbackEligibilityService(botRepository);
+const botService = new BotService(botRepository, botEngine, auditLogger, feedbackEligibility);
 const botController = new BotController(botService, prisma);
 
 /**

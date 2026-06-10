@@ -9,9 +9,77 @@ export class BotRepository {
     type_utilisateur: 'APPRENANT' | 'ORGANISATION';
     flux_actif: string;
     langue: string;
+    apprenant_id?: string | null;
+    organisation_id?: string | null;
+    contexte?: any;
   }) {
     return this.prisma.conversationBot.create({
       data: { ...data, statut: 'EN_COURS', historique: [] }
+    });
+  }
+
+  async findRecentSessionFeedbackTarget(apprenantId: string, now: Date) {
+    const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return this.prisma.dossier.findFirst({
+      where: {
+        apprenant_id: apprenantId,
+        statut: { in: ['PAYE', 'PAYE_DIRECTEMENT'] },
+        session: {
+          statut: { in: ['CLOTUREE', 'TERMINEE'] },
+          date_fin: { gte: since, lte: now },
+        },
+        formation: {
+          feedbacks: { none: { apprenant_id: apprenantId } },
+        },
+      },
+      select: {
+        formation_id: true,
+        session_id: true,
+        formation: { select: { intitule: true, mode_formation: true } },
+      },
+      orderBy: { session: { date_fin: 'desc' } },
+    });
+  }
+
+  async findExpiredOnDemandFeedbackTarget(apprenantId: string, now: Date) {
+    return this.prisma.accesFormationDemande.findFirst({
+      where: {
+        apprenant_id: apprenantId,
+        date_expiration: { lte: now },
+        statut: 'EXPIRE',
+        formation: {
+          mode_formation: 'A_LA_DEMANDE',
+          feedbacks: { none: { apprenant_id: apprenantId } },
+        },
+      },
+      select: {
+        formation_id: true,
+        formation: { select: { intitule: true, mode_formation: true } },
+      },
+      orderBy: { date_expiration: 'desc' },
+    });
+  }
+
+  async findRecentOrganisationFeedbackTarget(organisationId: string, now: Date) {
+    const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return this.prisma.dossier.findFirst({
+      where: {
+        organisation_inscriptrice_id: organisationId,
+        statut: { in: ['PAYE', 'PAYE_DIRECTEMENT'] },
+        session: {
+          statut: { in: ['CLOTUREE', 'TERMINEE'] },
+          date_fin: { gte: since, lte: now },
+        },
+        formation: {
+          feedbacks: { none: { organisation_id: organisationId } },
+        },
+      },
+      select: {
+        formation_id: true,
+        session_id: true,
+        formation: { select: { intitule: true, mode_formation: true } },
+      },
+      orderBy: { session: { date_fin: 'desc' } },
     });
   }
 
@@ -82,12 +150,15 @@ export class BotRepository {
 
   // RM-122 : enregistrer feedback (5 questions)
   async enregistrerFeedback(data: {
-    apprenant_id: string;
+    apprenant_id?: string | null;
+    organisation_id?: string | null;
     formation_id: string;
+    session_id?: string | null;
+    canal?: string;
     note_globale: number;
-    note_contenu?: number;
-    note_formateur?: number;
-    commentaire?: string;
+    note_contenu?: number | null;
+    note_formateur?: number | null;
+    commentaire_libre?: string | null;
     recommande: boolean;
     session_bot_id: string;
   }) {
