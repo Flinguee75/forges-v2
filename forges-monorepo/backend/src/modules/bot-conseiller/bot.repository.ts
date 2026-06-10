@@ -20,13 +20,17 @@ export class BotRepository {
 
   async findRecentSessionFeedbackTarget(apprenantId: string, now: Date) {
     const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     return this.prisma.dossier.findFirst({
       where: {
         apprenant_id: apprenantId,
         statut: { in: ['PAYE', 'PAYE_DIRECTEMENT'] },
         session: {
-          statut: { in: ['CLOTUREE', 'TERMINEE'] },
-          date_fin: { gte: since, lte: now },
+          OR: [
+            { statut: { in: ['CLOTUREE', 'TERMINEE'] }, date_fin: { gte: since, lte: now } },
+            { statut: 'EN_COURS', date_fin: { gte: startOfToday, lte: endOfToday } },
+          ],
         },
         formation: {
           feedbacks: { none: { apprenant_id: apprenantId } },
@@ -62,13 +66,17 @@ export class BotRepository {
 
   async findRecentOrganisationFeedbackTarget(organisationId: string, now: Date) {
     const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     return this.prisma.dossier.findFirst({
       where: {
         organisation_inscriptrice_id: organisationId,
         statut: { in: ['PAYE', 'PAYE_DIRECTEMENT'] },
         session: {
-          statut: { in: ['CLOTUREE', 'TERMINEE'] },
-          date_fin: { gte: since, lte: now },
+          OR: [
+            { statut: { in: ['CLOTUREE', 'TERMINEE'] }, date_fin: { gte: since, lte: now } },
+            { statut: 'EN_COURS', date_fin: { gte: startOfToday, lte: endOfToday } },
+          ],
         },
         formation: {
           feedbacks: { none: { organisation_id: organisationId } },

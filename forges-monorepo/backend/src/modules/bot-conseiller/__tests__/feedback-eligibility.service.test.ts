@@ -50,6 +50,30 @@ describe('FeedbackEligibilityService', () => {
     );
   });
 
+  it('triggers feedback on the last day of an EN_COURS session (date_fin = today)', async () => {
+    const repository: any = {
+      findRecentSessionFeedbackTarget: jest.fn().mockResolvedValue({
+        formation_id: 'formation-last-day',
+        session_id: 'session-last-day',
+        formation: {
+          intitule: 'Management',
+          mode_formation: 'AVEC_SESSION',
+        },
+      }),
+      findExpiredOnDemandFeedbackTarget: jest.fn(),
+    };
+    const service = new FeedbackEligibilityService(repository);
+
+    await expect(service.findForApprenant('app-02', now)).resolves.toEqual(
+      expect.objectContaining({
+        formationId: 'formation-last-day',
+        sessionId: 'session-last-day',
+      }),
+    );
+    // Repository is called with today's date; the OR condition for EN_COURS is handled inside repository
+    expect(repository.findRecentSessionFeedbackTarget).toHaveBeenCalledWith('app-02', now);
+  });
+
   it('selects organisation-sponsored dossiers for organisation feedback', async () => {
     const repository: any = {
       findRecentOrganisationFeedbackTarget: jest.fn().mockResolvedValue({
