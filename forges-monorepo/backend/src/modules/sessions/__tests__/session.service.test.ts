@@ -40,6 +40,7 @@ describe('SessionService', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatut: jest.fn(),
+      archivePendingDossiers: jest.fn(),
       decrementerPlaces: jest.fn(),
       hasInscrits: jest.fn(),
       findChevauchements: jest.fn(),
@@ -156,6 +157,24 @@ describe('SessionService', () => {
       const count = await service.archiverSessionsAnciennnes();
       expect(count).toBe(2);
       expect(mockSessionRepo.updateStatut).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Clôture manuelle de session', () => {
+    it('clôture une session EN_COURS pour permettre le feedback du jour', async () => {
+      mockSessionRepo.findById.mockResolvedValue({
+        id: 's-03',
+        statut: 'EN_COURS',
+      } as any);
+      mockSessionRepo.archivePendingDossiers.mockResolvedValue({} as any);
+      mockSessionRepo.updateStatut.mockResolvedValue({ id: 's-03', statut: 'CLOTUREE' } as any);
+      mockAudit.info.mockResolvedValue(undefined);
+
+      await expect(service.closeManually('s-03', 'admin-01')).resolves.toEqual(
+        expect.objectContaining({ id: 's-03', statut: 'CLOTUREE' }),
+      );
+      expect(mockSessionRepo.archivePendingDossiers).toHaveBeenCalledWith('s-03');
+      expect(mockSessionRepo.updateStatut).toHaveBeenCalledWith('s-03', 'CLOTUREE');
     });
   });
 
