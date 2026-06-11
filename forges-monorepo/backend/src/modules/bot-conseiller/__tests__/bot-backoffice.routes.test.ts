@@ -99,6 +99,19 @@ jest.mock('@prisma/client', () => {
       ]),
       count: jest.fn().mockResolvedValue(2),
     },
+    session: {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'sess-01',
+          formation_id: 'form-01',
+          date_debut: new Date('2026-01-05T09:00:00.000Z'),
+          date_fin: new Date('2026-01-10T17:00:00.000Z'),
+          date_ouverture: new Date('2026-01-01T00:00:00.000Z'),
+          date_cloture: new Date('2026-01-04T23:59:59.000Z'),
+          statut: 'CLOTUREE',
+        },
+      ]),
+    },
   };
 
   return {
@@ -227,6 +240,21 @@ describe('GET /api/bot/backoffice/feedbacks - Route backoffice feedbacks formati
       expect(feedback.apprenant).toHaveProperty('email');
       expect(feedback).toHaveProperty('formation');
       expect(feedback.formation).toHaveProperty('intitule');
+      expect(feedback).toHaveProperty('session');
+      expect(feedback.session).toHaveProperty('id', 'sess-01');
+    });
+
+    it('retourne les feedbacks groupes par formation', async () => {
+      const response = await request(app)
+        .get('/api/bot/backoffice/feedbacks')
+        .expect(200);
+
+      expect(Array.isArray(response.body.data.grouped_feedbacks)).toBe(true);
+      expect(response.body.data.grouped_feedbacks).toHaveLength(2);
+      expect(response.body.data.grouped_feedbacks[0]).toHaveProperty('formation');
+      expect(response.body.data.grouped_feedbacks[0]).toHaveProperty('feedbacks');
+      expect(response.body.data.grouped_feedbacks[0]).toHaveProperty('meta');
+      expect(response.body.data.grouped_feedbacks[0].feedbacks[0]).toHaveProperty('session');
     });
 
     it('retourne les metadonnees avec statistiques', async () => {
