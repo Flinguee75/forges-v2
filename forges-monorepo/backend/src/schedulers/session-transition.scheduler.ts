@@ -8,8 +8,10 @@ import { AuditLogger } from '../shared/audit/audit.logger';
  * Déclencheur : Quotidien à 00h00 (cron: 0 0 * * *)
  *
  * Logique RM-20 (Transitions automatiques):
- * - PLANIFIEE → OUVERTE (si date_ouverture <= NOW())
- * - OUVERTE → EN_COURS (si date_debut <= NOW())
+ * - PLANIFIEE → A_VENIR (si date_ouverture <= NOW())
+ * - A_VENIR → INSCRIPTIONS_OUVERTES (si date_cloture <= NOW())
+ * - INSCRIPTIONS_OUVERTES → EN_COURS (si date_debut <= NOW())
+ * - OUVERTE → EN_COURS (compatibilité legacy, si date_debut <= NOW())
  * - EN_COURS → CLOTUREE (si date_fin <= NOW())
  *
  * Logique RM-21 (Archivage automatique):
@@ -56,8 +58,9 @@ export class SessionTransitionScheduler {
       const now = new Date();
 
       // RM-20: Transitions automatiques
-      await this.transitionPlanifieeVersOuverte(now);
-      await this.transitionOuverteVersEnCours(now);
+      await this.transitionPlanifieeVersAVenir(now);
+      await this.transitionAVenirVersInscriptionsOuvertes(now);
+      await this.transitionInscriptionsOuvertesVersEnCours(now);
       await this.transitionEnCoursVersCloturee(now);
 
       // RM-21: Archivage +90 jours
@@ -73,9 +76,9 @@ export class SessionTransitionScheduler {
   }
 
   /**
-   * PLANIFIEE → OUVERTE (si date_ouverture <= NOW())
+   * PLANIFIEE → A_VENIR (si date_ouverture <= NOW())
    */
-  private async transitionPlanifieeVersOuverte(now: Date): Promise<void> {
+  private async transitionPlanifieeVersAVenir(now: Date): Promise<void> {
     try {
       const sessions = await this.prisma.session.findMany({
         where: {
@@ -87,52 +90,105 @@ export class SessionTransitionScheduler {
       });
 
       if (sessions.length === 0) {
-        console.log('[SessionTransitionScheduler] PLANIFIEE → OUVERTE : Aucune session à transitionner');
+        console.log('[SessionTransitionScheduler] PLANIFIEE → A_VENIR : Aucune session à transitionner');
         return;
       }
 
-      console.log(`[SessionTransitionScheduler] PLANIFIEE → OUVERTE : ${sessions.length} session(s) trouvée(s)`);
+      console.log(`[SessionTransitionScheduler] PLANIFIEE → A_VENIR : ${sessions.length} session(s) trouvée(s)`);
 
       for (const session of sessions) {
         try {
           await this.prisma.session.update({
             where: { id: session.id },
             data: {
-              statut: 'OUVERTE',
+              statut: 'A_VENIR',
             },
           });
 
           await this.audit.info('SESSION_TRANSITION_AUTO', {
             session_id: session.id,
             formation_id: session.formation_id,
-            transition: 'PLANIFIEE → OUVERTE',
+            transition: 'PLANIFIEE → A_VENIR',
             date_ouverture: session.date_ouverture,
             date_transition: now,
           });
 
-          console.log(`[SessionTransitionScheduler] Session ${session.id} : PLANIFIEE → OUVERTE`);
+          console.log(`[SessionTransitionScheduler] Session ${session.id} : PLANIFIEE → A_VENIR`);
         } catch (error) {
           console.error(`[SessionTransitionScheduler] Erreur transition session ${session.id}:`, error);
           await this.audit.error('SESSION_TRANSITION_ERROR', {
             session_id: session.id,
-            transition: 'PLANIFIEE → OUVERTE',
+            transition: 'PLANIFIEE → A_VENIR',
             error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
     } catch (error) {
-      console.error('[SessionTransitionScheduler] Erreur PLANIFIEE → OUVERTE:', error);
+      console.error('[SessionTransitionScheduler] Erreur PLANIFIEE → A_VENIR:', error);
     }
   }
 
   /**
-   * OUVERTE → EN_COURS (si date_debut <= NOW())
+   * A_VENIR → INSCRIPTIONS_OUVERTES (si date_cloture <= NOW())
    */
-  private async transitionOuverteVersEnCours(now: Date): Promise<void> {
+  private async transitionAVenirVersInscriptionsOuvertes(now: Date): Promise<void> {
     try {
       const sessions = await this.prisma.session.findMany({
         where: {
-          statut: 'OUVERTE',
+          statut: 'A_VENIR',
+          date_cloture: {
+            lte: now,
+          },
+        },
+      });
+
+      if (sessions.length === 0) {
+        console.log('[SessionTransitionScheduler] A_VENIR → INSCRIPTIONS_OUVERTES : Aucune session à transitionner');
+        return;
+      }
+
+      console.log(`[SessionTransitionScheduler] A_VENIR → INSCRIPTIONS_OUVERTES : ${sessions.length} session(s) trouvée(s)`);
+
+      for (const session of sessions) {
+        try {
+          await this.prisma.session.update({
+            where: { id: session.id },
+            data: {
+              statut: 'INSCRIPTIONS_OUVERTES',
+            },
+          });
+
+          await this.audit.info('SESSION_TRANSITION_AUTO', {
+            session_id: session.id,
+            formation_id: session.formation_id,
+            transition: 'A_VENIR → INSCRIPTIONS_OUVERTES',
+            date_cloture: session.date_cloture,
+            date_transition: now,
+          });
+
+          console.log(`[SessionTransitionScheduler] Session ${session.id} : A_VENIR → INSCRIPTIONS_OUVERTES`);
+        } catch (error) {
+          console.error(`[SessionTransitionScheduler] Erreur transition session ${session.id}:`, error);
+          await this.audit.error('SESSION_TRANSITION_ERROR', {
+            session_id: session.id,
+            transition: 'A_VENIR → INSCRIPTIONS_OUVERTES',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[SessionTransitionScheduler] Erreur A_VENIR → INSCRIPTIONS_OUVERTES:', error);
+    }
+  }
+
+  /**
+   * INSCRIPTIONS_OUVERTES / OUVERTE → EN_COURS (si date_debut <= NOW())
+   */
+  private async transitionInscriptionsOuvertesVersEnCours(now: Date): Promise<void> {
+    try {
+      const sessions = await this.prisma.session.findMany({
+        where: {
+          statut: { in: ['INSCRIPTIONS_OUVERTES', 'OUVERTE'] },
           date_debut: {
             lte: now,
           },
@@ -140,11 +196,11 @@ export class SessionTransitionScheduler {
       });
 
       if (sessions.length === 0) {
-        console.log('[SessionTransitionScheduler] OUVERTE → EN_COURS : Aucune session à transitionner');
+        console.log('[SessionTransitionScheduler] INSCRIPTIONS_OUVERTES → EN_COURS : Aucune session à transitionner');
         return;
       }
 
-      console.log(`[SessionTransitionScheduler] OUVERTE → EN_COURS : ${sessions.length} session(s) trouvée(s)`);
+      console.log(`[SessionTransitionScheduler] INSCRIPTIONS_OUVERTES → EN_COURS : ${sessions.length} session(s) trouvée(s)`);
 
       for (const session of sessions) {
         try {
@@ -158,23 +214,23 @@ export class SessionTransitionScheduler {
           await this.audit.info('SESSION_TRANSITION_AUTO', {
             session_id: session.id,
             formation_id: session.formation_id,
-            transition: 'OUVERTE → EN_COURS',
+            transition: 'INSCRIPTIONS_OUVERTES → EN_COURS',
             date_debut: session.date_debut,
             date_transition: now,
           });
 
-          console.log(`[SessionTransitionScheduler] Session ${session.id} : OUVERTE → EN_COURS`);
+          console.log(`[SessionTransitionScheduler] Session ${session.id} : INSCRIPTIONS_OUVERTES → EN_COURS`);
         } catch (error) {
           console.error(`[SessionTransitionScheduler] Erreur transition session ${session.id}:`, error);
           await this.audit.error('SESSION_TRANSITION_ERROR', {
             session_id: session.id,
-            transition: 'OUVERTE → EN_COURS',
+            transition: 'INSCRIPTIONS_OUVERTES → EN_COURS',
             error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
     } catch (error) {
-      console.error('[SessionTransitionScheduler] Erreur OUVERTE → EN_COURS:', error);
+      console.error('[SessionTransitionScheduler] Erreur INSCRIPTIONS_OUVERTES → EN_COURS:', error);
     }
   }
 
