@@ -150,7 +150,7 @@ export class BotController {
   // GET /api/bot/backoffice/feedbacks — ADMIN, AGENT, RESPONSABLE
   async getFeedbacksFormations(req: Request, res: Response, next: NextFunction) {
     try {
-      const { note_min, formation_id, canal, page = 1, limit = 20 } = req.query;
+      const { note_min, formation_id, canal, session_id, page = 1, limit = 20 } = req.query;
 
       const pageNum = parseInt(page as string);
       const limitNum = parseInt(limit as string);
@@ -160,6 +160,7 @@ export class BotController {
       if (note_min) where.note_globale = { gte: parseInt(note_min as string) };
       if (formation_id) where.formation_id = formation_id;
       if (canal) where.canal = canal;
+      if (session_id) where.session_id = session_id;
 
       const [feedbacks, total, noteStats, recommendedCount] = await Promise.all([
         this.prisma.feedbackFormation.findMany({
@@ -203,13 +204,95 @@ export class BotController {
         }),
       ]);
 
+      const sessionIds = Array.from(
+        new Set(
+          feedbacks
+            .map((feedback) => feedback.session_id)
+            .filter((value): value is string => Boolean(value))
+        )
+      );
+
+      const sessions = sessionIds.length > 0
+        ? await this.prisma.session.findMany({
+          where: { id: { in: sessionIds } },
+          select: {
+            id: true,
+            formation_id: true,
+            date_debut: true,
+            date_fin: true,
+            date_ouverture: true,
+            date_cloture: true,
+            statut: true,
+          },
+        })
+        : [];
+
+      const sessionMap = new Map(sessions.map((session) => [session.id, session]));
+      const feedbacksAvecSessions = feedbacks.map((feedback) => ({
+        ...feedback,
+        session: feedback.session_id ? sessionMap.get(feedback.session_id) || null : null,
+      }));
+
+      const groupedFeedbacksMap = new Map<string, any>();
+      for (const feedback of feedbacksAvecSessions) {
+        const key = feedback.formation_id;
+        const existing = groupedFeedbacksMap.get(key);
+        if (!existing) {
+          groupedFeedbacksMap.set(key, {
+            formation: feedback.formation,
+            feedbacks: [feedback],
+          });
+          continue;
+        }
+
+        existing.feedbacks.push(feedback);
+      }
+
+      const groupedFeedbacks = Array.from(groupedFeedbacksMap.values()).map((group) => {
+        const totalFeedbacks = group.feedbacks.length;
+        const moyenneGlobale = totalFeedbacks > 0
+          ? Math.round(
+              (group.feedbacks.reduce((sum: number, feedback: any) => sum + Number(feedback.note_globale || 0), 0) / totalFeedbacks) * 10,
+            ) / 10
+          : 0;
+        const tauxRecommandation = totalFeedbacks > 0
+          ? Math.round(
+              (group.feedbacks.filter((feedback: any) => feedback.recommande).length / totalFeedbacks) * 100,
+            )
+          : 0;
+        const sessionsUniques = Array.from(
+          new Map(
+            group.feedbacks
+              .map((feedback: any) => feedback.session)
+              .filter(Boolean)
+              .map((session: any) => [session.id, session]),
+          ).values(),
+        );
+
+        return {
+          formation: group.formation,
+          feedbacks: group.feedbacks,
+          sessions: sessionsUniques,
+          meta: {
+            total: totalFeedbacks,
+            moyenne_globale: moyenneGlobale,
+            taux_recommandation: tauxRecommandation,
+          },
+        };
+      }).sort((a, b) => {
+        const aDate = new Date(a.feedbacks[0]?.date_saisie || 0).getTime();
+        const bDate = new Date(b.feedbacks[0]?.date_saisie || 0).getTime();
+        return bDate - aDate;
+      });
+
       const moyenne_globale = noteStats._avg.note_globale ?? 0;
       const taux_recommandation = total > 0 ? (recommendedCount / total) * 100 : 0;
 
       res.status(200).json({
         statusCode: 200,
         data: {
-          feedbacks,
+          feedbacks: feedbacksAvecSessions,
+          grouped_feedbacks: groupedFeedbacks,
           meta: {
             total,
             page: pageNum,

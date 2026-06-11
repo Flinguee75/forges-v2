@@ -1,10 +1,62 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import botApi from '../../../api/bot.api';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Spinner from '../../../components/feedback/Spinner';
 import EmptyState from '../../../components/feedback/EmptyState';
+
+function formatDate(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('fr-FR');
+}
+
+function formatSessionLabel(session) {
+  if (!session) return 'Session non renseignée';
+  const start = formatDate(session.date_debut);
+  const end = formatDate(session.date_fin);
+  return `${session.id} · ${start} → ${end} · ${session.statut}`;
+}
+
+function groupFeedbacksByFormation(feedbacks = []) {
+  const groups = new Map();
+
+  feedbacks.forEach((feedback) => {
+    const key = feedback.formation?.id || feedback.formation_id || 'unknown';
+    const current = groups.get(key) || {
+      formation: feedback.formation || { id: key, intitule: 'Formation inconnue' },
+      feedbacks: [],
+    };
+
+    current.feedbacks.push(feedback);
+    groups.set(key, current);
+  });
+
+  return Array.from(groups.values()).map((group) => {
+    const total = group.feedbacks.length;
+    const moyenne_globale = total > 0
+      ? Math.round(
+          (group.feedbacks.reduce((sum, feedback) => sum + Number(feedback.note_globale || 0), 0) / total) * 10,
+        ) / 10
+      : 0;
+    const taux_recommandation = total > 0
+      ? Math.round((group.feedbacks.filter((feedback) => feedback.recommande).length / total) * 100)
+      : 0;
+
+    return {
+      ...group,
+      meta: {
+        total,
+        moyenne_globale,
+        taux_recommandation,
+      },
+    };
+  }).sort((a, b) => {
+    const aDate = new Date(a.feedbacks[0]?.date_saisie || 0).getTime();
+    const bDate = new Date(b.feedbacks[0]?.date_saisie || 0).getTime();
+    return bDate - aDate;
+  });
+}
 
 export default function FeedbacksAdmin() {
   const [data, setData] = useState(null);
@@ -35,11 +87,13 @@ export default function FeedbacksAdmin() {
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
-  const renderStars = (note) => {
-    return (
-      <span className="font-semibold text-primary">{note}/5</span>
-    );
-  };
+  const groupedFeedbacks = useMemo(() => {
+    if (Array.isArray(data?.grouped_feedbacks) && data.grouped_feedbacks.length > 0) {
+      return data.grouped_feedbacks;
+    }
+
+    return groupFeedbacksByFormation(Array.isArray(data?.feedbacks) ? data.feedbacks : []);
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -51,7 +105,7 @@ export default function FeedbacksAdmin() {
 
   if (!data) return null;
 
-  const { feedbacks, meta } = data;
+  const { meta } = data;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -63,7 +117,7 @@ export default function FeedbacksAdmin() {
           Feedbacks formations
         </h1>
         <p className="mt-2 text-sm text-subtext">
-          Retours d'expérience des apprenants sur les formations
+          Retours d'expérience des apprenants regroupés par formation avec la session associée.
         </p>
       </div>
 
@@ -90,76 +144,84 @@ export default function FeedbacksAdmin() {
 
       <Card>
         <div className="border-b border-gray-200 p-4">
-          <h2 className="text-lg font-semibold text-primary">Feedbacks collectés ({feedbacks.length})</h2>
+          <h2 className="text-lg font-semibold text-primary">
+            Feedbacks par formation ({groupedFeedbacks.length})
+          </h2>
         </div>
-        {feedbacks.length === 0 ? (
+        {groupedFeedbacks.length === 0 ? (
           <EmptyState title="Aucun feedback" message="Aucun retour n'a été collecté pour le moment." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Auteur
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Formation
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Note globale
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Recommande
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Canal
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {feedbacks.map((fb) => (
-                  <tr key={fb.id}>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {fb.apprenant
-                          ? `${fb.apprenant.nom} ${fb.apprenant.prenoms}`
-                          : fb.organisation?.raison_sociale}
+          <div className="space-y-4 p-4">
+            {groupedFeedbacks.map((group) => (
+              <div key={group.formation?.id || group.formation?.intitule} className="rounded-lg border border-border bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text">
+                      {group.formation?.intitule || 'Formation inconnue'}
+                    </p>
+                    <p className="mt-1 text-xs text-subtext">
+                      {group.formation?.partenaire?.raison_sociale || 'Partenaire non renseigné'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="info" size="small">{group.meta.total} feedbacks</Badge>
+                    <Badge variant="success" size="small">{group.meta.moyenne_globale}/5</Badge>
+                    <Badge variant="gray" size="small">{group.meta.taux_recommandation}% recommandent</Badge>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {group.feedbacks
+                    .map((feedback) => feedback.session)
+                    .filter(Boolean)
+                    .slice(0, 3)
+                    .map((session) => (
+                      <Badge key={session.id} variant="gray" size="small">
+                        Session {session.id.slice(0, 8)}
+                      </Badge>
+                    ))}
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {group.feedbacks.map((feedback) => {
+                    const author = feedback.apprenant
+                      ? `${feedback.apprenant.prenoms} ${feedback.apprenant.nom}`
+                      : feedback.organisation?.raison_sociale || 'Auteur inconnu';
+
+                    return (
+                      <div key={feedback.id} className="rounded-lg border border-border bg-bg px-4 py-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-text">{author}</p>
+                            <p className="mt-1 text-xs text-subtext">{feedback.apprenant?.email || feedback.organisation?.email}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {getCanalBadge(feedback.canal)}
+                            {feedback.recommande ? (
+                              <Badge variant="success" size="small">Recommandé</Badge>
+                            ) : (
+                              <Badge variant="gray" size="small">Non recommandé</Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 text-sm text-text sm:grid-cols-3">
+                          <p><span className="font-semibold">Note</span> {feedback.note_globale}/5</p>
+                          <p><span className="font-semibold">Date</span> {formatDate(feedback.date_saisie)}</p>
+                          <p><span className="font-semibold">Session</span> {formatSessionLabel(feedback.session)}</p>
+                        </div>
+
+                        {feedback.commentaire_libre ? (
+                          <p className="mt-3 text-sm text-text">
+                            {feedback.commentaire_libre}
+                          </p>
+                        ) : null}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {fb.apprenant?.email || fb.organisation?.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {fb.formation?.intitule}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {fb.formation?.partenaire?.raison_sociale}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {renderStars(fb.note_globale)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {fb.recommande ? (
-                        <Badge variant="success" size="small">Oui</Badge>
-                      ) : (
-                        <Badge variant="gray" size="small">Non</Badge>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {getCanalBadge(fb.canal)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {new Date(fb.date_saisie).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Card>
