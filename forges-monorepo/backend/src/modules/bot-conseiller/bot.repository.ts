@@ -264,6 +264,13 @@ export class BotRepository {
     });
   }
 
+  async getEmailApprenant(apprenant_id: string) {
+    return this.prisma.apprenant.findUnique({
+      where: { id: apprenant_id },
+      select: { email: true, prenoms: true, nom: true, langue_preferee: true },
+    });
+  }
+
   // RM-125 : lecture seule du profil apprenant — ZERO modification
   async getProfilApprenant(apprenant_id: string) {
     return this.prisma.apprenant.findUnique({

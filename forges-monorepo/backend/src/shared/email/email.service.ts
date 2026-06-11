@@ -273,6 +273,42 @@ export class EmailService {
     });
   }
 
+  async sendRemerciementFeedback(email: string, prenoms: string, formationIntitule: string, langue: string = 'FR'): Promise<void> {
+    const subjects: Record<string, string> = {
+      FR: 'Merci pour votre avis sur FORGES',
+      EN: 'Thank you for your feedback on FORGES',
+      ES: 'Gracias por su opinion en FORGES',
+      PT: 'Obrigado pelo seu feedback no FORGES',
+    };
+    const intros: Record<string, string> = {
+      FR: `Merci d'avoir pris le temps de partager votre avis sur la formation <strong>${formationIntitule}</strong>.`,
+      EN: `Thank you for taking the time to share your feedback on <strong>${formationIntitule}</strong>.`,
+      ES: `Gracias por tomarse el tiempo de compartir su opinion sobre <strong>${formationIntitule}</strong>.`,
+      PT: `Obrigado por dedicar tempo para partilhar a sua opiniao sobre <strong>${formationIntitule}</strong>.`,
+    };
+    const bodies: Record<string, string> = {
+      FR: 'Votre retour nous aide à améliorer la qualité de nos formations et à mieux vous accompagner.',
+      EN: 'Your feedback helps us improve the quality of our training and better support you.',
+      ES: 'Su opinion nos ayuda a mejorar la calidad de nuestra formacion y a apoyarle mejor.',
+      PT: 'O seu feedback ajuda-nos a melhorar a qualidade das nossas formacoes e a apoiá-lo melhor.',
+    };
+    const lang = ['FR', 'EN', 'ES', 'PT'].includes(langue.toUpperCase()) ? langue.toUpperCase() : 'FR';
+    const subject = subjects[lang] || subjects.FR;
+    const intro = intros[lang] || intros.FR;
+    const body = bodies[lang] || bodies.FR;
+
+    await this.sendEmail({
+      to: email,
+      subject,
+      html: this.buildHtmlEmail(subject, [
+        `Bonjour <strong>${prenoms}</strong>,`,
+        intro,
+        body,
+        "L'equipe FORGES vous remercie.",
+      ]),
+    });
+  }
+
   async sendWelcomeEmail(email: string, nom: string): Promise<void> {
     await this.sendEmail({
       to: email,

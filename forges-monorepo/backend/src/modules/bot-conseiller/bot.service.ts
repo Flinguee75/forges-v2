@@ -3,6 +3,7 @@ import { BotEngineService, determinerFluxPrioritaire, OPTIONS_BOT } from './bot-
 import { AuditLogger } from '../../shared/audit/audit.logger';
 import { FEEDBACK_QUESTION_IDS, getFeedbackQuestions } from './feedback.questions';
 import { FeedbackEligibilityService, FeedbackTarget } from './feedback-eligibility.service';
+import { emailService } from '../../shared/email/email.service';
 
 const COOLDOWN_UPGRADE_JOURS = 7;   // RM-120
 const COOLDOWN_3_REFUS_JOURS = 30;  // RM-120
@@ -525,6 +526,20 @@ export class BotService {
       formation_id: contexte.formation_id,
       type_utilisateur: session.type_utilisateur,
     });
+
+    if (session.type_utilisateur === 'APPRENANT') {
+      this.botRepo.getEmailApprenant(session.utilisateur_id).then((apprenant) => {
+        if (apprenant?.email) {
+          emailService.sendRemerciementFeedback(
+            apprenant.email,
+            apprenant.prenoms,
+            contexte.formation_intitule || '',
+            apprenant.langue_preferee || session.langue,
+          );
+        }
+      }).catch(() => {});
+    }
+
     await this.botRepo.cloturerSession(session.id, 'TERMINEE');
     return this.feedbackSessionView({ ...session, statut: 'TERMINEE' }, historique, null);
   }

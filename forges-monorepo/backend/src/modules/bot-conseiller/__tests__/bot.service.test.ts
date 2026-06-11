@@ -37,6 +37,7 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
       enregistrerEnquete: jest.fn(),
       filtrerFormations: jest.fn(),
       getProfilApprenant: jest.fn(),
+      getEmailApprenant: jest.fn().mockResolvedValue(null),
       getProfilOrganisation: jest.fn(),
       getAbonnementB2B: jest.fn(),
       countApprenantsActifsOrganisation: jest.fn(),
