@@ -307,4 +307,25 @@ export class BotController {
       next(error);
     }
   }
+
+  // GET /api/bot/backoffice/demandes-contact — ADMIN, AGENT, RESPONSABLE
+  async getDemandesContact(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { statut, motif, organisation_id, page = 1, limit = 20 } = req.query;
+      const result = await this.botService.getDemandesContact({
+        statut: statut ? String(statut) : undefined,
+        motif: motif ? String(motif) : undefined,
+        organisation_id: organisation_id ? String(organisation_id) : undefined,
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+      });
+
+      res.status(200).json({
+        statusCode: 200,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

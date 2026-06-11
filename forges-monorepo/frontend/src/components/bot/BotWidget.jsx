@@ -10,6 +10,7 @@ const DISMISS_STORAGE_PREFIX = 'forges.bot.dismissed';
 export default function BotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
+  const userRole = user?.role || null;
   const dismissStorageKey = typeof window === 'undefined'
     ? DISMISS_STORAGE_PREFIX
     : `${DISMISS_STORAGE_PREFIX}:${window.location.pathname}`;
@@ -156,6 +157,7 @@ export default function BotWidget() {
         <BotPanel
           session={session}
           language={language}
+          userRole={userRole}
           isLoading={isLoading}
           error={error}
           onClose={handleClose}

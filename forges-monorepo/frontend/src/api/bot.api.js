@@ -12,6 +12,7 @@ export const botApi = {
   // Routes backoffice
   getEnquetesCatalogue: (params = {}) => apiClient.get('/bot/backoffice/enquetes', { params }),
   getFeedbacksFormations: (params = {}) => apiClient.get('/bot/backoffice/feedbacks', { params }),
+  getDemandesContact: (params = {}) => apiClient.get('/bot/backoffice/demandes-contact', { params }),
 };
 
 export default botApi;

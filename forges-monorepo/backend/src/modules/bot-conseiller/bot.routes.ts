@@ -29,6 +29,10 @@ router.get('/backoffice/feedbacks', authenticate, authorize('ADMIN', 'AGENT', 'R
   botController.getFeedbacksFormations(req, res, next);
 });
 
+router.get('/backoffice/demandes-contact', authenticate, authorize('ADMIN', 'AGENT', 'RESPONSABLE'), (req, res, next) => {
+  botController.getDemandesContact(req, res, next);
+});
+
 /**
  * Routes utilisateurs (APPRENANT, ORGANISATION)
  */

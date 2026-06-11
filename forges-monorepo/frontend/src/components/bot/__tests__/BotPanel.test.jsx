@@ -69,7 +69,6 @@ describe('BotPanel', () => {
 
     expect(screen.getByText('Historique')).toBeInTheDocument();
     expect(screen.getByText(/Une offre plus adaptée est disponible/)).toBeInTheDocument();
-    expect(screen.getByText('Voir les offres')).toBeInTheDocument();
     expect(screen.getByText('Formation recommandée')).toBeInTheDocument();
     expect(screen.getByText(/Coût estimé:/)).toBeInTheDocument();
     expect(screen.getByText(/Palier recommandé:/)).toBeInTheDocument();

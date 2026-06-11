@@ -32,6 +32,10 @@ export default function BotMessagesContainer({
   const orientationMeta = session?.historique?.metadata?.orientation || {};
   const feedbackMeta = session?.historique?.metadata?.feedback || {};
   const feedbackFormationLabel = feedbackMeta.formation_intitule || feedbackMeta.formation_id || '';
+  const showFluxIntro = session?.flux_actif !== 'CONSEIL';
+  const botResultMessage = session?.statut === 'ACTIVE' && session?.historique?.result?.message
+    ? session.historique.result.message
+    : null;
 
   // Auto-scroll vers le bas quand de nouveaux messages arrivent
   useEffect(() => {
@@ -68,12 +72,14 @@ export default function BotMessagesContainer({
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="space-y-3">
-        <div className="rounded-xl border border-border bg-white px-4 py-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-primary/70">
-            {getFluxLabel(session.flux_actif, language)}
-          </p>
-          <p className="mt-1.5 text-sm text-text leading-relaxed">{getFluxWelcomeMessage(session.flux_actif, language)}</p>
-        </div>
+        {showFluxIntro && (
+          <div className="rounded-xl border border-border bg-white px-4 py-3 shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-primary/70">
+              {getFluxLabel(session.flux_actif, language)}
+            </p>
+            <p className="mt-1.5 text-sm text-text leading-relaxed">{getFluxWelcomeMessage(session.flux_actif, language)}</p>
+          </div>
+        )}
 
         {session.flux_actif === 'FEEDBACK' && feedbackFormationLabel ? (
           <div className="flex items-start gap-3 rounded-xl border border-border bg-bg px-4 py-3 shadow-sm">
@@ -91,6 +97,19 @@ export default function BotMessagesContainer({
         {error && (
           <div className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
             {error}
+          </div>
+        )}
+
+        {botResultMessage && (
+          <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-bg px-4 py-3 shadow-sm">
+            <div className="mt-0.5 flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 13, height: 13 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-primary">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16l-1.5 3L12 17l4.5 2-1.5-3M6.94 6.94a7.5 7.5 0 1010.62 0 7.5 7.5 0 00-10.62 0z" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-text leading-relaxed">{botResultMessage}</p>
+            </div>
           </div>
         )}
 

@@ -55,5 +55,6 @@ describe('BackofficeLayout', () => {
     expect(screen.getByText('Bot admin')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Enquêtes catalogue' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Feedbacks formations' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Demandes de contact' })).toBeInTheDocument();
   });
 });
