@@ -234,7 +234,7 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
       expect((result as any).question.id).toBe(2);
     });
 
-    it('affiche un descriptif métier sans clôturer la session quand une rubrique est choisie', async () => {
+    it('affiche un descriptif métier et cloture la session quand une rubrique est choisie', async () => {
       mockRepo.findSession.mockResolvedValue({
         ...sessionEnCours,
         flux_actif: 'CONSEIL',
@@ -249,11 +249,13 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
       expect(result).toMatchObject({
         id: 'sess-01',
         flux_actif: 'CONSEIL',
+        statut: 'TERMINEE',
+        current_question: null,
         historique: {
           result: { message: expect.stringContaining('abonnements') },
         },
       });
-      expect(mockRepo.cloturerSession).not.toHaveBeenCalled();
+      expect(mockRepo.cloturerSession).toHaveBeenCalledWith('sess-01', 'TERMINEE');
     });
 
     it('enregistre une demande de contact après motif, commentaire et confirmation', async () => {

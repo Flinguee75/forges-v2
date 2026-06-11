@@ -414,17 +414,13 @@ export class BotService {
       };
       const infoMsg = infoMessages[valeur] || 'Merci. Nous avons bien pris en compte votre demande.';
 
+      await this.botRepo.cloturerSession(session.id, 'TERMINEE');
       return {
         id: session.id,
         flux_actif: 'CONSEIL',
-        statut: session.statut,
+        statut: 'TERMINEE',
         langue: session.langue,
-        current_question: {
-          id: 1,
-          texte: 'De quoi avez-vous besoin ?',
-          options: CONSEIL_MENU_OPTIONS,
-          obligatoire: true,
-        },
+        current_question: null,
         historique: {
           steps: historique,
           metadata: {},
