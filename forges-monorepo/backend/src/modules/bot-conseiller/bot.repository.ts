@@ -173,6 +173,71 @@ export class BotRepository {
     return this.prisma.feedbackFormation.create({ data });
   }
 
+  // RM-118 : enregistrer une demande de contact organisation
+  async enregistrerDemandeContact(data: {
+    utilisateur_id: string;
+    type_utilisateur: string;
+    organisation_id?: string | null;
+    session_bot_id?: string | null;
+    motif: string;
+    commentaire?: string | null;
+  }) {
+    return this.prisma.demandeContactBot.create({
+      data: {
+        ...data,
+        organisation_id: data.organisation_id ?? null,
+        session_bot_id: data.session_bot_id ?? null,
+        commentaire: data.commentaire ?? null,
+      },
+    });
+  }
+
+  async findDemandesContact(params: {
+    statut?: string;
+    motif?: string;
+    organisation_id?: string;
+    page?: number;
+    limit?: number;
+  } = {}) {
+    const page = params.page || 1;
+    const limit = params.limit || 20;
+    const skip = (page - 1) * limit;
+    const where: any = {};
+
+    if (params.statut) where.statut = params.statut;
+    if (params.motif) where.motif = { contains: params.motif, mode: 'insensitive' };
+    if (params.organisation_id) where.organisation_id = params.organisation_id;
+
+    const [demandes, total] = await Promise.all([
+      this.prisma.demandeContactBot.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { date_saisie: 'desc' },
+        include: {
+          organisation: {
+            select: {
+              raison_sociale: true,
+              contact_referent: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      this.prisma.demandeContactBot.count({ where }),
+    ]);
+
+    return {
+      demandes,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   // RM-123/124 : enregistrer enquête catalogue
   async enregistrerEnquete(data: {
     utilisateur_id: string;

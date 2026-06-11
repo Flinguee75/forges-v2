@@ -1,6 +1,7 @@
 import { BotQuestionView, BotSessionView } from './bot.types';
 import { getFeedbackQuestions } from './feedback.questions';
 import { OPTIONS_BOT } from './bot-engine.service';
+import { CONSEIL_QUESTIONS } from './conseil.questions';
 
 const ORIENTATION_QUESTIONS = [
   { id: 1, question: 'Quel est votre objectif de formation ?', options: OPTIONS_BOT.OBJECTIF },
@@ -58,9 +59,15 @@ export function presentBotSession(result: any): BotSessionView {
     internalStatus === 'ABANDONNEE' ? 'ABANDONNEE' :
     internalStatus;
 
-  const historySteps = Array.isArray(result.historique)
+  const rawSteps: any[] = Array.isArray(result.historique)
     ? result.historique
     : result.historique?.steps ?? [];
+  const historySteps = rawSteps.map((step: any) => {
+    if (step && flux === 'CONSEIL' && typeof step.question_id === 'number') {
+      return { ...step, question_id: `conseil_${step.question_id}` };
+    }
+    return step;
+  });
   let currentQuestion = result.current_question ?? result.question ?? null;
   if (!currentQuestion && flux === 'FEEDBACK' && status === 'ACTIVE') {
     const answered = new Set(historySteps.map((step: any) => step.question_id));
@@ -72,6 +79,17 @@ export function presentBotSession(result: any): BotSessionView {
   if (!currentQuestion && flux === 'ORIENTATION' && status === 'ACTIVE') {
     currentQuestion = ORIENTATION_QUESTIONS[historySteps.length] ?? null;
   }
+  if (!currentQuestion && flux === 'CONSEIL' && status === 'ACTIVE') {
+    const lastStep = historySteps[historySteps.length - 1];
+    const lastQId = lastStep?.question_id;
+    if (!lastQId || lastQId === 'conseil_1') {
+      currentQuestion = lastStep?.valeur === 'Autre'
+        ? CONSEIL_QUESTIONS[1]
+        : CONSEIL_QUESTIONS[0];
+    } else if (lastQId === 'conseil_2') {
+      currentQuestion = CONSEIL_QUESTIONS[2];
+    }
+  }
 
   return {
     id: result.id ?? result.session_id,
@@ -80,7 +98,7 @@ export function presentBotSession(result: any): BotSessionView {
     langue: result.langue ?? 'FR',
     current_question: presentQuestion(flux, currentQuestion),
     historique: result.historique && !Array.isArray(result.historique)
-      ? result.historique
+      ? { ...result.historique, steps: historySteps }
       : {
           steps: historySteps,
           metadata: result.metadata ?? {

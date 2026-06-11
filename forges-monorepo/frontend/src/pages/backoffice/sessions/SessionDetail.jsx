@@ -167,7 +167,7 @@ export default function SessionDetail() {
             <Button variant="outline" onClick={() => navigate(`/backoffice/sessions/${session.id}/edit`)}>
               Modifier
             </Button>
-            {['OUVERTE', 'INSCRIPTIONS_OUVERTES'].includes(session.statut) && (
+            {['OUVERTE', 'INSCRIPTIONS_OUVERTES', 'EN_COURS'].includes(session.statut) && (
               <Button variant="warning" onClick={closeSession} loading={isLoading}>
                 Clôturer
               </Button>

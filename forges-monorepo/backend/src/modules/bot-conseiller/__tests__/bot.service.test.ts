@@ -33,6 +33,7 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
       feedbackExiste: jest.fn(),
       findSessionsSansFeedback: jest.fn(),
       enregistrerFeedback: jest.fn(),
+      enregistrerDemandeContact: jest.fn(),
       enregistrerEnquete: jest.fn(),
       filtrerFormations: jest.fn(),
       getProfilApprenant: jest.fn(),
@@ -214,6 +215,74 @@ describe('BotService (MOD-14 — 100% règles métier)', () => {
       await expect(
         service.repondre('sess-01', 5, 'Oui')
       ).rejects.toThrow('NOTE_GLOBALE_OBLIGATOIRE');
+    });
+  });
+
+  describe('CONSEIL — menu organisation', () => {
+    it('oriente vers le motif de contact quand Autre est choisi', async () => {
+      mockRepo.findSession.mockResolvedValue({
+        ...sessionEnCours,
+        flux_actif: 'CONSEIL',
+        type_utilisateur: 'ORGANISATION',
+        utilisateur_id: 'org-01',
+      } as any);
+      mockRepo.updateSession.mockResolvedValue({} as any);
+
+      const result = await service.repondre('sess-01', 1, 'Autre');
+
+      expect((result as any).question.id).toBe(2);
+    });
+
+    it('affiche un descriptif métier sans clôturer la session quand une rubrique est choisie', async () => {
+      mockRepo.findSession.mockResolvedValue({
+        ...sessionEnCours,
+        flux_actif: 'CONSEIL',
+        type_utilisateur: 'ORGANISATION',
+        utilisateur_id: 'org-01',
+      } as any);
+      mockRepo.updateSession.mockResolvedValue({} as any);
+      mockRepo.cloturerSession.mockResolvedValue({} as any);
+
+      const result = await service.repondre('sess-01', 1, 'Abonnement');
+
+      expect(result).toMatchObject({
+        id: 'sess-01',
+        flux_actif: 'CONSEIL',
+        historique: {
+          result: { message: expect.stringContaining('abonnements') },
+        },
+      });
+      expect(mockRepo.cloturerSession).not.toHaveBeenCalled();
+    });
+
+    it('enregistre une demande de contact après motif, commentaire et confirmation', async () => {
+      mockRepo.findSession.mockResolvedValue({
+        ...sessionEnCours,
+        flux_actif: 'CONSEIL',
+        type_utilisateur: 'ORGANISATION',
+        utilisateur_id: 'org-01',
+        organisation_id: 'org-01',
+        historique: [
+          { question_id: 1, valeur: 'Autre' },
+          { question_id: 2, valeur: 'Technique' },
+        ],
+      } as any);
+      mockRepo.updateSession.mockResolvedValue({} as any);
+      mockRepo.cloturerSession.mockResolvedValue({} as any);
+      (mockRepo as any).enregistrerDemandeContact.mockResolvedValue({ id: 'contact-01' });
+
+      const result = await service.repondre('sess-01', 3, 'ENVOYER', 'Besoin de support sur les vouchers');
+
+      expect((mockRepo as any).enregistrerDemandeContact).toHaveBeenCalledWith(expect.objectContaining({
+        organisation_id: 'org-01',
+        utilisateur_id: 'org-01',
+        type_utilisateur: 'ORGANISATION',
+        motif: 'Technique',
+        commentaire: 'Besoin de support sur les vouchers',
+        session_bot_id: 'sess-01',
+      }));
+      expect(mockRepo.cloturerSession).toHaveBeenCalledWith('sess-01', 'TERMINEE');
+      expect((result as any).fin).toBe(true);
     });
   });
 

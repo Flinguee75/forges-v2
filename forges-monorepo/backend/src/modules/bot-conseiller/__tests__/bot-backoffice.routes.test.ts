@@ -99,6 +99,27 @@ jest.mock('@prisma/client', () => {
       ]),
       count: jest.fn().mockResolvedValue(2),
     },
+    demandeContactBot: {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'contact-01',
+          utilisateur_id: 'org-01',
+          type_utilisateur: 'ORGANISATION',
+          organisation_id: 'org-01',
+          session_bot_id: 'bot-session-01',
+          motif: 'Technique',
+          commentaire: 'Besoin d aide sur les vouchers',
+          statut: 'NOUVELLE',
+          date_saisie: new Date('2026-01-22'),
+          organisation: {
+            raison_sociale: 'FORGES Org',
+            contact_referent: 'Mme Diallo',
+            email: 'orga@test.ci',
+          },
+        },
+      ]),
+      count: jest.fn().mockResolvedValue(1),
+    },
     session: {
       findMany: jest.fn().mockResolvedValue([
         {
@@ -193,6 +214,78 @@ describe('GET /api/bot/backoffice/enquetes - Route backoffice enquêtes catalogu
     it('accepte la pagination', async () => {
       await request(app)
         .get('/api/bot/backoffice/enquetes?page=1&limit=10')
+        .expect(200);
+    });
+  });
+});
+
+describe('GET /api/bot/backoffice/demandes-contact - Route backoffice demandes de contact', () => {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/bot', botRoutes);
+
+  describe('Autorisation', () => {
+    it('autorise ADMIN', async () => {
+      const response = await request(app)
+        .get('/api/bot/backoffice/demandes-contact')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('statusCode', 200);
+      expect(response.body).toHaveProperty('data');
+    });
+  });
+
+  describe('Reponse de la route', () => {
+    it('retourne la liste des demandes de contact', async () => {
+      const response = await request(app)
+        .get('/api/bot/backoffice/demandes-contact')
+        .expect(200);
+
+      expect(response.body.statusCode).toBe(200);
+      expect(Array.isArray(response.body.data.demandes)).toBe(true);
+      expect(response.body.data.demandes).toHaveLength(1);
+      expect(response.body.data).toHaveProperty('meta');
+    });
+
+    it('retourne les demandes avec l organisation liée', async () => {
+      const response = await request(app)
+        .get('/api/bot/backoffice/demandes-contact')
+        .expect(200);
+
+      const demande = response.body.data.demandes[0];
+      expect(demande).toHaveProperty('id');
+      expect(demande).toHaveProperty('motif');
+      expect(demande).toHaveProperty('statut');
+      expect(demande).toHaveProperty('organisation');
+    });
+
+    it('retourne les metadonnees avec total', async () => {
+      const response = await request(app)
+        .get('/api/bot/backoffice/demandes-contact')
+        .expect(200);
+
+      expect(response.body.data.meta).toHaveProperty('total', 1);
+      expect(response.body.data.meta).toHaveProperty('page');
+      expect(response.body.data.meta).toHaveProperty('limit');
+    });
+  });
+
+  describe('Filtres et pagination', () => {
+    it('accepte le filtre par statut', async () => {
+      await request(app)
+        .get('/api/bot/backoffice/demandes-contact?statut=NOUVELLE')
+        .expect(200);
+    });
+
+    it('accepte le filtre par motif', async () => {
+      await request(app)
+        .get('/api/bot/backoffice/demandes-contact?motif=Technique')
+        .expect(200);
+    });
+
+    it('accepte la pagination', async () => {
+      await request(app)
+        .get('/api/bot/backoffice/demandes-contact?page=1&limit=10')
         .expect(200);
     });
   });

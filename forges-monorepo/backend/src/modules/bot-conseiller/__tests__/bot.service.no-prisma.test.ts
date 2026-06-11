@@ -74,13 +74,17 @@ describe('BotService — demarrerSessionOrganisation', () => {
   const mockEngine = new BotEngineService(mockRepo, {} as any);
   const mockAudit = { info: jest.fn().mockResolvedValue(undefined) } as any;
 
-  it('creates a session for organisation with IDLE flux when no triggers', async () => {
+  it('creates a session for organisation with a conseil menu when no triggers', async () => {
     const service = new BotService(mockRepo, mockEngine, mockAudit);
     const result = await service.demarrerSessionOrganisation('o1', 'FR');
 
     expect(mockRepo.getProfilOrganisation).toHaveBeenCalledWith('o1');
     expect(mockRepo.getAbonnementB2B).toHaveBeenCalledWith('o1');
     expect(mockRepo.countApprenantsActifsOrganisation).toHaveBeenCalledWith('o1');
-    expect(result.flux).toBe('IDLE');
+    expect(result.flux).toBe('CONSEIL');
+    expect((result as any).question).toEqual(expect.objectContaining({
+      id: 1,
+      options: expect.arrayContaining(['Abonnement', 'Employés', 'Vouchers', 'Paiements', 'Autre']),
+    }));
   });
 });

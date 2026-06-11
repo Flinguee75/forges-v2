@@ -63,7 +63,7 @@ describe('SessionDetail', () => {
         date_debut: '2026-06-03T00:00:00.000Z',
         date_fin: '2026-06-04T00:00:00.000Z',
         capacite: 20,
-        statut: 'OUVERTE',
+        statut: 'EN_COURS',
         _count: { dossiers: 7 },
       },
     });
@@ -108,6 +108,19 @@ describe('SessionDetail', () => {
     const user = userEvent.setup();
     sessionsApi.annuler.mockRejectedValue({
       response: { data: { error: 'INVALID_STATUT', message: 'La session ne peut pas être annulée.' } },
+    });
+    sessionsApi.getById.mockResolvedValueOnce({
+      data: {
+        id: 's-1',
+        formation: { id: 'f-1', titre: 'Formation 1' },
+        date_ouverture: '2026-06-01T00:00:00.000Z',
+        date_cloture: '2026-06-02T00:00:00.000Z',
+        date_debut: '2026-06-03T00:00:00.000Z',
+        date_fin: '2026-06-04T00:00:00.000Z',
+        capacite: 20,
+        statut: 'OUVERTE',
+        _count: { dossiers: 7 },
+      },
     });
 
     render(

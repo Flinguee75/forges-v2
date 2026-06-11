@@ -93,6 +93,7 @@ const ContratInstitutionnel = lazy(() => import('../pages/backoffice/abonnements
 const ConfigAdmin = lazy(() => import('../pages/backoffice/config/ConfigAdmin'));
 const EnquetesCatalogue = lazy(() => import('../pages/backoffice/bot/EnquetesCatalogue'));
 const FeedbacksAdmin = lazy(() => import('../pages/backoffice/bot/FeedbacksAdmin'));
+const DemandesContactAdmin = lazy(() => import('../pages/backoffice/bot/DemandesContactAdmin'));
 const PartenairesList = lazy(() => import('../pages/backoffice/partenaires/PartenairesList'));
 const PartenaireDetail = lazy(() => import('../pages/backoffice/partenaires/PartenaireDetail'));
 const InvitationPartenaire = lazy(() => import('../pages/backoffice/partenaires/InvitationPartenaire'));
@@ -735,6 +736,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['ADMIN', 'RESPONSABLE']}>
             {withSuspense(<FeedbacksAdmin />)}
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'bot/demandes-contact',
+        element: (
+          <RoleGuard allowedRoles={['ADMIN', 'RESPONSABLE', 'AGENT']}>
+            {withSuspense(<DemandesContactAdmin />)}
           </RoleGuard>
         ),
       },

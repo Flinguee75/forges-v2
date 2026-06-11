@@ -65,6 +65,7 @@ model Organisation {
   apporteur          Apporteur?               @relation(fields: [apporteur_id], references: [id])
   apprenants            Apprenant[]
   feedbacks             FeedbackFormation[]
+  demandes_contact_bot  DemandeContactBot[]
   devis                 Devis[]
   inscriptions_initiees Dossier[]                @relation("DossierInscritParOrg")
   created_at            DateTime                 @default(now())
@@ -514,6 +515,23 @@ model EnqueteCatalogue {
   statut            String   @default("NOUVEAU")
   commentaire_admin String?
   date_saisie       DateTime @default(now())
+}
+
+model DemandeContactBot {
+  id                String       @id @default(uuid())
+  utilisateur_id    String
+  type_utilisateur  String
+  organisation_id   String?
+  session_bot_id    String?
+  motif             String
+  commentaire       String?      @db.VarChar(500)
+  statut            String       @default("NOUVELLE")
+  date_saisie       DateTime     @default(now())
+  organisation     Organisation? @relation(fields: [organisation_id], references: [id])
+
+  @@index([organisation_id])
+  @@index([statut])
+  @@index([date_saisie])
 }
 
 model FeedbackFormation {

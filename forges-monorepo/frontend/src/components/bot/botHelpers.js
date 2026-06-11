@@ -19,6 +19,7 @@ const BOT_COPY = {
     recommendationIntro: 'Voici les formations que le conseiller a retenues pour vous.',
     estimatedCostLabel: 'Coût estimé',
     recommendedPalierLabel: 'Palier recommandé',
+    organisationIdleIntro: 'Je peux vous aider à aller plus vite sur vos sujets organisation.',
     loading: 'Chargement du conseiller...',
     unavailableTitle: 'Conseiller indisponible',
     retry: 'Réessayer',
@@ -26,7 +27,7 @@ const BOT_COPY = {
     newConversation: 'Nouvelle conversation',
     viewOffers: 'Voir les offres',
     invalidChoice: 'Choisissez une option proposée.',
-    commentNotAllowed: 'Aucun commentaire n’est autorisé pour cette question.',
+    commentNotAllowed: "Aucun commentaire n'est autorisé pour cette question.",
     commentTooLong: (maxLength) => `Le commentaire ne peut pas dépasser ${maxLength} caractères.`,
     commentPlaceholder: 'Votre commentaire...',
     noRecommendations: 'Aucune recommandation disponible pour le moment.',
@@ -57,6 +58,7 @@ const BOT_COPY = {
     recommendationIntro: 'Here are the training programs selected for you.',
     estimatedCostLabel: 'Estimated cost',
     recommendedPalierLabel: 'Recommended tier',
+    organisationIdleIntro: 'I can help you move faster on your organisation tasks.',
     loading: 'Loading advisor...',
     unavailableTitle: 'Advisor unavailable',
     retry: 'Retry',
@@ -95,6 +97,7 @@ const BOT_COPY = {
     recommendationIntro: 'Estas son las formaciones seleccionadas para ti.',
     estimatedCostLabel: 'Costo estimado',
     recommendedPalierLabel: 'Palier recomendado',
+    organisationIdleIntro: 'Puedo ayudarte a avanzar mas rapido en tus tareas de organizacion.',
     loading: 'Cargando asesor...',
     unavailableTitle: 'Asesor no disponible',
     retry: 'Reintentar',
@@ -133,6 +136,7 @@ const BOT_COPY = {
     recommendationIntro: 'Estas sao as formacoes selecionadas para si.',
     estimatedCostLabel: 'Custo estimado',
     recommendedPalierLabel: 'Escala recomendada',
+    organisationIdleIntro: 'Posso ajuda-lo a avançar mais depressa nas tarefas da sua organizacao.',
     loading: 'A carregar assistente...',
     unavailableTitle: 'Assistente indisponivel',
     retry: 'Tentar novamente',
@@ -264,10 +268,10 @@ const FLUX_COPY = {
       PT: 'Conselho',
     },
     welcome: {
-      FR: 'Bonjour, comment puis-je vous aider ?',
-      EN: 'Hello, how can I help you?',
-      ES: 'Hola, como puedo ayudarte?',
-      PT: 'Ola, como posso ajuda-lo?',
+      FR: "Je peux vous orienter vers l'action utile la plus proche de votre besoin.",
+      EN: 'I can guide you to the most useful next action for your need.',
+      ES: 'Puedo orientarte hacia la accion mas util segun tu necesidad.',
+      PT: 'Posso orienta-lo para a acao mais util para a sua necessidade.',
     },
     completion: {
       FR: 'Merci. À bientôt.',
@@ -358,7 +362,7 @@ const QUESTION_LIBRARY = {
   qualite_animation: {
     type: 'star',
     question: {
-      FR: 'Comment évaluez-vous la qualité de l’animation ?',
+      FR: "Comment évaluez-vous la qualité de l'animation ?",
       EN: 'How would you rate the quality of the facilitation?',
       ES: 'Como evaluas la calidad de la dinamizacion?',
       PT: 'Como avalia a qualidade da dinamizacao?',
@@ -560,7 +564,7 @@ const QUESTION_LIBRARY = {
   organisation_orientation_secteur: {
     question: {
       FR: 'Dans quel secteur se situe le besoin de vos équipes ?',
-      EN: 'Which sector best matches your teams’ needs?',
+      EN: "Which sector best matches your teams' needs?",
       ES: 'En que sector se situa la necesidad de tus equipos?',
       PT: 'Em que setor se situa a necessidade das suas equipas?',
     },
@@ -630,6 +634,50 @@ const QUESTION_LIBRARY = {
         PT: 'Mais tarde',
       },
     },
+  },
+  conseil_1: {
+    question: {
+      FR: 'De quoi avez-vous besoin ?',
+      EN: 'What do you need?',
+      ES: 'Que necesitas?',
+      PT: 'Do que precisa?',
+    },
+    options: {
+      Abonnement: { FR: 'Abonnement', EN: 'Subscription', ES: 'Suscripcion', PT: 'Subscricao' },
+      Employés: { FR: 'Employés', EN: 'Employees', ES: 'Empleados', PT: 'Funcionarios' },
+      Vouchers: { FR: 'Vouchers', EN: 'Vouchers', ES: 'Cupones', PT: 'Vouchers' },
+      Paiements: { FR: 'Paiements', EN: 'Payments', ES: 'Pagos', PT: 'Pagamentos' },
+      Autre: { FR: 'Autre', EN: 'Other', ES: 'Otro', PT: 'Outro' },
+    },
+  },
+  conseil_2: {
+    question: {
+      FR: 'Quel est le motif de votre demande ?',
+      EN: 'What is the reason for your request?',
+      ES: 'Cual es el motivo de su solicitud?',
+      PT: 'Qual e o motivo do seu pedido?',
+    },
+    options: {
+      Technique: { FR: 'Technique', EN: 'Technical', ES: 'Tecnico', PT: 'Tecnico' },
+      Paiements: { FR: 'Paiements', EN: 'Payments', ES: 'Pagos', PT: 'Pagamentos' },
+      Employés: { FR: 'Employés', EN: 'Employees', ES: 'Empleados', PT: 'Funcionarios' },
+      Vouchers: { FR: 'Vouchers', EN: 'Vouchers', ES: 'Cupones', PT: 'Vouchers' },
+      Autre: { FR: 'Autre', EN: 'Other', ES: 'Otro', PT: 'Outro' },
+    },
+  },
+  conseil_3: {
+    question: {
+      FR: "Vous pouvez ajouter un commentaire puis confirmer l'envoi.",
+      EN: 'You can add an optional comment and then confirm.',
+      ES: 'Puede anadir un comentario opcional y luego confirmar.',
+      PT: 'Pode adicionar um comentario opcional e depois confirmar.',
+    },
+    options: {
+      ENVOYER: { FR: 'Envoyer le commentaire', EN: 'Send the comment', ES: 'Enviar el comentario', PT: 'Enviar o comentario' },
+      ANNULER: { FR: 'Annuler', EN: 'Cancel', ES: 'Cancelar', PT: 'Cancelar' },
+    },
+    allow_commentaire: true,
+    commentaire_max_length: 500,
   },
 };
 

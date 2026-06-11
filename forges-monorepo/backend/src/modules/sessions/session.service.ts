@@ -177,7 +177,7 @@ export class SessionService {
   async closeManually(id: string, userId: string) {
     const session = await this.sessionRepo.findById(id);
     if (!session) throw new Error('SESSION_NOT_FOUND');
-    if (session.statut !== 'OUVERTE') throw new Error('INVALID_STATUT');
+    if (!['OUVERTE', 'EN_COURS'].includes(session.statut)) throw new Error('INVALID_STATUT');
 
     await this.sessionRepo.archivePendingDossiers(id);
     const updated = await this.sessionRepo.updateStatut(id, 'CLOTUREE');

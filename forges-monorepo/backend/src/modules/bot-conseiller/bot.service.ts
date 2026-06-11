@@ -6,6 +6,7 @@ import { FeedbackEligibilityService, FeedbackTarget } from './feedback-eligibili
 
 const COOLDOWN_UPGRADE_JOURS = 7;   // RM-120
 const COOLDOWN_3_REFUS_JOURS = 30;  // RM-120
+import { CONSEIL_MENU_OPTIONS, CONSEIL_MOTIF_OPTIONS, CONSEIL_CONFIRMATION_OPTIONS } from './conseil.questions';
 
 export class BotService {
   constructor(
@@ -94,7 +95,7 @@ export class BotService {
     const aboB2B = await this.botRepo.getAbonnementB2B(organisation_id);
     const nbApprenants = await this.botRepo.countApprenantsActifsOrganisation(organisation_id);
 
-    let flux: 'UPGRADE' | 'FEEDBACK' | 'IDLE' = 'IDLE';
+    let flux: 'UPGRADE' | 'FEEDBACK' | 'CONSEIL' | 'IDLE' = 'IDLE';
 
     // RM-121 : cooldown 7 jours après refus upgrade
     const dernierRefus = await this.botRepo.findDernierRefusUpgrade(organisation_id);
@@ -134,6 +135,10 @@ export class BotService {
       flux = 'FEEDBACK'; // Feedback prioritaire
     }
 
+    if (flux === 'IDLE') {
+      flux = 'CONSEIL';
+    }
+
     const session = await this.botRepo.creerSession({
       utilisateur_id: organisation_id,
       apprenant_id: null,
@@ -157,6 +162,8 @@ export class BotService {
       return this.getPremiereQuestionUpgradeOrganisation(session.id, aboB2B?.palier);
     } else if (flux === 'FEEDBACK') {
       return this.getPremiereQuestion(session.id, flux, sessionsSansFeedback[0]);
+    } else if (flux === 'CONSEIL') {
+      return this.getPremiereQuestionConseil(session.id);
     }
 
     return {
@@ -198,6 +205,47 @@ export class BotService {
       question: `Votre abonnement ${palier_actuel} arrive à saturation. Souhaitez-vous passer au palier ${palierSuivant} pour former jusqu'à ${capaciteSuivante} collaborateurs ?`,
       options: ['Oui, je souhaite upgrader', 'Non, pas maintenant', 'En savoir plus'],
       question_id: 1,
+    };
+  }
+
+  private getPremiereQuestionConseil(session_id: string) {
+    return {
+      session_id,
+      flux: 'CONSEIL',
+      question: {
+        id: 1,
+        texte: 'De quoi avez-vous besoin ?',
+        options: ['Abonnement', 'Employés', 'Vouchers', 'Paiements', 'Autre'],
+        obligatoire: true,
+      },
+    };
+  }
+
+  private getPremiereQuestionConseilMotif(session_id: string) {
+    return {
+      session_id,
+      flux: 'CONSEIL',
+      question: {
+        id: 2,
+        texte: 'Quel est le motif de votre demande ?',
+        options: CONSEIL_MOTIF_OPTIONS,
+        obligatoire: true,
+      },
+    };
+  }
+
+  private getPremiereQuestionConseilCommentaire(session_id: string) {
+    return {
+      session_id,
+      flux: 'CONSEIL',
+      question: {
+        id: 3,
+        texte: `Vous pouvez ajouter un commentaire puis confirmer l'envoi.`,
+        options: CONSEIL_CONFIRMATION_OPTIONS,
+        allow_commentaire: true,
+        commentaire_max_length: 500,
+        obligatoire: true,
+      },
     };
   }
 
@@ -265,6 +313,9 @@ export class BotService {
       case 'FEEDBACK':
         return this.handleFeedback(session, question_id, valeur, historique);
 
+      case 'CONSEIL':
+        return this.handleConseil(session, question_id, valeur, historique);
+
       case 'ENQUETE':
         return this.handleEnquete(session, question_id, valeur, historique);
 
@@ -277,6 +328,17 @@ export class BotService {
     return {
       id: session.id,
       flux_actif: 'ORIENTATION',
+      statut: session.statut,
+      langue: session.langue,
+      current_question: question,
+      historique: { steps: historique, metadata: {} },
+    };
+  }
+
+  private conseilSessionView(session: any, historique: any[], question: any) {
+    return {
+      id: session.id,
+      flux_actif: 'CONSEIL',
       statut: session.statut,
       langue: session.langue,
       current_question: question,
@@ -335,6 +397,90 @@ export class BotService {
       await this.botRepo.cloturerSession(session.id, 'TERMINEE');
       return { fin: true, action: 'REDIRECT_UPGRADE', url: '/apprenant/abonnements/upgrade' };
     }
+  }
+
+  private async handleConseil(session: any, question_id: number | string, valeur: any, historique: any[]) {
+    if (question_id === 1) {
+      if (valeur === 'Autre') {
+        return this.getPremiereQuestionConseilMotif(session.id);
+      }
+
+      const infoMessages: Record<string, string> = {
+        Abonnement: `Vos abonnements sont accessibles depuis le menu Abonnement. Vous pouvez y gérer vos offres B2B et le suivi de vos contrats.`,
+        Employés: `La section Employés vous permet d'ajouter, consulter et rattacher les bénéficiaires à votre organisation.`,
+        Vouchers: `La section Vouchers centralise vos bons d'inscription et leur distribution à vos équipes.`,
+        Paiements: `La section Paiements vous permet de suivre les règlements, états et références associés à votre organisation.`,
+      };
+      const infoMsg = infoMessages[valeur] || 'Merci. Nous avons bien pris en compte votre demande.';
+
+      return {
+        id: session.id,
+        flux_actif: 'CONSEIL',
+        statut: session.statut,
+        langue: session.langue,
+        current_question: {
+          id: 1,
+          texte: 'De quoi avez-vous besoin ?',
+          options: CONSEIL_MENU_OPTIONS,
+          obligatoire: true,
+        },
+        historique: {
+          steps: historique,
+          metadata: {},
+          result: { message: infoMsg },
+        },
+      };
+    }
+
+    if (question_id === 2) {
+      return this.getPremiereQuestionConseilCommentaire(session.id);
+    }
+
+    if (question_id === 3) {
+      if (String(valeur) === 'ANNULER') {
+        await this.botRepo.cloturerSession(session.id, 'ABANDONNEE');
+        return {
+          fin: true,
+          flux: 'CONSEIL',
+          message: 'Votre demande a été annulée.',
+        };
+      }
+
+      const motif = historique.find((item) => item.question_id === 2)?.valeur || 'Autre';
+      const commentaire = historique.find((item) => item.question_id === 3)?.commentaire || null;
+      const demandeContact = await this.botRepo.enregistrerDemandeContact({
+        utilisateur_id: session.utilisateur_id,
+        type_utilisateur: session.type_utilisateur,
+        organisation_id: session.organisation_id || null,
+        session_bot_id: session.id,
+        motif,
+        commentaire,
+      });
+
+      await this.audit.info('DEMANDE_CONTACT_BOT_ENREGISTREE', {
+        session_id: session.id,
+        demande_contact_id: demandeContact.id,
+        motif,
+        type_utilisateur: session.type_utilisateur,
+      });
+
+      await this.botRepo.cloturerSession(session.id, 'TERMINEE');
+      return {
+        fin: true,
+        flux: 'CONSEIL',
+        message: 'Merci. Votre demande a été transmise. Nous vous recontacterons rapidement.',
+        demande_contact: {
+          id: demandeContact.id,
+          motif,
+        },
+      };
+    }
+
+    return {
+      fin: true,
+      flux: 'CONSEIL',
+      message: 'Merci. Votre demande a été transmise.',
+    };
   }
 
   private async handleFeedback(session: any, question_id: number | string, valeur: any, historique: any[]) {
@@ -422,6 +568,16 @@ export class BotService {
     };
   }
 
+  async getDemandesContact(params: {
+    statut?: string;
+    motif?: string;
+    organisation_id?: string;
+    page?: number;
+    limit?: number;
+  } = {}) {
+    return this.botRepo.findDemandesContact(params);
+  }
+
   private getPremiereQuestion(session_id: string, flux: string, sessionSansFeedback?: any) {
     switch (flux) {
       case 'FEEDBACK': {
@@ -469,6 +625,11 @@ export class BotService {
         if (question_id === 1) return OPTIONS_BOT.DOMAINE_ENQUETE.includes(valeur as any);
         if (question_id === 2) return OPTIONS_BOT.NIVEAU.includes(valeur as any);
         if (question_id === 3) return OPTIONS_BOT.VOLUME_ENQUETE.includes(valeur as any);
+        return false;
+      case 'CONSEIL':
+        if (question_id === 1) return CONSEIL_MENU_OPTIONS.includes(valeur as any);
+        if (question_id === 2) return CONSEIL_MOTIF_OPTIONS.includes(valeur as any);
+        if (question_id === 3) return CONSEIL_CONFIRMATION_OPTIONS.includes(String(valeur));
         return false;
       default:
         return false;

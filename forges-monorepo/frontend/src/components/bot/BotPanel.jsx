@@ -8,6 +8,7 @@ import { getBotCopy, getFluxLabel } from './botHelpers';
 export default function BotPanel({
   session,
   language = 'FR',
+  userRole = null,
   isLoading,
   error,
   onClose,
@@ -48,6 +49,7 @@ export default function BotPanel({
       <BotMessagesContainer
         session={session}
         language={language}
+        userRole={userRole}
         isLoading={isLoading}
         error={error}
         onRetry={onRetry}
@@ -97,6 +99,7 @@ export default function BotPanel({
 BotPanel.propTypes = {
   session: PropTypes.object,
   language: PropTypes.string,
+  userRole: PropTypes.string,
   isLoading: PropTypes.bool,
   error: PropTypes.string,
   onClose: PropTypes.func.isRequired,
