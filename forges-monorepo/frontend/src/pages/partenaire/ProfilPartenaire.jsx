@@ -118,6 +118,10 @@ export default function ProfilPartenaire() {
     email: '',
     raison_sociale: '',
     pays: 'CI',
+    type: 'UNIVERSITE',
+    site_web: '',
+    telephone: '',
+    description: '',
     logo_url: null,
   });
   const fileInputRef = useRef(null);
@@ -132,6 +136,10 @@ export default function ProfilPartenaire() {
               email: result?.email_principal || result?.email || '',
               raison_sociale: result?.raison_sociale || '',
               pays: result?.pays || 'CI',
+              type: result?.type || 'UNIVERSITE',
+              site_web: result?.site_web || '',
+              telephone: result?.telephone || '',
+              description: result?.description || '',
               logo_url: result?.logo_url || null,
             });
           },
@@ -160,6 +168,10 @@ export default function ProfilPartenaire() {
       email: formData.email.trim(),
       raison_sociale: formData.raison_sociale.trim(),
       pays: formData.pays,
+      type: formData.type,
+      site_web: formData.site_web.trim() || null,
+      telephone: formData.telephone.trim() || null,
+      description: formData.description.trim() || null,
       logo_url: formData.logo_url,
     }), {
       showSuccessToast: false,
@@ -292,31 +304,60 @@ export default function ProfilPartenaire() {
           <div className="border-b border-[var(--color-border)] px-6 py-4">
             <h2 className="text-sm font-semibold text-[var(--color-text)]">{copy.editableTitle}</h2>
           </div>
-          <form className="px-6 py-6 space-y-5" onSubmit={handleSubmit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                label={copy.email}
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                label={copy.companyName}
-                name="raison_sociale"
-                value={formData.raison_sociale}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                label={copy.country}
-                name="pays"
-                value={formData.pays}
-                onChange={handleChange}
-                placeholder="CI"
-              />
+          <form className="px-6 py-6 space-y-6" onSubmit={handleSubmit}>
+
+            {/* Identité */}
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-subtext)]">Identité</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input label={copy.email} name="email" type="email" value={formData.email} onChange={handleChange} required />
+                <Input label={copy.companyName} name="raison_sociale" value={formData.raison_sociale} onChange={handleChange} required />
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-[var(--color-text)]">Type de partenaire</label>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2.5 text-sm text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none"
+                  >
+                    <option value="UNIVERSITE">Université</option>
+                    <option value="ENTREPRISE_FORMATION">Entreprise de formation</option>
+                    <option value="ONG">ONG</option>
+                    <option value="INSTITUTION">Institution</option>
+                    <option value="AUTRE">Autre</option>
+                  </select>
+                </div>
+                <Input label={copy.country} name="pays" value={formData.pays} onChange={handleChange} placeholder="CI" />
+              </div>
             </div>
+
+            {/* Contact */}
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-subtext)]">Contact</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input label="Site web" name="site_web" type="url" value={formData.site_web} onChange={handleChange} placeholder="https://..." />
+                <Input label="Téléphone" name="telephone" type="tel" value={formData.telephone} onChange={handleChange} placeholder="+225 07 00 00 00 00" />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-subtext)]">Présentation</p>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--color-text)]">Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Décrivez votre organisation en quelques lignes..."
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-subtext)] focus:border-[var(--color-primary)] focus:outline-none resize-none"
+                />
+                <p className="text-xs text-[var(--color-subtext)] text-right">{formData.description.length}/1000</p>
+              </div>
+            </div>
+
             <Button type="submit" variant="primary" loading={isLoading}>
               {copy.save}
             </Button>
@@ -358,6 +399,20 @@ export default function ProfilPartenaire() {
               <div className="flex items-center justify-between py-3">
                 <span className="text-sm text-[var(--color-subtext)]">Mode d'inscription</span>
                 <span className="text-sm font-medium text-[var(--color-text)]">{profil.mode_inscription}</span>
+              </div>
+            )}
+            {profil.site_web && (
+              <div className="flex items-start justify-between gap-4 py-3">
+                <span className="shrink-0 text-sm text-[var(--color-subtext)]">Site web</span>
+                <a href={profil.site_web} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--color-primary)] hover:underline break-all text-right">
+                  {profil.site_web}
+                </a>
+              </div>
+            )}
+            {profil.telephone && (
+              <div className="flex items-center justify-between py-3">
+                <span className="text-sm text-[var(--color-subtext)]">Téléphone</span>
+                <span className="text-sm font-medium text-[var(--color-text)]">{profil.telephone}</span>
               </div>
             )}
           </div>

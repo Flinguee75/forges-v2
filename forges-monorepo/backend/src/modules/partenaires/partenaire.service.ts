@@ -428,6 +428,10 @@ export class PartenaireService {
       ...(dto.raison_sociale ? { raison_sociale: dto.raison_sociale } : {}),
       ...(dto.email_principal ? { email_principal: dto.email_principal } : {}),
       ...(dto.pays ? { pays: dto.pays } : {}),
+      ...(dto.type ? { type: dto.type } : {}),
+      ...('site_web' in dto ? { site_web: dto.site_web ?? null } : {}),
+      ...('telephone' in dto ? { telephone: dto.telephone ?? null } : {}),
+      ...('description' in dto ? { description: dto.description ?? null } : {}),
       ...('logo_url' in dto ? { logo_url: dto.logo_url ?? null } : {}),
     });
 

@@ -262,6 +262,9 @@ model Partenaire {
   responsable_designe_id             String?
   seuil_reversement_personnalise     Int?
   logo_url                           String?
+  site_web                           String?
+  telephone                          String?
+  description                        String?
   formations                         Formation[]
   formations_partenaires             FormationPartenaire[]
   commissions_partenaires            CommissionPartenaire[]
