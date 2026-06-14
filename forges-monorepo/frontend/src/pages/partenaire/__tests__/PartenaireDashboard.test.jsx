@@ -119,7 +119,7 @@ describe('PartenaireDashboard', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('Actions rapides')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Soumettre une formation' }));
+    await user.click(screen.getByTestId('quick-action-submit'));
 
     expect(mockNavigate).toHaveBeenCalledWith('/partenaire/soumettre-formation');
   });
