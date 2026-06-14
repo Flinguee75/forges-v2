@@ -316,6 +316,12 @@ function AnimatedStat({ value, label }) {
   );
 }
 
+const PERKS_B2B = {
+  STARTER:    ['Jusqu\'a 20 membres', 'Vouchers organisation', 'Tableau de bord equipe', 'Formations standard incluses'],
+  BUSINESS:   ['Jusqu\'a 50 membres', 'Vouchers organisation', 'Tableau de bord equipe', 'Formations standard incluses', 'Rapports consolides'],
+  ENTERPRISE: ['Jusqu\'a 100 membres', 'Vouchers organisation', 'Tableau de bord equipe', 'Formations standard incluses', 'Rapports consolides', '2 formations Premium offertes'],
+};
+
 const PERKS_ESSENTIEL = [
   { text: 'Formations incluses comprises', ok: true },
   { text: 'Inscription session par session', ok: true },
@@ -374,6 +380,7 @@ export default function LandingPage() {
   const { execute: fetchFeatured, isLoading: loadingFeatured } = useApi();
   const { execute: fetchTarifs } = useApi();
   const [tarifs, setTarifs] = useState(null);
+  const [pricingMode, setPricingMode] = useState('individuel');
 
   useSEO({
     title: 'FORGES — Formations Certifiantes | Cybersecurite, IA, Data Science en Cote d\'Ivoire',
@@ -668,92 +675,199 @@ export default function LandingPage() {
             />
           </motion.div>
 
-          <motion.div
-            className="mt-12 grid gap-5 lg:grid-cols-3"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-40px' }}
-            variants={staggerContainer}
-          >
-            {/* Plan Catalogue libre */}
-            <motion.div variants={cardVariant} className="flex flex-col rounded-2xl border border-border bg-bg p-7">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-subtext">Catalogue libre</p>
-              <p className="mt-4 text-3xl font-extrabold text-primary">Gratuit</p>
-              <p className="mt-1 text-sm text-subtext">Sans engagement</p>
-              <p className="mt-4 text-sm leading-6 text-subtext">
-                Explorez le catalogue et payez uniquement les formations que vous choisissez, session par session.
-              </p>
-              <ul className="mt-6 space-y-3">
-                <PerkRow text="Catalogue complet visible" ok={true} />
-                <PerkRow text="Paiement a la session" ok={true} />
-                <PerkRow text="Formations incluses comprises" ok={false} />
-                <PerkRow text="Reduction -15% sur les sessions" ok={false} />
-              </ul>
-              <div className="mt-auto pt-8">
-                <CtaLink to="/catalogue" variant="outline" className="w-full">
-                  Parcourir le catalogue
-                </CtaLink>
-              </div>
-            </motion.div>
+          {/* Toggle Individuel / Organisation */}
+          <div className="mt-10 flex justify-center">
+            <div className="inline-flex rounded-xl border border-border bg-bg p-1">
+              {['individuel', 'organisation'].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPricingMode(mode)}
+                  className={`rounded-lg px-6 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    pricingMode === mode
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-subtext hover:text-primary'
+                  }`}
+                >
+                  {mode === 'individuel' ? 'Individuel' : 'Organisation'}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Plan Essentiel */}
-            <motion.div variants={cardVariant} className="flex flex-col rounded-2xl border border-border bg-white p-7 shadow-md shadow-primary/5">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-secondary">Essentiel</p>
-              <div className="mt-4 flex items-end gap-1">
-                <p className="text-3xl font-extrabold text-primary">
-                  {tarifs?.retail?.ESSENTIEL ? formatXof(tarifs.retail.ESSENTIEL) : '15 000 FCFA'}
+          {/* Plans Individuel */}
+          {pricingMode === 'individuel' && (
+            <motion.div
+              key="individuel"
+              className="mt-8 grid gap-5 lg:grid-cols-3"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              {/* Catalogue libre */}
+              <div className="flex flex-col rounded-2xl border border-border bg-bg p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-subtext">Catalogue libre</p>
+                <p className="mt-4 text-3xl font-extrabold text-primary">Gratuit</p>
+                <p className="mt-1 text-sm text-subtext">Sans engagement</p>
+                <p className="mt-4 text-sm leading-6 text-subtext">
+                  Explorez le catalogue et payez uniquement les formations que vous choisissez.
                 </p>
-                <p className="mb-1 text-sm text-subtext">/mois</p>
+                <ul className="mt-6 space-y-3">
+                  <PerkRow text="Catalogue complet visible" ok={true} />
+                  <PerkRow text="Paiement a la session" ok={true} />
+                  <PerkRow text="Formations incluses comprises" ok={false} />
+                  <PerkRow text="Reduction -15% sur les sessions" ok={false} />
+                </ul>
+                <div className="mt-auto pt-8">
+                  <CtaLink to="/catalogue" variant="outline" className="w-full">Parcourir le catalogue</CtaLink>
+                </div>
               </div>
-              <p className="mt-1 text-sm text-subtext">Formations incluses, acces illimite</p>
-              <p className="mt-4 text-sm leading-6 text-subtext">
-                Une mensualite fixe pour acceder librement aux formations standard du catalogue incluses.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {PERKS_ESSENTIEL.map((p) => <PerkRow key={p.text} {...p} />)}
-              </ul>
-              <div className="mt-auto pt-8">
-                <CtaLink to="/register/etudiant" variant="secondary" className="w-full">
-                  Commencer avec Essentiel
-                </CtaLink>
-              </div>
-            </motion.div>
 
-            {/* Plan Premium */}
-            <motion.div variants={cardVariant} className="relative flex flex-col rounded-2xl border-2 border-secondary bg-primary p-7 shadow-xl shadow-primary/20">
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-secondary px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-white shadow-sm">
-                Recommande
-              </span>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Premium</p>
-              <div className="mt-4 flex items-end gap-1">
-                <p className="text-3xl font-extrabold text-white">
-                  {tarifs?.retail?.PREMIUM ? formatXof(tarifs.retail.PREMIUM) : '25 000 FCFA'}
+              {/* Essentiel */}
+              <div className="flex flex-col rounded-2xl border border-border bg-white p-7 shadow-md shadow-primary/5">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-secondary">Essentiel</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <p className="text-3xl font-extrabold text-primary">
+                    {tarifs?.retail?.ESSENTIEL ? formatXof(tarifs.retail.ESSENTIEL) : '15 000 FCFA'}
+                  </p>
+                  <p className="mb-1 text-sm text-subtext">/mois</p>
+                </div>
+                <p className="mt-1 text-sm text-subtext">Formations incluses, acces illimite</p>
+                <p className="mt-4 text-sm leading-6 text-subtext">
+                  Une mensualite fixe pour acceder librement aux formations standard du catalogue.
                 </p>
-                <p className="mb-1 text-sm text-white/60">/mois</p>
+                <ul className="mt-6 space-y-3">
+                  {PERKS_ESSENTIEL.map((p) => <PerkRow key={p.text} {...p} />)}
+                </ul>
+                <div className="mt-auto pt-8">
+                  <CtaLink to="/register/etudiant" variant="secondary" className="w-full">Commencer avec Essentiel</CtaLink>
+                </div>
               </div>
-              <p className="mt-1 text-sm text-white/60">Tout Essentiel + formations exclusives</p>
-              <p className="mt-4 text-sm leading-6 text-white/75">
-                Le niveau superieur pour acceder aux formations Premium et progresser sans limite.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {PERKS_PREMIUM.map((p) => (
-                  <li key={p.text} className="flex items-center gap-3 text-sm text-white/85">
-                    <svg className="h-4 w-4 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {p.text}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-auto pt-8">
-                <CtaLink to="/register/etudiant" variant="light" className="w-full">
-                  Commencer avec Premium
-                </CtaLink>
+
+              {/* Premium */}
+              <div className="relative flex flex-col rounded-2xl border-2 border-secondary bg-primary p-7 shadow-xl shadow-primary/20">
+                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-secondary px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-white shadow-sm">
+                  Recommande
+                </span>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Premium</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <p className="text-3xl font-extrabold text-white">
+                    {tarifs?.retail?.PREMIUM ? formatXof(tarifs.retail.PREMIUM) : '25 000 FCFA'}
+                  </p>
+                  <p className="mb-1 text-sm text-white/60">/mois</p>
+                </div>
+                <p className="mt-1 text-sm text-white/60">Tout Essentiel + formations exclusives</p>
+                <p className="mt-4 text-sm leading-6 text-white/75">
+                  Le niveau superieur pour acceder aux formations Premium et progresser sans limite.
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {PERKS_PREMIUM.map((p) => (
+                    <li key={p.text} className="flex items-center gap-3 text-sm text-white/85">
+                      <svg className="h-4 w-4 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {p.text}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-8">
+                  <CtaLink to="/register/etudiant" variant="light" className="w-full">Commencer avec Premium</CtaLink>
+                </div>
               </div>
             </motion.div>
-          </motion.div>
+          )}
 
-          {/* Callout B2B */}
+          {/* Plans Organisation */}
+          {pricingMode === 'organisation' && (
+            <motion.div
+              key="organisation"
+              className="mt-8 grid gap-5 lg:grid-cols-3"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              {/* Starter */}
+              <div className="flex flex-col rounded-2xl border border-border bg-bg p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-subtext">Starter</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <p className="text-3xl font-extrabold text-primary">
+                    {tarifs?.b2b?.STARTER?.prix_annuel ? formatXof(tarifs.b2b.STARTER.prix_annuel) : '250 000 FCFA'}
+                  </p>
+                  <p className="mb-1 text-sm text-subtext">/an</p>
+                </div>
+                <p className="mt-1 text-sm text-subtext">
+                  Jusqu'a {tarifs?.b2b?.STARTER?.nb_max ?? 20} membres
+                </p>
+                <p className="mt-4 text-sm leading-6 text-subtext">
+                  Ideal pour les petites equipes qui veulent centraliser la formation de leurs collaborateurs.
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {PERKS_B2B.STARTER.map((t) => <PerkRow key={t} text={t} ok={true} />)}
+                </ul>
+                <div className="mt-auto pt-8">
+                  <CtaLink to="/register/organisation" variant="outline" className="w-full">Commencer Starter</CtaLink>
+                </div>
+              </div>
+
+              {/* Business */}
+              <div className="relative flex flex-col rounded-2xl border-2 border-secondary bg-primary p-7 shadow-xl shadow-primary/20">
+                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-secondary px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-white shadow-sm">
+                  Populaire
+                </span>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Business</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <p className="text-3xl font-extrabold text-white">
+                    {tarifs?.b2b?.BUSINESS?.prix_annuel ? formatXof(tarifs.b2b.BUSINESS.prix_annuel) : '500 000 FCFA'}
+                  </p>
+                  <p className="mb-1 text-sm text-white/60">/an</p>
+                </div>
+                <p className="mt-1 text-sm text-white/60">
+                  Jusqu'a {tarifs?.b2b?.BUSINESS?.nb_max ?? 50} membres
+                </p>
+                <p className="mt-4 text-sm leading-6 text-white/75">
+                  Pour les equipes en croissance qui forment regulierement et veulent piloter les resultats.
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {PERKS_B2B.BUSINESS.map((t) => (
+                    <li key={t} className="flex items-center gap-3 text-sm text-white/85">
+                      <svg className="h-4 w-4 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-8">
+                  <CtaLink to="/register/organisation" variant="light" className="w-full">Commencer Business</CtaLink>
+                </div>
+              </div>
+
+              {/* Enterprise */}
+              <div className="flex flex-col rounded-2xl border border-border bg-white p-7 shadow-md shadow-primary/5">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-secondary">Enterprise</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <p className="text-3xl font-extrabold text-primary">
+                    {tarifs?.b2b?.ENTERPRISE?.prix_annuel ? formatXof(tarifs.b2b.ENTERPRISE.prix_annuel) : '900 000 FCFA'}
+                  </p>
+                  <p className="mb-1 text-sm text-subtext">/an</p>
+                </div>
+                <p className="mt-1 text-sm text-subtext">
+                  Jusqu'a {tarifs?.b2b?.ENTERPRISE?.nb_max ?? 100} membres
+                </p>
+                <p className="mt-4 text-sm leading-6 text-subtext">
+                  La solution complete pour les grandes structures avec formations Premium et suivi avance.
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {PERKS_B2B.ENTERPRISE.map((t) => <PerkRow key={t} text={t} ok={true} />)}
+                </ul>
+                <div className="mt-auto pt-8">
+                  <CtaLink to="/register/organisation" variant="secondary" className="w-full">Commencer Enterprise</CtaLink>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Callout Sur devis */}
           <motion.div
             className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border border-border bg-bg px-8 py-6 sm:flex-row"
             initial="hidden"
@@ -761,15 +875,31 @@ export default function LandingPage() {
             viewport={{ once: true }}
             variants={fadeInUp}
           >
-            <div>
-              <p className="font-bold text-primary">Vous etes une organisation ?</p>
-              <p className="mt-1 text-sm text-subtext">
-                Formez vos equipes avec des vouchers, un abonnement B2B et un tableau de bord dedie.
-              </p>
-            </div>
-            <CtaLink to="/register/organisation" variant="outline" className="shrink-0">
-              Decouvrir les offres entreprise
-            </CtaLink>
+            {pricingMode === 'individuel' ? (
+              <>
+                <div>
+                  <p className="font-bold text-primary">Vous etes une organisation ?</p>
+                  <p className="mt-1 text-sm text-subtext">
+                    Formez vos equipes avec des vouchers, un abonnement B2B et un tableau de bord dedie.
+                  </p>
+                </div>
+                <button type="button" onClick={() => setPricingMode('organisation')} className="shrink-0 inline-flex min-h-[48px] items-center justify-center rounded-lg border border-border bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md">
+                  Voir les offres organisation
+                </button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="font-bold text-primary">Plus de 100 membres ou besoins specifiques ?</p>
+                  <p className="mt-1 text-sm text-subtext">
+                    Contrat institutionnel sur mesure, palier illimite, conditions negociees.
+                  </p>
+                </div>
+                <a href={`mailto:contact@forges-group.com?subject=Offre sur devis`} className="shrink-0 inline-flex min-h-[48px] items-center justify-center rounded-lg border border-border bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md">
+                  Contacter pour un devis
+                </a>
+              </>
+            )}
           </motion.div>
         </div>
       </section>

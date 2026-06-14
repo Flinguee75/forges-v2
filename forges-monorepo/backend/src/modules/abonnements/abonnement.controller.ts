@@ -4,6 +4,7 @@ import { AbonnementRetailService } from './retail/abonnement-retail.service';
 import { AbonnementOrganisationService } from './organisation/abonnement-organisation.service';
 import { AbonnementB2BService } from './b2b/abonnement-b2b.service';
 import { TARIFS_RETAIL } from './retail/abonnement-retail.repository';
+import { PALIERS_B2B } from './b2b/abonnement-b2b.service';
 
 export class AbonnementController {
   constructor(
@@ -303,6 +304,11 @@ export class AbonnementController {
         retail: {
           ESSENTIEL: TARIFS_RETAIL.ESSENTIEL,
           PREMIUM: TARIFS_RETAIL.PREMIUM,
+        },
+        b2b: {
+          STARTER:    PALIERS_B2B.STARTER,
+          BUSINESS:   PALIERS_B2B.BUSINESS,
+          ENTERPRISE: PALIERS_B2B.ENTERPRISE,
         },
       },
     });
