@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import Icon from '../../components/ui/Icon';
+import HeroOrbs from '../../components/ui/HeroOrbs';
 import logoForges from '../../assets/logo_forges.png';
 import logoForgesWebp from '../../assets/logo_forges.webp';
 import logoAspire from '../../assets/logo_aspire.png';
@@ -14,6 +16,7 @@ import { formationsApi } from '../../api/formations.api';
 import { useApi } from '../../hooks/useApi';
 import FormationMarketplaceCard from '../../components/catalogue/FormationMarketplaceCard';
 import Spinner from '../../components/feedback/Spinner';
+
 
 const CONTACT_EMAIL = 'contact@forges-group.com';
 
@@ -158,46 +161,46 @@ function ProductPreview() {
   ];
 
   return (
-    <div className="landing-float relative mx-auto max-w-md rounded-2xl border border-white/70 bg-white p-4 shadow-2xl shadow-primary/20">
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3">
+    <div className="landing-float relative mx-auto max-w-md rounded-2xl border border-white/20 bg-white/10 p-4 shadow-2xl shadow-primary/20 backdrop-blur-md">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/15 pb-3">
         <div className="flex items-center gap-3">
           <picture>
             <source srcSet={logoForgesWebp} type="image/webp" />
             <img src={logoForges} alt="FORGES" className="h-10 w-10 rounded-full object-cover" />
           </picture>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/60">Parcours certifiant</p>
-            <p className="text-sm font-semibold text-text">Formation professionnelle</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Parcours certifiant</p>
+            <p className="text-sm font-semibold text-white">Formation professionnelle</p>
           </div>
         </div>
-        <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success">
+        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
           En cours
         </span>
       </div>
 
-      <div className="rounded-xl border border-border bg-bg p-4">
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">Progression formation</p>
-            <h3 className="mt-2 text-lg font-bold leading-snug text-primary">Certification professionnelle en cours</h3>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/60">Progression formation</p>
+            <h3 className="mt-2 text-lg font-bold leading-snug text-white">Certification professionnelle en cours</h3>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-primary">68%</span>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-bold text-white">68%</span>
         </div>
 
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white">
-          <div className="landing-meter h-full w-[68%] rounded-full bg-success" />
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/15">
+          <div className="landing-meter h-full w-[68%] rounded-full bg-white/80" />
         </div>
 
         <div className="mt-4 grid gap-2">
           {milestones.map((milestone) => (
-            <div key={milestone.label} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-xs font-medium text-text">
+            <div key={milestone.label} className="flex items-center gap-3 rounded-lg bg-white/8 px-3 py-2 text-xs font-medium text-white/90">
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                   milestone.state === 'done'
-                    ? 'bg-success-soft text-success'
+                    ? 'bg-white/20 text-white'
                     : milestone.state === 'current'
-                      ? 'bg-warning-soft text-warning'
-                      : 'bg-secondary-soft text-secondary'
+                      ? 'bg-amber-400/30 text-amber-200'
+                      : 'bg-white/10 text-white/50'
                 }`}
               >
                 <Icon name={milestone.state === 'done' ? 'check' : 'clock'} size={13} />
@@ -209,13 +212,13 @@ function ProductPreview() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-lg bg-secondary-soft p-3">
-          <p className="text-xs text-subtext">Modules validés</p>
-          <p className="mt-1 text-xl font-bold text-primary">2/4</p>
+        <div className="rounded-lg bg-white/10 p-3">
+          <p className="text-xs text-white/60">Modules validés</p>
+          <p className="mt-1 text-xl font-bold text-white">2/4</p>
         </div>
-        <div className="rounded-lg bg-success-soft p-3">
-          <p className="text-xs text-subtext">Certification</p>
-          <p className="mt-1 text-xl font-bold text-success">En vue</p>
+        <div className="rounded-lg bg-white/10 p-3">
+          <p className="text-xs text-white/60">Certification</p>
+          <p className="mt-1 text-xl font-bold text-white">En vue</p>
         </div>
       </div>
     </div>
@@ -257,9 +260,25 @@ function CarouselCollaborateurs() {
   );
 }
 
+const fadeInUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
+};
+
+const cardVariant = {
+  hidden: { opacity: 0, y: 32 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
+};
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
   const [featuredFormations, setFeaturedFormations] = useState([]);
+  const prefersReducedMotion = useReducedMotion();
   const paymentExpirationHours = usePaymentExpirationHours();
   const { execute: fetchFeatured, isLoading: loadingFeatured } = useApi();
 
@@ -323,6 +342,7 @@ export default function LandingPage() {
     <div className="min-h-screen overflow-hidden bg-bg">
       <section className="relative isolate overflow-hidden bg-primary text-white">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(46,134,193,0.72),transparent_34%),linear-gradient(135deg,#12364D_0%,#1B4F72_48%,#2E86C1_100%)]" />
+        {!prefersReducedMotion && <HeroOrbs />}
         <div className="absolute inset-x-0 bottom-0 -z-10 h-28 bg-gradient-to-t from-bg to-transparent" />
 
         <div className="mx-auto grid min-h-[calc(100dvh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_0.85fr] lg:px-8 lg:py-20">
@@ -384,10 +404,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="py-20 bg-white">
+      <section
+        className="py-20"
+        style={{
+          backgroundColor: '#F0F6FA',
+          backgroundImage: `radial-gradient(circle, rgba(46,134,193,0.12) 1px, transparent 1px)`,
+          backgroundSize: '28px 28px',
+        }}
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-
-          <div className="flex items-end justify-between gap-4 mb-10">
+          <motion.div
+            className="flex items-end justify-between gap-4 mb-10"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={fadeInUp}
+          >
             <SectionHeading
               align="left"
               eyebrow="Catalogue"
@@ -397,7 +429,7 @@ export default function LandingPage() {
             <CtaLink to="/catalogue" variant="outline" className="shrink-0">
               Voir tout le catalogue
             </CtaLink>
-          </div>
+          </motion.div>
 
           {loadingFeatured && (
             <div className="flex justify-center py-12">
@@ -406,77 +438,116 @@ export default function LandingPage() {
           )}
 
           {!loadingFeatured && featuredFormations.length > 0 && (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <motion.div
+              className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-40px' }}
+              variants={staggerContainer}
+            >
               {featuredFormations.slice(0, 6).map((formation) => (
-                <FormationMarketplaceCard key={formation.id} formation={formation} />
+                <motion.div
+                  key={formation.id}
+                  variants={cardVariant}
+                  whileHover={prefersReducedMotion ? {} : {
+                    y: -6,
+                    rotateX: 2,
+                    rotateY: -2,
+                    scale: 1.01,
+                    transition: { duration: 0.2, ease: 'easeOut' },
+                  }}
+                  style={{ transformStyle: 'preserve-3d', perspective: 800 }}
+                >
+                  <FormationMarketplaceCard formation={formation} />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
 
           {!loadingFeatured && featuredFormations.length === 0 && (
-            <div className="flex justify-center py-8">
-              <CtaLink to="/catalogue" variant="primary">
-                Voir le catalogue
-              </CtaLink>
-            </div>
+            <motion.div
+              className="flex flex-col items-center gap-6 rounded-2xl border border-primary/10 bg-white/70 px-8 py-14 text-center backdrop-blur-sm"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/8">
+                <Icon name="academicCap" size={32} className="text-primary/60" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-primary">
+                  Des formations bientot disponibles
+                </p>
+                <p className="mt-2 max-w-md text-sm leading-6 text-subtext">
+                  Nos parcours certifiants arrivent prochainement. Restez branche sur nos reseaux pour etre les premiers informes.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Remplacer href par les vrais liens */}
+                <a
+                  href="https://www.linkedin.com/company/forges-agregateur/posts/?feedView=all"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/15 bg-white text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                  aria-label="FORGES sur LinkedIn"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://www.facebook.com/forgesgroup"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/15 bg-white text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                  aria-label="FORGES sur Facebook"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+                  </svg>
+                </a>
+              </div>
+            </motion.div>
           )}
         </div>
       </section>
 
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-10 overflow-hidden rounded-2xl bg-primary text-white shadow-xl shadow-primary/10 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="relative min-h-72 bg-white lg:h-full">
-              <picture>
-                <source srcSet={imageCcdlGwWebp} type="image/webp" />
-                <img
-                  src={imageCcdlGw}
-                  alt="Masterclass GWU CCDL"
-                  className="h-full min-h-72 w-full object-contain p-5"
-                />
-              </picture>
-              <div className="absolute left-5 top-5 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-primary shadow-sm">
-                Formation vedette
-              </div>
-            </div>
-
-            <div className="p-6 md:p-10">
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/70">
-                Crédibilité académique
-              </p>
-              <h2 className="mt-3 text-3xl font-bold leading-tight text-white md:text-4xl">
-                Masterclass GWU/CCDL - Cybersécurité & IA
-              </h2>
-              <p className="mt-4 text-base leading-7 text-white/90">
-                Formation internationale co-délivrée par la George Washington University et le CCDL :
-                10 jours intensifs à Abidjan autour de la cybersécurité stratégique et de la gouvernance IA.
-              </p>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {[
-                  ['Durée', '10 jours'],
-                  ['Format', 'Présentiel'],
-                  ['Lieu', 'Abidjan'],
-                  ['Tarif', '3 000 000 FCFA'],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-lg border border-white/20 bg-white/10 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-white/70">{label}</p>
-                    <p className="mt-1 font-semibold text-white">{value}</p>
-                  </div>
-                ))}
+          <motion.div
+            className="overflow-hidden rounded-2xl bg-[#0D2233]"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={fadeInUp}
+          >
+            <div className="grid lg:grid-cols-2">
+              <div className="relative flex min-h-72 items-center justify-center bg-white/5 p-8 lg:min-h-[460px]">
+                <picture>
+                  <source srcSet={imageCcdlGwWebp} type="image/webp" />
+                  <img
+                    src={imageCcdlGw}
+                    alt="Masterclass GWU CCDL — Abidjan"
+                    className="relative z-10 h-full max-h-72 w-full object-contain lg:max-h-80"
+                  />
+                </picture>
               </div>
 
-              <ul className="mt-6 space-y-3">
-                <CheckItem>Cybermenaces, gouvernance, risque et cadres stratégiques.</CheckItem>
-                <CheckItem>IA, opportunités, risques et implications de décision.</CheckItem>
-                <CheckItem>Badge numérique vérifiable et certification reconnue.</CheckItem>
-              </ul>
-
-              <CtaLink to="/catalogue" variant="light" className="mt-8 w-full sm:w-auto">
-                Voir cette formation
-              </CtaLink>
+              <div className="flex flex-col justify-center px-8 py-12 md:px-12">
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40">
+                  Temps fort
+                </p>
+                <h2 className="mt-4 text-3xl font-extrabold leading-tight text-white md:text-4xl">
+                  Masterclass GWU/CCDL<br />
+                  <span className="text-white/55">Cybersécurité & IA</span>
+                </h2>
+                <p className="mt-5 text-sm leading-7 text-white/50">
+                  10 jours. Abidjan. Co-délivré avec la George Washington University et le CCDL — un moment de formation internationale que FORGES a rendu possible en Afrique de l'Ouest.
+                </p>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 

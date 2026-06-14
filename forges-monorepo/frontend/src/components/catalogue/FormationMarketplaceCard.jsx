@@ -25,6 +25,10 @@ function getModeLabel(mode) {
   return MODE_LABELS[mode] || 'Sessions';
 }
 
+function stripCodePrefix(title = '') {
+  return title.replace(/^\[[^\]]+\]\s*/, '');
+}
+
 function getNiveauLabel(tarif = 0, duree = 0) {
   if (tarif >= 1000000 || duree >= 35) return 'Expert';
   if (tarif >= 500000 || duree >= 15) return 'Intermediaire';
@@ -44,9 +48,10 @@ function getActionLabel(formation, context) {
 export default function FormationMarketplaceCard({ formation, to, context = 'public' }) {
   const enrollment = formation.enrollment || null;
 
+  const rawTitre = formation.intitule || formation.titre || '';
   const f = {
     ...formation,
-    titre: formation.intitule || formation.titre || '',
+    titre: stripCodePrefix(rawTitre),
     description: formation.description_courte || formation.description || '',
     tarif: formation.cout_catalogue ?? formation.tarif,
     duree: formation.duree_jours ?? formation.duree,
@@ -87,21 +92,22 @@ export default function FormationMarketplaceCard({ formation, to, context = 'pub
             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className={`h-full w-full bg-gradient-to-br ${theme.bg} flex flex-col justify-end p-4`}>
-            <p className="text-sm font-semibold leading-snug text-white/90 line-clamp-2">
+          <div className={`h-full w-full bg-gradient-to-br ${theme.bg}`}>
+            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/60 to-transparent" />
+            <p className="absolute inset-x-4 bottom-4 text-sm font-semibold leading-snug text-white line-clamp-2">
               {f.titre}
             </p>
           </div>
         )}
 
-        {/* Provider badge */}
-        <div className="absolute bottom-2 left-2">
+        {/* Provider badge — top-left */}
+        <div className="absolute top-2 left-2">
           <span className="rounded bg-white/95 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold tracking-wider text-primary shadow-sm">
             FORGES
           </span>
         </div>
 
-        {/* Status badge */}
+        {/* Status badge — top-right */}
         {isEnrolled && (
           <div className="absolute top-2 right-2">
             <span className="rounded-full bg-success px-2.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
