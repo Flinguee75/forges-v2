@@ -593,23 +593,69 @@ export class EmailService {
 
   async sendInvitationPartenaire(email: string, token: string, langue: string): Promise<void> {
     const invitationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/register-partenaire?token=${token}`;
-    const title = 'Invitation à rejoindre FORGES en tant que partenaire';
+    const subject = 'Invitation à rejoindre FORGES en tant que partenaire';
+
+    const permissionsHtml = [
+      'Soumettre vos formations au catalogue FORGES',
+      'Suivre les validations et le statut de vos dossiers',
+      'Accéder à votre tableau de bord et vos reversements',
+      'Gérer vos apprenants et vos sessions de formation',
+    ].map(p => `<li style="margin:6px 0;color:#1C2833;">${p}</li>`).join('');
+
+    const permissionsText = [
+      '  • Soumettre vos formations au catalogue FORGES',
+      '  • Suivre les validations et le statut de vos dossiers',
+      '  • Accéder à votre tableau de bord et vos reversements',
+      '  • Gérer vos apprenants et vos sessions de formation',
+    ].join('\n');
+
     await this.sendEmail({
       to: email,
-      subject: title,
+      subject,
       text: this.buildTextEmail([
         'Bonjour,',
         '',
-        'Vous avez reçu une invitation pour créer ou activer votre compte partenaire FORGES.',
-        `Lien d'inscription: ${invitationUrl}`,
-        'Cette invitation est limitée dans le temps.',
-        `Langue du message: ${langue}`,
+        'Vous avez été invité à rejoindre FORGES en tant que partenaire de formation.',
+        'En activant votre compte, vous pourrez :',
+        permissionsText,
+        '',
+        'Pour finaliser votre inscription, cliquez sur le lien ci-dessous :',
+        invitationUrl,
+        '',
+        'Ce lien est personnel et valable pendant 48 heures.',
+        '',
+        "L'équipe FORGES",
       ]),
-      html: this.buildHtmlEmail(title, [
-        'Bonjour,',
-        'Vous avez reçu une invitation pour créer ou activer votre compte partenaire FORGES.',
-        `Langue du message : ${langue}`,
-      ], { label: "Finaliser l'inscription partenaire", url: invitationUrl }, 'Cette invitation est limitée dans le temps.'),
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#1C2833;line-height:1.6;max-width:600px;">
+          <h2 style="color:#1B4F72;margin-bottom:4px;">Bienvenue sur FORGES</h2>
+          <p style="color:#566573;margin-top:0;font-size:14px;">Votre espace <strong>Partenaire</strong> vous attend</p>
+
+          <p>Bonjour,</p>
+          <p>Vous avez été invité à rejoindre <strong>FORGES Agrégateur</strong> en tant que partenaire de formation. Activez votre compte pour accéder à votre espace dédié.</p>
+
+          <div style="background:#EBF5FB;border-left:4px solid #1B4F72;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;">
+            <p style="margin:0 0 10px;font-weight:bold;color:#1B4F72;">En tant que partenaire, vous pourrez :</p>
+            <ul style="margin:0;padding-left:20px;">
+              ${permissionsHtml}
+            </ul>
+          </div>
+
+          <p style="text-align:center;margin:28px 0;">
+            <a href="${invitationUrl}" style="display:inline-block;background:#1B4F72;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Activer mon compte partenaire</a>
+          </p>
+          <p style="font-size:12px;color:#888;text-align:center;">Si le bouton ne fonctionne pas : <a href="${invitationUrl}" style="color:#1B4F72;">${invitationUrl}</a></p>
+
+          <p style="background:#FEF9E7;border:1px solid #F9E79F;border-radius:6px;padding:12px 16px;font-size:13px;">
+            <strong>Important :</strong> Ce lien est personnel et valable pendant <strong>48 heures</strong>. Ne le partagez pas.
+          </p>
+
+          <p style="color:#566573;font-size:12px;margin-top:24px;border-top:1px solid #EEE;padding-top:16px;">
+            Pour toute question, contactez-nous : <a href="mailto:contact@forges-group.com" style="color:#1B4F72;">contact@forges-group.com</a><br>
+            &copy; 2026 FORGES AGREGATEUR
+          </p>
+        </div>
+      `,
     });
   }
 

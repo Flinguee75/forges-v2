@@ -163,14 +163,6 @@ export default function RegisterPartenaire() {
                 />
               </div>
 
-              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
-                <p className="text-sm font-medium text-[var(--color-text)]">Ce que fait ce formulaire</p>
-                <ul className="mt-2 space-y-2 text-sm text-[var(--color-subtext)]">
-                  <li>Le backend active le compte et génère le hash du mot de passe.</li>
-                  <li>Le token est consommé une seule fois.</li>
-                  <li>Vous pourrez ensuite vous connecter avec ce mot de passe.</li>
-                </ul>
-              </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button type="submit" variant="primary" loading={isLoading}>
