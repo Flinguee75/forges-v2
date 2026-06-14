@@ -280,7 +280,6 @@ export default function ProfilPartenaire() {
             <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-[var(--color-text)]">
               {formData.raison_sociale || copy.title}
             </h1>
-            <p className="mt-1 text-sm text-[var(--color-subtext)] max-w-xl">{copy.description}</p>
           </div>
         </div>
       </div>
