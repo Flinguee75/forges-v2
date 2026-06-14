@@ -207,7 +207,10 @@ export class ValidationFormationService {
     return enRetard.length;
   }
 
-  async getFormationsEnAttente(responsable_id: string) {
-    return this.fpRepo.findEnAttente(responsable_id);
+  async getFormationsEnAttente(
+    responsable_id: string,
+    opts: { statut?: string; search?: string; page?: number; limit?: number } = {}
+  ) {
+    return this.fpRepo.findByResponsable(responsable_id, opts);
   }
 }

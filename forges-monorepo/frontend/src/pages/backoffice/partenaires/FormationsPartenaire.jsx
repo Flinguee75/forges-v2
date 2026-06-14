@@ -38,9 +38,11 @@ export default function FormationsPartenaire() {
           ...filters,
         }),
       {
-        onSuccess: (data) => {
-          setFormations(data.data || []);
-          setMeta(data.meta || { page: 1, totalPages: 1, total: 0 });
+        onSuccess: (result) => {
+          // Unwrap { statusCode, data: { data: [], meta: {} } }
+          const payload = result?.data || result;
+          setFormations(payload.data || payload || []);
+          setMeta(payload.meta || { page: 1, totalPages: 1, total: 0 });
         },
       }
     );
@@ -59,16 +61,20 @@ export default function FormationsPartenaire() {
     setFilters({ ...filters, statut: e.target.value });
   };
 
-  const getStatutBadge = (statut) => {
+  const getStatutBadge = (fpStatut, formationStatut) => {
+    // fp.statut_validation: EN_ATTENTE, VALIDE, REJETE
+    // formation.statut: EN_ATTENTE_VALIDATION, ACTIVE, REJETEE, SUSPENDUE
+    const s = fpStatut || formationStatut || '';
     const mapping = {
-      BROUILLON: { variant: 'gray', label: 'Brouillon' },
-      EN_ATTENTE_VALIDATION: { variant: 'warning', label: 'En attente validation' },
-      ACTIVE: { variant: 'success', label: 'Validée' },
-      REJETEE: { variant: 'danger', label: 'Rejetée' },
-      SUSPENDUE: { variant: 'warning', label: 'Suspendue' },
+      EN_ATTENTE:            { variant: 'warning', label: 'En attente' },
+      EN_ATTENTE_VALIDATION: { variant: 'warning', label: 'En attente' },
+      VALIDE:                { variant: 'success', label: 'Validée' },
+      ACTIVE:                { variant: 'success', label: 'Validée' },
+      REJETE:                { variant: 'danger',  label: 'Rejetée' },
+      REJETEE:               { variant: 'danger',  label: 'Rejetée' },
+      SUSPENDUE:             { variant: 'gray',    label: 'Suspendue' },
     };
-
-    const config = mapping[statut] || { variant: 'gray', label: statut };
+    const config = mapping[s] || { variant: 'gray', label: s || '—' };
     return <Badge variant={config.variant} size="small">{config.label}</Badge>;
   };
 
@@ -147,10 +153,10 @@ export default function FormationsPartenaire() {
               onChange={handleStatutChange}
               className="w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none"
             >
-              <option value="">Tous les statuts</option>
-              <option value="EN_ATTENTE_VALIDATION">En attente validation</option>
-              <option value="ACTIVE">Validée</option>
-              <option value="REJETEE">Rejetée</option>
+              <option value="">En attente (défaut)</option>
+              <option value="EN_ATTENTE">En attente de validation</option>
+              <option value="VALIDE">Validées</option>
+              <option value="REJETE">Rejetées</option>
               <option value="SUSPENDUE">Suspendue</option>
             </select>
           </div>
@@ -182,34 +188,37 @@ export default function FormationsPartenaire() {
                   </tr>
                 </thead>
                 <tbody>
-                  {formations.map((formation) => {
-                    const delai = calculateDelai(formation.created_at);
+                  {formations.map((fp) => {
+                    const f = fp.formation || {};
+                    const dateRef = fp.date_soumission || fp.created_at;
+                    const delai = calculateDelai(dateRef);
+                    const isEnAttente = fp.statut_validation === 'EN_ATTENTE' || f.statut === 'EN_ATTENTE_VALIDATION';
                     return (
                       <tr
-                        key={formation.id}
+                        key={fp.id}
                         className="border-b border-border transition-colors hover:bg-gray-50"
                       >
                         <td className="py-4">
                           <button
-                            onClick={() => navigate(`/backoffice/formations-partenaires/${formation.id}/valider`)}
+                            onClick={() => navigate(`/backoffice/formations-partenaires/${fp.id}/valider`)}
                             className="font-medium text-primary hover:text-secondary hover:underline"
                           >
-                            {formation.titre}
+                            {f.intitule || '—'}
                           </button>
-                          {formation.statut === 'EN_ATTENTE_VALIDATION' && delai.jours >= 5 && (
+                          {isEnAttente && delai.jours >= 5 && (
                             <div className="mt-1">
                               <Badge variant="danger" size="small">Prioritaire</Badge>
                             </div>
                           )}
                         </td>
                         <td className="py-4 text-sm text-subtext">
-                          {formation.partenaire?.raison_sociale || 'N/A'}
+                          {fp.partenaire?.raison_sociale || '—'}
                         </td>
                         <td className="py-4 text-sm text-subtext">
-                          {formation.partenaire?.type || 'N/A'}
+                          {fp.partenaire?.type || '—'}
                         </td>
                         <td className="py-4 text-sm text-subtext">
-                          {formatDate(formation.created_at)}
+                          {formatDate(dateRef)}
                         </td>
                         <td className="py-4">
                           <div className="flex items-center gap-2">
@@ -218,16 +227,16 @@ export default function FormationsPartenaire() {
                           </div>
                         </td>
                         <td className="py-4">
-                          {getStatutBadge(formation.statut)}
+                          {getStatutBadge(fp.statut_validation, f.statut)}
                         </td>
                         <td className="py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <Button
-                              variant={formation.statut === 'EN_ATTENTE_VALIDATION' ? 'primary' : 'outline'}
+                              variant={isEnAttente ? 'primary' : 'outline'}
                               size="small"
-                              onClick={() => navigate(`/backoffice/formations-partenaires/${formation.id}/valider`)}
+                              onClick={() => navigate(`/backoffice/formations-partenaires/${fp.id}/valider`)}
                             >
-                              {formation.statut === 'EN_ATTENTE_VALIDATION' ? 'Valider' : 'Voir'}
+                              {isEnAttente ? 'Traiter' : 'Voir'}
                             </Button>
                           </div>
                         </td>

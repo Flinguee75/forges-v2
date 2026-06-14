@@ -15,17 +15,52 @@ export class FormationPartenaireRepository {
   }
 
   async findEnAttente(responsable_id: string) {
-    return this.prisma.formationPartenaire.findMany({
-      where: {
-        statut_validation: 'EN_ATTENTE',
-        responsable_validateur_id: responsable_id
-      },
-      include: {
-        formation: true,
-        partenaire: { select: { raison_sociale: true, email_principal: true } }
-      },
-      orderBy: { date_soumission: 'asc' } // RM-134 : FIFO
-    });
+    return this.findByResponsable(responsable_id, { statut: 'EN_ATTENTE' });
+  }
+
+  async findByResponsable(
+    responsable_id: string,
+    opts: { statut?: string; search?: string; page?: number; limit?: number } = {}
+  ) {
+    const { statut, search, page = 1, limit = 20 } = opts;
+    const skip = (page - 1) * limit;
+
+    const statutFilter = statut
+      ? { statut_validation: statut }
+      : { statut_validation: { in: ['EN_ATTENTE', 'EN_ATTENTE_VALIDATION'] } };
+
+    const searchFilter = search
+      ? { formation: { intitule: { contains: search, mode: 'insensitive' as const } } }
+      : {};
+
+    const [items, total] = await Promise.all([
+      this.prisma.formationPartenaire.findMany({
+        where: {
+          responsable_validateur_id: responsable_id,
+          ...statutFilter,
+          ...searchFilter,
+        },
+        include: {
+          formation: true,
+          partenaire: { select: { raison_sociale: true, email_principal: true } },
+        },
+        orderBy: { date_soumission: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.formationPartenaire.count({
+        where: {
+          responsable_validateur_id: responsable_id,
+          ...statutFilter,
+          ...searchFilter,
+        },
+      }),
+    ]);
+
+    return {
+      data: items,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async create(data: {

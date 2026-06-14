@@ -76,7 +76,13 @@ export class PartenaireController {
   // GET /api/responsable/validations — RESPONSABLE (UCS18)
   async getFormationsEnAttente(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.validationService.getFormationsEnAttente(req.user!.userId);
+      const statut = req.query.statut as string | undefined;
+      const search = req.query.search as string | undefined;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await this.validationService.getFormationsEnAttente(
+        req.user!.userId, { statut, search, page, limit }
+      );
       res.status(200).json({ statusCode: 200, data: result });
     } catch (error) { next(error); }
   }
