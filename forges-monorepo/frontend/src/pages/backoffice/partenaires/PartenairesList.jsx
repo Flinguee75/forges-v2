@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../../hooks/useApi';
+import { useToast } from '../../../hooks/useToast';
 import partenairesApi from '../../../api/partenaires.api';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
+import Icon from '../../../components/ui/Icon';
 import Input from '../../../components/ui/Input';
 import EmptyState from '../../../components/feedback/EmptyState';
 import Spinner from '../../../components/feedback/Spinner';
+
+const STATUT_CONFIG = {
+  ACTIF: { variant: 'success', label: 'Actif' },
+  EN_ATTENTE_VERIFICATION: { variant: 'warning', label: 'En attente' },
+  EN_ATTENTE: { variant: 'warning', label: 'En attente' },
+  SUSPENDU: { variant: 'error', label: 'Suspendu' },
+};
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString('fr-FR') : 'N/A';
@@ -16,11 +25,13 @@ function formatDate(value) {
 export default function PartenairesList() {
   const navigate = useNavigate();
   const { execute, isLoading } = useApi();
+  const { showToast } = useToast();
   const [partenaires, setPartenaires] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [search, setSearch] = useState('');
+  const [actionLoading, setActionLoading] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
     execute(() => partenairesApi.getAllPartenaires({ search }), {
       onSuccess: (data) => {
         setPartenaires(data?.data || []);
@@ -28,8 +39,31 @@ export default function PartenairesList() {
       },
       showErrorToast: false,
     });
+  };
+
+  useEffect(() => {
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  const handleInlineAction = async (id, action) => {
+    setActionLoading(`${id}-${action}`);
+    const apiCall = {
+      suspend: () => partenairesApi.suspendrePartenaire(id),
+      reactivate: () => partenairesApi.reactiverPartenaire(id),
+    }[action];
+
+    await execute(apiCall, {
+      onSuccess: () => {
+        showToast(
+          action === 'suspend' ? 'Partenaire suspendu.' : 'Partenaire réactivé.',
+          'success'
+        );
+        load();
+      },
+    });
+    setActionLoading(null);
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -46,7 +80,11 @@ export default function PartenairesList() {
 
       <Card>
         <div className="mb-4">
-          <Input placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input
+            placeholder="Rechercher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
         {isLoading && partenaires.length === 0 ? (
@@ -67,27 +105,89 @@ export default function PartenairesList() {
                 </tr>
               </thead>
               <tbody>
-                {partenaires.map((partenaire) => (
-                  <tr key={partenaire.id} className="border-b border-border hover:bg-gray-50">
-                    <td className="py-4 text-sm font-medium text-text">{partenaire.raison_sociale}</td>
-                    <td className="py-4 text-sm text-text">{partenaire.email_principal}</td>
-                    <td className="py-4">
-                      <Badge variant={partenaire.statut === 'ACTIF' ? 'success' : partenaire.statut === 'EN_ATTENTE_VERIFICATION' ? 'warning' : 'gray'}>
-                        {partenaire.statut}
-                      </Badge>
-                    </td>
-                    <td className="py-4 text-right text-sm text-text">{partenaire.counts?.formations || 0}</td>
-                    <td className="py-4 text-sm text-text">{formatDate(partenaire.created_at)}</td>
-                    <td className="py-4 text-right space-x-2">
-                      <Button size="small" variant="outline" onClick={() => navigate(`/backoffice/partenaires/${partenaire.id}`)}>
-                        Voir
-                      </Button>
-                      <Button size="small" onClick={() => navigate(`/backoffice/partenaires/${partenaire.id}/approuver`)}>
-                        Traiter
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {partenaires.map((p) => {
+                  const statutCfg = STATUT_CONFIG[p.statut] || { variant: 'gray', label: p.statut };
+                  const isAttente = p.statut === 'EN_ATTENTE_VERIFICATION' || p.statut === 'EN_ATTENTE';
+                  const isActif = p.statut === 'ACTIF';
+                  const isSuspendu = p.statut === 'SUSPENDU';
+
+                  return (
+                    <tr key={p.id} className="border-b border-border hover:bg-gray-50">
+                      <td className="py-4 text-sm font-medium text-text">{p.raison_sociale}</td>
+                      <td className="py-4 text-sm text-text">{p.email_principal}</td>
+                      <td className="py-4">
+                        <Badge variant={statutCfg.variant}>{statutCfg.label}</Badge>
+                      </td>
+                      <td className="py-4 text-right text-sm text-text">{p.counts?.formations || 0}</td>
+                      <td className="py-4 text-sm text-text">{formatDate(p.created_at)}</td>
+                      <td className="py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+
+                          {/* Voir — toujours visible */}
+                          <button
+                            onClick={() => navigate(`/backoffice/partenaires/${p.id}`)}
+                            title="Voir le profil"
+                            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-text hover:bg-gray-100 transition-colors"
+                          >
+                            <Icon name="eye" size={13} />
+                            Voir
+                          </button>
+
+                          {/* Traiter — uniquement si en attente de validation */}
+                          {isAttente && (
+                            <button
+                              onClick={() => navigate(`/backoffice/partenaires/${p.id}/approuver`)}
+                              title="Approuver ou refuser ce partenaire"
+                              className="inline-flex items-center gap-1.5 rounded-md bg-amber-500 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-amber-600 transition-colors"
+                            >
+                              <Icon name="clipboardList" size={13} />
+                              Traiter
+                            </button>
+                          )}
+
+                          {/* Modifier — accès à la gestion du compte (actif ou suspendu) */}
+                          {(isActif || isSuspendu) && (
+                            <button
+                              onClick={() => navigate(`/backoffice/partenaires/${p.id}/approuver`)}
+                              title="Modifier les paramètres du compte"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/5 transition-colors"
+                            >
+                              <Icon name="pencil" size={13} />
+                              Modifier
+                            </button>
+                          )}
+
+                          {/* Suspendre — uniquement si actif */}
+                          {isActif && (
+                            <button
+                              onClick={() => handleInlineAction(p.id, 'suspend')}
+                              disabled={actionLoading === `${p.id}-suspend`}
+                              title="Suspendre ce partenaire"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                            >
+                              <Icon name="ban" size={13} />
+                              Suspendre
+                            </button>
+                          )}
+
+                          {/* Réactiver — uniquement si suspendu */}
+                          {isSuspendu && (
+                            <button
+                              onClick={() => handleInlineAction(p.id, 'reactivate')}
+                              disabled={actionLoading === `${p.id}-reactivate`}
+                              title="Réactiver ce partenaire"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-green-200 px-2.5 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+                            >
+                              <Icon name="refresh" size={13} />
+                              Réactiver
+                            </button>
+                          )}
+
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

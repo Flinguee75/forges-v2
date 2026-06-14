@@ -16,9 +16,15 @@ vi.mock('../../../../hooks/useApi', () => ({
   }),
 }));
 
+vi.mock('../../../../hooks/useToast', () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 vi.mock('../../../../api/partenaires.api', () => ({
   default: {
     getAllPartenaires: vi.fn(),
+    suspendrePartenaire: vi.fn(),
+    reactiverPartenaire: vi.fn(),
   },
 }));
 
