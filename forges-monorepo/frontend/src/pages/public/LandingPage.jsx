@@ -1,6 +1,15 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useInView,
+  useMotionValue,
+  useMotionValueEvent,
+  animate,
+} from 'framer-motion';
 import Icon from '../../components/ui/Icon';
 import HeroOrbs from '../../components/ui/HeroOrbs';
 import logoForges from '../../assets/logo_forges.png';
@@ -260,6 +269,52 @@ function CarouselCollaborateurs() {
   );
 }
 
+function ScrollProgressBar() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 400, damping: 40, restDelta: 0.001 });
+  return (
+    <motion.div
+      style={{ scaleX, transformOrigin: 'left' }}
+      className="fixed left-0 right-0 top-0 z-[200] h-[3px] bg-secondary"
+      aria-hidden="true"
+    />
+  );
+}
+
+function AnimatedStat({ value, label }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-20px' });
+  const motionValue = useMotionValue(0);
+  const [display, setDisplay] = useState('0');
+
+  const prefixMatch = value.match(/^([+]?)(\d+)([%]?)$/);
+  const prefix = prefixMatch?.[1] ?? '';
+  const target = parseInt(prefixMatch?.[2] ?? '0', 10);
+  const suffix = prefixMatch?.[3] ?? '';
+
+  useMotionValueEvent(motionValue, 'change', (latest) => {
+    setDisplay(String(Math.round(latest)));
+  });
+
+  useEffect(() => {
+    if (!isInView) return;
+    const controls = animate(motionValue, target, {
+      duration: 1.4,
+      ease: [0.16, 1, 0.3, 1],
+    });
+    return controls.stop;
+  }, [isInView, target, motionValue]);
+
+  return (
+    <div ref={ref}>
+      <p className="text-3xl font-bold text-white">
+        {prefix}{display}{suffix}
+      </p>
+      <p className="mt-1 text-sm text-white/80">{label}</p>
+    </div>
+  );
+}
+
 const fadeInUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -340,6 +395,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen overflow-hidden bg-bg">
+      {!prefersReducedMotion && <ScrollProgressBar />}
       <section className="relative isolate overflow-hidden bg-primary text-white">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(46,134,193,0.72),transparent_34%),linear-gradient(135deg,#12364D_0%,#1B4F72_48%,#2E86C1_100%)]" />
         {!prefersReducedMotion && <HeroOrbs />}
@@ -365,12 +421,16 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-10 grid gap-4 border-t border-white/20 pt-8 sm:grid-cols-3">
-              {HERO_PROOFS.map((proof) => (
-                <div key={proof.label}>
-                  <p className="text-3xl font-bold text-white">{proof.value}</p>
-                  <p className="mt-1 text-sm text-white/80">{proof.label}</p>
-                </div>
-              ))}
+              {HERO_PROOFS.map((proof) =>
+                prefersReducedMotion ? (
+                  <div key={proof.label}>
+                    <p className="text-3xl font-bold text-white">{proof.value}</p>
+                    <p className="mt-1 text-sm text-white/80">{proof.label}</p>
+                  </div>
+                ) : (
+                  <AnimatedStat key={proof.label} value={proof.value} label={proof.label} />
+                )
+              )}
             </div>
           </div>
 
