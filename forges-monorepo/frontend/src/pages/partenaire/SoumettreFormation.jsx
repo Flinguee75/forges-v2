@@ -130,7 +130,7 @@ export default function SoumettreFormation() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="rounded-2xl bg-gradient-to-r from-[#fff6ef] to-white p-6 border border-[#f3d0b9]">
+      <div className="rounded-xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-partenaire)]">
           {copy.eyebrow}
         </p>
