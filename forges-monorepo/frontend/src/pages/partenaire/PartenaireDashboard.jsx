@@ -43,13 +43,13 @@ function KpiCard({ icon, title, value, hint, color, bg, onClick, actionLabel }) 
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-5 text-left shadow-sm transition-all duration-200 hover:border-[var(--color-partenaire)] hover:shadow-md cursor-pointer w-full"
+      className="group flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-white p-5 text-left shadow-sm transition-all duration-200 hover:border-[var(--color-primary)] hover:shadow-md cursor-pointer w-full"
     >
       <div className="flex items-start justify-between">
         <div className={`rounded-lg p-2 ${bg}`}>
           <Icon name={icon} size={20} className={color} />
         </div>
-        <Icon name="arrowRight" size={16} className="text-[var(--color-border)] transition-colors group-hover:text-[var(--color-partenaire)]" />
+        <Icon name="arrowRight" size={16} className="text-[var(--color-border)] transition-colors group-hover:text-[var(--color-primary)]" />
       </div>
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-subtext)]">{title}</p>
@@ -145,7 +145,7 @@ export default function PartenaireDashboard() {
       {/* Header */}
       <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-border)] bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-partenaire)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-primary)]">
             {copy.eyebrow}
           </p>
           <h1 className="mt-1 text-2xl font-bold text-[var(--color-text)]">{copy.title}</h1>
@@ -193,8 +193,8 @@ export default function PartenaireDashboard() {
           title={copy.kpiPayoutTitle}
           value={formatMoney(dashboard.stats?.reversements_nets_mois)}
           hint={copy.kpiPayoutHint}
-          color="text-[var(--color-partenaire)]"
-          bg="bg-orange-50"
+          color="text-[var(--color-primary)]"
+          bg="bg-blue-50"
           actionLabel={copy.kpiPayoutAction}
           onClick={() => navigate('/partenaire/reversements')}
         />
@@ -241,7 +241,7 @@ export default function PartenaireDashboard() {
             <button
               data-testid="quick-action-submit"
               onClick={() => navigate('/partenaire/soumettre-formation')}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-[var(--color-partenaire)] bg-orange-50 px-4 py-3 text-left text-sm font-medium text-[var(--color-partenaire)] transition hover:bg-orange-100"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-[var(--color-primary)] bg-blue-50 px-4 py-3 text-left text-sm font-medium text-[var(--color-primary)] transition hover:bg-blue-100"
             >
               <Icon name="document" size={16} />
               {copy.quickSubmit}
@@ -321,7 +321,7 @@ export default function PartenaireDashboard() {
                         {(REVERSEMENT_STATUS_LABELS[language] || REVERSEMENT_STATUS_LABELS.FR)[reversement.statut_validation] || copy.unknown}
                       </Badge>
                     </td>
-                    <td className="py-3 pr-4 text-right text-sm font-bold tabular-nums text-[var(--color-partenaire)]">
+                    <td className="py-3 pr-4 text-right text-sm font-bold tabular-nums text-[var(--color-primary)]">
                       {formatMoney(reversement.montant_net)}
                     </td>
                     <td className="py-3 pl-4 text-sm text-[var(--color-subtext)]">
