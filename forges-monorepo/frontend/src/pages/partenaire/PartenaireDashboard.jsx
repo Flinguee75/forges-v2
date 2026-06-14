@@ -143,47 +143,14 @@ export default function PartenaireDashboard() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="overflow-hidden rounded-xl shadow-sm">
-        {/* Bandeau gradient */}
-        <div className="bg-gradient-to-r from-[var(--color-primary)] to-[#2471A3] px-6 py-8 sm:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
-                {copy.eyebrow}
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                {copy.title}
-              </h1>
-              <p className="mt-1 max-w-xl text-sm text-white/75">
-                {copy.description}
-              </p>
-            </div>
-            <Button
-              onClick={() => navigate('/partenaire/soumettre-formation')}
-              className="shrink-0 !bg-white !text-[var(--color-primary)] hover:!bg-white/90 border-0 shadow-sm"
-            >
-              {copy.quickSubmit}
-            </Button>
-          </div>
+      <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-border)] bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-primary)]/60">{copy.eyebrow}</p>
+          <h1 className="mt-1 text-2xl font-bold text-[var(--color-text)]">{copy.title}</h1>
         </div>
-
-        {/* Bande de métriques rapides */}
-        <div className="grid grid-cols-2 divide-x divide-[var(--color-border)] border-t border-[var(--color-border)] bg-white sm:grid-cols-4">
-          {[
-            { label: 'Formations validées', value: validatedFormations, dot: 'bg-green-500' },
-            { label: 'En attente',          value: waitingFormations,  dot: 'bg-amber-400' },
-            { label: 'Rejetées',            value: rejectedFormations, dot: 'bg-red-400' },
-            { label: 'Total formations',    value: totalFormations,    dot: 'bg-[var(--color-primary)]' },
-          ].map(({ label, value, dot }) => (
-            <div key={label} className="flex flex-col items-center justify-center px-4 py-3 text-center">
-              <div className="flex items-center gap-1.5">
-                <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-                <span className="text-xs text-[var(--color-subtext)]">{label}</span>
-              </div>
-              <p className="mt-0.5 text-xl font-bold tabular-nums text-[var(--color-text)]">{value}</p>
-            </div>
-          ))}
-        </div>
+        <Button onClick={() => navigate('/partenaire/soumettre-formation')} className="shrink-0">
+          {copy.quickSubmit}
+        </Button>
       </div>
 
       {/* KPI Cards */}
