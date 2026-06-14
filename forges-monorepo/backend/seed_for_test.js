@@ -192,6 +192,12 @@ async function reset() {
   await prisma.dossier.deleteMany();
   await prisma.accesFormationDemande.deleteMany();
   await prisma.voucherOrganisation.deleteMany();
+  await prisma.demandeContactBot.deleteMany();
+  await prisma.feedbackFormation.deleteMany();
+  await prisma.conversationBot.deleteMany();
+  await prisma.enqueteCatalogue.deleteMany();
+  await prisma.commissionPartenaireAbonnement.deleteMany();
+  await prisma.organisationConfig.deleteMany();
   await prisma.formationPartenaire.deleteMany();
   await prisma.session.deleteMany();
   await prisma.formation.deleteMany();
