@@ -5,17 +5,50 @@ import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useSEO, getFormationSchema } from '../../hooks/useSEO';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/feedback/EmptyState';
 import Spinner from '../../components/feedback/Spinner';
 import { formatCurrencyStandard } from '../../utils/currency';
 
-/**
- * FormationDetailPage - Page de détail d'une formation
- * Affiche les informations de la formation et les sessions ouvertes
- * Référence: CLAUDE.md section 17 - Étape F-5
- */
+const MODE_LABELS = {
+  A_LA_DEMANDE: 'A la demande',
+  PRESENTIEL: 'Presentiel',
+  EN_LIGNE: 'En ligne',
+};
+
+function getModeLabel(mode) {
+  return MODE_LABELS[mode] || 'Sessions programmees';
+}
+
+function formatDuration(days) {
+  if (!days) return 'N/A';
+  return days === 1 ? '1 jour' : `${days} jours`;
+}
+
+function formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function getF(formation) {
+  return {
+    titre: formation?.titre || formation?.intitule || 'Formation',
+    description: formation?.description || formation?.description_courte || '',
+    descriptionLongue: formation?.description_longue || '',
+    duree: formation?.duree ?? formation?.duree_jours,
+    tarif: formation?.tarif ?? formation?.cout_catalogue,
+    prerequis: formation?.prerequis || '',
+    objectifs: Array.isArray(formation?.objectifs_pedagogiques) ? formation.objectifs_pedagogiques : [],
+    certification: Boolean(formation?.certification_delivree),
+    mode: formation?.mode_formation || '',
+    lieu: formation?.lieu || '',
+  };
+}
+
 export default function FormationDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,40 +57,19 @@ export default function FormationDetailPage() {
   const [formation, setFormation] = useState(null);
   const [sessions, setSessions] = useState([]);
 
-  const { execute: executeFormation, isLoading: loadingFormation, error: errorFormation } = useApi();
-  const { execute: executeSessions, isLoading: loadingSessions, error: errorSessions } = useApi();
-
-  const unwrapResponseData = (payload) => payload?.data ?? payload;
-  const getFormationTitre = (item) => item?.titre || item?.intitule || 'Formation';
-  const getFormationDescription = (item) =>
-    item?.description || item?.description_courte || item?.description_longue || '';
-  const getFormationDuree = (item) => item?.duree ?? item?.duree_jours;
-  const getFormationTarif = (item) => item?.tarif ?? item?.cout_catalogue;
-  const getFormationDescriptionLongue = (item) => item?.description_longue || '';
-  const getFormationPrerequis = (item) => item?.prerequis || '';
-  const getFormationCompetences = (item) => item?.objectifs_pedagogiques || [];
-  const getCertificationDelivree = (item) => item?.certification_delivree || false;
-
-  const loadFormationDetail = async () => {
-    await executeFormation(() => formationsApi.getFormationDetail(id), {
-      onSuccess: (data) => {
-        setFormation(unwrapResponseData(data));
-      },
-    });
-  };
-
-  const loadSessions = async () => {
-    await executeSessions(() => formationsApi.getSessionsOuvertes(id), {
-      onSuccess: (data) => {
-        const sessionData = unwrapResponseData(data);
-        setSessions(Array.isArray(sessionData) ? sessionData : []);
-      },
-    });
-  };
+  const { execute: execFormation, isLoading: loadingFormation, error: errorFormation } = useApi();
+  const { execute: execSessions, isLoading: loadingSessions } = useApi();
 
   useEffect(() => {
-    loadFormationDetail();
-    loadSessions();
+    execFormation(() => formationsApi.getFormationDetail(id), {
+      onSuccess: (data) => setFormation(data?.data ?? data),
+    });
+    execSessions(() => formationsApi.getSessionsOuvertes(id), {
+      onSuccess: (data) => {
+        const raw = data?.data ?? data;
+        setSessions(Array.isArray(raw) ? raw : []);
+      },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -65,18 +77,14 @@ export default function FormationDetailPage() {
     if (!loadingFormation && !loadingSessions) {
       document.dispatchEvent(new Event('prerender-ready'));
     }
-  }, [formation, loadingFormation, loadingSessions]);
+  }, [loadingFormation, loadingSessions]);
 
-  // SEO Hook - Mettre à jour les meta tags quand la formation est chargée
+  const f = formation ? getF(formation) : null;
+
   useSEO({
-    title: formation ? `${getFormationTitre(formation)} | FORGES` : 'FORGES',
-    description:
-      formation && getFormationDescription(formation)
-        ? getFormationDescription(formation)
-        : 'Découvrez cette formation certifiante',
-    keywords: formation
-      ? `${getFormationTitre(formation)}, formation, certification, FORGES`
-      : 'formation, certification',
+    title: f ? `${f.titre} | FORGES` : 'FORGES',
+    description: f?.description || 'Decouvrez cette formation certifiante',
+    keywords: f ? `${f.titre}, formation, certification, FORGES` : 'formation, certification',
     canonical: `https://edu.forges-group.com/formations/${id}`,
     ogImage: '/logo_forges.png',
     schema: formation ? getFormationSchema(formation) : null,
@@ -94,7 +102,7 @@ export default function FormationDetailPage() {
 
   if (loadingFormation) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-bg">
         <Spinner size="large" />
       </div>
     );
@@ -119,326 +127,341 @@ export default function FormationDetailPage() {
     );
   }
 
-  if (!formation) {
-    return null;
-  }
+  if (!formation || !f) return null;
 
   return (
-    <div className="min-h-screen bg-bg py-8">
-      <div className="container mx-auto px-4">
-        {/* Breadcrumb */}
-        <nav className="mb-6 text-sm">
-          <Link to="/" className="text-secondary hover:text-primary">
-            Accueil
-          </Link>
-          <span className="mx-2 text-subtext">/</span>
-          <Link to="/catalogue" className="text-secondary hover:text-primary">
-            Catalogue
-          </Link>
-          <span className="mx-2 text-subtext">/</span>
-          <span className="text-text">{getFormationTitre(formation)}</span>
-        </nav>
+    <div className="min-h-screen bg-bg">
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Colonne principale */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* En-tête */}
-            <Card>
-              {formation.image_url && (
-                <div className="-mx-6 -mt-6 mb-5 overflow-hidden rounded-t-lg">
-                  <img
-                    src={formation.image_url}
-                    alt={getFormationTitre(formation)}
-                    className="h-56 w-full object-cover"
-                  />
-                </div>
-              )}
-              <h1 className="text-3xl font-bold text-primary mb-4">
-                {getFormationTitre(formation)}
+      {/* ─── Hero sombre style Coursera ─────────────────────────────────── */}
+      <div className="bg-primary">
+        <div className="container mx-auto px-4 py-10">
+
+          {/* Breadcrumb */}
+          <nav className="mb-6 flex items-center gap-2 text-sm text-white/60">
+            <Link to="/" className="hover:text-white transition-colors">Accueil</Link>
+            <span>/</span>
+            <Link to="/catalogue" className="hover:text-white transition-colors">Catalogue</Link>
+            <span>/</span>
+            <span className="text-white/80 line-clamp-1">{f.titre}</span>
+          </nav>
+
+          <div className="grid lg:grid-cols-3 gap-8 items-start">
+            {/* Left — title + meta */}
+            <div className="lg:col-span-2">
+              <h1 className="text-3xl font-bold text-white leading-snug">
+                {f.titre}
               </h1>
-              <p className="text-subtext text-lg">{getFormationDescription(formation)}</p>
-            </Card>
 
-            {/* Détails */}
-            <Card title="Détails de la formation">
-              <div className="space-y-6">
-                {/* Description courte */}
-                <div>
-                  <h3 className="font-semibold text-text mb-2">Aperçu</h3>
-                  <p className="text-subtext">
-                    {getFormationDescription(formation) || 'Aucune description disponible.'}
-                  </p>
-                </div>
+              {f.description && (
+                <p className="mt-3 text-lg text-white/75 leading-relaxed">
+                  {f.description}
+                </p>
+              )}
 
-                {/* Description longue */}
-                {getFormationDescriptionLongue(formation) && (
-                  <div>
-                    <h3 className="font-semibold text-text mb-2">Description détaillée</h3>
-                    <div className="text-subtext whitespace-pre-wrap prose prose-sm max-w-none">
-                      {/* Parser HTML si présent */}
-                      {getFormationDescriptionLongue(formation).includes('<') ? (
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: getFormationDescriptionLongue(formation),
-                          }}
-                          className="prose prose-sm max-w-none dark:prose-invert"
-                        />
-                      ) : (
-                        <p>{getFormationDescriptionLongue(formation)}</p>
-                      )}
-                    </div>
-                  </div>
+              {/* Badges */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {f.certification && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white">
+                    <svg className="h-4 w-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Certifiante
+                  </span>
                 )}
-
-                {/* Prérequis */}
-                {getFormationPrerequis(formation) && (
-                  <div className="bg-blue-100 border-l-4 border-blue-600 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <svg className="w-5 h-5 text-blue-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 className="font-bold text-blue-900 text-base">
-                        Prérequis
-                      </h3>
-                    </div>
-                    <p className="text-blue-900 text-sm ml-8">
-                      {getFormationPrerequis(formation)}
-                    </p>
-                  </div>
+                {formation.type_formation === 'PREMIUM' && (
+                  <span className="rounded-full border border-amber-400/50 bg-amber-400/20 px-3 py-1 text-sm font-medium text-amber-200">
+                    Premium
+                  </span>
                 )}
-
-                {/* Compétences acquises / Objectifs pédagogiques */}
-                {getFormationCompetences(formation).length > 0 && (
-                  <div className="bg-green-100 border-l-4 border-green-600 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <svg className="w-5 h-5 text-green-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      <h3 className="font-bold text-green-900 text-base">
-                        Compétences acquises
-                      </h3>
-                    </div>
-                    <ul className="space-y-2 ml-8">
-                      {getFormationCompetences(formation).map((competence, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-green-900 text-sm">
-                          <svg className="w-4 h-4 text-green-700 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                          </svg>
-                          <span>{competence}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Certification */}
-                {getCertificationDelivree(formation) && (
-                  <div className="bg-amber-100 border-l-4 border-amber-600 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 className="font-bold text-amber-900 text-base">
-                        Certification délivrée à l'issue de cette formation
-                      </h3>
-                    </div>
-                  </div>
+                {formation.inclus_abonnement && (
+                  <span className="rounded-full border border-green-400/50 bg-green-400/20 px-3 py-1 text-sm font-medium text-green-200">
+                    Inclus abonnement
+                  </span>
                 )}
               </div>
-            </Card>
 
-            {/* Sessions ouvertes */}
-            <Card title="Sessions disponibles">
+              {/* Stats row */}
+              <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-white/70">
+                {f.duree && (
+                  <span className="flex items-center gap-1.5">
+                    <svg className="h-4 w-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {formatDuration(f.duree)}
+                  </span>
+                )}
+                {f.mode && (
+                  <span className="flex items-center gap-1.5">
+                    <svg className="h-4 w-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2" />
+                    </svg>
+                    {getModeLabel(f.mode)}
+                  </span>
+                )}
+                {f.lieu && (
+                  <span className="flex items-center gap-1.5">
+                    <svg className="h-4 w-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {f.lieu}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <svg className="h-4 w-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
+                  Francais
+                </span>
+              </div>
+            </div>
+
+            {/* Right — card preview (desktop only in hero) */}
+            <div className="hidden lg:block" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Contenu principal + sidebar sticky ─────────────────────────── */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
+
+          {/* ── Colonne principale ──────────────────────────────────────── */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Ce que vous apprendrez — comme Coursera */}
+            {f.objectifs.length > 0 && (
+              <section className="rounded-xl border border-gray-200 bg-white p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Ce que vous apprendrez
+                </h2>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {f.objectifs.map((objectif, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <svg className="h-5 w-5 text-secondary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-sm text-gray-700">{objectif}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Description detaillee */}
+            {f.descriptionLongue && (
+              <section className="rounded-xl border border-gray-200 bg-white p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Description de la formation
+                </h2>
+                <div className="text-sm text-gray-700 leading-relaxed">
+                  {f.descriptionLongue.includes('<') ? (
+                    <div
+                      dangerouslySetInnerHTML={{ __html: f.descriptionLongue }}
+                      className="prose prose-sm max-w-none"
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{f.descriptionLongue}</p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Prerequis */}
+            {f.prerequis && (
+              <section className="rounded-xl border border-blue-200 bg-blue-50 p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                    <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-base font-bold text-blue-900">Prerequis</h2>
+                </div>
+                <p className="text-sm text-blue-800 leading-relaxed ml-11">{f.prerequis}</p>
+              </section>
+            )}
+
+            {/* Certification */}
+            {f.certification && (
+              <section className="rounded-xl border border-amber-200 bg-amber-50 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-100">
+                    <svg className="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-amber-900">Certification delivree</h2>
+                    <p className="text-sm text-amber-700 mt-0.5">
+                      Un certificat vous sera remis a l'issue de cette formation.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Sessions disponibles */}
+            <section className="rounded-xl border border-gray-200 bg-white p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Sessions disponibles</h2>
+
               {loadingSessions && (
                 <div className="flex justify-center py-8">
                   <Spinner />
                 </div>
               )}
 
-              {errorSessions && (
-                <EmptyState
-                  type="error"
-                  title="Erreur de chargement"
-                  message={errorSessions}
-                />
-              )}
-
-              {!loadingSessions && !errorSessions && sessions.length === 0 && (
+              {!loadingSessions && sessions.length === 0 && (
                 <EmptyState
                   type="empty"
                   title="Aucune session ouverte"
-                  message="Il n'y a pas de session d'inscription ouverte pour cette formation pour le moment."
+                  message="Aucune session d'inscription n'est ouverte pour le moment."
                 />
               )}
 
-              {!loadingSessions &&
-                !errorSessions &&
-                sessions.length > 0 && (
-                  <div className="space-y-4">
-                    {sessions.map((session) => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
-                  </div>
-                )}
-            </Card>
+              {!loadingSessions && sessions.length > 0 && (
+                <div className="space-y-3">
+                  {sessions.map((session) => (
+                    <SessionCard key={session.id} session={session} />
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
 
-          {/* Colonne latérale */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Informations clés */}
-            <Card title="Informations">
-              <div className="space-y-4">
-                {typeof getFormationDuree(formation) === 'number' && (
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-secondary mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+          {/* ── Sidebar sticky — style Coursera ─────────────────────────── */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6 space-y-4">
+
+              {/* Carte tarif + CTA */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-md overflow-hidden">
+                {/* Preview image en haut de la card */}
+                {formation.image_url && (
+                  <div className="aspect-video w-full overflow-hidden bg-slate-800">
+                    <img
+                      src={formation.image_url}
+                      alt={f.titre}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                {!formation.image_url && (
+                  <div className="aspect-video w-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                    <svg className="h-12 w-12 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                )}
+
+                <div className="p-5">
+                  {/* Prix */}
+                  {typeof f.tarif === 'number' && (
+                    <div className="mb-4">
+                      {formation.inclus_abonnement ? (
+                        <p className="text-2xl font-bold text-success">Inclus dans l'abonnement</p>
+                      ) : (
+                        <p className="text-3xl font-bold text-gray-900">
+                          {formatCurrencyStandard(f.tarif)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* CTA */}
+                  {sessions.length > 0 && (
+                    <Button
+                      variant="primary"
+                      size="large"
+                      fullWidth
+                      onClick={handleInscription}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-text">Durée</p>
-                      <p className="text-sm text-subtext">
-                        {formatDuration(getFormationDuree(formation))}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                      {user ? "S'inscrire maintenant" : "Se connecter pour s'inscrire"}
+                    </Button>
+                  )}
 
-                {typeof getFormationTarif(formation) === 'number' && (
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-secondary mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-text">Tarif</p>
-                      <p className="text-lg font-bold text-primary">
-                        {formatCurrencyStandard(getFormationTarif(formation))}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-
-
-                {formation.mode_formation && (
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-secondary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-text">Mode</p>
-                      <p className="text-sm text-subtext">
-                        {formation.mode_formation === 'PRESENTIEL' ? 'Présentiel'
-                          : formation.mode_formation === 'EN_LIGNE' ? 'En ligne'
-                          : formation.mode_formation === 'A_LA_DEMANDE' ? 'À la demande'
-                          : 'Sessions programmées'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {formation.lieu && (
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-secondary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-text">Lieu</p>
-                      <p className="text-sm text-subtext">{formation.lieu}</p>
-                    </div>
-                  </div>
-                )}
-
-                {formation.responsable_id && (
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-secondary mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-                      />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-text">
-                        Référence
-                      </p>
-                      <p className="text-sm text-subtext font-mono text-xs">
-                        {formation.id}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* CTA Inscription */}
-            {sessions.length > 0 && (
-              <Card>
-                <div className="text-center">
-                  <Button
-                    variant="primary"
-                    size="large"
-                    fullWidth
-                    onClick={handleInscription}
-                  >
-                    {user
-                      ? "S'inscrire maintenant"
-                      : 'Se connecter pour s\'inscrire'}
-                  </Button>
                   {!user && (
-                    <p className="text-xs text-subtext mt-3">
+                    <p className="mt-3 text-center text-xs text-gray-500">
                       Pas encore de compte ?{' '}
-                      <Link
-                        to="/register"
-                        className="text-secondary hover:text-primary"
-                      >
-                        Créer un compte
+                      <Link to="/register" className="font-medium text-secondary hover:underline">
+                        Creer un compte
                       </Link>
                     </p>
                   )}
+
+                  {/* Ce que vous obtenez */}
+                  <div className="mt-5 space-y-3 border-t border-gray-100 pt-5">
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Cette formation inclut
+                    </p>
+
+                    {f.duree && (
+                      <div className="flex items-center gap-2.5 text-sm text-gray-700">
+                        <svg className="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {formatDuration(f.duree)} de formation
+                      </div>
+                    )}
+
+                    {f.mode && (
+                      <div className="flex items-center gap-2.5 text-sm text-gray-700">
+                        <svg className="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2" />
+                        </svg>
+                        {getModeLabel(f.mode)}
+                      </div>
+                    )}
+
+                    {f.lieu && (
+                      <div className="flex items-center gap-2.5 text-sm text-gray-700">
+                        <svg className="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {f.lieu}
+                      </div>
+                    )}
+
+                    {f.certification && (
+                      <div className="flex items-center gap-2.5 text-sm text-gray-700">
+                        <svg className="h-4 w-4 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                        </svg>
+                        Certificat a l'issue de la formation
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2.5 text-sm text-gray-700">
+                      <svg className="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                      </svg>
+                      Francais
+                    </div>
+                  </div>
                 </div>
-              </Card>
-            )}
+              </div>
+
+              {/* Badge FORGES */}
+              <div className="rounded-xl border border-gray-200 bg-white p-4 text-center">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">FORGES</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Plateforme de formations certifiantes
+                </p>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </div>
   );
 }
 
-/**
- * SessionCard - Carte pour afficher une session
- */
 function SessionCard({ session }) {
   return (
-    <div className="border border-border rounded-lg p-4 hover:border-secondary transition-colors">
+    <div className="rounded-lg border border-gray-200 p-4 hover:border-secondary hover:bg-gray-50 transition-colors">
       <div className="flex items-start justify-between gap-4 mb-3">
-        <h4 className="font-semibold text-text">
+        <h4 className="font-semibold text-gray-900 text-sm">
           Session du {formatDate(session.date_debut)}
         </h4>
         <Badge variant="success" size="small">
@@ -446,50 +469,28 @@ function SessionCard({ session }) {
         </Badge>
       </div>
 
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-subtext">Inscriptions :</span>
-          <span className="text-text">
-            Du {formatDate(session.date_ouverture)} au{' '}
-            {formatDate(session.date_cloture)}
-          </span>
+      <div className="space-y-1.5 text-xs text-gray-600">
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400 flex-shrink-0">Inscriptions :</span>
+          <span>Du {formatDate(session.date_ouverture)} au {formatDate(session.date_cloture)}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-subtext">Formation :</span>
-          <span className="text-text">
-            Du {formatDate(session.date_debut)} au{' '}
-            {formatDate(session.date_fin)}
-          </span>
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400 flex-shrink-0">Formation :</span>
+          <span>Du {formatDate(session.date_debut)} au {formatDate(session.date_fin)}</span>
         </div>
         {session.capacite && (
-          <div className="flex justify-between">
-            <span className="text-subtext">Capacité :</span>
-            <span className="text-text">{session.capacite} places</span>
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-400 flex-shrink-0">Capacite :</span>
+            <span>{session.capacite} places</span>
           </div>
         )}
         {session.lieu && (
-          <div className="flex justify-between">
-            <span className="text-subtext">Lieu :</span>
-            <span className="text-text">{session.lieu}</span>
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-400 flex-shrink-0">Lieu :</span>
+            <span>{session.lieu}</span>
           </div>
         )}
       </div>
     </div>
   );
-}
-
-function formatDate(dateString) {
-  if (!dateString) return 'N/A';
-
-  return new Date(dateString).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-function formatDuration(days) {
-  if (!days) return 'N/A';
-  if (days === 1) return '1 jour';
-  return `${days} jours`;
 }

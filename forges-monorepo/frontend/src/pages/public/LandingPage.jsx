@@ -274,7 +274,7 @@ export default function LandingPage() {
 
   const loadFeatured = async () => {
     await fetchFeatured(
-      () => formationsApi.getCatalogue({ page: 1, limit: 4 }),
+      () => formationsApi.getCatalogue({ page: 1, limit: 12 }),
       {
         onSuccess: (data) => {
           setFeaturedFormations(data.data || []);
@@ -386,12 +386,13 @@ export default function LandingPage() {
 
       <section className="py-20 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
           <div className="flex items-end justify-between gap-4 mb-10">
             <SectionHeading
               align="left"
               eyebrow="Catalogue"
-              title="Formations disponibles"
-              description="Parcourez les formations certifiantes ouvertes aux inscriptions."
+              title="Formations certifiantes"
+              description="Parcourez les parcours certifiants ouverts aux inscriptions."
             />
             <CtaLink to="/catalogue" variant="outline" className="shrink-0">
               Voir tout le catalogue
@@ -405,8 +406,8 @@ export default function LandingPage() {
           )}
 
           {!loadingFeatured && featuredFormations.length > 0 && (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-              {featuredFormations.map((formation) => (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredFormations.slice(0, 6).map((formation) => (
                 <FormationMarketplaceCard key={formation.id} formation={formation} />
               ))}
             </div>
