@@ -8,6 +8,7 @@ import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Icon from '../../../components/ui/Icon';
 import Input from '../../../components/ui/Input';
+import Modal from '../../../components/ui/Modal';
 import EmptyState from '../../../components/feedback/EmptyState';
 import Spinner from '../../../components/feedback/Spinner';
 
@@ -30,6 +31,7 @@ export default function PartenairesList() {
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const load = () => {
     execute(() => partenairesApi.getAllPartenaires({ search }), {
@@ -186,13 +188,9 @@ export default function PartenairesList() {
                             </button>
                           )}
 
-                          {/* Supprimer — toujours visible, avec confirmation */}
+                          {/* Supprimer — toujours visible, avec modal de confirmation */}
                           <button
-                            onClick={() => {
-                              if (window.confirm(`Supprimer définitivement "${p.raison_sociale}" ? Cette action est irréversible.`)) {
-                                handleInlineAction(p.id, 'delete');
-                              }
-                            }}
+                            onClick={() => setConfirmDelete({ id: p.id, nom: p.raison_sociale })}
                             disabled={actionLoading === `${p.id}-delete`}
                             title="Supprimer définitivement ce partenaire"
                             className="inline-flex items-center gap-1.5 rounded-md bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
@@ -215,6 +213,43 @@ export default function PartenairesList() {
       <div className="text-sm text-subtext">
         {meta.total} partenaire{meta.total > 1 ? 's' : ''} trouvé{meta.total > 1 ? 's' : ''}
       </div>
+
+      <Modal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        size="small"
+        closeOnOverlay
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="danger"
+              loading={actionLoading === `${confirmDelete?.id}-delete`}
+              onClick={async () => {
+                await handleInlineAction(confirmDelete.id, 'delete');
+                setConfirmDelete(null);
+              }}
+            >
+              Supprimer définitivement
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col items-center gap-4 py-2 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+            <Icon name="ban" size={24} className="text-red-600" />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-text">Supprimer ce partenaire ?</p>
+            <p className="mt-1 text-sm text-subtext">
+              <strong>{confirmDelete?.nom}</strong> et toutes ses formations seront supprimés définitivement.
+              Cette action est irréversible.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
