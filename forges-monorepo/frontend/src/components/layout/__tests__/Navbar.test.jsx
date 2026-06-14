@@ -100,23 +100,28 @@ describe('Navbar', () => {
     expect(document.querySelector('span.text-success, span.text-warning, span.text-danger')).toBeTruthy();
   });
 
-  it('affiche des CTA publics plus visibles sur fond clair', () => {
+  it('affiche le logo, le catalogue et les actions de compte dans le header public', () => {
     render(
       <BrowserRouter>
         <Navbar variant="public" />
       </BrowserRouter>
     );
 
-    const loginLink = screen.getByRole('link', { name: /connexion/i });
-    const registerLink = screen.getByRole('link', { name: /inscription/i });
-    const logoLink = screen.getByRole('link', { name: /accueil forges/i });
+    expect(screen.getByRole('link', { name: 'Accueil FORGES' })).toHaveAttribute('href', '/');
+    expect(screen.getByText('FORGES')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Parcourir les formations' })).toHaveAttribute('href', '/catalogue');
+    expect(screen.getByRole('link', { name: 'Connexion' })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: 'Inscrivez-vous gratuitement' })).toHaveAttribute('href', '/register');
+  });
 
-    expect(loginLink.className).toContain('border-primary/25');
-    expect(loginLink.className).toContain('cursor-pointer');
-    expect(loginLink.className).toContain('text-primary');
-    expect(registerLink.className).toContain('bg-primary');
-    expect(registerLink.className).toContain('cursor-pointer');
-    expect(registerLink.className).toContain('hover:bg-[#0F2F43]');
-    expect(logoLink.className).toContain('hover:scale-[1.03]');
+  it('n’ajoute ni recherche ni menu dans le header public', () => {
+    render(
+      <BrowserRouter>
+        <Navbar variant="public" />
+      </BrowserRouter>
+    );
+
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument();
   });
 });

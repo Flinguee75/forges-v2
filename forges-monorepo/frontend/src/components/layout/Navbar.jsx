@@ -88,93 +88,118 @@ export default function Navbar({
   const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   const dateStr = new Date().toLocaleDateString(copy.locale, { weekday: 'short', day: 'numeric', month: 'short' });
 
+  if (isPublic) {
+    return (
+      <header className="border-b-4 border-primary bg-white">
+        <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-8">
+            <Link
+              to="/"
+              aria-label="Accueil FORGES"
+              className="flex shrink-0 items-center gap-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
+            >
+              <picture>
+                <source srcSet={logoForgesWebp} type="image/webp" />
+                <img src={logoForges} alt="" className="h-11 w-11 rounded-full object-cover sm:h-12 sm:w-12" />
+              </picture>
+              <span className="hidden text-xl font-extrabold tracking-wide text-primary sm:inline">
+                FORGES
+              </span>
+            </Link>
+
+            <nav aria-label="Navigation publique" className="flex items-center">
+              <Link
+                to="/catalogue"
+                aria-label="Parcourir les formations"
+                className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold text-text transition-colors hover:bg-bg hover:text-primary focus:outline-none focus:ring-2 focus:ring-secondary sm:px-3"
+              >
+                <span className="sm:hidden">Parcourir</span>
+                <span className="hidden sm:inline">Parcourir les formations</span>
+              </Link>
+            </nav>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+            <Link
+              to="/login"
+              className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold text-primary transition-colors hover:bg-bg hover:text-secondary focus:outline-none focus:ring-2 focus:ring-secondary sm:px-3"
+            >
+              Connexion
+            </Link>
+            <Link
+              to="/register"
+              aria-label="Inscrivez-vous gratuitement"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border-2 border-primary px-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 sm:px-5"
+            >
+              <span className="sm:hidden">S'inscrire</span>
+              <span className="hidden sm:inline">Inscrivez-vous gratuitement</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="border-b border-border bg-white">
       <div className="flex min-h-14 items-center justify-between gap-4 px-4 sm:px-6">
 
         {/* Gauche */}
         <div className="flex min-w-0 items-center gap-3">
-          {isPublic ? (
-            <>
-              <Link to="/" aria-label="Accueil FORGES">
-                <picture>
-                  <source srcSet={logoForgesWebp} type="image/webp" />
-                  <img src={logoForges} alt="FORGES" className="h-12 w-12 rounded-full object-cover" />
-                </picture>
-              </Link>
-              <nav className="hidden items-center gap-6 md:flex">
-                <Link to="/" className="text-sm font-medium text-text hover:text-primary transition-colors">Accueil</Link>
-              </nav>
-            </>
-          ) : (
-            <>
-              {onMenuToggle && (
-                <button type="button" onClick={onMenuToggle}
-                  className="shrink-0 rounded-md p-1.5 text-subtext hover:bg-border/50 hover:text-text transition-colors md:hidden"
-                  aria-label="Menu">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-              )}
-              <picture>
-                <source srcSet={logoForgesWebp} type="image/webp" />
-                <img src={logoForges} alt="FORGES" className="h-7 w-auto shrink-0" />
-              </picture>
-              {title && (
-                <div className="min-w-0 border-l border-border pl-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-subtext">{roleLabel}</p>
-                  <h1 className="truncate text-sm font-semibold text-text">{title}</h1>
-                </div>
-              )}
-              {showApiBadge && <StatusBadge />}
-            </>
+          {onMenuToggle && (
+            <button type="button" onClick={onMenuToggle}
+              className="shrink-0 rounded-md p-1.5 text-subtext hover:bg-border/50 hover:text-text transition-colors md:hidden"
+              aria-label="Menu">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           )}
+          <picture>
+            <source srcSet={logoForgesWebp} type="image/webp" />
+            <img src={logoForges} alt="FORGES" className="h-7 w-auto shrink-0" />
+          </picture>
+          {title && (
+            <div className="min-w-0 border-l border-border pl-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-subtext">{roleLabel}</p>
+              <h1 className="truncate text-sm font-semibold text-text">{title}</h1>
+            </div>
+          )}
+          {showApiBadge && <StatusBadge />}
         </div>
 
         {/* Droite */}
-        {isPublic ? (
-          <div className="flex items-center gap-2">
-            <Link to="/login" className="rounded-lg border border-border px-3.5 py-1.5 text-sm font-medium text-text hover:border-primary hover:text-primary transition-colors">
-              Connexion
-            </Link>
-            <Link to="/register" className="rounded-lg bg-primary px-3.5 py-1.5 text-sm font-medium text-white hover:bg-primary/90 transition-colors">
-              Inscription
-            </Link>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
 
-            {/* Date + horloge */}
-            {showSystemStatus && (
-              <div className="hidden items-center gap-1.5 rounded-lg border border-border bg-[var(--color-bg)] px-3 py-1.5 lg:flex">
-                <span className={`text-[10px] ${statusDot}`}>●</span>
-                <span className="font-mono text-xs text-text">{timeStr}</span>
-                <span className="text-border">·</span>
-                <span className="text-xs text-subtext capitalize">{dateStr}</span>
-              </div>
-            )}
-
-            {/* Séparateur */}
-            <div className="mx-1 hidden h-5 w-px bg-border lg:block" />
-
-            {/* Avatar + nom */}
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                {initials}
-              </div>
-              <div className="hidden text-right sm:block">
-                <p className="text-xs font-semibold text-text leading-tight truncate max-w-[120px]">{displayName}</p>
-                <p className="text-[10px] text-subtext">{roleLabel}</p>
-              </div>
+          {/* Date + horloge */}
+          {showSystemStatus && (
+            <div className="hidden items-center gap-1.5 rounded-lg border border-border bg-[var(--color-bg)] px-3 py-1.5 lg:flex">
+              <span className={`text-[10px] ${statusDot}`}>●</span>
+              <span className="font-mono text-xs text-text">{timeStr}</span>
+              <span className="text-border">·</span>
+              <span className="text-xs text-subtext capitalize">{dateStr}</span>
             </div>
+          )}
 
-            {/* Déconnexion */}
-            <Button variant="outline" size="small" type="button" onClick={onLogout} className="ml-1">
-              {copy.logout}
-            </Button>
+          {/* Séparateur */}
+          <div className="mx-1 hidden h-5 w-px bg-border lg:block" />
+
+          {/* Avatar + nom */}
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+              {initials}
+            </div>
+            <div className="hidden text-right sm:block">
+              <p className="text-xs font-semibold text-text leading-tight truncate max-w-[120px]">{displayName}</p>
+              <p className="text-[10px] text-subtext">{roleLabel}</p>
+            </div>
           </div>
-        )}
+
+          {/* Déconnexion */}
+          <Button variant="outline" size="small" type="button" onClick={onLogout} className="ml-1">
+            {copy.logout}
+          </Button>
+        </div>
       </div>
     </header>
   );

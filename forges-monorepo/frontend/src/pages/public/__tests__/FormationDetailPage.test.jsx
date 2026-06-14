@@ -21,7 +21,7 @@ vi.mock('../../../hooks/useAuth');
 vi.mock('../../../hooks/useApi', () => ({
   useApi: () => ({
     execute: vi.fn((fn, options) => {
-      fn().then(options.onSuccess);
+      return fn().then(options.onSuccess);
     }),
     isLoading: false,
     error: null,
@@ -30,19 +30,8 @@ vi.mock('../../../hooks/useApi', () => ({
 
 // Mock des composants
 vi.mock('../../../components/ui/Button', () => ({
-  default: function MockButton({ children, ...props }) {
+  default: function MockButton({ children, fullWidth: _fullWidth, size: _size, ...props }) {
     return <button {...props}>{children}</button>;
-  },
-}));
-
-vi.mock('../../../components/ui/Card', () => ({
-  default: function MockCard({ children, title }) {
-    return (
-      <div>
-        {title && <h2>{title}</h2>}
-        {children}
-      </div>
-    );
   },
 }));
 
@@ -82,19 +71,25 @@ const mockFormation = {
     'Gérer les risques cybernétiques',
     'Auditer une architecture réseau',
   ],
+  programme_syllabus: 'Fondamentaux de la cybersécurité\nGestion des risques\nAudit et réponse aux incidents',
   duree_acces_jours: 365,
   mode_formation: 'AVEC_SESSION',
+  langues_disponibles: ['FR', 'EN'],
+  partenaire: {
+    raison_sociale: 'GWU/CCDL',
+  },
   responsable_id: 'usr-resp-0001-0000-0000-000000000002',
 };
 
 const mockSessions = [
   {
     id: 'ses-prem-00001-0000-0000-000000000002',
-    date_debut: '2026-05-24T13:22:09.713Z',
-    date_fin: '2026-07-23T13:22:09.713Z',
-    date_ouverture: '2026-05-01T13:22:09.713Z',
-    date_cloture: '2026-05-19T13:22:09.713Z',
+    date_debut: '2026-07-24T13:22:09.713Z',
+    date_fin: '2026-09-23T13:22:09.713Z',
+    date_ouverture: '2026-06-01T13:22:09.713Z',
+    date_cloture: '2026-07-19T13:22:09.713Z',
     capacite: 15,
+    places_restantes: 7,
     statut: 'INSCRIPTIONS_OUVERTES',
   },
 ];
@@ -102,6 +97,12 @@ const mockSessions = [
 describe('FormationDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.IntersectionObserver = class IntersectionObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    Element.prototype.scrollIntoView = vi.fn();
     useParamsMock.mockReturnValue({ id: mockFormation.id });
     // eslint-disable-next-line no-import-assign
     authHook.useAuth = vi.fn(() => ({ user: null }));
@@ -112,160 +113,123 @@ describe('FormationDetailPage', () => {
     };
   });
 
-  it('devrait afficher le titre et la description de la formation', async () => {
+  function renderPage() {
     render(
       <BrowserRouter>
         <FormationDetailPage />
       </BrowserRouter>
     );
+  }
 
+  it('affiche le titre et la description de la formation', async () => {
+    renderPage();
     await waitFor(() => {
-      expect(screen.getAllByText(mockFormation.intitule).length).toBeGreaterThan(1);
-      expect(screen.getAllByText(mockFormation.description_courte).length).toBeGreaterThan(1);
+      expect(screen.getAllByText(mockFormation.intitule).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(mockFormation.description_courte).length).toBeGreaterThan(0);
     });
   });
 
-  it('devrait afficher la description longue si présente', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
+  it('affiche les ancres des sections disponibles sans témoignages', async () => {
+    renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Description détaillée')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'À propos' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Résultats' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Cours' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Témoignages' })).not.toBeInTheDocument();
     });
   });
 
-  it('devrait afficher les prérequis en boîte bleue', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
+  it('présente les objectifs dans la section résultats', async () => {
+    renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Prérequis')).toBeInTheDocument();
-      expect(screen.getByText(mockFormation.prerequis)).toBeInTheDocument();
-    });
-  });
-
-  it('devrait afficher les compétences acquises en boîte verte', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Compétences acquises')).toBeInTheDocument();
-      mockFormation.objectifs_pedagogiques.forEach((competence) => {
-        expect(screen.getByText(competence)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Ce que vous saurez faire' })).toBeInTheDocument();
+      mockFormation.objectifs_pedagogiques.forEach((objectif) => {
+        expect(screen.getByText(objectif)).toBeInTheDocument();
       });
     });
   });
 
-  it('devrait afficher le badge de certification', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
+  it('présente le programme sous forme de cours numérotés', async () => {
+    renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Certification délivrée à l\'issue de cette formation')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Programme de la formation' })).toBeInTheDocument();
+      expect(screen.getByText('Cours 1')).toBeInTheDocument();
+      expect(screen.getByText('Fondamentaux de la cybersécurité')).toBeInTheDocument();
+      expect(screen.getByText('Cours 3')).toBeInTheDocument();
+      expect(screen.getByText('Audit et réponse aux incidents')).toBeInTheDocument();
     });
   });
 
-  it('devrait afficher les informations clés (durée, tarif)', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
+  it('affiche les prérequis et la certification dans à propos', async () => {
+    renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Durée')).toBeInTheDocument();
-      expect(screen.getByText('Tarif')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'À propos de cette formation' })).toBeInTheDocument();
+      expect(screen.getByText('Prérequis')).toBeInTheDocument();
+      expect(screen.getByText(mockFormation.prerequis)).toBeInTheDocument();
+      expect(screen.getAllByText('Certification délivrée').length).toBeGreaterThan(0);
     });
   });
 
-  it('devrait afficher le mode de la formation', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
+  it('affiche la prochaine session et les places restantes dans la carte d’inscription', async () => {
+    renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Mode')).toBeInTheDocument();
+      expect(screen.getByText('Prochaine session')).toBeInTheDocument();
+      expect(screen.getAllByText('24 juillet 2026').length).toBeGreaterThan(0);
+      expect(screen.getByText('Clôture des inscriptions')).toBeInTheDocument();
+      expect(screen.getAllByText('19 juillet 2026').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('7 places restantes').length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('button', { name: "Se connecter pour s'inscrire" }).length).toBeGreaterThan(0);
     });
   });
 
-  it('devrait afficher les sessions disponibles', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
+  it('masque résultats et cours lorsque leurs données sont absentes', async () => {
+    formationsApi.formationsApi.getFormationDetail = vi.fn(() =>
+      Promise.resolve({
+        data: {
+          ...mockFormation,
+          objectifs_pedagogiques: [],
+          programme_syllabus: '',
+        },
+      })
     );
-
+    formationsApi.formationsApi.getSessionsOuvertes = vi.fn(() => Promise.resolve({ data: [] }));
+    renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Sessions disponibles')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'À propos' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Résultats' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cours' })).not.toBeInTheDocument();
     });
   });
 
-  it('devrait afficher un message si aucune session n\'est ouverte', async () => {
+  it('affiche un état indisponible si aucune session n’est ouverte', async () => {
     formationsApi.formationsApi.getSessionsOuvertes = vi.fn(() =>
       Promise.resolve({ data: [] })
     );
-
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText(/Aucune session ouverte/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: "Se connecter pour s'inscrire" })).not.toBeInTheDocument();
     });
   });
 
-  it('devrait afficher la référence de la formation', async () => {
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
+  it('ignore une session dont la clôture des inscriptions est passée', async () => {
+    formationsApi.formationsApi.getSessionsOuvertes = vi.fn(() =>
+      Promise.resolve({
+        data: [{
+          ...mockSessions[0],
+          date_debut: '2026-05-24T13:22:09.713Z',
+          date_fin: '2026-06-01T13:22:09.713Z',
+          date_cloture: '2026-05-19T13:22:09.713Z',
+        }],
+      })
     );
+
+    renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Référence')).toBeInTheDocument();
-      expect(screen.getByText(mockFormation.id)).toBeInTheDocument();
-    });
-  });
-
-  it('devrait masquer les sections vides', async () => {
-    const formationSansPrerequisNiCompetences = {
-      ...mockFormation,
-      prerequis: '',
-      objectifs_pedagogiques: [],
-      certification_delivree: false,
-    };
-
-    formationsApi.formationsApi.getFormationDetail = vi.fn(() =>
-      Promise.resolve({ data: formationSansPrerequisNiCompetences })
-    );
-
-    render(
-      <BrowserRouter>
-        <FormationDetailPage />
-      </BrowserRouter>
-    );
-
-    await waitFor(() => {
-      // Les sections vides ne doivent pas s'afficher
-      expect(screen.queryByText('Prérequis')).not.toBeInTheDocument();
-      expect(screen.queryByText('Compétences acquises')).not.toBeInTheDocument();
-      expect(screen.queryByText('Certification obtenue')).not.toBeInTheDocument();
+      expect(screen.getByText('Inscriptions indisponibles')).toBeInTheDocument();
+      expect(screen.queryByText('Prochaine session')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: "Se connecter pour s'inscrire" })).not.toBeInTheDocument();
     });
   });
 });
