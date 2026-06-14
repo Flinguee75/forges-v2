@@ -17,6 +17,13 @@ export const CreateFormationSchema = z.object({
   certification_delivree: z.boolean().default(false),
   public_cible: z.string().optional(),
   objectifs_pedagogiques: z.array(z.string()).max(10).optional(),
+  competences_acquises: z.array(z.string().max(80)).max(20).optional(),
+  outils: z.array(z.string().max(80)).max(20).optional(),
+  chapitres: z.array(z.object({
+    ordre: z.number().int().min(1),
+    titre: z.string().min(1).max(200),
+    duree: z.string().max(20).optional(),
+  })).max(50).optional(),
   prerequis: z.string().optional(),
   // RM-92 : durée accès formations à la demande (défaut 365j)
   duree_acces_jours: z.number().int().min(1).default(365),

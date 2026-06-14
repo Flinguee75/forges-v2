@@ -254,3 +254,55 @@ describe('FormationService', () => {
     });
   });
 });
+
+// Nouveaux champs — competences_acquises, outils, chapitres
+describe('champs pedagogiques — competences_acquises, outils, chapitres', () => {
+  it('cree une formation avec competences_acquises et outils', async () => {
+    const payload = {
+      competences_acquises: ['Cybersécurité stratégique', 'Gouvernance IA'],
+      outils: ['Wireshark', 'Splunk'],
+    };
+    const created = { ...baseFormation, ...payload };
+    mockRepo.create.mockResolvedValue(created as any);
+
+    const result = await service.create({
+      intitule: 'Formation Test',
+      description_courte: 'Desc',
+      duree_jours: 5,
+      cout_catalogue: 100000,
+      mode_formation: 'PRESENTIEL',
+      langues_disponibles: ['FR'],
+      certification_delivree: false,
+      duree_acces_jours: 365,
+      ...payload,
+    }, 'responsable-01');
+
+    expect(mockRepo.create).toHaveBeenCalled();
+    expect(result.competences_acquises).toEqual(payload.competences_acquises);
+    expect(result.outils).toEqual(payload.outils);
+  });
+
+  it('cree une formation avec chapitres structures', async () => {
+    const chapitres = [
+      { ordre: 1, titre: 'Introduction', duree: '1 heure' },
+      { ordre: 2, titre: 'Approfondissement' },
+    ];
+    const created = { ...baseFormation, chapitres };
+    mockRepo.create.mockResolvedValue(created as any);
+
+    const result = await service.create({
+      intitule: 'Formation Chapitres',
+      description_courte: 'Desc',
+      duree_jours: 3,
+      cout_catalogue: 50000,
+      mode_formation: 'EN_LIGNE',
+      langues_disponibles: ['FR'],
+      certification_delivree: false,
+      duree_acces_jours: 365,
+      chapitres,
+    }, 'responsable-01');
+
+    expect(result.chapitres).toHaveLength(2);
+    expect(result.chapitres[0].titre).toBe('Introduction');
+  });
+});

@@ -25,6 +25,9 @@ const DEFAULT_FORM = {
   duree_acces_jours: 365,
   url_contenu: '',
   image_url: '',
+  competences_acquises: '',
+  outils: '',
+  chapitres: '',
 };
 
 const SELECT_CLASS = 'w-full rounded-lg border border-border bg-white px-4 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary';
@@ -63,6 +66,15 @@ function normalizeToForm(formation) {
     objectifs_pedagogiques: Array.isArray(formation.objectifs_pedagogiques)
       ? formation.objectifs_pedagogiques.join('\n')
       : '',
+    competences_acquises: Array.isArray(formation.competences_acquises)
+      ? formation.competences_acquises.join('\n')
+      : '',
+    outils: Array.isArray(formation.outils)
+      ? formation.outils.join('\n')
+      : '',
+    chapitres: Array.isArray(formation.chapitres)
+      ? formation.chapitres.map((c) => `${c.titre}${c.duree ? ` | ${c.duree}` : ''}`).join('\n')
+      : '',
     prerequis: formation.prerequis || '',
     duree_acces_jours: formation.duree_acces_jours ?? 365,
     url_contenu: formation.url_contenu || '',
@@ -96,6 +108,24 @@ function buildPayload(formData) {
     duree_acces_jours: Number(formData.duree_acces_jours),
     lieu: formData.lieu.trim() || undefined,
   };
+
+  const competences = formData.competences_acquises
+    .split('\n').map((v) => v.trim()).filter(Boolean);
+  if (competences.length > 0) payload.competences_acquises = competences;
+
+  const outils = formData.outils
+    .split('\n').map((v) => v.trim()).filter(Boolean);
+  if (outils.length > 0) payload.outils = outils;
+
+  const chapitres = formData.chapitres
+    .split('\n')
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .map((line, idx) => {
+      const [titre, duree] = line.split('|').map((p) => p.trim());
+      return { ordre: idx + 1, titre, ...(duree ? { duree } : {}) };
+    });
+  if (chapitres.length > 0) payload.chapitres = chapitres;
 
   if (formData.url_contenu && formData.url_contenu.trim()) {
     payload.url_contenu = formData.url_contenu.trim();
@@ -384,7 +414,49 @@ export default function FormationForm() {
           </div>
         </Card>
 
-        {/* Section 4 — Configuration */}
+        {/* Section 4 — Contenu pédagogique */}
+        <Card>
+          <SectionTitle>Contenu pedagogique</SectionTitle>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">Competences acquises</label>
+                <textarea
+                  value={formData.competences_acquises}
+                  onChange={(event) => handleChange('competences_acquises', event.target.value)}
+                  rows={5}
+                  placeholder={`Une competence par ligne :\nIntegrations AI\nConnaissance de l'IA\nPensee critique`}
+                  className={TEXTAREA_CLASS}
+                />
+                <FieldHint>Une competence par ligne. Affichees sous forme de tags sur la page formation.</FieldHint>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-text">Outils decouverts</label>
+                <textarea
+                  value={formData.outils}
+                  onChange={(event) => handleChange('outils', event.target.value)}
+                  rows={5}
+                  placeholder={`Un outil par ligne :\nIA generative\nGoogle Gemini\nGoogle Sheets`}
+                  className={TEXTAREA_CLASS}
+                />
+                <FieldHint>Un outil par ligne. Affichees sous forme de tags sur la page formation.</FieldHint>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-text">Chapitres / Programme structure</label>
+              <textarea
+                value={formData.chapitres}
+                onChange={(event) => handleChange('chapitres', event.target.value)}
+                rows={8}
+                placeholder={`Un chapitre par ligne (format : Titre | Duree optionnelle) :\nIntroduction a l'IA | 1 heure\nOptimiser la productivite avec l'IA | 2 heures\nDecouvrir l'art du prompt | 2 heures\nUtiliser l'IA de maniere responsable | 1 heure`}
+                className={TEXTAREA_CLASS}
+              />
+              <FieldHint>Un chapitre par ligne. Format : "Titre du chapitre | Duree". La duree est optionnelle.</FieldHint>
+            </div>
+          </div>
+        </Card>
+
+        {/* Section 5 — Configuration */}
         <Card>
           <SectionTitle>Configuration</SectionTitle>
           <div className="space-y-4">

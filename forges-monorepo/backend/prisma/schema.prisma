@@ -106,6 +106,9 @@ model Formation {
   image_url               String?
   prerequis               String?
   objectifs_pedagogiques  String[]
+  competences_acquises    String[]
+  outils                  String[]
+  chapitres               Json?
   certification_delivree  Boolean                 @default(false)
   public_cible            String?
   partenaire_id           String?

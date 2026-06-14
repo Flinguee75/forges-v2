@@ -17,6 +17,26 @@ const MODE_LABELS = {
   AVEC_SESSION: 'Avec session',
 };
 
+const MODE_SCHEDULE_LABELS = {
+  A_LA_DEMANDE: 'Planning flexible',
+  PRESENTIEL: 'Présentiel',
+  EN_LIGNE: 'En ligne',
+  AVEC_SESSION: 'Sessions planifiées',
+};
+
+const MODE_SCHEDULE_SUB = {
+  A_LA_DEMANDE: 'Apprenez à votre propre rythme',
+  PRESENTIEL: 'Formation en salle',
+  EN_LIGNE: 'Accès en ligne',
+  AVEC_SESSION: 'Dates définies',
+};
+
+function getNiveauLabel(tarif = 0, duree = 0) {
+  if (tarif >= 1000000 || duree >= 35) return 'Expert';
+  if (tarif >= 500000 || duree >= 15) return 'Intermédiaire';
+  return 'Débutant';
+}
+
 const LANGUAGE_LABELS = {
   FR: 'Français',
   EN: 'Anglais',
@@ -77,6 +97,15 @@ function getFormationView(formation) {
     objectifs: Array.isArray(formation?.objectifs_pedagogiques)
       ? formation.objectifs_pedagogiques.filter(Boolean)
       : [],
+    competences: Array.isArray(formation?.competences_acquises)
+      ? formation.competences_acquises.filter(Boolean)
+      : [],
+    outils: Array.isArray(formation?.outils)
+      ? formation.outils.filter(Boolean)
+      : [],
+    chapitres: Array.isArray(formation?.chapitres)
+      ? formation.chapitres
+      : [],
     programme: normalizeProgramme(programme),
     certification: Boolean(formation?.certification_delivree),
     mode: formation?.mode_formation || '',
@@ -84,6 +113,68 @@ function getFormationView(formation) {
     langues,
     partenaire: formation?.partenaire?.raison_sociale || '',
   };
+}
+
+function TagList({ items }) {
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {items.map((item) => (
+        <span
+          key={item}
+          className="rounded-full border border-border bg-bg px-3 py-1 text-sm text-text"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ChapitreAccordion({ chapitres }) {
+  const [openIdx, setOpenIdx] = useState(null);
+
+  return (
+    <div className="mt-5 divide-y divide-border overflow-hidden rounded-xl border border-border">
+      {chapitres.map((chapitre, idx) => {
+        const isOpen = openIdx === idx;
+        return (
+          <div key={chapitre.ordre ?? idx} className="bg-white">
+            <button
+              type="button"
+              onClick={() => setOpenIdx(isOpen ? null : idx)}
+              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-bg focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary"
+              aria-expanded={isOpen}
+            >
+              <div className="flex items-center gap-4">
+                <span className="shrink-0 text-xs font-bold uppercase tracking-widest text-secondary">
+                  Cours {idx + 1}
+                </span>
+                <span className="font-semibold text-text">{chapitre.titre}</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {chapitre.duree && (
+                  <span className="text-xs text-subtext">{chapitre.duree}</span>
+                )}
+                <svg
+                  className={`h-4 w-4 text-subtext transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+            {isOpen && (
+              <div className="border-t border-border bg-bg px-5 py-4">
+                <p className="text-sm text-subtext">
+                  {chapitre.description || `Contenu du cours ${idx + 1} — ${chapitre.titre}`}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function getNextSession(sessions) {
@@ -147,12 +238,14 @@ export default function FormationDetailPage() {
   const nextSession = useMemo(() => getNextSession(availableSessions), [availableSessions]);
   const isOnDemand = f?.mode === 'A_LA_DEMANDE';
   const canEnroll = Boolean(isOnDemand || nextSession);
-  const hasCourseContent = Boolean(f?.programme.length || availableSessions.length);
+  const hasCourseContent = Boolean(f?.programme.length || f?.chapitres.length || availableSessions.length);
+  const hasSkillsContent = Boolean(f?.competences.length || f?.outils.length);
 
   const sections = useMemo(() => {
     if (!f) return [];
     return [
       { id: 'a-propos', label: 'À propos', visible: true },
+      { id: 'competences', label: 'Competences', visible: hasSkillsContent },
       { id: 'resultats', label: 'Résultats', visible: f.objectifs.length > 0 },
       { id: 'cours', label: 'Cours', visible: hasCourseContent },
     ].filter((section) => section.visible);
@@ -320,6 +413,43 @@ export default function FormationDetailPage() {
         </div>
       </header>
 
+      <div className="border-b border-border bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-wrap divide-x divide-border">
+            {f.chapitres.length > 0 && (
+              <div className="flex flex-col justify-center px-6 py-4 first:pl-0">
+                <p className="text-sm font-bold text-text">
+                  {f.chapitres.length} cours
+                </p>
+                <p className="mt-0.5 text-xs text-subtext">Programme structuré</p>
+              </div>
+            )}
+            <div className="flex flex-col justify-center px-6 py-4 first:pl-0">
+              <p className="text-sm font-bold text-text">
+                Niveau {getNiveauLabel(f.tarif || 0, f.duree || 0)}
+              </p>
+              <p className="mt-0.5 text-xs text-subtext">Expérience recommandée</p>
+            </div>
+            {f.duree && (
+              <div className="flex flex-col justify-center px-6 py-4">
+                <p className="text-sm font-bold text-text">{formatDuration(f.duree)}</p>
+                <p className="mt-0.5 text-xs text-subtext">Durée de formation</p>
+              </div>
+            )}
+            {f.mode && (
+              <div className="flex flex-col justify-center px-6 py-4">
+                <p className="text-sm font-bold text-text">
+                  {MODE_SCHEDULE_LABELS[f.mode] || getModeLabel(f.mode)}
+                </p>
+                <p className="mt-0.5 text-xs text-subtext">
+                  {MODE_SCHEDULE_SUB[f.mode] || ''}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <nav className="sticky top-0 z-20 border-b border-border bg-white/95 shadow-sm backdrop-blur" aria-label="Sections de la formation">
         <div className="container mx-auto flex overflow-x-auto px-4">
           {sections.map((section) => {
@@ -373,6 +503,24 @@ export default function FormationDetailPage() {
               )}
             </section>
 
+            {hasSkillsContent && (
+              <section id="competences" className="scroll-mt-24 rounded-xl border border-border bg-white p-6 md:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary">Contenu</p>
+                {f.competences.length > 0 && (
+                  <div className="mt-5">
+                    <h2 className="text-xl font-bold text-primary">Competences que vous acquerrez</h2>
+                    <TagList items={f.competences} />
+                  </div>
+                )}
+                {f.outils.length > 0 && (
+                  <div className={f.competences.length ? 'mt-8' : 'mt-5'}>
+                    <h2 className="text-xl font-bold text-primary">Outils que vous decouvrirez</h2>
+                    <TagList items={f.outils} />
+                  </div>
+                )}
+              </section>
+            )}
+
             {f.objectifs.length > 0 && (
               <section id="resultats" className="scroll-mt-24 rounded-xl border border-border bg-white p-6 md:p-8">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary">Résultats</p>
@@ -396,12 +544,19 @@ export default function FormationDetailPage() {
             {hasCourseContent && (
               <section id="cours" className="scroll-mt-24 rounded-xl border border-border bg-white p-6 md:p-8">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-secondary">Cours</p>
-                {f.programme.length > 0 && (
+                {f.chapitres.length > 0 && (
                   <>
                     <h2 className="mt-2 text-2xl font-bold text-primary">Programme de la formation</h2>
                     <p className="mt-3 text-sm leading-6 text-subtext">
-                      Un parcours structure pour progresser et mettre les acquis en pratique.
+                      {f.chapitres.length} cours · Un parcours structure pour progresser et mettre les acquis en pratique.
                     </p>
+                    <ChapitreAccordion chapitres={f.chapitres} />
+                  </>
+                )}
+
+                {f.chapitres.length === 0 && f.programme.length > 0 && (
+                  <>
+                    <h2 className="mt-2 text-2xl font-bold text-primary">Programme de la formation</h2>
                     <div className="mt-6 divide-y divide-border overflow-hidden rounded-xl border border-border">
                       {f.programme.map((cours, index) => (
                         <article key={`${cours}-${index}`} className="grid gap-2 bg-white p-5 sm:grid-cols-[90px_1fr] sm:items-start">

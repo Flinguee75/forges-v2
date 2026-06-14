@@ -53,6 +53,33 @@ vi.mock('../../../components/feedback/Spinner', () => ({
   },
 }));
 
+const mockFormationWithContent = {
+  id: 'frm-prem-0001-0000-0000-000000000002',
+  intitule: '[F-PREM-01] Cybersécurité Avancée GWU',
+  description_courte: 'Certification Premium GWU — Cybersécurité niveau expert.',
+  description_longue: '<p>Formation Premium GWU/CCDL en cybersécurité avancée.</p>',
+  duree_jours: 60,
+  cout_catalogue: 200000000,
+  type_formation: 'PREMIUM',
+  statut: 'ACTIVE',
+  certification_delivree: true,
+  prerequis: 'Maîtrise de la programmation Python',
+  objectifs_pedagogiques: ['Sécuriser une infrastructure cloud'],
+  competences_acquises: ['Cybersécurité stratégique', 'Analyse des menaces', 'Gouvernance IA'],
+  outils: ['Wireshark', 'Metasploit', 'Splunk'],
+  chapitres: [
+    { ordre: 1, titre: 'Introduction à la cybersécurité', duree: '2 heures' },
+    { ordre: 2, titre: 'Audit et réponse aux incidents', duree: '3 heures' },
+    { ordre: 3, titre: 'Gouvernance et conformité' },
+  ],
+  programme_syllabus: '',
+  duree_acces_jours: 365,
+  mode_formation: 'AVEC_SESSION',
+  langues_disponibles: ['FR'],
+  partenaire: { raison_sociale: 'GWU/CCDL' },
+  responsable_id: 'usr-resp-0001',
+};
+
 const mockFormation = {
   id: 'frm-prem-0001-0000-0000-000000000002',
   intitule: '[F-PREM-01] Cybersécurité Avancée GWU',
@@ -179,6 +206,76 @@ describe('FormationDetailPage', () => {
       expect(screen.getAllByText('19 juillet 2026').length).toBeGreaterThan(0);
       expect(screen.getAllByText('7 places restantes').length).toBeGreaterThan(0);
       expect(screen.getAllByRole('button', { name: "Se connecter pour s'inscrire" }).length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('competences_acquises, outils, chapitres', () => {
+    beforeEach(() => {
+      formationsApi.formationsApi.getFormationDetail = vi.fn(() =>
+        Promise.resolve({ data: mockFormationWithContent })
+      );
+      formationsApi.formationsApi.getSessionsOuvertes = vi.fn(() =>
+        Promise.resolve({ data: [] })
+      );
+    });
+
+    it('affiche la section Competences avec les tags competences_acquises', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Competences que vous acquerrez')).toBeInTheDocument();
+        expect(screen.getByText('Cybersécurité stratégique')).toBeInTheDocument();
+        expect(screen.getByText('Analyse des menaces')).toBeInTheDocument();
+        expect(screen.getByText('Gouvernance IA')).toBeInTheDocument();
+      });
+    });
+
+    it('affiche les outils sous forme de tags', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Outils que vous decouvrirez')).toBeInTheDocument();
+        expect(screen.getByText('Wireshark')).toBeInTheDocument();
+        expect(screen.getByText('Metasploit')).toBeInTheDocument();
+        expect(screen.getByText('Splunk')).toBeInTheDocument();
+      });
+    });
+
+    it('affiche l\'onglet Competences dans la nav sticky', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Competences' })).toBeInTheDocument();
+      });
+    });
+
+    it('affiche les chapitres sous forme d\'accordion avec titre et duree', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText('Programme de la formation')).toBeInTheDocument();
+        expect(screen.getByText('Introduction à la cybersécurité')).toBeInTheDocument();
+        expect(screen.getByText('2 heures')).toBeInTheDocument();
+        expect(screen.getByText('Audit et réponse aux incidents')).toBeInTheDocument();
+        expect(screen.getByText('3 heures')).toBeInTheDocument();
+        expect(screen.getByText('Gouvernance et conformité')).toBeInTheDocument();
+      });
+    });
+
+    it('affiche le label "X cours" dans la banniere et le programme', async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getAllByText(/3 cours/).length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByText('Programme structuré')).toBeInTheDocument();
+      });
+    });
+
+    it('masque l\'onglet Competences si aucune competence ni outil', async () => {
+      formationsApi.formationsApi.getFormationDetail = vi.fn(() =>
+        Promise.resolve({
+          data: { ...mockFormationWithContent, competences_acquises: [], outils: [] },
+        })
+      );
+      renderPage();
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: 'Competences' })).not.toBeInTheDocument();
+      });
     });
   });
 
