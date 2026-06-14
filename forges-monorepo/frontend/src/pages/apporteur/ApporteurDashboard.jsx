@@ -100,9 +100,6 @@ export default function ApporteurDashboard() {
               Espace apporteur
             </p>
             <h1 className="mt-3 text-2xl font-semibold text-text">Tableau de bord</h1>
-            <p className="mt-2 text-sm text-subtext">
-              Suivez vos commissions, votre code permanent et votre seuil de reversement.
-            </p>
           </div>
           <Badge variant={workflowConfig.variant} size="small">
             {workflowConfig.label}

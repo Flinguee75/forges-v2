@@ -108,7 +108,7 @@ export default function CreateApporteur() {
               Nouvel apporteur
             </h2>
             <p className="mt-2 text-subtext">
-              Créez un apporteur actif avec son code UUID permanent.
+              Renseignez les informations du nouvel apporteur.
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate('/backoffice/dashboard')}>
@@ -218,10 +218,6 @@ export default function CreateApporteur() {
               <option value="ES">Espagnol</option>
               <option value="PT">Portugais</option>
             </select>
-          </div>
-
-          <div className="rounded-lg border border-warning/20 bg-warning/10 p-4 text-sm text-subtext">
-            Le backend active immédiatement l&apos;apporteur et génère son code UUID permanent.
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

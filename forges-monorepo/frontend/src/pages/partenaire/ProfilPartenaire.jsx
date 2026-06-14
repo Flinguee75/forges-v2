@@ -16,7 +16,7 @@ const COPY = {
   FR: {
     eyebrow: 'Espace Partenaire',
     title: 'Profil partenaire',
-    description: 'Les informations modifiables sont limitees a l email, la raison sociale et le pays. La commission FORGES reste geree par le backoffice et n est pas exposee ici.',
+    description: '',
     editableTitle: 'Informations modifiables',
     summaryTitle: 'Resume du compte',
     reminderTitle: 'Rappel metier',
@@ -39,7 +39,7 @@ const COPY = {
   EN: {
     eyebrow: 'Partner Space',
     title: 'Partner profile',
-    description: 'Editable information is limited to email, company name and country. FORGES commission remains managed by the back office and is not exposed here.',
+    description: '',
     editableTitle: 'Editable information',
     summaryTitle: 'Account summary',
     reminderTitle: 'Business reminder',
@@ -86,7 +86,7 @@ const COPY = {
   PT: {
     eyebrow: 'Espaco Parceiro',
     title: 'Perfil do parceiro',
-    description: 'As informacoes editaveis limitam-se ao email, razao social e pais. A comissao FORGES continua gerida pelo backoffice e nao e exposta aqui.',
+    description: '',
     editableTitle: 'Informacoes editaveis',
     summaryTitle: 'Resumo da conta',
     reminderTitle: 'Lembrete de negocio',
