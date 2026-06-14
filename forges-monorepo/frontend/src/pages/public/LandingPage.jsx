@@ -317,9 +317,27 @@ function AnimatedStat({ value, label }) {
 }
 
 const PERKS_B2B = {
-  STARTER:    ['Jusqu\'a 20 membres', 'Vouchers organisation', 'Tableau de bord equipe', 'Formations standard incluses'],
-  BUSINESS:   ['Jusqu\'a 50 membres', 'Vouchers organisation', 'Tableau de bord equipe', 'Formations standard incluses', 'Rapports consolides'],
-  ENTERPRISE: ['Jusqu\'a 100 membres', 'Vouchers organisation', 'Tableau de bord equipe', 'Formations standard incluses', 'Rapports consolides', '2 formations Premium offertes'],
+  STARTER: [
+    { text: 'Vouchers organisation', ok: true },
+    { text: 'Tableau de bord equipe', ok: true },
+    { text: 'Formations standard incluses', ok: true },
+    { text: 'Rapports consolides', ok: false },
+    { text: '2 formations Premium offertes', ok: false },
+  ],
+  BUSINESS: [
+    { text: 'Vouchers organisation', ok: true },
+    { text: 'Tableau de bord equipe', ok: true },
+    { text: 'Formations standard incluses', ok: true },
+    { text: 'Rapports consolides', ok: true },
+    { text: '2 formations Premium offertes', ok: false },
+  ],
+  ENTERPRISE: [
+    { text: 'Vouchers organisation', ok: true },
+    { text: 'Tableau de bord equipe', ok: true },
+    { text: 'Formations standard incluses', ok: true },
+    { text: 'Rapports consolides', ok: true },
+    { text: '2 formations Premium offertes', ok: true },
+  ],
 };
 
 const PERKS_ESSENTIEL = [
@@ -802,7 +820,7 @@ export default function LandingPage() {
                   Ideal pour les petites equipes qui veulent centraliser la formation de leurs collaborateurs.
                 </p>
                 <ul className="mt-6 space-y-3">
-                  {PERKS_B2B.STARTER.map((t) => <PerkRow key={t} text={t} ok={true} />)}
+                  {PERKS_B2B.STARTER.map((p) => <PerkRow key={p.text} text={p.text} ok={p.ok} />)}
                 </ul>
                 <div className="mt-auto pt-8">
                   <CtaLink to="/register/organisation" variant="outline" className="w-full">Commencer Starter</CtaLink>
@@ -828,12 +846,18 @@ export default function LandingPage() {
                   Pour les equipes en croissance qui forment regulierement et veulent piloter les resultats.
                 </p>
                 <ul className="mt-6 space-y-3">
-                  {PERKS_B2B.BUSINESS.map((t) => (
-                    <li key={t} className="flex items-center gap-3 text-sm text-white/85">
-                      <svg className="h-4 w-4 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      {t}
+                  {PERKS_B2B.BUSINESS.map((p) => (
+                    <li key={p.text} className={`flex items-center gap-3 text-sm ${p.ok ? 'text-white/85' : 'text-white/35'}`}>
+                      {p.ok ? (
+                        <svg className="h-4 w-4 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4 shrink-0 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                      {p.text}
                     </li>
                   ))}
                 </ul>
@@ -858,7 +882,7 @@ export default function LandingPage() {
                   La solution complete pour les grandes structures avec formations Premium et suivi avance.
                 </p>
                 <ul className="mt-6 space-y-3">
-                  {PERKS_B2B.ENTERPRISE.map((t) => <PerkRow key={t} text={t} ok={true} />)}
+                  {PERKS_B2B.ENTERPRISE.map((p) => <PerkRow key={p.text} text={p.text} ok={p.ok} />)}
                 </ul>
                 <div className="mt-auto pt-8">
                   <CtaLink to="/register/organisation" variant="secondary" className="w-full">Commencer Enterprise</CtaLink>
