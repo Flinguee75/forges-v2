@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
-import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Spinner from '../../components/feedback/Spinner';
 import {
@@ -189,39 +187,50 @@ export default function ProfilPartenaire() {
 
   if (!profil) {
     return (
-      <Card>
-        <div className="space-y-3 text-center">
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">{copy.title}</h1>
-          <p className="text-sm text-[var(--color-subtext)]">
-            {error || copy.loadError}
-          </p>
-        </div>
-      </Card>
+      <div className="rounded-xl border border-[var(--color-border)] bg-white p-8 text-center shadow-sm">
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">{copy.title}</h1>
+        <p className="mt-2 text-sm text-[var(--color-subtext)]">{error || copy.loadError}</p>
+      </div>
     );
   }
 
+  const statusDot = {
+    ACTIF:                  'bg-emerald-500',
+    EN_ATTENTE_VERIFICATION:'bg-amber-400',
+    INVITE:                 'bg-gray-400',
+    SUSPENDU:               'bg-red-400',
+    RESILIE:                'bg-red-600',
+  }[profil?.statut] || 'bg-gray-400';
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl bg-[linear-gradient(135deg,#E65100_0%,#F28C38_100%)] p-6 text-white shadow-lg">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/80">
+    <div className="space-y-8">
+
+      {/* Header */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary)]/60 mb-1">
           {copy.eyebrow}
         </p>
-        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">{copy.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm text-white/90">
-              {copy.description}
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">{copy.title}</h1>
+            <p className="mt-1 text-sm text-[var(--color-subtext)] max-w-xl">{copy.description}</p>
           </div>
-          <Badge variant="info" className="bg-white/15 text-white">
-            {profil.mode_inscription || copy.autoRegistration}
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-text)] sm:self-auto">
+            <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
+            {statutConfig.label}
+          </span>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card title={copy.editableTitle}>
-          <form className="space-y-5" onSubmit={handleSubmit}>
+      {/* Grid */}
+      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
+
+        {/* Form */}
+        <div className="rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
+          <div className="border-b border-[var(--color-border)] px-6 py-4">
+            <h2 className="text-sm font-semibold text-[var(--color-text)]">{copy.editableTitle}</h2>
+          </div>
+          <form className="px-6 py-6 space-y-5" onSubmit={handleSubmit}>
             <div className="grid gap-4 md:grid-cols-2">
               <Input
                 label={copy.email}
@@ -246,49 +255,52 @@ export default function ProfilPartenaire() {
                 placeholder="CI"
               />
             </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button type="submit" variant="primary" loading={isLoading}>
-                {copy.save}
-              </Button>
-            </div>
+            <Button type="submit" variant="primary" loading={isLoading}>
+              {copy.save}
+            </Button>
           </form>
-        </Card>
-
-        <div className="space-y-6">
-          <Card title={copy.summaryTitle}>
-            <div className="space-y-4 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[var(--color-subtext)]">{copy.status}</span>
-                <Badge variant={statutConfig.variant}>{statutConfig.label}</Badge>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[var(--color-subtext)]">{copy.partnerType}</span>
-                <span className="font-medium text-[var(--color-text)]">{profil.type || 'AUTRE'}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[var(--color-subtext)]">{copy.country}</span>
-                <span className="font-medium text-[var(--color-text)]">{profil.pays || 'CI'}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[var(--color-subtext)]">{copy.formations}</span>
-                <span className="font-medium text-[var(--color-text)]">{profil.nb_formations || 0}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[var(--color-subtext)]">{copy.validEmail}</span>
-                <span className="font-medium text-[var(--color-text)]">{profil.email_principal || profil.email || user?.email || '-'}</span>
-              </div>
-            </div>
-          </Card>
-
-          <Card title={copy.reminderTitle}>
-            <div className="space-y-3 text-sm text-[var(--color-subtext)]">
-              <p>{copy.reminder1}</p>
-              <p>{copy.reminder2}</p>
-              <p>{copy.reminder3}</p>
-            </div>
-          </Card>
         </div>
+
+        {/* Summary */}
+        <div className="rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
+          <div className="border-b border-[var(--color-border)] px-6 py-4">
+            <h2 className="text-sm font-semibold text-[var(--color-text)]">{copy.summaryTitle}</h2>
+          </div>
+          <div className="divide-y divide-[var(--color-border)] px-6">
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-[var(--color-subtext)]">{copy.status}</span>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-text)]">
+                <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
+                {statutConfig.label}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-[var(--color-subtext)]">{copy.partnerType}</span>
+              <span className="text-sm font-medium text-[var(--color-text)]">{profil.type || 'AUTRE'}</span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-[var(--color-subtext)]">{copy.country}</span>
+              <span className="text-sm font-medium text-[var(--color-text)]">{profil.pays || 'CI'}</span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-[var(--color-subtext)]">{copy.formations}</span>
+              <span className="text-sm font-medium text-[var(--color-text)]">{profil.nb_formations || 0}</span>
+            </div>
+            <div className="flex items-start justify-between gap-4 py-3">
+              <span className="shrink-0 text-sm text-[var(--color-subtext)]">{copy.validEmail}</span>
+              <span className="break-all text-right text-sm font-medium text-[var(--color-text)]">
+                {profil.email_principal || profil.email || user?.email || '-'}
+              </span>
+            </div>
+            {profil.mode_inscription && (
+              <div className="flex items-center justify-between py-3">
+                <span className="text-sm text-[var(--color-subtext)]">Mode d'inscription</span>
+                <span className="text-sm font-medium text-[var(--color-text)]">{profil.mode_inscription}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );
