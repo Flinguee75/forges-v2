@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AbonnementRetailService } from './retail/abonnement-retail.service';
 import { AbonnementOrganisationService } from './organisation/abonnement-organisation.service';
 import { AbonnementB2BService } from './b2b/abonnement-b2b.service';
+import { TARIFS_RETAIL } from './retail/abonnement-retail.repository';
 
 export class AbonnementController {
   constructor(
@@ -294,6 +295,19 @@ export class AbonnementController {
   }
 
   // GET /api/backoffice/abonnements/contrat-institutionnel — ADMIN
+  // GET /api/abonnements/tarifs — Public (landing page, no auth)
+  getTarifsPublic(req: Request, res: Response) {
+    return res.status(200).json({
+      statusCode: 200,
+      data: {
+        retail: {
+          ESSENTIEL: TARIFS_RETAIL.ESSENTIEL,
+          PREMIUM: TARIFS_RETAIL.PREMIUM,
+        },
+      },
+    });
+  }
+
   async getContratsInstitutionnelsBackoffice(req: Request, res: Response, next: NextFunction) {
     try {
       const { statut, search, page = 1, limit = 20 } = req.query;

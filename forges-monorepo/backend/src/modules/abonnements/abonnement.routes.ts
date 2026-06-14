@@ -29,6 +29,15 @@ const b2bService = new AbonnementB2BService(prisma, auditLogger, emailService);
 const abonnementController = new AbonnementController(retailService, orgService, b2bService, prisma);
 
 // ============================================
+// ROUTE PUBLIQUE — Tarifs (landing page)
+// ============================================
+
+// GET /api/abonnements/tarifs — Public, no auth
+router.get('/tarifs', (req, res) => {
+  abonnementController.getTarifsPublic(req, res);
+});
+
+// ============================================
 // ROUTES RETAIL (Apprenant individuel)
 // ============================================
 

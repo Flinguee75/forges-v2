@@ -5,6 +5,11 @@ import { apiClient } from './client';
  */
 
 export const abonnementsApi = {
+  // GET /api/abonnements/tarifs - Tarifs publics (landing page, no auth)
+  getTarifs: async () => {
+    return apiClient.get('/abonnements/tarifs');
+  },
+
   // GET /api/backoffice/abonnements - Vue consolidée backoffice
   getAllBackoffice: async (params = {}) => {
     return apiClient.get('/backoffice/abonnements', { params });
