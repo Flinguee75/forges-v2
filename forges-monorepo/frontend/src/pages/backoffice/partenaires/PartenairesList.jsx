@@ -51,14 +51,17 @@ export default function PartenairesList() {
     const apiCall = {
       suspend: () => partenairesApi.suspendrePartenaire(id),
       reactivate: () => partenairesApi.reactiverPartenaire(id),
+      delete: () => partenairesApi.supprimerPartenaire(id),
     }[action];
 
     await execute(apiCall, {
       onSuccess: () => {
-        showToast(
-          action === 'suspend' ? 'Partenaire suspendu.' : 'Partenaire réactivé.',
-          'success'
-        );
+        const messages = {
+          suspend: 'Partenaire suspendu.',
+          reactivate: 'Partenaire réactivé.',
+          delete: 'Partenaire supprimé.',
+        };
+        showToast(messages[action], 'success');
         load();
       },
     });
@@ -182,6 +185,21 @@ export default function PartenairesList() {
                               Réactiver
                             </button>
                           )}
+
+                          {/* Supprimer — toujours visible, avec confirmation */}
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Supprimer définitivement "${p.raison_sociale}" ? Cette action est irréversible.`)) {
+                                handleInlineAction(p.id, 'delete');
+                              }
+                            }}
+                            disabled={actionLoading === `${p.id}-delete`}
+                            title="Supprimer définitivement ce partenaire"
+                            className="inline-flex items-center gap-1.5 rounded-md bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                          >
+                            <Icon name="ban" size={13} />
+                            Supprimer
+                          </button>
 
                         </div>
                       </td>

@@ -300,6 +300,10 @@ export const reactiverPartenaire = (id) => {
   return apiClient.put(`/admin/partenaires/${id}/reactiver`).then(unwrapPayload);
 };
 
+export const supprimerPartenaire = (id) => {
+  return apiClient.delete(`/admin/partenaires/${id}`).then(unwrapPayload);
+};
+
 const partenairesApi = {
   getPartenaireStats,
   getMesFormations,
@@ -322,6 +326,7 @@ const partenairesApi = {
   refuserPartenaire,
   suspendrePartenaire,
   reactiverPartenaire,
+  supprimerPartenaire,
 };
 
 export default partenairesApi;

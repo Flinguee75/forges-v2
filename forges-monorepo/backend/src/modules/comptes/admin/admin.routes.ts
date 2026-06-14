@@ -59,6 +59,10 @@ router.put('/partenaires/:id/reactiver', (req, res, next) => {
   controller.reactivatePartenaire(req, res, next);
 });
 
+router.delete('/partenaires/:id', authenticate, authorize('ADMIN'), (req, res, next) => {
+  controller.deletePartenaire(req, res, next);
+});
+
 router.post('/apporteurs', (req, res, next) => {
   controller.createApporteur(req, res, next);
 });

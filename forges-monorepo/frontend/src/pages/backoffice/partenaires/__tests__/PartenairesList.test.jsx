@@ -25,6 +25,7 @@ vi.mock('../../../../api/partenaires.api', () => ({
     getAllPartenaires: vi.fn(),
     suspendrePartenaire: vi.fn(),
     reactiverPartenaire: vi.fn(),
+    supprimerPartenaire: vi.fn(),
   },
 }));
 

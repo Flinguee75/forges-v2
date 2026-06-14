@@ -310,6 +310,17 @@ export class AdminService {
     return updated;
   }
 
+  async deletePartenaire(id: string, adminId: string) {
+    const partenaire = await this.prisma.partenaire.findUnique({ where: { id } });
+    if (!partenaire) throw new Error('PARTENAIRE_NOT_FOUND');
+
+    await this.prisma.formationPartenaire.deleteMany({ where: { partenaire_id: id } });
+    await this.prisma.partenaire.delete({ where: { id } });
+
+    await this.audit.info('PARTENAIRE_SUPPRIME', { partenaire_id: id, email: partenaire.email_principal, admin_id: adminId });
+    return { message: 'Partenaire supprimé.' };
+  }
+
   async listApporteurs(page = 1, limit = 20, search = '') {
     const skip = (page - 1) * limit;
     const where = search

@@ -137,6 +137,16 @@ export class AdminController {
     }
   }
 
+  async deletePartenaire(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.adminService.deletePartenaire(req.params.id, req.user!.userId);
+      res.json({ statusCode: 200, data: result });
+    } catch (error: any) {
+      if (error.message === 'PARTENAIRE_NOT_FOUND') return res.status(404).json({ statusCode: 404, error: 'PARTENAIRE_NOT_FOUND' });
+      next(error);
+    }
+  }
+
   async listApporteurs(req: Request, res: Response, next: NextFunction) {
     try {
       const page = parseInt(req.query.page as string) || 1;
