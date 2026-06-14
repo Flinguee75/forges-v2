@@ -624,6 +624,8 @@ export class EmailService {
         '',
         'Ce lien est personnel et valable pendant 48 heures.',
         '',
+        'Pour toute question : contact@forges-group.com',
+        '',
         "L'équipe FORGES",
       ]),
       html: `
@@ -650,8 +652,14 @@ export class EmailService {
             <strong>Important :</strong> Ce lien est personnel et valable pendant <strong>48 heures</strong>. Ne le partagez pas.
           </p>
 
-          <p style="color:#566573;font-size:12px;margin-top:24px;border-top:1px solid #EEE;padding-top:16px;">
-            Pour toute question, contactez-nous : <a href="mailto:contact@forges-group.com" style="color:#1B4F72;">contact@forges-group.com</a><br>
+          <div style="background:#F8F9FA;border:1px solid #E8E8E8;border-radius:8px;padding:14px 18px;margin-top:20px;display:flex;align-items:center;gap:12px;">
+            <p style="margin:0;font-size:13px;color:#566573;">
+              Une question ? Contactez l'équipe FORGES :<br>
+              <a href="mailto:contact@forges-group.com" style="color:#1B4F72;font-weight:bold;font-size:14px;">contact@forges-group.com</a>
+            </p>
+          </div>
+
+          <p style="color:#566573;font-size:12px;margin-top:20px;border-top:1px solid #EEE;padding-top:16px;">
             &copy; 2026 FORGES AGREGATEUR
           </p>
         </div>
