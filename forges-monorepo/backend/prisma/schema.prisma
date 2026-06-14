@@ -261,6 +261,7 @@ model Partenaire {
   token_invitation_expiration        DateTime?
   responsable_designe_id             String?
   seuil_reversement_personnalise     Int?
+  logo_url                           String?
   formations                         Formation[]
   formations_partenaires             FormationPartenaire[]
   commissions_partenaires            CommissionPartenaire[]

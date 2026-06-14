@@ -92,11 +92,13 @@ describe('ProfilPartenaire', () => {
     await user.click(screen.getByRole('button', { name: /Enregistrer les modifications/i }));
 
     await waitFor(() => {
-      expect(apiMocks.updateMonProfilPartenaire).toHaveBeenCalledWith({
-        email: 'partner+new@test.ci',
-        raison_sociale: 'Tech Formation Plus',
-        pays: 'CI',
-      });
+      expect(apiMocks.updateMonProfilPartenaire).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'partner+new@test.ci',
+          raison_sociale: 'Tech Formation Plus',
+          pays: 'CI',
+        })
+      );
       expect(state.updateUser).toHaveBeenCalled();
       expect(screen.getByDisplayValue('Tech Formation Plus')).toBeInTheDocument();
     });

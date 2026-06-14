@@ -428,6 +428,7 @@ export class PartenaireService {
       ...(dto.raison_sociale ? { raison_sociale: dto.raison_sociale } : {}),
       ...(dto.email_principal ? { email_principal: dto.email_principal } : {}),
       ...(dto.pays ? { pays: dto.pays } : {}),
+      ...('logo_url' in dto ? { logo_url: dto.logo_url ?? null } : {}),
     });
 
     await this.audit.info('PARTENAIRE_PROFIL_MAJ', { partenaire_id });

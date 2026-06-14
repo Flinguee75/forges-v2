@@ -20,7 +20,7 @@ export class PartenaireRepository {
     });
   }
 
-  async updateProfil(id: string, data: { raison_sociale?: string; email_principal?: string; pays?: string }) {
+  async updateProfil(id: string, data: { raison_sociale?: string; email_principal?: string; pays?: string; logo_url?: string | null }) {
     return this.prisma.partenaire.update({
       where: { id },
       data,

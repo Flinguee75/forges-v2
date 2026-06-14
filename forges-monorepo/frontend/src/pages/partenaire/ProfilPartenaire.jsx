@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/ui/Button';
+import Icon from '../../components/ui/Icon';
 import Input from '../../components/ui/Input';
 import Spinner from '../../components/feedback/Spinner';
 import {
@@ -117,7 +118,9 @@ export default function ProfilPartenaire() {
     email: '',
     raison_sociale: '',
     pays: 'CI',
+    logo_url: null,
   });
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const loadProfil = async () => {
@@ -129,6 +132,7 @@ export default function ProfilPartenaire() {
               email: result?.email_principal || result?.email || '',
               raison_sociale: result?.raison_sociale || '',
               pays: result?.pays || 'CI',
+              logo_url: result?.logo_url || null,
             });
           },
           showErrorToast: false,
@@ -156,6 +160,7 @@ export default function ProfilPartenaire() {
       email: formData.email.trim(),
       raison_sociale: formData.raison_sociale.trim(),
       pays: formData.pays,
+      logo_url: formData.logo_url,
     }), {
       showSuccessToast: false,
       onSuccess: (result) => {
@@ -194,6 +199,29 @@ export default function ProfilPartenaire() {
     );
   }
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 200;
+        const ratio = Math.min(MAX / img.width, MAX / img.height);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        setFormData((prev) => ({ ...prev, logo_url: canvas.toDataURL('image/jpeg', 0.85) }));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const initials = (formData.raison_sociale || profil?.raison_sociale || '?')
+    .split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
   const statusDot = {
     ACTIF:                  'bg-emerald-500',
     EN_ATTENTE_VERIFICATION:'bg-amber-400',
@@ -205,20 +233,55 @@ export default function ProfilPartenaire() {
   return (
     <div className="space-y-8">
 
-      {/* Header */}
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary)]/60 mb-1">
-          {copy.eyebrow}
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">{copy.title}</h1>
+      {/* Header moderne avec logo */}
+      <div className="rounded-xl border border-[var(--color-border)] bg-white shadow-sm overflow-hidden">
+        {/* Bandeau couleur */}
+        <div className="h-24 bg-gradient-to-r from-[var(--color-primary)] to-[#2471A3]" />
+
+        <div className="px-6 pb-6">
+          {/* Avatar logo */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between -mt-10">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Changer le logo"
+                className="group relative h-20 w-20 rounded-xl border-4 border-white bg-[var(--color-primary)] shadow-md overflow-hidden flex items-center justify-center cursor-pointer"
+              >
+                {formData.logo_url ? (
+                  <img src={formData.logo_url} alt="Logo" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-bold text-white tracking-tight">{initials}</span>
+                )}
+                <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Icon name="pencil" size={18} className="text-white" />
+                </span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoChange}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 pb-1 sm:items-end">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-text)]">
+                <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
+                {statutConfig.label}
+              </span>
+            </div>
+          </div>
+
+          {/* Nom + description */}
+          <div className="mt-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary)]/60">{copy.eyebrow}</p>
+            <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-[var(--color-text)]">
+              {formData.raison_sociale || copy.title}
+            </h1>
             <p className="mt-1 text-sm text-[var(--color-subtext)] max-w-xl">{copy.description}</p>
           </div>
-          <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-text)] sm:self-auto">
-            <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
-            {statutConfig.label}
-          </span>
         </div>
       </div>
 
